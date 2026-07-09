@@ -8,15 +8,15 @@
 
 ## 1. The Setup: The Trust Direction Nobody Solved
 
-Opaque's platform, as of 3.0, solves a specific and well-understood problem: protecting a customer's data from the operator of the model that touches it. Confidential computing, verifiable agent identity, and the cMCP gateway all point the same direction. The enterprise is the vulnerable party, the model operator is the party being constrained, and the customer needs proof the constraint is real.
+Confidential-computing platforms, including the reference implementation (Opaque), solve a specific and well-understood problem: protecting a customer's data from the operator of the model that touches it. Confidential computing, verifiable agent identity, and the cMCP gateway all point the same direction. The enterprise is the vulnerable party, the model operator is the party being constrained, and the customer needs proof the constraint is real.
 
 Deploy a frontier model into a customer's own infrastructure, on prem, inside a sovereign cloud, behind an air gap, and the vulnerable party flips. Now it is the model builder whose IP is exposed. Once weights leave the builder's boundary, the builder has to trust the customer's hardware, hypervisor, and operations staff not to extract the weights, copy them, fine tune and leak a derivative, or reverse engineer proprietary architecture choices out of the artifact itself. Today there is no attestation gated mechanism that says "release these weights only into this specific verified enclave, under this specific policy," and no way to revoke that release if the environment is later found compromised.
 
 This is a forward-looking design. It targets the builder-into-customer-infrastructure case: a frontier lab whose weights need protecting the moment a custodian's infrastructure sits between those weights and a customer's own hardware. It is written ahead of that need, not against any specific deployment.
 
-**This is where Opaque 3.0 stops, and where this document starts.**
+**This is the half of that trust boundary the customer-facing platforms do not address, and where this specification starts.**
 
-Weight Custody Manifest is the second half of the trust boundary Opaque already owns one side of. Where the existing platform proves to the customer what the model operator did, Weight Custody Manifest proves to the model builder what the customer's infrastructure will and will not do with the weights it is trusted with.
+Weight Custody Manifest is the second half of a trust boundary the customer-facing platform already owns one side of. Where the existing platform proves to the customer what the model operator did, Weight Custody Manifest proves to the model builder what the customer's infrastructure will and will not do with the weights it is trusted with.
 
 ---
 
