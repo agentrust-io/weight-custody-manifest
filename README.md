@@ -11,9 +11,12 @@ When a frontier model is deployed into a customer's own infrastructure (on-prem,
 
 ## Honest guarantee scope
 
-WCM is **custody-grade against software and remote adversaries** (host OS, hypervisor, remote attacker, an operator with software access). It is **not** silicon-absolute against an operator who physically owns the hardware. Current confidential-computing silicon (NVIDIA CC, AMD SEV-SNP, Intel TDX) protects against software attackers but is defeated by cheap, published physical memory-bus attacks (TEE.fail, BadRAM) that can extract keys and forge attestation. Against a hardware owner, WCM offers cost, detection, containment, legal recourse, and a mandatory physical-hardening tier, not absolute custody.
+The dishonest version of this document would say "physically impossible." It isn't, and the spec says so. WCM names two guarantees and never blends them:
 
-This is stated plainly in `SPEC.md` section 3.6 and throughout `THREAT-MODEL.md`. Read it before forming expectations; the honesty about what does and does not hold is the point.
+- **Cryptographic custody** against software and remote adversaries (host OS, remote attacker, an operator with software access). One caveat: a *malicious hypervisor* can extract keys via ciphertext side channels unless AMD SEV-SNP ciphertext-hiding is enabled, so that is required for the claim to hold against a hypervisor-privileged operator.
+- **Accountability-grade** protection against an operator who physically owns the hardware, *not* cryptographic custody. Current confidential-computing silicon (NVIDIA CC, AMD SEV-SNP, Intel TDX) is defeated by cheap, published memory-bus attacks (TEE.fail, BadRAM) that extract keys and forge attestation. There WCM offers cost, detection, containment, legal recourse, and a mandatory physical-hardening tier.
+
+In RAND's *Securing AI Model Weights* terms, WCM is the recommended confidential-computing measure holding against the OC1-OC3 attacker tiers; it is one control in a weight-security posture, not a whole "security level," and it does not hold against an OC4-OC5 actor who owns the hardware. This is stated plainly in `SPEC.md` section 3.6 and throughout `THREAT-MODEL.md`. Read it before forming expectations; the honesty about what does and does not hold is the point.
 
 ## Open-core
 
