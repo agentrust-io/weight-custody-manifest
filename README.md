@@ -18,6 +18,18 @@ The dishonest version of this document would say "physically impossible." It isn
 
 In RAND's *Securing AI Model Weights* terms, WCM is the recommended confidential-computing measure holding against the OC1-OC3 attacker tiers; it is one control in a weight-security posture, not a whole "security level," and it does not hold against an OC4-OC5 actor who owns the hardware. This is stated plainly in `SPEC.md` section 3.6 and throughout `THREAT-MODEL.md`. Read it before forming expectations; the honesty about what does and does not hold is the point.
 
+## In RAND's weight-security terms
+
+Frontier labs grade weight protection in RAND's *Securing AI Model Weights* (RRA2849-1): five attacker tiers (OC1 amateur → OC5 top nation-state) and five security levels, where a security level is a *whole-organization posture* — "a system that can likely thwart" the matching attacker tier. RAND recommends confidential computing as a weight-security measure, "backed by a strong consensus in industry," so WCM is an implementation of a RAND-endorsed measure.
+
+Stated the way a lab grades it:
+
+> **WCM is the RAND-recommended confidential-computing measure; it holds against the OC1–OC3 range and, by its own concession (`SPEC.md` §3.6), not against an OC4–OC5 actor who owns the hardware.**
+
+Not faithful: *"WCM is SL3."* A security level is a whole-system posture (weight storage, physical, network, personnel, supply chain, incident response, …), so assigning one to a single control misuses the unit and reads as not knowing the framework. Place WCM by **OC tier** and by **measure** — the language a lab already grades in, used the way they use it.
+
+_Reference: RAND, *Securing AI Model Weights: Preventing Theft and Misuse of Frontier Models* (RRA2849-1, 2024)._
+
 ## Open-core
 
 This repository is the **open protocol layer**: the specification, the threat model, and (forthcoming) a reproducibly-built reference key-release-service image. The operated custody service and the enclave implementation are separate and are not part of this repository.
