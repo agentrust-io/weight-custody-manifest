@@ -1,0 +1,78 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "weight-custody-manifest"
+description = "Reference SDK for the Weight Custody Manifest (WCM) — Layer 1: build, jointly sign, and verify a weight custody manifest"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "Apache-2.0" }
+authors = [{ name = "Imran Siddique", email = "maintainers@agentrust.io" }]
+keywords = [
+  "model-weights", "custody", "attestation", "confidential-computing",
+  "tee", "sev-snp", "nvidia-cc", "trust", "hardware-attestation", "pydantic",
+]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: Apache Software License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Security :: Cryptography",
+  "Topic :: Software Development :: Libraries :: Python Modules",
+  "Typing :: Typed",
+]
+dependencies = [
+  "pydantic>=2.7,<3",
+  "cryptography>=42,<50",
+]
+dynamic = ["version"]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8",
+  "pytest-cov>=5",
+  "mypy>=1.10",
+  "bandit[toml]>=1.7",
+  "pip-audit>=2.7",
+]
+
+[project.scripts]
+wcm = "wcm.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/agentrust-io/weight-custody-manifest"
+Repository = "https://github.com/agentrust-io/weight-custody-manifest"
+Documentation = "https://github.com/agentrust-io/weight-custody-manifest/blob/main/SPEC.md"
+"Bug Tracker" = "https://github.com/agentrust-io/weight-custody-manifest/issues"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/wcm"]
+
+[tool.hatch.build.targets.sdist]
+include = ["src/", "tests/", "examples/", "README.md"]
+
+[tool.hatch.version]
+path = "src/wcm/__init__.py"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+ignore_missing_imports = true
+
+[tool.coverage.run]
+source = ["src/wcm"]
+omit = ["src/wcm/cli.py"]
+
+[tool.coverage.report]
+fail_under = 80
+show_missing = true
+
+[tool.bandit]
+exclude_dirs = ["tests"]
