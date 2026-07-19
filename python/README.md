@@ -1,18 +1,25 @@
-# WCM reference SDK (Python) — Layer 1
+# WCM reference SDK (Python) — Layers 1 and 2 (gate)
 
-Reference implementation of **Layer 1** of the [Weight Custody Manifest](../SPEC.md):
-build a manifest, sign it **jointly** (builder + custodian, plus a sovereign
-quorum when the sovereign profile is on), and verify those signatures.
+Reference implementation of the [Weight Custody Manifest](../SPEC.md):
+
+- **Layer 1** — build a manifest, sign it **jointly** (builder + custodian, plus
+  a sovereign quorum when the sovereign profile is on), and verify those signatures.
+- **Layer 2 (gate)** — the attestation-gated key-release handshake: the KBS
+  issues a nonce, the enclave returns composite CPU+GPU evidence over it, and the
+  KBS releases the key only if every §3.2 check passes.
 
 > **Pre-1.0, tracking a pre-1.0 spec. Not ready to build against.**
-> This is the authority layer only. Layer 2 (attestation-gated key release),
-> the reference KBS, runtime custody, and derivative lineage are **not** here
-> yet — see the repo `ROADMAP.md`. Verifying a manifest signature proves who
-> authorized it and that it was not altered after signing; it says nothing
-> about the runtime environment or whether adversary-owned silicon forged an
-> attestation quote (SPEC open question 8.8).
+> Layer 2 here is the **policy gate** driven by a software/mock attestation
+> provider: it exercises the gate logic but verifies no real hardware root of
+> trust, and it cannot detect a forged quote from a physically-extracted
+> attestation key (the open key-extraction half of SPEC open question 8.8). Real
+> TEE providers (SEV-SNP / TDX / NVIDIA CC), the wipe-on-lapse / cadence custody
+> state machine, the reproducible reference KBS image, and derivative lineage
+> are **not** here yet — see the repo `ROADMAP.md`.
 
 ## What it does
+
+Layer 1 (authority):
 
 - **`models.py`** — the manifest schema as Pydantic v2 with `extra="forbid"`,
   including the v0.8 fields (`trusted_time_source`, `memory_fingerprint_challenge`,
@@ -24,6 +31,17 @@ quorum when the sovereign profile is on), and verify those signatures.
 - **`_verify.py`** — checks the required roles signed and every signature is
   cryptographically valid; enforces the sovereign quorum rule.
 - **`cli.py`** — `wcm keygen | sign | verify`.
+
+Layer 2 (release gate):
+
+- **`_challenge.py`** — single-use KBS nonces with expiry (`kbs-nonce-required`).
+- **`attestation.py`** — evidence models: a CPU CVM quote and a separate GPU
+  report echoing the same nonce, plus the v0.8 memory-fingerprint response.
+- **`providers.py`** — `AttestationProvider` interface + a `SoftwareProvider`
+  mock (no hardware root of trust; for tests and local dev only).
+- **`kbs.py`** — `KeyBrokerService`: composite verification (nonce, platform,
+  assurance tier, serving-image status + prefer-current, GPU measurement and
+  CPU↔GPU binding, memory-fingerprint, revocation freshness) and gated release.
 
 A post-quantum profile (ML-DSA-65) is on the roadmap, not in this preview.
 
@@ -79,6 +97,34 @@ ctx = VerificationContext()
 ctx.add_key(builder.public_bytes)
 ctx.add_key(custodian.public_bytes)
 print(verify_manifest(manifest, ctx).ok)  # True
+```
+
+## Quickstart (Layer 2 release gate)
+
+```python
+from wcm import KeyBrokerService, SoftwareProvider, WeightCustodyManifest
+import json
+
+manifest = WeightCustodyManifest.model_validate(
+    json.load(open("examples/manifest.example.json"))
+)
+
+# The KBS holds the decryption key keyed by weights_hash.
+kbs = KeyBrokerService({manifest.weights_hash: b"the-decryption-key"})
+
+# 1. KBS issues a fresh nonce. 2. Enclave attests over it (mock here).
+challenge = kbs.issue_challenge()
+evidence = SoftwareProvider().produce(
+    challenge,
+    serving_image_measurement="sha256:" + "5e2d" * 16,  # a 'current' accepted image
+    gpu_measurement="nvidia-rim:driver+vbios golden measurement id",
+)
+
+# 3. Composite verification, then gated release.
+decision = kbs.verify_and_release(manifest, evidence)
+print(decision.released)                 # True
+print(decision.key)                      # b"the-decryption-key"
+# On failure: decision.released is False and decision.failures names each check.
 ```
 
 ## Test
