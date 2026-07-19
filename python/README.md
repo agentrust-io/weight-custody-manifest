@@ -1,4 +1,4 @@
-# WCM reference SDK (Python) — Layers 1 and 2 (gate)
+# WCM reference SDK (Python) — Layers 1, 2 (gate), and wipe-on-lapse
 
 Reference implementation of the [Weight Custody Manifest](../SPEC.md):
 
@@ -7,15 +7,19 @@ Reference implementation of the [Weight Custody Manifest](../SPEC.md):
 - **Layer 2 (gate)** — the attestation-gated key-release handshake: the KBS
   issues a nonce, the enclave returns composite CPU+GPU evidence over it, and the
   KBS releases the key only if every §3.2 check passes.
+- **Wipe-on-lapse** — the runtime custody floor: the enclave holds a released key
+  only for the cadence window and zeroizes it if it does not re-attest in time.
 
 > **Pre-1.0, tracking a pre-1.0 spec. Not ready to build against.**
 > Layer 2 here is the **policy gate** driven by a software/mock attestation
 > provider: it exercises the gate logic but verifies no real hardware root of
 > trust, and it cannot detect a forged quote from a physically-extracted
-> attestation key (the open key-extraction half of SPEC open question 8.8). Real
-> TEE providers (SEV-SNP / TDX / NVIDIA CC), the wipe-on-lapse / cadence custody
-> state machine, the reproducible reference KBS image, and derivative lineage
-> are **not** here yet — see the repo `ROADMAP.md`.
+> attestation key (the open key-extraction half of SPEC open question 8.8).
+> Wipe-on-lapse bounds exposure only if the clock it checks cannot be stalled
+> (`trusted_time_source`, surfaced as `time_floor`) and only against an operator
+> who cannot forge attestation. Real TEE providers (SEV-SNP / TDX / NVIDIA CC),
+> operation-count-anchored renewal for the hybrid, the reproducible reference KBS
+> image, and derivative lineage are **not** here yet — see the repo `ROADMAP.md`.
 
 ## What it does
 
@@ -42,6 +46,13 @@ Layer 2 (release gate):
 - **`kbs.py`** — `KeyBrokerService`: composite verification (nonce, platform,
   assurance tier, serving-image status + prefer-current, GPU measurement and
   CPU↔GPU binding, memory-fingerprint, revocation freshness) and gated release.
+
+Wipe-on-lapse (runtime custody):
+
+- **`custody.py`** — `EnclaveSession`: holds a released key for the cadence
+  window, renews on `reattest()`, zeroizes on lapse; `use_key()` never serves
+  past the deadline. `time_floor` reports how much the bound is worth given the
+  manifest's `trusted_time_source`.
 
 A post-quantum profile (ML-DSA-65) is on the roadmap, not in this preview.
 
@@ -125,6 +136,22 @@ decision = kbs.verify_and_release(manifest, evidence)
 print(decision.released)                 # True
 print(decision.key)                      # b"the-decryption-key"
 # On failure: decision.released is False and decision.failures names each check.
+```
+
+## Quickstart (wipe-on-lapse)
+
+```python
+from wcm import EnclaveSession
+
+# The enclave takes custody of the key the KBS just released.
+session = EnclaveSession.from_release(manifest, decision)
+
+session.use_key()          # serves while holding
+session.reattest()         # renew before the cadence window closes
+print(session.time_floor)  # 'sound' for secure-tsc, 'weaker' for the hybrid, 'none' otherwise
+
+# If the window lapses without a re-attestation, the key is zeroized, not suspended:
+#   session.use_key()  ->  raises KeyWipedError
 ```
 
 ## Test
