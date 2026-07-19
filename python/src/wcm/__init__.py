@@ -67,8 +67,15 @@ from .providers import (
     AttestationUnavailableError,
 )
 from .kbs import KeyBrokerService, ReleaseDecision, CheckResult
+from .custody import (
+    EnclaveSession,
+    SessionState,
+    TimeFloor,
+    KeyWipedError,
+    parse_cadence,
+)
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 
 __all__ = [
     "__version__",
@@ -124,4 +131,9 @@ __all__ = [
     "KeyBrokerService",
     "ReleaseDecision",
     "CheckResult",
+    "EnclaveSession",
+    "SessionState",
+    "TimeFloor",
+    "KeyWipedError",
+    "parse_cadence",
 ]
