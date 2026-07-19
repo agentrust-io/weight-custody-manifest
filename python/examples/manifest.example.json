@@ -1,0 +1,69 @@
+{
+  "manifest_version": "0.1",
+  "weights_hash": "sha256:4a1c9b024a1c9b024a1c9b024a1c9b024a1c9b024a1c9b024a1c9b024a1c9b02",
+  "builder": {
+    "identity": "example-builder",
+    "signing_key": "ed25519:builder-key-placeholder"
+  },
+  "release_terms": {
+    "license": "customer-deployment-agreement-ref:CDA-2026-0091",
+    "permitted_derivatives": "fine-tune-only, no re-export of base weights",
+    "permitted_environments": ["opaque-cmcp-attested-enclave"],
+    "jurisdiction_restriction": "US, EU"
+  },
+  "release_policy": {
+    "required_assurance_tier": "hardware-attested",
+    "physical_hardening": "not-required",
+    "trusted_time_source": "secure-tsc",
+    "memory_fingerprint_challenge": "not-required",
+    "required_hw_platform": ["amd-sev-snp", "nvidia-cc-gpu"],
+    "required_gpu_measurement": {
+      "rim_pin": "nvidia-rim:driver+vbios golden measurement id",
+      "note": "GPU attestation report is a separate evidence chain from the CVM report; verify both plus the serving-image measurement, bound by a nonce echo (SPEC 3.2)"
+    },
+    "tenancy": "shared",
+    "required_serving_image": {
+      "signer": "ed25519:builder-key-placeholder",
+      "release_rule": "prefer-current: refuse a retiring image when a current one is available; require signed/attested time for retire_after, never the host clock",
+      "accepted_measurements": [
+        {
+          "measurement": "sha256:5e2d5e2d5e2d5e2d5e2d5e2d5e2d5e2d5e2d5e2d5e2d5e2d5e2d5e2d5e2d5e2d",
+          "status": "current"
+        },
+        {
+          "measurement": "sha256:6f3e6f3e6f3e6f3e6f3e6f3e6f3e6f3e6f3e6f3e6f3e6f3e6f3e6f3e6f3e6f3e",
+          "status": "retiring",
+          "retire_after": "2026-07-16T00:00:00Z"
+        },
+        {
+          "measurement": "sha256:70af70af70af70af70af70af70af70af70af70af70af70af70af70af70af70af",
+          "status": "revoked"
+        }
+      ],
+      "note": "key decrypts only under a builder-signed serving stack whose measurement is current or retiring; status:revoked hard-fails immediately"
+    },
+    "key_release_mode": "attestation-gated",
+    "replay_protection": "kbs-nonce-required",
+    "attestation_revocation_check": "live-per-release, max-cache-age: short-window",
+    "revocation_authority": "builder-and-opaque-joint",
+    "sovereign_profile": {
+      "enabled": false,
+      "revocation_authority": "quorum",
+      "sovereign_signer": null,
+      "note": "when enabled, no single party (builder included) can revoke or dark the model unilaterally"
+    }
+  },
+  "custody": {
+    "custodian": "opaque-systems",
+    "custodian_type": "opaque-hosted",
+    "kbs_image": {
+      "measurement": "sha256:abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234",
+      "signer": "ed25519:opaque-key-placeholder",
+      "note": "the key release service runs in an attested enclave in every profile, Opaque-hosted included"
+    },
+    "enclave_id": "did:opaque:example-enclave-04",
+    "attestation_cadence": "24h",
+    "kbs_attestation_cadence": "24h"
+  },
+  "signatures": []
+}
