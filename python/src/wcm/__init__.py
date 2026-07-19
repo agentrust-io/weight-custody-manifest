@@ -54,8 +54,21 @@ from ._verify import (
     VerificationResult,
     SignatureResult,
 )
+from ._challenge import Challenge, ChallengeStore, ChallengeError
+from .attestation import (
+    CompositeEvidence,
+    CpuQuote,
+    GpuReport,
+    MemoryFingerprint,
+)
+from .providers import (
+    AttestationProvider,
+    SoftwareProvider,
+    AttestationUnavailableError,
+)
+from .kbs import KeyBrokerService, ReleaseDecision, CheckResult
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 __all__ = [
     "__version__",
@@ -98,4 +111,17 @@ __all__ = [
     "VerificationContext",
     "VerificationResult",
     "SignatureResult",
+    "Challenge",
+    "ChallengeStore",
+    "ChallengeError",
+    "CompositeEvidence",
+    "CpuQuote",
+    "GpuReport",
+    "MemoryFingerprint",
+    "AttestationProvider",
+    "SoftwareProvider",
+    "AttestationUnavailableError",
+    "KeyBrokerService",
+    "ReleaseDecision",
+    "CheckResult",
 ]
