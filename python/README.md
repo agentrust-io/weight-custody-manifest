@@ -36,24 +36,24 @@ pip install -e ".[dev]"    # from this python/ directory
 ## Quickstart (CLI)
 
 ```bash
-# 1. keys for the two required parties
-wcm keygen > builder.json
-wcm keygen > custodian.json
+# 1. keys for the two required parties (writes builder + builder.pub, etc.)
+wcm keygen --out builder
+wcm keygen --out custodian
 
 # 2. joint signature over the example manifest
 wcm sign examples/manifest.example.json \
-  --role builder    --signer example-builder \
-  --key "$(jq -r .private_key_b64url builder.json)"    --out signed.json
+  --role builder    --signer example-builder --key-file builder    --out signed.json
 wcm sign signed.json \
-  --role custodian  --signer opaque-systems \
-  --key "$(jq -r .private_key_b64url custodian.json)"  --out signed.json
+  --role custodian  --signer opaque-systems  --key-file custodian  --out signed.json
 
 # 3. verify against the two trusted public keys
-wcm verify signed.json \
-  --key "$(jq -r .public_key_b64url builder.json)" \
-  --key "$(jq -r .public_key_b64url custodian.json)"
+wcm verify signed.json --key-file builder.pub --key-file custodian.pub
 # -> {"ok": true, ...}   (exit 0)
 ```
+
+Keys are read from files, never passed on the command line: a private key on
+argv leaks into process listings and shell history, and a base64url key can
+start with `-`.
 
 ## Quickstart (library)
 
