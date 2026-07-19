@@ -66,6 +66,15 @@ from .providers import (
     SoftwareProvider,
     AttestationUnavailableError,
 )
+from ._hw_providers import (
+    CpuQuoteProvider,
+    SevSnpProvider,
+    TdxProvider,
+    NvidiaCcProvider,
+    HardwareCompositeProvider,
+    select_provider,
+    select_cpu_provider,
+)
 from .kbs import KeyBrokerService, ReleaseDecision, CheckResult
 from .custody import (
     EnclaveSession,
@@ -75,7 +84,7 @@ from .custody import (
     parse_cadence,
 )
 
-__version__ = "0.3.0"
+__version__ = "0.4.0"
 
 __all__ = [
     "__version__",
@@ -128,6 +137,13 @@ __all__ = [
     "AttestationProvider",
     "SoftwareProvider",
     "AttestationUnavailableError",
+    "CpuQuoteProvider",
+    "SevSnpProvider",
+    "TdxProvider",
+    "NvidiaCcProvider",
+    "HardwareCompositeProvider",
+    "select_provider",
+    "select_cpu_provider",
     "KeyBrokerService",
     "ReleaseDecision",
     "CheckResult",

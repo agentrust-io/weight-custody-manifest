@@ -24,7 +24,12 @@ class _Strict(BaseModel):
 
 
 class CpuQuote(_Strict):
-    """CPU confidential-VM quote (SEV-SNP / TDX class)."""
+    """CPU confidential-VM quote (SEV-SNP / TDX class).
+
+    ``quote_b64`` optionally carries the raw hardware report (base64) so a
+    future verifier-side pass can check its signature and cert chain; the
+    current gate uses the structured fields only.
+    """
 
     platform: str  # e.g. "amd-sev-snp"
     assurance_tier: str  # e.g. "hardware-attested"
@@ -32,6 +37,7 @@ class CpuQuote(_Strict):
     nonce_echo: str  # the KBS nonce this quote was produced over
     attestation_key_id: str  # VCEK id (AMD) or equivalent
     attestation_key_cache_age_seconds: int = 0
+    quote_b64: Optional[str] = None
 
 
 class GpuReport(_Strict):
@@ -41,6 +47,7 @@ class GpuReport(_Strict):
     measurement: str  # matches release_policy.required_gpu_measurement.rim_pin
     cc_mode: bool = True
     nonce_echo: str  # MUST equal the CPU quote's nonce_echo (composite binding)
+    quote_b64: Optional[str] = None
 
 
 class MemoryFingerprint(_Strict):
