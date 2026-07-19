@@ -58,7 +58,9 @@ def test_select_provider_require_hardware_raises():
 
 
 def test_nvidia_available_only_with_env(monkeypatch):
-    monkeypatch.setenv("WCM_NVIDIA_ATTESTATION_CMD", "python")  # a binary that exists
+    import sys
+
+    monkeypatch.setenv("WCM_NVIDIA_ATTESTATION_CMD", sys.executable)  # guaranteed present
     assert NvidiaCcProvider.is_available() is True
     monkeypatch.setenv("WCM_NVIDIA_ATTESTATION_CMD", "definitely-not-a-real-binary-xyz")
     assert NvidiaCcProvider.is_available() is False
