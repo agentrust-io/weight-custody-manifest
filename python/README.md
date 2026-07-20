@@ -9,21 +9,24 @@ Reference implementation of the [Weight Custody Manifest](../SPEC.md):
   KBS releases the key only if every §3.2 check passes.
 - **Wipe-on-lapse** — the runtime custody floor: the enclave holds a released key
   only for the cadence window and zeroizes it if it does not re-attest in time.
+- **Quote verification** — the KBS-side trust decision: cert-chain validation +
+  report-signature check + cryptographic nonce binding on the raw quote.
 
 > **Pre-1.0, tracking a pre-1.0 spec. Not ready to build against.**
-> Layer 2 here is the **policy gate**. The hardware providers (SEV-SNP / TDX /
-> NVIDIA CC) do real device I/O but their ioctl layouts and report offsets are
-> **NOT validated against real silicon** — provisional until checked on hardware
-> (CI exercises availability detection, the software fallback, and report parsing
-> against synthetic fixtures, never a real root of trust). The gate also cannot
-> detect a forged quote from a physically-extracted attestation key (the open
-> key-extraction half of SPEC open question 8.8), and it does not yet verify
-> quote signatures / cert chains (a later verifier-side PR). Wipe-on-lapse bounds
-> exposure only if the clock cannot be stalled (`trusted_time_source`, surfaced
-> as `time_floor`) and only against an operator who cannot forge attestation.
-> Operation-count-anchored renewal for the hybrid, KBS-side quote-signature
-> verification, the reproducible reference KBS image, and derivative lineage are
-> **not** here yet — see the repo `ROADMAP.md`.
+> The hardware providers (SEV-SNP / TDX / NVIDIA CC) do real device I/O but their
+> ioctl layouts and report offsets are **NOT validated against real silicon** —
+> provisional until checked on hardware. Quote verification ships the real,
+> tested **machinery** (X.509 chain + signature + nonce binding, exercised
+> against a synthetic PKI) but **no AMD/NVIDIA root certificates and no vendor
+> binary parser** — those plug in as a `TrustStore` and a `QuoteParser`, and are
+> the parts that need real captured quotes to validate. None of this closes the
+> key-extraction hole (open question 8.8): a physically-extracted key produces a
+> genuinely valid signature that passes every check. Wipe-on-lapse bounds exposure
+> only if the clock cannot be stalled (`trusted_time_source` → `time_floor`) and
+> only against an operator who cannot forge attestation. Operation-count-anchored
+> renewal for the hybrid, GPU-side quote verification, real vendor roots/parsers,
+> the reproducible reference KBS image, and derivative lineage are **not** here
+> yet — see the repo `ROADMAP.md`.
 
 ## What it does
 
@@ -54,7 +57,12 @@ Layer 2 (release gate):
   provisional and unvalidated against real silicon.**
 - **`kbs.py`** — `KeyBrokerService`: composite verification (nonce, platform,
   assurance tier, serving-image status + prefer-current, GPU measurement and
-  CPU↔GPU binding, memory-fingerprint, revocation freshness) and gated release.
+  CPU↔GPU binding, memory-fingerprint, revocation freshness, optional
+  cryptographic quote verification) and gated release.
+- **`_quote_verify.py`** — `QuoteVerifier`: X.509 cert-chain validation +
+  report-signature check + nonce binding, with a pluggable `TrustStore` and
+  `QuoteParser`. Wire it into the KBS via `cpu_quote_verifier=`; when unset, the
+  gate says `structural trust only` in its check detail.
 
 Wipe-on-lapse (runtime custody):
 

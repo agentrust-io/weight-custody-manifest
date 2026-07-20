@@ -20,6 +20,7 @@ from datetime import datetime, timezone
 from typing import Callable, Iterable, Mapping, Optional
 
 from ._challenge import Challenge, ChallengeError, ChallengeStore
+from ._quote_verify import QuoteVerifier
 from .attestation import CompositeEvidence
 from .models import (
     MemoryFingerprintChallenge,
@@ -61,6 +62,7 @@ class KeyBrokerService:
         now: Optional[Callable[[], datetime]] = None,
         revoked_attestation_keys: Optional[Iterable[str]] = None,
         max_attestation_cache_age_seconds: int = 600,
+        cpu_quote_verifier: Optional[QuoteVerifier] = None,
     ) -> None:
         # keystore maps weights_hash -> the decryption key to release.
         self._keystore: dict[str, bytes] = dict(keystore)
@@ -68,6 +70,10 @@ class KeyBrokerService:
         self._challenges = ChallengeStore(ttl_seconds=challenge_ttl_seconds, now=self._now)
         self._revoked = set(revoked_attestation_keys or ())
         self._max_cache = max_attestation_cache_age_seconds
+        # When set, the CPU quote's raw bytes are cryptographically verified
+        # (signature + cert chain + nonce binding). When None, the gate trusts
+        # the structured fields only, and says so in the check detail.
+        self._cpu_quote_verifier = cpu_quote_verifier
 
     def issue_challenge(self) -> Challenge:
         return self._challenges.issue()
@@ -131,6 +137,10 @@ class KeyBrokerService:
 
         # 7. Attestation-key revocation freshness (v0.8) when required.
         checks.append(self._check_attestation_revocation(manifest, evidence))
+
+        # 7b. Cryptographic quote verification (signature + cert chain + nonce
+        #     binding) when a verifier is configured.
+        checks.append(self._check_cpu_quote(evidence, nonce))
 
         # 8. A key actually exists for this weights_hash.
         have_key = manifest.weights_hash in self._keystore
@@ -226,6 +236,23 @@ class KeyBrokerService:
                 "DRAM aliasing detected (BadRAM-class measurement forgery)",
             )
         return CheckResult("memory_fingerprint", True)
+
+    def _check_cpu_quote(self, evidence: CompositeEvidence, nonce: str) -> CheckResult:
+        if self._cpu_quote_verifier is None:
+            return CheckResult(
+                "cpu_quote_verified",
+                True,
+                "not configured: structural trust only (no cryptographic quote verification)",
+            )
+        quote_b64 = evidence.cpu.quote_b64
+        if quote_b64 is None:
+            return CheckResult(
+                "cpu_quote_verified", False, "verifier configured but evidence has no raw quote"
+            )
+        result = self._cpu_quote_verifier.verify(
+            quote_b64, expected_nonce=nonce, now=self._now()
+        )
+        return CheckResult("cpu_quote_verified", result.verified, result.reason)
 
     def _check_attestation_revocation(
         self, manifest: WeightCustodyManifest, evidence: CompositeEvidence
