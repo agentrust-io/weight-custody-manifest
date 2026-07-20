@@ -97,8 +97,17 @@ from .custody import (
     parse_cadence,
 )
 from .lineage import verify_lineage, LineageResult, is_root
+from .transparency import (
+    TransparencyLog,
+    SignedTreeHead,
+    EntryType,
+    make_leaf_preimage,
+    verify_sth,
+    verify_inclusion,
+    verify_log_consistency,
+)
 
-__version__ = "0.7.0"
+__version__ = "0.8.0"
 
 __all__ = [
     "__version__",
@@ -180,4 +189,11 @@ __all__ = [
     "verify_lineage",
     "LineageResult",
     "is_root",
+    "TransparencyLog",
+    "SignedTreeHead",
+    "EntryType",
+    "make_leaf_preimage",
+    "verify_sth",
+    "verify_inclusion",
+    "verify_log_consistency",
 ]
