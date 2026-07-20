@@ -22,8 +22,12 @@ Two honest limits, both from the spec:
      zeroizes. That adversary is out of scope for this logic (open question 8.8);
      against it the bound comes from the quorum and physical hardening, not here.
 
-Operation-count-anchored renewal for the hybrid's actively-serving case is not
-implemented yet; this preview covers the wall-clock lapse.
+For ``lease-with-op-count-hybrid``, the wall-clock lease bounds the idle case
+here, and ``max_operations`` anchors the actively-serving case: after N serving
+operations the session raises ``ReattestationRequired`` until it re-attests, a
+count the enclave's own execution increments that a host cannot advance without
+also doing the inference work. N is a deployment parameter (SPEC.md open
+question 8.9 residual), not a manifest field, so it is passed in explicitly.
 """
 from __future__ import annotations
 
@@ -62,6 +66,18 @@ class KeyWipedError(Exception):
     """The key has been zeroized; there is nothing to serve or renew."""
 
 
+class ReattestationRequired(Exception):
+    """The operation-count budget is exhausted; re-attest to keep serving.
+
+    Distinct from ``KeyWipedError``: the key is NOT gone here. This is the
+    op-count anchor for the ``lease-with-op-count-hybrid`` serving case
+    (SPEC.md 3.1, Patch 1): after N operations the enclave must re-attest, a
+    count its own execution increments that a host cannot advance without also
+    doing the inference work. The wall-clock lease still bounds the idle case
+    and zeroizes independently.
+    """
+
+
 def parse_cadence(text: str) -> int:
     """Parse a cadence like ``"24h"`` / ``"15m"`` / ``"30s"`` / ``"1d"`` to seconds."""
     match = _CADENCE_RE.match(text)
@@ -93,14 +109,21 @@ class EnclaveSession:
         *,
         cadence_seconds: int,
         trusted_time_source: TrustedTimeSource = TrustedTimeSource.none_best_effort,
+        max_operations: Optional[int] = None,
         weights_hash: Optional[str] = None,
         now: Optional[Callable[[], datetime]] = None,
     ) -> None:
         if cadence_seconds <= 0:
             raise ValueError("cadence_seconds must be greater than zero")
+        if max_operations is not None and max_operations <= 0:
+            raise ValueError("max_operations must be greater than zero when set")
         self._key = bytearray(key)
         self._cadence = cadence_seconds
         self._tts = trusted_time_source
+        # The op-count anchor for the hybrid serving case. None means no op
+        # ceiling (secure-tsc and best-effort rely on the wall clock alone).
+        self._max_ops = max_operations
+        self._ops = 0
         self.weights_hash = weights_hash
         self._now = now or _utcnow
         self._state = SessionState.holding
@@ -112,12 +135,15 @@ class EnclaveSession:
         manifest: WeightCustodyManifest,
         decision: "object",
         *,
+        max_operations: Optional[int] = None,
         now: Optional[Callable[[], datetime]] = None,
     ) -> "EnclaveSession":
         """Start custody from a KBS ``ReleaseDecision`` that released a key.
 
         Reads the cadence from ``custody.attestation_cadence`` and the floor from
-        ``release_policy.trusted_time_source``.
+        ``release_policy.trusted_time_source``. ``max_operations`` (the op-count
+        anchor N) is a deployment parameter, not a manifest field yet (SPEC.md
+        open question 8.9 residual), so it is passed in explicitly.
         """
         released = getattr(decision, "released", False)
         key = getattr(decision, "key", None)
@@ -127,6 +153,7 @@ class EnclaveSession:
             key,
             cadence_seconds=parse_cadence(manifest.custody.attestation_cadence),
             trusted_time_source=manifest.release_policy.trusted_time_source,
+            max_operations=max_operations,
             weights_hash=manifest.weights_hash,
             now=now,
         )
@@ -155,6 +182,16 @@ class EnclaveSession:
             return 0.0
         current = now if now is not None else self._now()
         return max(0.0, (self._deadline - current).total_seconds())
+
+    @property
+    def operations_used(self) -> int:
+        return self._ops
+
+    def operations_remaining(self) -> Optional[int]:
+        """Operations left before re-attestation is required, or None if uncapped."""
+        if self._max_ops is None:
+            return None
+        return max(0, self._max_ops - self._ops)
 
     # -- state transitions -----------------------------------------------------
 
@@ -185,15 +222,26 @@ class EnclaveSession:
                 "zeroized; request a fresh release"
             )
         self._deadline = current + timedelta(seconds=self._cadence)
+        self._ops = 0  # the op-count budget resets on a fresh attestation
 
     def use_key(self, now: Optional[datetime] = None) -> bytes:
-        """Return the key for serving, only while holding.
+        """Return the key for one serving operation, counting it against the budget.
+
+        Each call is one operation. When an op-count anchor is set and the budget
+        is exhausted, serving must pause for a re-attestation (the key is not
+        wiped). The wall-clock lease is enforced first and zeroizes independently.
 
         Raises:
-            KeyWipedError: the window lapsed; the key is gone, not suspended.
+            KeyWipedError: the wall-clock window lapsed; the key is gone.
+            ReattestationRequired: the op-count budget is exhausted; re-attest.
         """
         if self.tick(now) is SessionState.wiped:
             raise KeyWipedError("key has been zeroized (cadence lapsed)")
+        if self._max_ops is not None and self._ops >= self._max_ops:
+            raise ReattestationRequired(
+                f"op-count budget of {self._max_ops} exhausted; re-attest to continue serving"
+            )
+        self._ops += 1
         return bytes(self._key)
 
     def zeroize(self) -> None:

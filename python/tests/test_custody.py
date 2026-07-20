@@ -8,9 +8,11 @@ from wcm import (
     EnclaveSession,
     KeyBrokerService,
     KeyWipedError,
+    ReattestationRequired,
     SessionState,
     SoftwareProvider,
     TimeFloor,
+    TrustedTimeSource,
     parse_cadence,
 )
 
@@ -183,3 +185,75 @@ def test_from_release_rejects_unreleased(example_manifest):
     denied = ReleaseDecision(released=False, key=None, checks=[])
     with pytest.raises(ValueError):
         EnclaveSession.from_release(example_manifest, denied)
+
+
+# -- operation-count-anchored renewal (hybrid serving case) --------------------
+
+
+def test_no_op_cap_is_unlimited():
+    s = EnclaveSession(KEY, cadence_seconds=3600, now=_clock())
+    for _ in range(1000):
+        assert s.use_key() == KEY
+    assert s.operations_remaining() is None
+    assert s.operations_used == 1000
+
+
+def test_op_budget_exhaustion_requires_reattest():
+    s = EnclaveSession(
+        KEY,
+        cadence_seconds=3600,
+        trusted_time_source=TrustedTimeSource.lease_with_op_count_hybrid,
+        max_operations=3,
+        now=_clock(),
+    )
+    for _ in range(3):
+        assert s.use_key() == KEY
+    assert s.operations_remaining() == 0
+    with pytest.raises(ReattestationRequired):
+        s.use_key()
+    # The key is NOT wiped: this is a pause for re-attestation, not a lapse.
+    assert s.state is SessionState.holding
+
+
+def test_reattest_resets_op_budget():
+    s = EnclaveSession(KEY, cadence_seconds=3600, max_operations=2, now=_clock())
+    s.use_key()
+    s.use_key()
+    with pytest.raises(ReattestationRequired):
+        s.use_key()
+    s.reattest()
+    assert s.operations_remaining() == 2
+    assert s.use_key() == KEY
+
+
+def test_op_budget_independent_of_wall_clock():
+    clock = _clock()
+    s = EnclaveSession(KEY, cadence_seconds=3600, max_operations=1, now=clock)
+    s.use_key()
+    clock.advance(10)  # still well within the wall-clock window
+    with pytest.raises(ReattestationRequired):
+        s.use_key()
+
+
+def test_wall_clock_lapse_still_wipes_with_op_cap():
+    clock = _clock()
+    s = EnclaveSession(KEY, cadence_seconds=3600, max_operations=100, now=clock)
+    clock.advance(3601)
+    with pytest.raises(KeyWipedError):
+        s.use_key()
+
+
+def test_invalid_max_operations():
+    with pytest.raises(ValueError):
+        EnclaveSession(KEY, cadence_seconds=3600, max_operations=0)
+
+
+def test_from_release_passes_max_operations(example_manifest):
+    clock = _clock()
+    decision = _released_decision(example_manifest, clock)
+    session = EnclaveSession.from_release(
+        example_manifest, decision, max_operations=1, now=clock
+    )
+    session.use_key()
+    with pytest.raises(ReattestationRequired):
+        session.use_key()
