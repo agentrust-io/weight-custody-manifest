@@ -17,6 +17,8 @@ Reference implementation of the [Weight Custody Manifest](../SPEC.md):
 - **Transparency log** — an append-only Merkle log (RFC 9162) with signed tree
   heads, inclusion proofs, and consistency proofs, so equivocation and
   suppressed revocations become detectable.
+- **Threshold split-key** — Shamir sharing so a sovereign self-custody key needs
+  a quorum of custodians to reconstruct; no single party can self-release.
 
 > **Pre-1.0, tracking a pre-1.0 spec. Not ready to build against.**
 > The hardware providers (SEV-SNP / TDX / NVIDIA CC) do real device I/O but their
@@ -95,6 +97,13 @@ Transparency (authority-layer integrity):
   and append-only growth. `find()` lets a monitor detect a *missing* expected
   entry (a suppressed revocation). Verification (`verify_sth` / `verify_inclusion`
   / `verify_log_consistency`) needs only the proofs and heads, not the store.
+
+Sovereign self-custody:
+
+- **`threshold.py`** — `split_secret(key, threshold=t, shares=n)` /
+  `combine_shares()`: Shamir Secret Sharing over GF(256). Any `t` shares
+  reconstruct the key; any `t-1` reveal nothing, so no single custodian (the
+  builder included) can self-release (SPEC §3.5, decision 15).
 
 A post-quantum profile (ML-DSA-65) is on the roadmap, not in this preview.
 
