@@ -245,3 +245,180 @@ class Ed25519Verifier:
                 f"Ed25519 signature must be 64 bytes, got {len(sig_bytes)}"
             )
         self._pub.verify(sig_bytes, pre_image)  # raises InvalidSignature on failure
+
+
+# ---------------------------------------------------------------------------
+# ML-DSA-65 (post-quantum profile) and the Ed25519+ML-DSA-65 hybrid
+# ---------------------------------------------------------------------------
+#
+# ML-DSA-65 (NIST FIPS 204) via the cryptography library's native support. The
+# module is imported lazily so the package still imports on a cryptography build
+# without ML-DSA; only actual PQ use requires it. The hybrid signs the SAME
+# pre-image with both algorithms and requires BOTH to verify, so the manifest
+# stays authentic if either primitive is later broken.
+
+
+def _mldsa_module() -> Any:
+    try:
+        from cryptography.hazmat.primitives.asymmetric import mldsa
+    except ImportError as exc:  # pragma: no cover - depends on cryptography build
+        raise RuntimeError(
+            "ML-DSA-65 requires a cryptography build with FIPS 204 support "
+            "(cryptography.hazmat.primitives.asymmetric.mldsa); upgrade cryptography."
+        ) from exc
+    return mldsa
+
+
+@dataclass(frozen=True)
+class MlDsa65KeyPair:
+    private_key: Any  # mldsa.MLDSA65PrivateKey
+    public_key: Any  # mldsa.MLDSA65PublicKey
+
+    def __repr__(self) -> str:
+        return f"MlDsa65KeyPair(key_id={self.key_id!r}, private_key=<REDACTED>)"
+
+    def __str__(self) -> str:
+        return self.__repr__()
+
+    @property
+    def public_bytes(self) -> bytes:
+        return bytes(self.public_key.public_bytes_raw())
+
+    @property
+    def key_id(self) -> str:
+        return _key_id(self.public_bytes)
+
+    def public_b64url(self) -> str:
+        return _b64url_encode(self.public_bytes)
+
+    def private_b64url(self) -> str:
+        return _b64url_encode(self.private_key.private_bytes_raw())
+
+
+def generate_ml_dsa65() -> MlDsa65KeyPair:
+    mldsa = _mldsa_module()
+    sk = mldsa.MLDSA65PrivateKey.generate()
+    return MlDsa65KeyPair(private_key=sk, public_key=sk.public_key())
+
+
+def ml_dsa65_from_seed_bytes(raw: bytes) -> MlDsa65KeyPair:
+    mldsa = _mldsa_module()
+    sk = mldsa.MLDSA65PrivateKey.from_seed_bytes(raw)
+    return MlDsa65KeyPair(private_key=sk, public_key=sk.public_key())
+
+
+def ml_dsa65_from_seed_b64url(s: str) -> MlDsa65KeyPair:
+    return ml_dsa65_from_seed_bytes(_b64url_decode(s))
+
+
+class MlDsa65Signer:
+    """Signs a manifest for one party with ML-DSA-65 (post-quantum profile)."""
+
+    def __init__(self, keypair: MlDsa65KeyPair) -> None:
+        self._kp = keypair
+
+    @property
+    def key_id(self) -> str:
+        return self._kp.key_id
+
+    def sign(self, manifest_dict: dict[str, Any], *, role: str, signer: str) -> dict[str, Any]:
+        pre_image = signing_pre_image(manifest_dict)
+        sig_bytes = self._kp.private_key.sign(pre_image)
+        return {
+            "role": role,
+            "signer": signer,
+            "algorithm": "ML-DSA-65",
+            "key_id": self._kp.key_id,
+            "key_type": "software",
+            "signed_at": _signed_at_now(),
+            "signature_value": _b64url_encode(sig_bytes),
+            "signed_fields": list(WCM_SIGNED_FIELDS),
+        }
+
+
+class MlDsa65Verifier:
+    """Verifies an ML-DSA-65 signature over a manifest's signed fields."""
+
+    def __init__(self, public_key_bytes: bytes) -> None:
+        mldsa = _mldsa_module()
+        self._pub = mldsa.MLDSA65PublicKey.from_public_bytes(public_key_bytes)
+        self._key_id = _key_id(public_key_bytes)
+
+    @classmethod
+    def from_b64url(cls, s: str) -> "MlDsa65Verifier":
+        return cls(_b64url_decode(s))
+
+    @property
+    def key_id(self) -> str:
+        return self._key_id
+
+    def verify(self, manifest_dict: dict[str, Any], signature_value: str) -> None:
+        """Raises cryptography.exceptions.InvalidSignature on failure."""
+        pre_image = signing_pre_image(manifest_dict)
+        self._pub.verify(_b64url_decode(signature_value), pre_image)
+
+
+@dataclass(frozen=True)
+class HybridKeyPair:
+    """Combined Ed25519 + ML-DSA-65 key pair for hybrid signing."""
+
+    ed25519: Ed25519KeyPair
+    ml_dsa65: MlDsa65KeyPair
+
+    def __repr__(self) -> str:
+        return f"HybridKeyPair(key_id={self.key_id!r}, ed25519=<REDACTED>, ml_dsa65=<REDACTED>)"
+
+    def __str__(self) -> str:
+        return self.__repr__()
+
+    @property
+    def key_id(self) -> str:
+        # Combined key_id = sha256(ed25519_pub || ml_dsa65_pub).
+        return hashlib.sha256(self.ed25519.public_bytes + self.ml_dsa65.public_bytes).hexdigest()
+
+
+def generate_hybrid() -> HybridKeyPair:
+    return HybridKeyPair(ed25519=generate_ed25519(), ml_dsa65=generate_ml_dsa65())
+
+
+class HybridSigner:
+    """Signs the same pre-image with Ed25519 AND ML-DSA-65 (both must verify)."""
+
+    def __init__(self, keypair: HybridKeyPair) -> None:
+        self._kp = keypair
+
+    @property
+    def key_id(self) -> str:
+        return self._kp.key_id
+
+    def sign(self, manifest_dict: dict[str, Any], *, role: str, signer: str) -> dict[str, Any]:
+        pre_image = signing_pre_image(manifest_dict)
+        classical = self._kp.ed25519.private_key.sign(pre_image)
+        pq = self._kp.ml_dsa65.private_key.sign(pre_image)
+        return {
+            "role": role,
+            "signer": signer,
+            "algorithm": "hybrid-Ed25519-ML-DSA-65",
+            "key_id": self._kp.key_id,
+            "key_type": "software",
+            "signed_at": _signed_at_now(),
+            "classical_signature": _b64url_encode(classical),
+            "pq_signature": _b64url_encode(pq),
+            "signature_value": "",  # component fields are authoritative in hybrid mode
+            "signed_fields": list(WCM_SIGNED_FIELDS),
+        }
+
+
+class HybridVerifier:
+    """Verifies a hybrid signature: BOTH components must pass independently."""
+
+    def __init__(self, ed25519_public_bytes: bytes, ml_dsa65_public_bytes: bytes) -> None:
+        self._classical = Ed25519Verifier(ed25519_public_bytes)
+        self._pq = MlDsa65Verifier(ml_dsa65_public_bytes)
+
+    def verify(
+        self, manifest_dict: dict[str, Any], classical_signature: str, pq_signature: str
+    ) -> None:
+        """Raises InvalidSignature if either component fails."""
+        self._classical.verify(manifest_dict, classical_signature)
+        self._pq.verify(manifest_dict, pq_signature)

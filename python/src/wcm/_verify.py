@@ -16,13 +16,19 @@ adversary-owned silicon forged an attestation quote (open question 8.8).
 """
 from __future__ import annotations
 
+import hashlib
 from dataclasses import dataclass, field
-from typing import Optional
+from typing import Any, Optional, cast
 
 from cryptography.exceptions import InvalidSignature
 
-from ._signing import Ed25519Verifier, _b64url_decode
-from .models import SignatureRole, WeightCustodyManifest
+from ._signing import (
+    Ed25519Verifier,
+    HybridVerifier,
+    MlDsa65Verifier,
+    _b64url_decode,
+)
+from .models import SignatureAlgorithm, SignatureRole, WeightCustodyManifest
 
 
 class VerificationContext:
@@ -30,23 +36,49 @@ class VerificationContext:
 
     A verifier supplies the keys it is willing to trust for the builder and
     custodian (and sovereign, if applicable). A signature whose ``key_id`` is
-    not in this set is treated as untrusted, not merely unverified.
+    not in this set is treated as untrusted, not merely unverified. Each key is
+    trusted for exactly one algorithm; a signature whose algorithm does not match
+    the trusted key's is rejected.
     """
 
     def __init__(self) -> None:
-        self._keys: dict[str, bytes] = {}
+        # key_id -> (algorithm value, material). Material is raw public bytes for
+        # Ed25519 / ML-DSA-65, or (ed25519_pub, ml_dsa65_pub) for hybrid.
+        self._keys: dict[str, tuple[str, object]] = {}
 
     def add_key(self, public_key_bytes: bytes) -> str:
-        """Trust a raw Ed25519 public key. Returns its key_id."""
+        """Trust a raw Ed25519 public key (standard profile). Returns its key_id."""
         verifier = Ed25519Verifier(public_key_bytes)  # validates the key
-        self._keys[verifier.key_id] = public_key_bytes
+        self._keys[verifier.key_id] = (SignatureAlgorithm.ed25519.value, public_key_bytes)
         return verifier.key_id
 
     def add_key_b64url(self, s: str) -> str:
         return self.add_key(_b64url_decode(s))
 
-    def get(self, key_id: str) -> Optional[bytes]:
+    def add_ml_dsa65_key(self, public_key_bytes: bytes) -> str:
+        """Trust a raw ML-DSA-65 public key (post-quantum profile)."""
+        verifier = MlDsa65Verifier(public_key_bytes)  # validates the key
+        self._keys[verifier.key_id] = (SignatureAlgorithm.ml_dsa_65.value, public_key_bytes)
+        return verifier.key_id
+
+    def add_hybrid_key(self, ed25519_public_bytes: bytes, ml_dsa65_public_bytes: bytes) -> str:
+        """Trust a combined Ed25519 + ML-DSA-65 key (hybrid profile)."""
+        key_id = hashlib.sha256(ed25519_public_bytes + ml_dsa65_public_bytes).hexdigest()
+        self._keys[key_id] = (
+            SignatureAlgorithm.hybrid.value,
+            (ed25519_public_bytes, ml_dsa65_public_bytes),
+        )
+        return key_id
+
+    def _lookup(self, key_id: str) -> Optional[tuple[str, object]]:
         return self._keys.get(key_id)
+
+    def get(self, key_id: str) -> Optional[bytes]:
+        """Back-compat: return the raw Ed25519 public bytes for *key_id*, else None."""
+        entry = self._keys.get(key_id)
+        if entry is not None and entry[0] == SignatureAlgorithm.ed25519.value:
+            return entry[1]  # type: ignore[return-value]
+        return None
 
 
 @dataclass(frozen=True)
@@ -73,6 +105,23 @@ def _required_roles(manifest: WeightCustodyManifest) -> list[SignatureRole]:
     return roles
 
 
+def _verify_one(algo: str, material: object, unsigned: dict[str, Any], sig: Any) -> None:
+    """Verify one signature by algorithm; raises InvalidSignature/ValueError on failure."""
+    if algo == SignatureAlgorithm.ed25519.value:
+        Ed25519Verifier(cast(bytes, material)).verify(unsigned, sig.signature_value)
+    elif algo == SignatureAlgorithm.ml_dsa_65.value:
+        MlDsa65Verifier(cast(bytes, material)).verify(unsigned, sig.signature_value)
+    elif algo == SignatureAlgorithm.hybrid.value:
+        if not sig.classical_signature or not sig.pq_signature:
+            raise InvalidSignature("hybrid signature is missing a component")
+        ed_pub, pq_pub = cast("tuple[bytes, bytes]", material)
+        HybridVerifier(ed_pub, pq_pub).verify(
+            unsigned, sig.classical_signature, sig.pq_signature
+        )
+    else:
+        raise InvalidSignature(f"unsupported signature algorithm {algo!r}")
+
+
 def verify_manifest(
     manifest: WeightCustodyManifest, context: VerificationContext
 ) -> VerificationResult:
@@ -87,8 +136,8 @@ def verify_manifest(
     errors: list[str] = []
 
     for sig in manifest.signatures:
-        pub = context.get(sig.key_id)
-        if pub is None:
+        entry = context._lookup(sig.key_id)
+        if entry is None:
             results.append(
                 SignatureResult(
                     role=sig.role,
@@ -99,8 +148,21 @@ def verify_manifest(
                 )
             )
             continue
+        trusted_algo, material = entry
+        want = sig.algorithm.value
+        if trusted_algo != want:
+            results.append(
+                SignatureResult(
+                    role=sig.role,
+                    signer=sig.signer,
+                    key_id=sig.key_id,
+                    valid=False,
+                    reason=f"algorithm mismatch: key trusted for {trusted_algo}, signature is {want}",
+                )
+            )
+            continue
         try:
-            Ed25519Verifier(pub).verify(unsigned, sig.signature_value)
+            _verify_one(want, material, unsigned, sig)
             results.append(
                 SignatureResult(
                     role=sig.role, signer=sig.signer, key_id=sig.key_id, valid=True
