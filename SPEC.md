@@ -1,6 +1,6 @@
 # Weight Custody Manifest (WCM)
 ### An Open Specification for Protecting Model Weights in Customer-Controlled Infrastructure
-*Working draft, v0.8. Open specification, pre-1.0. Subject to change and NOT ready to build against yet; read the open questions (section 8) before relying on anything here. The operated custody service and enclave implementation are separate and proprietary; this repository is the open protocol layer only.*
+*Working draft, v0.9. Open specification, pre-1.0. Subject to change and NOT ready to build against yet; read the open questions (section 8) before relying on anything here. The operated custody service and enclave implementation are separate and proprietary; this repository is the open protocol layer only.*
 
 > Renamed from "Model Manifest" in v0.2. The artifact governs weight release and custody, not model identity or capability, so the name now says that. The "Model *" naming space (a separate companion model-passport effort) is intentionally left aside. See section 4.
 
@@ -70,6 +70,7 @@ Before any weights move, the builder issues a signed manifest describing exactly
   "release_terms": {
     "license": "customer-deployment-agreement-ref:CDA-2026-0091",
     "permitted_derivatives": "fine-tune-only, no re-export of base weights",
+    "derivatives": "fine-tune-only",
     "permitted_environments": ["opaque-cmcp-attested-enclave"],
     "jurisdiction_restriction": "US, EU"
   },
@@ -191,7 +192,26 @@ Once weights are live inside the enclave, custody is an ongoing obligation, not 
 
 If the customer is permitted to fine tune inside the enclave (per `permitted_derivatives` in Layer 1), the resulting derivative weights need their own chain of custody back to the original manifest.
 
-- **Derivative manifests.** A fine tune produces a new `weights_hash` with a `derived_from` field pointing at the parent manifest. The builder's IP claim over the base weights does not disappear because a derivative exists; `rights_holder` on the derivative manifest reflects whatever the deployment agreement specifies, commonly a split between builder IP in the base and customer IP in the fine tune data.
+- **Derivative manifests.** A fine tune produces a new `weights_hash` with a `derived_from` field pointing at the parent manifest. The builder's IP claim over the base weights does not disappear because a derivative exists; `rights_holder` on the derivative manifest reflects whatever the deployment agreement specifies, commonly a split between builder IP in the base and customer IP in the fine tune data. A derivative manifest carries these two fields on top of the Layer 1 fields of section 3.1, and both are covered by the joint signature (they are not appended post-signing):
+
+```json
+{
+  "manifest_version": "0.1",
+  "weights_hash": "sha256:9f2c...derivative...",
+  "derived_from": "sha256:4a1c...parent...",
+  "rights_holder": {
+    "base": "example-builder",
+    "derivative": "example-customer"
+  },
+  "builder": { "identity": "example-builder", "signing_key": "ed25519:..." },
+  "release_terms": { "...": "as section 3.1" },
+  "release_policy": { "...": "as section 3.1" },
+  "custody": { "...": "as section 3.1" },
+  "signatures": [ "...builder + custodian joint..." ]
+}
+```
+
+Whether a derivative may be created at all is governed by the parent's `release_terms`. Alongside the freeform `permitted_derivatives` legal text, a machine-checkable `derivatives` field (`none` | `fine-tune-only` | `unrestricted`) lets a verifier resolve the `derived_from` chain to its root and refuse a derivative whose parent set `none`. `permitted_derivatives` remains the human/legal expression; `derivatives` is the part a tool can enforce. A root manifest omits `derived_from`.
 - **Standards home: IETF SCITT.** The manifest-plus-signed-receipts design is not a new standard; it is an application of SCITT (Supply Chain Integrity, Transparency, and Trust). WCM's constructs map onto SCITT roles directly, which is the intended standardization path rather than a bespoke format:
 
 | WCM construct | SCITT role |
@@ -353,6 +373,6 @@ Same flow, three changes. The rest is identical.
 
 ---
 
-*v0.8, pre-1.0 open specification. Companion: `THREAT-MODEL.md`. Sections 3 and 5 are load-bearing.*
+*v0.9, pre-1.0 open specification. Companion: `THREAT-MODEL.md`. Sections 3 and 5 are load-bearing.*
 
-*Version history: v0.1 initial draft. v0.2 established the runtime-control crux (builder-signed serving image), wipe-on-lapse, the sovereign revocation profile, and the attested-KBS self-custody design. v0.3 folded in a confidential-GPU assessment and reframed the guarantee as silicon-enforced against software theft but cost-plus-detection against a physical operator (section 3.6). v0.4 folded in a CPU-CVM assessment (TEE.fail / BadRAM defeat SEV-SNP/TDX and forge attestation), scoped custody to the operator-trust model, and made physical hardening mandatory for the hostile-owner posture. v0.5 set the open-core model. v0.6 applied an external panel assessment: corrected the commercial-posture overclaim (a malicious hypervisor extracts keys via ciphertext side channels, so the by-construction claim now excludes hypervisor-privileged operators absent ciphertext-hiding); added a trusted-time requirement for wipe-on-lapse; carried the forged-attestation concession through to the revocation floor and self-custody (threshold now a prerequisite for sovereign self-custody); added a transparency log (§3.7) and a revoked-measurement status; split the NVIDIA maturity claim (single-GPU Hopper GA vs Blackwell multi-GPU) and specified composite CPU+GPU attestation; reframed §1's false-novelty claim (attestation-gated release is prior art); introduced the cryptographic-custody vs accountability-grade distinction; and generalized references to an unannounced companion project. v0.7 resolved three of the flagged strategy calls: standards home is IETF SCITT plus CoSAI with WCM mapped to SCITT roles (section 3.4); `required_hw_platform` is a profile list with a silicon-agnostic attestation interface specified (section 3.1); and the sovereign go-to-market is reframed as dual-protection with a sovereign-run outward-attesting audit (section 8.3). The `sovereign_profile` name is scoped to a quorum veto, not full sovereignty. RAND-vocabulary depth in buyer material remains flagged. v0.8 resolved two build decisions: trusted time for wipe-on-lapse is named per deployment (`trusted_time_source`, three tiers: `secure-tsc`, an op-count/lease hybrid fallback, or disclosed best-effort), closing open question 8.9; and the forged-attestation question is split, with the measurement-forgery half closed by a `memory_fingerprint_challenge` (full-DRAM write/readback detecting BadRAM-class aliasing) and a mandatory `attestation_revocation_check`, while the key-extraction half (TEE.fail-class) stays honestly open with named compensating controls and remains the reason publication is staged. Pre-1.0 and not ready to build against.*
+*Version history: v0.1 initial draft. v0.2 established the runtime-control crux (builder-signed serving image), wipe-on-lapse, the sovereign revocation profile, and the attested-KBS self-custody design. v0.3 folded in a confidential-GPU assessment and reframed the guarantee as silicon-enforced against software theft but cost-plus-detection against a physical operator (section 3.6). v0.4 folded in a CPU-CVM assessment (TEE.fail / BadRAM defeat SEV-SNP/TDX and forge attestation), scoped custody to the operator-trust model, and made physical hardening mandatory for the hostile-owner posture. v0.5 set the open-core model. v0.6 applied an external panel assessment: corrected the commercial-posture overclaim (a malicious hypervisor extracts keys via ciphertext side channels, so the by-construction claim now excludes hypervisor-privileged operators absent ciphertext-hiding); added a trusted-time requirement for wipe-on-lapse; carried the forged-attestation concession through to the revocation floor and self-custody (threshold now a prerequisite for sovereign self-custody); added a transparency log (§3.7) and a revoked-measurement status; split the NVIDIA maturity claim (single-GPU Hopper GA vs Blackwell multi-GPU) and specified composite CPU+GPU attestation; reframed §1's false-novelty claim (attestation-gated release is prior art); introduced the cryptographic-custody vs accountability-grade distinction; and generalized references to an unannounced companion project. v0.7 resolved three of the flagged strategy calls: standards home is IETF SCITT plus CoSAI with WCM mapped to SCITT roles (section 3.4); `required_hw_platform` is a profile list with a silicon-agnostic attestation interface specified (section 3.1); and the sovereign go-to-market is reframed as dual-protection with a sovereign-run outward-attesting audit (section 8.3). The `sovereign_profile` name is scoped to a quorum veto, not full sovereignty. RAND-vocabulary depth in buyer material remains flagged. v0.8 resolved two build decisions: trusted time for wipe-on-lapse is named per deployment (`trusted_time_source`, three tiers: `secure-tsc`, an op-count/lease hybrid fallback, or disclosed best-effort), closing open question 8.9; and the forged-attestation question is split, with the measurement-forgery half closed by a `memory_fingerprint_challenge` (full-DRAM write/readback detecting BadRAM-class aliasing) and a mandatory `attestation_revocation_check`, while the key-extraction half (TEE.fail-class) stays honestly open with named compensating controls and remains the reason publication is staged. v0.9 is an editorial sync of Layer 4 (section 3.4): the manifest example now shows a derivative's `derived_from` and `rights_holder` fields (both under the joint signature), and `release_terms` gains a machine-checkable `derivatives` field (`none` | `fine-tune-only` | `unrestricted`) alongside the freeform `permitted_derivatives` legal text, so a verifier can resolve the lineage chain and enforce whether a derivative is permitted. No normative change to the release, attestation, or custody semantics. Pre-1.0 and not ready to build against.*
