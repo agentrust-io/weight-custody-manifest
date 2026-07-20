@@ -23,10 +23,9 @@ Reference implementation of the [Weight Custody Manifest](../SPEC.md):
 > key-extraction hole (open question 8.8): a physically-extracted key produces a
 > genuinely valid signature that passes every check. Wipe-on-lapse bounds exposure
 > only if the clock cannot be stalled (`trusted_time_source` → `time_floor`) and
-> only against an operator who cannot forge attestation. Operation-count-anchored
-> renewal for the hybrid, GPU-side quote verification, real vendor roots/parsers,
-> the reproducible reference KBS image, and derivative lineage are **not** here
-> yet — see the repo `ROADMAP.md`.
+> only against an operator who cannot forge attestation. GPU-side quote
+> verification, real vendor roots/parsers, the reproducible reference KBS image,
+> and derivative lineage are **not** here yet — see the repo `ROADMAP.md`.
 
 ## What it does
 
@@ -69,7 +68,9 @@ Wipe-on-lapse (runtime custody):
 - **`custody.py`** — `EnclaveSession`: holds a released key for the cadence
   window, renews on `reattest()`, zeroizes on lapse; `use_key()` never serves
   past the deadline. `time_floor` reports how much the bound is worth given the
-  manifest's `trusted_time_source`.
+  manifest's `trusted_time_source`. For the hybrid, `max_operations` anchors the
+  serving case: after N operations `use_key()` raises `ReattestationRequired`
+  (the key is not wiped) until the session re-attests.
 
 A post-quantum profile (ML-DSA-65) is on the roadmap, not in this preview.
 

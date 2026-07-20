@@ -91,10 +91,11 @@ from .custody import (
     SessionState,
     TimeFloor,
     KeyWipedError,
+    ReattestationRequired,
     parse_cadence,
 )
 
-__version__ = "0.5.0"
+__version__ = "0.6.0"
 
 __all__ = [
     "__version__",
@@ -169,5 +170,6 @@ __all__ = [
     "SessionState",
     "TimeFloor",
     "KeyWipedError",
+    "ReattestationRequired",
     "parse_cadence",
 ]
