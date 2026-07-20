@@ -14,6 +14,9 @@ Reference implementation of the [Weight Custody Manifest](../SPEC.md):
 - **Layer 4 (lineage)** — derivative manifests chain back to the root via
   `derived_from`; the lineage verifier resolves the chain, detects cycles and
   missing parents, and enforces a parent's structured `derivatives` policy.
+- **Transparency log** — an append-only Merkle log (RFC 9162) with signed tree
+  heads, inclusion proofs, and consistency proofs, so equivocation and
+  suppressed revocations become detectable.
 
 > **Pre-1.0, tracking a pre-1.0 spec. Not ready to build against.**
 > The hardware providers (SEV-SNP / TDX / NVIDIA CC) do real device I/O but their
@@ -83,6 +86,15 @@ Layer 4 (derivative lineage):
   `unrestricted`) is enforced; the freeform `permitted_derivatives` legal string
   is left to human review. `derived_from` and `rights_holder` are under the joint
   signature.
+
+Transparency (authority-layer integrity):
+
+- **`_merkle.py`** — RFC 9162 Merkle tree: inclusion and consistency proofs.
+- **`transparency.py`** — `TransparencyLog`: append manifests / revocations /
+  measurement-set changes, emit Ed25519 signed tree heads, and prove inclusion
+  and append-only growth. `find()` lets a monitor detect a *missing* expected
+  entry (a suppressed revocation). Verification (`verify_sth` / `verify_inclusion`
+  / `verify_log_consistency`) needs only the proofs and heads, not the store.
 
 A post-quantum profile (ML-DSA-65) is on the roadmap, not in this preview.
 
