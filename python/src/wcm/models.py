@@ -94,7 +94,9 @@ class SignatureRole(str, Enum):
 
 
 class SignatureAlgorithm(str, Enum):
-    ed25519 = "Ed25519"
+    ed25519 = "Ed25519"  # standard profile
+    ml_dsa_65 = "ML-DSA-65"  # post-quantum profile (NIST FIPS 204)
+    hybrid = "hybrid-Ed25519-ML-DSA-65"  # both required, both must verify
 
 
 class KeyType(str, Enum):
@@ -242,7 +244,10 @@ class ManifestSignature(_Strict):
     key_id: str
     key_type: KeyType = KeyType.software
     signed_at: Optional[str] = None
-    signature_value: str
+    signature_value: str  # the single signature; empty string in hybrid mode
+    # Hybrid mode carries both component signatures (SPEC.md post-quantum profile).
+    classical_signature: Optional[str] = None
+    pq_signature: Optional[str] = None
     signed_fields: Optional[list[str]] = None
 
 

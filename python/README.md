@@ -19,6 +19,8 @@ Reference implementation of the [Weight Custody Manifest](../SPEC.md):
   suppressed revocations become detectable.
 - **Threshold split-key** — Shamir sharing so a sovereign self-custody key needs
   a quorum of custodians to reconstruct; no single party can self-release.
+- **Post-quantum profile** — ML-DSA-65 (FIPS 204) and an Ed25519+ML-DSA-65
+  hybrid; manifests verify under the standard, PQ, or hybrid profile.
 
 > **Pre-1.0, tracking a pre-1.0 spec. Not ready to build against.**
 > The hardware providers (SEV-SNP / TDX / NVIDIA CC) do real device I/O but their
@@ -33,7 +35,7 @@ Reference implementation of the [Weight Custody Manifest](../SPEC.md):
 > only if the clock cannot be stalled (`trusted_time_source` → `time_floor`) and
 > only against an operator who cannot forge attestation. GPU-side quote
 > verification, real vendor roots/parsers, the reproducible reference KBS image,
-> and the post-quantum profile are **not** here yet — see the repo `ROADMAP.md`.
+> are **not** here yet — see the repo `ROADMAP.md`.
 
 ## What it does
 
@@ -44,8 +46,9 @@ Layer 1 (authority):
   `attestation_revocation_check`).
 - **`_canonicalize.py`** — RFC 8785 (JCS), kept in sync with the agentrust-io
   family so a manifest signed by one tool verifies under another.
-- **`_signing.py`** — Ed25519 (standard profile). One signature block per party,
-  tagged with `role` and `signer`.
+- **`_signing.py`** — Ed25519 (standard profile), ML-DSA-65 (post-quantum, FIPS
+  204, via cryptography's native support), and an Ed25519+ML-DSA-65 hybrid where
+  both must verify. One signature block per party, tagged with `role` and `signer`.
 - **`_verify.py`** — checks the required roles signed and every signature is
   cryptographically valid; enforces the sovereign quorum rule.
 - **`cli.py`** — `wcm keygen | sign | verify`.
@@ -105,7 +108,13 @@ Sovereign self-custody:
   reconstruct the key; any `t-1` reveal nothing, so no single custodian (the
   builder included) can self-release (SPEC §3.5, decision 15).
 
-A post-quantum profile (ML-DSA-65) is on the roadmap, not in this preview.
+Post-quantum profile:
+
+- ML-DSA-65 and hybrid signing live in `_signing.py`; `VerificationContext`
+  gains `add_ml_dsa65_key()` / `add_hybrid_key()`, and `verify_manifest`
+  dispatches per signature by algorithm. Uses cryptography's native ML-DSA (no
+  external liboqs); on a cryptography build without it, PQ raises a clear error
+  while the rest of the package keeps working.
 
 ## Install
 

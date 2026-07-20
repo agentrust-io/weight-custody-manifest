@@ -21,6 +21,16 @@ from ._signing import (
     Ed25519KeyPair,
     Ed25519Signer,
     Ed25519Verifier,
+    generate_ml_dsa65,
+    ml_dsa65_from_seed_bytes,
+    ml_dsa65_from_seed_b64url,
+    MlDsa65KeyPair,
+    MlDsa65Signer,
+    MlDsa65Verifier,
+    generate_hybrid,
+    HybridKeyPair,
+    HybridSigner,
+    HybridVerifier,
 )
 from .models import (
     WeightCustodyManifest,
@@ -108,7 +118,7 @@ from .transparency import (
 )
 from .threshold import split_secret, combine_shares, Share
 
-__version__ = "0.9.0"
+__version__ = "0.10.0"
 
 __all__ = [
     "__version__",
@@ -123,6 +133,16 @@ __all__ = [
     "Ed25519KeyPair",
     "Ed25519Signer",
     "Ed25519Verifier",
+    "generate_ml_dsa65",
+    "ml_dsa65_from_seed_bytes",
+    "ml_dsa65_from_seed_b64url",
+    "MlDsa65KeyPair",
+    "MlDsa65Signer",
+    "MlDsa65Verifier",
+    "generate_hybrid",
+    "HybridKeyPair",
+    "HybridSigner",
+    "HybridVerifier",
     "WeightCustodyManifest",
     "Builder",
     "ReleaseTerms",
