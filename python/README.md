@@ -21,21 +21,23 @@ Reference implementation of the [Weight Custody Manifest](../SPEC.md):
   a quorum of custodians to reconstruct; no single party can self-release.
 - **Post-quantum profile** — ML-DSA-65 (FIPS 204) and an Ed25519+ML-DSA-65
   hybrid; manifests verify under the standard, PQ, or hybrid profile.
+- **AMD SEV-SNP quote verification** — real v3 report parser + VCEK report-signature
+  verification, validated against a live Azure SEV-SNP report and the real AMD
+  Milan chain (RSA-PSS) — the latter committed as a CI fixture.
 
 > **Pre-1.0, tracking a pre-1.0 spec. Not ready to build against.**
-> The hardware providers (SEV-SNP / TDX / NVIDIA CC) do real device I/O but their
-> ioctl layouts and report offsets are **NOT validated against real silicon** —
-> provisional until checked on hardware. Quote verification ships the real,
-> tested **machinery** (X.509 chain + signature + nonce binding, exercised
-> against a synthetic PKI) but **no AMD/NVIDIA root certificates and no vendor
-> binary parser** — those plug in as a `TrustStore` and a `QuoteParser`, and are
-> the parts that need real captured quotes to validate. None of this closes the
-> key-extraction hole (open question 8.8): a physically-extracted key produces a
-> genuinely valid signature that passes every check. Wipe-on-lapse bounds exposure
-> only if the clock cannot be stalled (`trusted_time_source` → `time_floor`) and
-> only against an operator who cannot forge attestation. GPU-side quote
-> verification, real vendor roots/parsers, the reproducible reference KBS image,
-> are **not** here yet — see the repo `ROADMAP.md`.
+> The cert-chain + signature + nonce-binding **machinery is validated against real
+> hardware**: an AMD SEV-SNP report and the real VCEK→ASK→ARK Milan chain (this is
+> what surfaced and fixed the RSA-PSS bug). What is still **not** validated: the
+> `/dev/sev-guest` ioctl offsets in `_hw_providers` (Azure uses the vTPM path
+> instead — see `snp.extract_snp_report_from_hcl`), and the **NVIDIA GPU** path,
+> which stays provisional until an H100 CC report is captured. None of this closes
+> the key-extraction hole (open question 8.8): a physically-extracted key produces
+> a genuinely valid signature that passes every check. Wipe-on-lapse bounds
+> exposure only if the clock cannot be stalled (`trusted_time_source` →
+> `time_floor`) and only against an operator who cannot forge attestation.
+> Intel TDX validation, GPU-side quote verification, and the reproducible
+> reference KBS image are **not** here yet — see the repo `ROADMAP.md`.
 
 ## What it does
 
@@ -115,6 +117,14 @@ Post-quantum profile:
   dispatches per signature by algorithm. Uses cryptography's native ML-DSA (no
   external liboqs); on a cryptography build without it, PQ raises a clear error
   while the rest of the package keeps working.
+
+AMD SEV-SNP (vendor quote verification):
+
+- **`snp.py`** — `parse_snp_report` (v3 ABI), `verify_snp_report_signature`
+  (VCEK, ECDSA P-384, AMD's little-endian r‖s), `extract_snp_report_from_hcl`
+  (Azure vTPM `0x01400001` wrapper), and `SnpQuoteParser`, which plugs a report +
+  its VCEK/ASK/ARK chain into the generic `QuoteVerifier`. Validated against a
+  live Azure SEV-SNP report; the real public AMD Milan chain is a CI fixture.
 
 ## Install
 

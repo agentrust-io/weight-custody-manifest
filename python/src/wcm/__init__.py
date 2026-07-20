@@ -117,8 +117,16 @@ from .transparency import (
     verify_log_consistency,
 )
 from .threshold import split_secret, combine_shares, Share
+from .snp import (
+    SnpReport,
+    parse_snp_report,
+    verify_snp_report_signature,
+    extract_snp_report_from_hcl,
+    snp_signature_der,
+    SnpQuoteParser,
+)
 
-__version__ = "0.10.1"
+__version__ = "0.11.0"
 
 __all__ = [
     "__version__",
@@ -220,4 +228,10 @@ __all__ = [
     "split_secret",
     "combine_shares",
     "Share",
+    "SnpReport",
+    "parse_snp_report",
+    "verify_snp_report_signature",
+    "extract_snp_report_from_hcl",
+    "snp_signature_der",
+    "SnpQuoteParser",
 ]
