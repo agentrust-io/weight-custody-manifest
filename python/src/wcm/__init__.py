@@ -118,7 +118,7 @@ from .transparency import (
 )
 from .threshold import split_secret, combine_shares, Share
 
-__version__ = "0.10.0"
+__version__ = "0.10.1"
 
 __all__ = [
     "__version__",

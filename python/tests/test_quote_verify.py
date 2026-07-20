@@ -26,6 +26,7 @@ from wcm import (
     KeyBrokerService,
     QuoteVerifier,
     TrustStore,
+    verify_cert_chain,
 )
 
 NOW = datetime(2026, 7, 20, 12, 0, 0, tzinfo=timezone.utc)
@@ -176,6 +177,45 @@ def test_offset_report_data():
     q = _container(pki, _report_body(NONCE, offset=16), offset=16)
     result = _verifier(pki).verify(q, expected_nonce=NONCE, now=NOW)
     assert result.verified
+
+
+def test_rsa_pss_chain_verifies():
+    """Regression: real vendor chains (AMD VCEK/ASK/ARK) are RSASSA-PSS signed,
+    validated against a live SEV-SNP host. A PKCS#1-v1.5-only verifier rejects
+    them, so verify_cert_chain must honor each cert's own signature parameters.
+    """
+    from cryptography.hazmat.primitives.asymmetric import padding, rsa
+
+    pss = padding.PSS(mgf=padding.MGF1(hashes.SHA256()), salt_length=32)
+
+    def rkey():
+        return rsa.generate_private_key(public_exponent=65537, key_size=2048)
+
+    def cert_pss(subject, issuer_name, subj_key, issuer_key, ca=False):
+        b = (
+            x509.CertificateBuilder()
+            .subject_name(x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, subject)]))
+            .issuer_name(x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, issuer_name)]))
+            .public_key(subj_key.public_key())
+            .serial_number(x509.random_serial_number())
+            .not_valid_before(NOW - timedelta(days=1))
+            .not_valid_after(NOW + timedelta(days=365))
+        )
+        if ca:
+            b = b.add_extension(x509.BasicConstraints(ca=True, path_length=None), critical=True)
+        return b.sign(issuer_key, hashes.SHA256(), rsa_padding=pss)
+
+    rk, ik, lk = rkey(), rkey(), rkey()
+    root = cert_pss("pss-root", "pss-root", rk, rk, ca=True)
+    inter = cert_pss("pss-inter", "pss-root", ik, rk, ca=True)
+    leaf = cert_pss("pss-leaf", "pss-inter", lk, ik)
+    ts = TrustStore()
+    ts.add_root(root)
+    assert verify_cert_chain(leaf, [inter], ts, NOW) is None
+    # A different root must still fail.
+    other = TrustStore()
+    other.add_root(cert_pss("other-root", "other-root", rkey(), rkey(), ca=True))
+    assert verify_cert_chain(leaf, [inter], other, NOW) is not None
 
 
 # -- KBS integration -----------------------------------------------------------
