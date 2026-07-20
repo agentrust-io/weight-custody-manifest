@@ -35,7 +35,7 @@ from typing import Optional, Protocol
 
 from cryptography import x509
 from cryptography.exceptions import InvalidSignature
-from cryptography.hazmat.primitives.asymmetric import ec, ed25519, padding, rsa
+from cryptography.hazmat.primitives.asymmetric import ec, ed25519, rsa
 
 
 @dataclass(frozen=True)
@@ -124,11 +124,18 @@ def _utcnow() -> datetime:
 
 
 def _pubkey_verify(pub: object, signature: bytes, message: bytes, cert: x509.Certificate) -> None:
-    """Verify *signature* over *message* with *pub*; raises InvalidSignature."""
+    """Verify *signature* over *message* with *pub*; raises InvalidSignature.
+
+    Uses the certificate's own signature-algorithm parameters, so RSASSA-PSS is
+    handled as well as PKCS#1 v1.5 and ECDSA. This matters for real vendor chains:
+    AMD's VCEK/ASK/ARK certs are RSA-PSS (validated against a live SEV-SNP host),
+    which a PKCS#1-v1.5-only verifier wrongly rejects.
+    """
+    params = cert.signature_algorithm_parameters
     if isinstance(pub, ec.EllipticCurvePublicKey):
-        pub.verify(signature, message, ec.ECDSA(cert.signature_hash_algorithm))  # type: ignore[arg-type]
+        pub.verify(signature, message, params)  # type: ignore[arg-type]
     elif isinstance(pub, rsa.RSAPublicKey):
-        pub.verify(signature, message, padding.PKCS1v15(), cert.signature_hash_algorithm)  # type: ignore[arg-type]
+        pub.verify(signature, message, params, cert.signature_hash_algorithm)  # type: ignore[arg-type]
     elif isinstance(pub, ed25519.Ed25519PublicKey):
         pub.verify(signature, message)
     else:
