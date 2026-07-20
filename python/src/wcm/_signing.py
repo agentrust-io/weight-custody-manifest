@@ -54,6 +54,8 @@ WCM_SIGNED_FIELDS: tuple[str, ...] = (
     "release_terms",
     "release_policy",
     "custody",
+    "derived_from",
+    "rights_holder",
 )
 
 

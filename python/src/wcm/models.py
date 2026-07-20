@@ -107,6 +107,20 @@ class KeyType(str, Enum):
 # ---------------------------------------------------------------------------
 
 
+class DerivativePolicy(str, Enum):
+    """Machine-checkable derivative permission (SPEC.md section 3.4).
+
+    The freeform ``permitted_derivatives`` string carries the legal terms; this
+    enum is the part a lineage verifier can enforce. ``none`` forbids any
+    derivative; ``fine-tune-only`` and ``unrestricted`` both permit a derivative
+    to exist (the SDK does not police the *kind* of derivative structurally).
+    """
+
+    none = "none"
+    fine_tune_only = "fine-tune-only"
+    unrestricted = "unrestricted"
+
+
 class _Strict(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -121,6 +135,16 @@ class ReleaseTerms(_Strict):
     permitted_derivatives: str
     permitted_environments: list[str] = Field(min_length=1)
     jurisdiction_restriction: Optional[str] = None
+    # Machine-checkable form of permitted_derivatives; None means unspecified
+    # (a lineage verifier reports it as not machine-enforceable).
+    derivatives: Optional[DerivativePolicy] = None
+
+
+class RightsHolder(_Strict):
+    """Who holds IP over the base weights vs the fine-tune (SPEC.md 3.4)."""
+
+    base: str  # holder of the base-weights IP (commonly the builder)
+    derivative: Optional[str] = None  # holder of the fine-tune IP (e.g. the customer)
 
 
 class RequiredGpuMeasurement(_Strict):
@@ -236,7 +260,18 @@ class WeightCustodyManifest(_Strict):
     release_terms: ReleaseTerms
     release_policy: ReleasePolicy
     custody: Custody
+    # Layer 4 (SPEC.md 3.4): a derivative points at its parent's weights_hash and
+    # records the IP split. Both are signed (see WCM_SIGNED_FIELDS). Absent on a
+    # root manifest.
+    derived_from: Optional[HashValue] = None
+    rights_holder: Optional[RightsHolder] = None
     signatures: list[ManifestSignature] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def _derived_from_not_self(self) -> "WeightCustodyManifest":
+        if self.derived_from is not None and self.derived_from == self.weights_hash:
+            raise ValueError("derived_from must not equal the manifest's own weights_hash")
+        return self
 
     @model_validator(mode="after")
     def _sovereign_consistency(self) -> "WeightCustodyManifest":

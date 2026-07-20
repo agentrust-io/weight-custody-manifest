@@ -11,6 +11,9 @@ Reference implementation of the [Weight Custody Manifest](../SPEC.md):
   only for the cadence window and zeroizes it if it does not re-attest in time.
 - **Quote verification** — the KBS-side trust decision: cert-chain validation +
   report-signature check + cryptographic nonce binding on the raw quote.
+- **Layer 4 (lineage)** — derivative manifests chain back to the root via
+  `derived_from`; the lineage verifier resolves the chain, detects cycles and
+  missing parents, and enforces a parent's structured `derivatives` policy.
 
 > **Pre-1.0, tracking a pre-1.0 spec. Not ready to build against.**
 > The hardware providers (SEV-SNP / TDX / NVIDIA CC) do real device I/O but their
@@ -25,7 +28,7 @@ Reference implementation of the [Weight Custody Manifest](../SPEC.md):
 > only if the clock cannot be stalled (`trusted_time_source` → `time_floor`) and
 > only against an operator who cannot forge attestation. GPU-side quote
 > verification, real vendor roots/parsers, the reproducible reference KBS image,
-> and derivative lineage are **not** here yet — see the repo `ROADMAP.md`.
+> and the post-quantum profile are **not** here yet — see the repo `ROADMAP.md`.
 
 ## What it does
 
@@ -71,6 +74,15 @@ Wipe-on-lapse (runtime custody):
   manifest's `trusted_time_source`. For the hybrid, `max_operations` anchors the
   serving case: after N operations `use_key()` raises `ReattestationRequired`
   (the key is not wiped) until the session re-attests.
+
+Layer 4 (derivative lineage):
+
+- **`lineage.py`** — `verify_lineage(manifests, leaf_hash)` walks `derived_from`
+  to the root, returning the chain, cycles/missing-parent violations, and policy
+  notes. A parent's structured `derivatives` policy (`none` / `fine-tune-only` /
+  `unrestricted`) is enforced; the freeform `permitted_derivatives` legal string
+  is left to human review. `derived_from` and `rights_holder` are under the joint
+  signature.
 
 A post-quantum profile (ML-DSA-65) is on the roadmap, not in this preview.
 
