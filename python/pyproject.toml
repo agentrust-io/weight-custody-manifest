@@ -66,6 +66,12 @@ python_version = "3.11"
 strict = true
 ignore_missing_imports = true
 
+# fcntl is Linux-only: the `type: ignore[attr-defined]` on fcntl.ioctl is needed
+# under a win32 platform check but unused on Linux, so silence unused-ignore here.
+[[tool.mypy.overrides]]
+module = "wcm._hw_providers"
+warn_unused_ignores = false
+
 [tool.coverage.run]
 source = ["src/wcm"]
 omit = ["src/wcm/cli.py"]

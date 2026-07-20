@@ -11,15 +11,19 @@ Reference implementation of the [Weight Custody Manifest](../SPEC.md):
   only for the cadence window and zeroizes it if it does not re-attest in time.
 
 > **Pre-1.0, tracking a pre-1.0 spec. Not ready to build against.**
-> Layer 2 here is the **policy gate** driven by a software/mock attestation
-> provider: it exercises the gate logic but verifies no real hardware root of
-> trust, and it cannot detect a forged quote from a physically-extracted
-> attestation key (the open key-extraction half of SPEC open question 8.8).
-> Wipe-on-lapse bounds exposure only if the clock it checks cannot be stalled
-> (`trusted_time_source`, surfaced as `time_floor`) and only against an operator
-> who cannot forge attestation. Real TEE providers (SEV-SNP / TDX / NVIDIA CC),
-> operation-count-anchored renewal for the hybrid, the reproducible reference KBS
-> image, and derivative lineage are **not** here yet — see the repo `ROADMAP.md`.
+> Layer 2 here is the **policy gate**. The hardware providers (SEV-SNP / TDX /
+> NVIDIA CC) do real device I/O but their ioctl layouts and report offsets are
+> **NOT validated against real silicon** — provisional until checked on hardware
+> (CI exercises availability detection, the software fallback, and report parsing
+> against synthetic fixtures, never a real root of trust). The gate also cannot
+> detect a forged quote from a physically-extracted attestation key (the open
+> key-extraction half of SPEC open question 8.8), and it does not yet verify
+> quote signatures / cert chains (a later verifier-side PR). Wipe-on-lapse bounds
+> exposure only if the clock cannot be stalled (`trusted_time_source`, surfaced
+> as `time_floor`) and only against an operator who cannot forge attestation.
+> Operation-count-anchored renewal for the hybrid, KBS-side quote-signature
+> verification, the reproducible reference KBS image, and derivative lineage are
+> **not** here yet — see the repo `ROADMAP.md`.
 
 ## What it does
 
@@ -43,6 +47,11 @@ Layer 2 (release gate):
   report echoing the same nonce, plus the v0.8 memory-fingerprint response.
 - **`providers.py`** — `AttestationProvider` interface + a `SoftwareProvider`
   mock (no hardware root of trust; for tests and local dev only).
+- **`_hw_providers.py`** — hardware producers: `SevSnpProvider` /
+  `TdxProvider` (CPU quote via `/dev/sev-guest` / `/dev/tdx-guest`),
+  `NvidiaCcProvider` (GPU report via an external tool), `HardwareCompositeProvider`,
+  and `select_provider()` (auto-select, software fallback). **ABI/offsets are
+  provisional and unvalidated against real silicon.**
 - **`kbs.py`** — `KeyBrokerService`: composite verification (nonce, platform,
   assurance tier, serving-image status + prefer-current, GPU measurement and
   CPU↔GPU binding, memory-fingerprint, revocation freshness) and gated release.
