@@ -106,8 +106,9 @@ from .transparency import (
     verify_inclusion,
     verify_log_consistency,
 )
+from .threshold import split_secret, combine_shares, Share
 
-__version__ = "0.8.0"
+__version__ = "0.9.0"
 
 __all__ = [
     "__version__",
@@ -196,4 +197,7 @@ __all__ = [
     "verify_sth",
     "verify_inclusion",
     "verify_log_consistency",
+    "split_secret",
+    "combine_shares",
+    "Share",
 ]
