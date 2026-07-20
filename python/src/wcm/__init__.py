@@ -34,6 +34,8 @@ from .models import (
     Custody,
     KbsImage,
     ManifestSignature,
+    RightsHolder,
+    DerivativePolicy,
     AssuranceTier,
     PhysicalHardening,
     TrustedTimeSource,
@@ -94,8 +96,9 @@ from .custody import (
     ReattestationRequired,
     parse_cadence,
 )
+from .lineage import verify_lineage, LineageResult, is_root
 
-__version__ = "0.6.0"
+__version__ = "0.7.0"
 
 __all__ = [
     "__version__",
@@ -121,6 +124,8 @@ __all__ = [
     "Custody",
     "KbsImage",
     "ManifestSignature",
+    "RightsHolder",
+    "DerivativePolicy",
     "AssuranceTier",
     "PhysicalHardening",
     "TrustedTimeSource",
@@ -172,4 +177,7 @@ __all__ = [
     "KeyWipedError",
     "ReattestationRequired",
     "parse_cadence",
+    "verify_lineage",
+    "LineageResult",
+    "is_root",
 ]
