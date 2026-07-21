@@ -81,6 +81,7 @@ from .providers import (
 from ._hw_providers import (
     CpuQuoteProvider,
     SevSnpProvider,
+    AzureSnpVtpmProvider,
     TdxProvider,
     NvidiaCcProvider,
     HardwareCompositeProvider,
@@ -126,7 +127,7 @@ from .snp import (
     SnpQuoteParser,
 )
 
-__version__ = "0.11.1"
+__version__ = "0.12.0"
 
 __all__ = [
     "__version__",
@@ -193,6 +194,7 @@ __all__ = [
     "AttestationUnavailableError",
     "CpuQuoteProvider",
     "SevSnpProvider",
+    "AzureSnpVtpmProvider",
     "TdxProvider",
     "NvidiaCcProvider",
     "HardwareCompositeProvider",

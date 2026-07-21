@@ -64,9 +64,11 @@ Layer 2 (release gate):
   mock (no hardware root of trust; for tests and local dev only).
 - **`_hw_providers.py`** — hardware producers: `SevSnpProvider` /
   `TdxProvider` (CPU quote via `/dev/sev-guest` / `/dev/tdx-guest`),
+  `AzureSnpVtpmProvider` (SEV-SNP on an Azure CVM via the vTPM NV `0x01400001`
+  paravisor path — the flow validated on a live Azure host),
   `NvidiaCcProvider` (GPU report via an external tool), `HardwareCompositeProvider`,
-  and `select_provider()` (auto-select, software fallback). **ABI/offsets are
-  provisional and unvalidated against real silicon.**
+  and `select_provider()` (auto-select, software fallback). The bare-metal ioctl
+  offsets remain provisional; the Azure vTPM extraction is validated.
 - **`kbs.py`** — `KeyBrokerService`: composite verification (nonce, platform,
   assurance tier, serving-image status + prefer-current, GPU measurement and
   CPU↔GPU binding, memory-fingerprint, revocation freshness, optional

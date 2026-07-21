@@ -173,6 +173,72 @@ class TdxProvider(CpuQuoteProvider):
         )
 
 
+class AzureSnpVtpmProvider(CpuQuoteProvider):
+    """AMD SEV-SNP CPU quote on an Azure confidential VM (vTPM path).
+
+    Azure CVMs have no /dev/sev-guest; the paravisor publishes the SNP report in
+    the vTPM NV index 0x01400001, wrapped in an HCL header (validated against a
+    live Azure host — see the repo history). This provider reads that index via
+    ``tpm2_nvread`` and extracts the raw SNP report.
+
+    Caveat carried from that validation: Azure binds the report's REPORT_DATA to
+    the vTPM runtime-data hash, not a caller nonce, so ``nonce_echo`` here is the
+    structural challenge pointer while the raw report (``quote_b64``) carries the
+    Azure binding. Cryptographic quote verification (VCEK signature + AMD chain)
+    works; the KBS nonce-binding check does not apply on Azure.
+    """
+
+    platform = "amd-sev-snp"
+    _NV_INDEX = "0x01400001"
+    _TPM_DEV = "/dev/tpmrm0"
+
+    @staticmethod
+    def is_available() -> bool:
+        return os.path.exists(AzureSnpVtpmProvider._TPM_DEV) and (
+            shutil.which("tpm2_nvread") is not None
+        )
+
+    def _fetch_hcl(self) -> bytes:
+        """Read the HCL report blob from the vTPM. Overridable in tests."""
+        if shutil.which("tpm2_nvread") is None:
+            raise AttestationUnavailableError("tpm2_nvread not found (Azure CVM tooling)")
+        try:
+            # NV index + tool are fixed constants (tpm2_nvread from the guest's
+            # PATH), not user input.
+            out = subprocess.run(  # nosec B603 B607
+                ["tpm2_nvread", "-C", "o", self._NV_INDEX],
+                capture_output=True,
+                timeout=30,
+                check=True,
+            )
+        except (OSError, subprocess.SubprocessError) as exc:
+            raise AttestationUnavailableError(
+                f"reading vTPM NV {self._NV_INDEX} failed: {exc}"
+            ) from exc
+        return out.stdout
+
+    def cpu_quote(
+        self,
+        challenge: Challenge,
+        *,
+        serving_image_measurement: str,
+        assurance_tier: str = "hardware-attested",
+    ) -> CpuQuote:
+        from .snp import extract_snp_report_from_hcl, parse_snp_report
+
+        report = extract_snp_report_from_hcl(self._fetch_hcl())
+        parsed = parse_snp_report(report)
+        return CpuQuote(
+            platform=self.platform,
+            assurance_tier=assurance_tier,
+            serving_image_measurement=HashValue(serving_image_measurement),
+            nonce_echo=challenge.nonce,
+            attestation_key_id="vcek:" + parsed.chip_id[:8].hex(),
+            attestation_key_cache_age_seconds=0,
+            quote_b64=base64.b64encode(report).decode(),
+        )
+
+
 # ---------------------------------------------------------------------------
 # GPU report provider
 # ---------------------------------------------------------------------------
@@ -273,7 +339,9 @@ class HardwareCompositeProvider(AttestationProvider):
 def select_cpu_provider() -> Optional[CpuQuoteProvider]:
     """Return the best available CPU quote provider, or None if none is present."""
     if SevSnpProvider.is_available():
-        return SevSnpProvider()
+        return SevSnpProvider()  # bare-metal / KVM SEV-SNP (guest controls REPORT_DATA)
+    if AzureSnpVtpmProvider.is_available():
+        return AzureSnpVtpmProvider()  # Azure CVM SEV-SNP via the vTPM paravisor path
     if TdxProvider.is_available():
         return TdxProvider()
     return None
