@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "weight-custody-manifest"
-description = "Reference SDK for the Weight Custody Manifest (WCM) — Layer 1: build, jointly sign, and verify a weight custody manifest"
+description = "Reference SDK for the Weight Custody Manifest (WCM): manifest signing and verification, attestation-gated key release, wipe-on-lapse custody, derivative lineage, transparency log, and quote verification"
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "Apache-2.0" }
@@ -50,9 +50,10 @@ dev = [
 wcm = "wcm.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/agentrust-io/weight-custody-manifest"
+Homepage = "https://wcm.agentrust-io.com"
+Documentation = "https://wcm.agentrust-io.com"
 Repository = "https://github.com/agentrust-io/weight-custody-manifest"
-Documentation = "https://github.com/agentrust-io/weight-custody-manifest/blob/main/SPEC.md"
+Changelog = "https://github.com/agentrust-io/weight-custody-manifest/blob/main/CHANGELOG.md"
 "Bug Tracker" = "https://github.com/agentrust-io/weight-custody-manifest/issues"
 
 [tool.hatch.build.targets.wheel]
