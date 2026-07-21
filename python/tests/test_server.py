@@ -88,3 +88,24 @@ def test_release_malformed_manifest_422(client_and_manifest):
     client, _, _ = client_and_manifest
     r = client.post("/release", json={"manifest": {"bogus": 1}, "evidence": {"cpu": {}}})
     assert r.status_code == 422
+
+
+def test_app_from_env_empty_keystore(monkeypatch):
+    monkeypatch.delenv("WCM_KEYSTORE_FILE", raising=False)
+    from wcm.server import app_from_env
+
+    client = TestClient(app_from_env())
+    assert client.get("/health").json()["status"] == "ok"
+
+
+def test_app_from_env_loads_keystore(tmp_path, monkeypatch, example_manifest):
+    import json
+
+    ks = tmp_path / "keystore.json"
+    ks.write_text(json.dumps({example_manifest.weights_hash: base64.b64encode(KEY).decode()}))
+    monkeypatch.setenv("WCM_KEYSTORE_FILE", str(ks))
+    from wcm.server import build_kbs_from_env
+
+    kbs = build_kbs_from_env()
+    # The key loaded for the example weights_hash decodes back to KEY.
+    assert kbs._keystore[example_manifest.weights_hash] == KEY  # type: ignore[attr-defined]
