@@ -17,6 +17,14 @@ our nonce). Ships a **genuine** quote captured from a live Azure SEV-SNP CVM
 verifies offline, alongside the synthetic one. Adds a "Replaying a real SEV-SNP
 quote" tutorial and wires the tutorials into the docs nav. No library API change.
 
+**[demo]** Sovereign self-custody with threshold release
+(`examples/sovereign_self_custody.py`, SPEC 3.5 / decision 15): a 2-of-3 split
+across builder, sovereign, and custodian, gated by an attested KBS, showing that
+no single party (and no single forged KBS quote) can assemble the key, so
+threshold is a prerequisite for sovereign self-custody, not optional hardening.
+Composes the shipped `split_secret`/`combine_shares` with `KeyBrokerService`; no
+new library API. Adds a "Sovereign self-custody (threshold)" tutorial.
+
 ## SDK
 
 ### 0.15.0
