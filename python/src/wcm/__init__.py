@@ -129,8 +129,14 @@ from .snp import (
     snp_signature_der,
     SnpQuoteParser,
 )
+from .tdx import (
+    TdxQuote,
+    TdxReport,
+    parse_tdx_quote,
+    verify_tdx_quote,
+)
 
-__version__ = "0.15.0"
+__version__ = "0.16.0"
 
 __all__ = [
     "__version__",
@@ -241,4 +247,8 @@ __all__ = [
     "extract_snp_report_from_hcl",
     "snp_signature_der",
     "SnpQuoteParser",
+    "TdxQuote",
+    "TdxReport",
+    "parse_tdx_quote",
+    "verify_tdx_quote",
 ]

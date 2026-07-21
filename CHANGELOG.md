@@ -27,6 +27,14 @@ new library API. Adds a "Sovereign self-custody (threshold)" tutorial.
 
 ## SDK
 
+### 0.16.0
+- **Intel TDX quote verification** (`tdx.py`): `parse_tdx_quote` and
+  `verify_tdx_quote` for the DCAP v4 ECDSA quote. The two-level Intel structure
+  (attestation key signs the quote; the QE report binds that key; the PCK leaf
+  signs the QE report; PCK chains to the Intel SGX Root CA) plus the nonce
+  binding, so TDX reaches SEV-SNP parity on the verify side. Exercised against a
+  synthetic DCAP quote; byte offsets validate against a real GCP C3 capture next.
+
 ### 0.15.0
 - **Explicit `base_confidentiality`** (`confidential` | `gated-open` | `open`)
   and **`deployment_model`** (`builder-to-customer` | `byom-symmetric`) on the
