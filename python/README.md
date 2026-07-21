@@ -243,6 +243,19 @@ print(session.time_floor)  # 'sound' for secure-tsc, 'weaker' for the hybrid, 'n
 #   session.use_key()  ->  raises KeyWipedError
 ```
 
+## End-to-end example
+
+`examples/open_model_e2e.py` runs the full six-step flow against an open-weight
+model with a software (mock) attestation provider, narrated as it goes:
+
+```bash
+python examples/open_model_e2e.py
+```
+
+It is honest about the open-weight reframe (base-weight secrecy is moot; the work
+is integrity, license, and derivative custody). See the
+[tutorial](../docs/tutorials/open-weight-model.md).
+
 ## Test
 
 ```bash
