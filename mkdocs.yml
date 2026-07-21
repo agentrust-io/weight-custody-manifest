@@ -42,6 +42,7 @@ nav:
       - How WCM works: tutorials/how-it-works.md
       - Open-weight model, end to end: tutorials/open-weight-model.md
       - Replaying a real SEV-SNP quote: tutorials/snp-quote-replay.md
+      - Sovereign self-custody (threshold): tutorials/sovereign-self-custody.md
   - Specification:
       - Overview: spec-overview.md
       - Threat model: threat-model.md
