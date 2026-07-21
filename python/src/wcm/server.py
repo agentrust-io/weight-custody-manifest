@@ -16,6 +16,8 @@ same handshake). Do not deploy this as-is on an untrusted network.
 from __future__ import annotations
 
 import base64
+import json
+import os
 from typing import Any
 
 from fastapi import FastAPI, HTTPException
@@ -67,3 +69,25 @@ def create_app(kbs: KeyBrokerService) -> FastAPI:
         }
 
     return app
+
+
+def build_kbs_from_env() -> KeyBrokerService:
+    """Construct a KeyBrokerService from environment config (for the container).
+
+    ``WCM_KEYSTORE_FILE`` points at a JSON object mapping ``weights_hash`` ->
+    base64 decryption key. Absent, the keystore is empty (health/challenge work;
+    release always denies with ``key_available`` false). Keys are supplied at
+    runtime (mounted secret / KMS), never baked into the image.
+    """
+    keystore: dict[str, bytes] = {}
+    path = os.environ.get("WCM_KEYSTORE_FILE")
+    if path:
+        with open(path, "r", encoding="utf-8") as fh:
+            raw = json.load(fh)
+        keystore = {wh: base64.b64decode(k) for wh, k in raw.items()}
+    return KeyBrokerService(keystore)
+
+
+def app_from_env() -> FastAPI:
+    """uvicorn factory entrypoint: ``uvicorn wcm.server:app_from_env --factory``."""
+    return create_app(build_kbs_from_env())

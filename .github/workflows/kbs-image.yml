@@ -1,0 +1,41 @@
+name: kbs-image
+
+on:
+  push:
+    branches: [main]
+    paths: ["python/**", ".github/workflows/kbs-image.yml", ".dockerignore"]
+  pull_request:
+    paths:
+      - "python/docker/**"
+      - "python/src/wcm/server.py"
+      - "python/pyproject.toml"
+      - ".github/workflows/kbs-image.yml"
+      - ".dockerignore"
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-smoke-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build the reference KBS image
+        run: docker build -f python/docker/Dockerfile -t wcm-kbs:ci .
+
+      - name: Run and health-check
+        run: |
+          docker run -d --name kbs -p 8080:8080 wcm-kbs:ci
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:8080/health >/dev/null; then break; fi
+            sleep 1
+          done
+          curl -sf http://localhost:8080/health | grep -q '"status":"ok"'
+          # /challenge issues a 64-hex nonce.
+          curl -sf -X POST http://localhost:8080/challenge | grep -qE '"nonce": ?"[0-9a-f]{64}"'
+          docker logs kbs
+          docker rm -f kbs
+
+      - name: Record image id (measurement reference)
+        run: docker image inspect wcm-kbs:ci --format 'image id: {{.Id}}'
