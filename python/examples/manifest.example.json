@@ -65,5 +65,7 @@
     "attestation_cadence": "24h",
     "kbs_attestation_cadence": "24h"
   },
+  "base_confidentiality": "confidential",
+  "deployment_model": "builder-to-customer",
   "signatures": []
 }

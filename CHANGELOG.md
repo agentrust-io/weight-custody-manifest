@@ -12,6 +12,20 @@ CI-validated reproducible reference KBS image.
 
 ## SDK
 
+### 0.15.0
+- **Explicit `base_confidentiality`** (`confidential` | `gated-open` | `open`)
+  and **`deployment_model`** (`builder-to-customer` | `byom-symmetric`) on the
+  manifest, both under the joint signature (added to `WCM_SIGNED_FIELDS`). A
+  manifest that omits them reads as the original confidential, builder-to-customer
+  posture, so this is backward-compatible for parsing.
+- `verify_manifest` now returns non-blocking `notes`: it discloses that an `open`
+  base is not protected for secrecy (the layers still enforce integrity, license,
+  derivative custody, and the kill switch), flags secrecy-only controls on an open
+  base, and confirms symmetric self-custody. `notes` never change `ok`.
+- `byom-symmetric` structurally requires `customer-self-custody`.
+- **Spec**: SPEC.md v0.10 documents both fields and reframes BYOM from
+  "out of scope" to a named posture (multi-stage pipeline stays out of scope).
+
 ### 0.11.x
 - **RFC 8785 conformance fix**: canonicalizer sorts object keys by UTF-16 code
   units (not code points), so the interop claim holds for non-BMP keys.

@@ -101,6 +101,10 @@ def build_manifest(
             "enclave_id": "did:example:enterprise-enclave-01",
             "attestation_cadence": "1h",
         },
+        # State the two things this whole demo turns on, rather than leave them
+        # implicit: the base is public, and one org holds both roles.
+        "base_confidentiality": "open",
+        "deployment_model": "byom-symmetric",
     }
     if derived_from is not None:
         m["derived_from"] = derived_from
@@ -158,6 +162,11 @@ def main() -> None:
     ctx.add_key(gov_custodian.public_bytes)
     result = verify_manifest(base, ctx)
     print("manifest signature valid:", result.ok, "  (integrity, not secrecy)")
+    # The verifier does not block on base_confidentiality; it tells you, in
+    # words, what this manifest is and is not protecting. For an open base that
+    # is exactly the disclaimer you want on the record.
+    for note in result.notes:
+        print("  note:", note)
 
     # ---- Step 2: attestation-gated load -------------------------------------
     rule("Step 2 - Attestation gate: only load the CERTIFIED serving stack")

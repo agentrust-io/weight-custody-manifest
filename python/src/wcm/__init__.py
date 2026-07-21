@@ -1,12 +1,13 @@
-"""Weight Custody Manifest (WCM) reference SDK — Layer 1 public API.
+"""Weight Custody Manifest (WCM) reference SDK: public API.
 
-This package is the open reference implementation of the Layer 1 manifest from
-the WCM specification: build a manifest, sign it jointly (builder + custodian,
-plus a sovereign quorum when required), and verify those signatures.
+The open reference implementation of the WCM specification across all four
+layers: build and jointly sign a manifest (builder + custodian, plus a sovereign
+quorum when required) and verify it (Layer 1); attestation-gated key release with
+a reference KBS (Layer 2); wipe-on-lapse runtime custody (Layer 3); and
+derivative lineage (Layer 4). Also included: a transparency log, a threshold
+split-key, a post-quantum signing profile, and hardware quote verification.
 
-Pre-1.0 and tracking a pre-1.0 spec. Layer 2 (attestation-gated key release),
-the reference KBS, runtime custody, and derivative lineage are not implemented
-here yet. See SPEC.md and the repo ROADMAP.
+Pre-1.0 and tracking a pre-1.0 spec. See SPEC.md and the repo ROADMAP.
 """
 from __future__ import annotations
 
@@ -59,6 +60,8 @@ from .models import (
     SignatureRole,
     SignatureAlgorithm,
     KeyType,
+    BaseConfidentiality,
+    DeploymentModel,
 )
 from ._verify import (
     verify_manifest,
@@ -127,7 +130,7 @@ from .snp import (
     SnpQuoteParser,
 )
 
-__version__ = "0.14.0"
+__version__ = "0.15.0"
 
 __all__ = [
     "__version__",
@@ -178,6 +181,8 @@ __all__ = [
     "SignatureRole",
     "SignatureAlgorithm",
     "KeyType",
+    "BaseConfidentiality",
+    "DeploymentModel",
     "verify_manifest",
     "VerificationContext",
     "VerificationResult",

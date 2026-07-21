@@ -28,7 +28,16 @@ from ._signing import (
     MlDsa65Verifier,
     _b64url_decode,
 )
-from .models import SignatureAlgorithm, SignatureRole, WeightCustodyManifest
+from .models import (
+    BaseConfidentiality,
+    DeploymentModel,
+    MemoryFingerprintChallenge,
+    PhysicalHardening,
+    SignatureAlgorithm,
+    SignatureRole,
+    Tenancy,
+    WeightCustodyManifest,
+)
 
 
 class VerificationContext:
@@ -96,6 +105,11 @@ class VerificationResult:
     signatures: list[SignatureResult] = field(default_factory=list)
     missing_roles: list[SignatureRole] = field(default_factory=list)
     errors: list[str] = field(default_factory=list)
+    # Non-blocking advisories about what the manifest actually protects, e.g. an
+    # 'open' base whose secrecy is not the thing being guarded, or a symmetric
+    # BYOM posture. These never change ``ok``; they exist so a manifest is not
+    # read as promising more than it delivers (see ``_consistency_notes``).
+    notes: list[str] = field(default_factory=list)
 
 
 def _required_roles(manifest: WeightCustodyManifest) -> list[SignatureRole]:
@@ -120,6 +134,64 @@ def _verify_one(algo: str, material: object, unsigned: dict[str, Any], sig: Any)
         )
     else:
         raise InvalidSignature(f"unsupported signature algorithm {algo!r}")
+
+
+def _consistency_notes(manifest: WeightCustodyManifest) -> list[str]:
+    """Non-blocking advisories: does the manifest promise what it can deliver?
+
+    This is the 'consistency check' half of the base-confidentiality design: the
+    field is declarative, but where a declaration and a control point in
+    different directions we say so, rather than let the manifest imply a secrecy
+    guarantee it does not hold.
+    """
+    notes: list[str] = []
+    bc = manifest.base_confidentiality
+    rp = manifest.release_policy
+
+    if bc is BaseConfidentiality.open:
+        notes.append(
+            "base_confidentiality 'open': attestation-gated release here protects the "
+            "integrity and provenance of the served stack and enforces the license, "
+            "derivative, and revocation terms. It does NOT protect the secrecy of the "
+            "base weights, which are public."
+        )
+        secrecy_controls: list[str] = []
+        if (
+            rp.memory_fingerprint_challenge
+            is MemoryFingerprintChallenge.required_for_hostile_owner_posture
+        ):
+            secrecy_controls.append("memory_fingerprint_challenge")
+        if rp.physical_hardening is PhysicalHardening.tamper_evident:
+            secrecy_controls.append("physical_hardening")
+        if rp.tenancy is Tenancy.dedicated:
+            secrecy_controls.append("tenancy=dedicated")
+        if secrecy_controls:
+            notes.append(
+                "these controls defend base-weight secrecy and add little for an open "
+                "base (consider dropping the cost): " + ", ".join(secrecy_controls)
+            )
+    elif bc is BaseConfidentiality.gated_open:
+        notes.append(
+            "base_confidentiality 'gated-open': the base's secrecy is license-gated, "
+            "not cryptographic; key release adds integrity and provenance and enforces "
+            "the gate's terms."
+        )
+
+    if manifest.deployment_model is DeploymentModel.byom_symmetric:
+        if manifest.builder.identity == manifest.custody.custodian:
+            notes.append(
+                "deployment_model 'byom-symmetric': builder and custodian are one "
+                f"identity ('{manifest.builder.identity}') holding both roles (self-custody)."
+            )
+        else:
+            notes.append(
+                "deployment_model 'byom-symmetric' declared, but builder "
+                f"('{manifest.builder.identity}') and custodian "
+                f"('{manifest.custody.custodian}') differ; confirm both belong to the "
+                "same governing org."
+            )
+
+    return notes
 
 
 def verify_manifest(
@@ -207,4 +279,5 @@ def verify_manifest(
         signatures=results,
         missing_roles=missing,
         errors=errors,
+        notes=_consistency_notes(manifest),
     )
