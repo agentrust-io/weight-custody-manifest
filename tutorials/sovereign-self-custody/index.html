@@ -10,29 +10,31 @@
       
       
       
-        <link rel="canonical" href="https://wcm.agentrust-io.com/changelog/">
+        <link rel="canonical" href="https://wcm.agentrust-io.com/tutorials/sovereign-self-custody/">
       
       
-        <link rel="prev" href="../contributing/">
+        <link rel="prev" href="../snp-quote-replay/">
       
+      
+        <link rel="next" href="../../spec-overview/">
       
       
         
       
       
-      <link rel="icon" href="../assets/images/favicon.png">
+      <link rel="icon" href="../../assets/images/favicon.png">
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
     
     
       
-        <title>Changelog - Weight Custody Manifest</title>
+        <title>Sovereign self-custody (threshold) - Weight Custody Manifest</title>
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/main.ec1eaa64.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
       
         
-        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
       
       
 
@@ -51,7 +53,7 @@
       
     
     
-    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
@@ -76,7 +78,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#changelog" class="md-skip">
+        <a href="#sovereign-self-custody-with-threshold-release" class="md-skip">
           Skip to content
         </a>
       
@@ -90,7 +92,7 @@
 
 <header class="md-header" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href=".." title="Weight Custody Manifest" class="md-header__button md-logo" aria-label="Weight Custody Manifest" data-md-component="logo">
+    <a href="../.." title="Weight Custody Manifest" class="md-header__button md-logo" aria-label="Weight Custody Manifest" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -110,7 +112,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Changelog
+              Sovereign self-custody (threshold)
             
           </span>
         </div>
@@ -223,7 +225,7 @@
   
   
     <li class="md-tabs__item">
-      <a href=".." class="md-tabs__link">
+      <a href="../.." class="md-tabs__link">
         
   
   
@@ -240,11 +242,13 @@
   
   
   
+    
+  
   
     
     
-      <li class="md-tabs__item">
-        <a href="../tutorials/how-it-works/" class="md-tabs__link">
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../how-it-works/" class="md-tabs__link">
           
   
   
@@ -264,7 +268,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../spec-overview/" class="md-tabs__link">
+        <a href="../../spec-overview/" class="md-tabs__link">
           
   
   
@@ -284,7 +288,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../getting-started/" class="md-tabs__link">
+        <a href="../../getting-started/" class="md-tabs__link">
           
   
   
@@ -300,13 +304,11 @@
   
   
   
-    
-  
   
     
     
-      <li class="md-tabs__item md-tabs__item--active">
-        <a href="../roadmap/" class="md-tabs__link">
+      <li class="md-tabs__item">
+        <a href="../../roadmap/" class="md-tabs__link">
           
   
   
@@ -340,7 +342,7 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href=".." title="Weight Custody Manifest" class="md-nav__button md-logo" aria-label="Weight Custody Manifest" data-md-component="logo">
+    <a href="../.." title="Weight Custody Manifest" class="md-nav__button md-logo" aria-label="Weight Custody Manifest" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -370,7 +372,7 @@
   
   
     <li class="md-nav__item">
-      <a href=".." class="md-nav__link">
+      <a href="../.." class="md-nav__link">
         
   
   
@@ -394,26 +396,31 @@
       
   
   
+    
   
   
+  
     
     
     
     
+      
+        
+        
       
       
         
       
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
         
           
-          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
             
   
   
@@ -431,7 +438,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_2">
             <span class="md-nav__icon md-icon"></span>
             
@@ -449,7 +456,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../tutorials/how-it-works/" class="md-nav__link">
+      <a href="../how-it-works/" class="md-nav__link">
         
   
   
@@ -477,7 +484,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../tutorials/open-weight-model/" class="md-nav__link">
+      <a href="../open-weight-model/" class="md-nav__link">
         
   
   
@@ -505,7 +512,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../tutorials/snp-quote-replay/" class="md-nav__link">
+      <a href="../snp-quote-replay/" class="md-nav__link">
         
   
   
@@ -530,10 +537,37 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../tutorials/sovereign-self-custody/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sovereign self-custody (threshold)
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -549,6 +583,59 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#run-it" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Run it
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-carries-the-guarantee" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What carries the guarantee
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-is-real-vs-modelled" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What is real vs modelled
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -620,7 +707,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../spec-overview/" class="md-nav__link">
+      <a href="../../spec-overview/" class="md-nav__link">
         
   
   
@@ -648,7 +735,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../threat-model/" class="md-nav__link">
+      <a href="../../threat-model/" class="md-nav__link">
         
   
   
@@ -735,7 +822,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../getting-started/" class="md-nav__link">
+      <a href="../../getting-started/" class="md-nav__link">
         
   
   
@@ -763,7 +850,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../reference-kbs/" class="md-nav__link">
+      <a href="../../reference-kbs/" class="md-nav__link">
         
   
   
@@ -795,31 +882,26 @@
       
   
   
-    
   
   
-  
     
     
     
     
-      
-        
-        
       
       
         
       
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" checked>
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
         
           
-          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
             
   
   
@@ -837,7 +919,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_5">
             <span class="md-nav__icon md-icon"></span>
             
@@ -855,7 +937,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../roadmap/" class="md-nav__link">
+      <a href="../../roadmap/" class="md-nav__link">
         
   
   
@@ -883,7 +965,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../limitations/" class="md-nav__link">
+      <a href="../../limitations/" class="md-nav__link">
         
   
   
@@ -911,7 +993,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../governance/" class="md-nav__link">
+      <a href="../../governance/" class="md-nav__link">
         
   
   
@@ -939,7 +1021,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../contributing/" class="md-nav__link">
+      <a href="../../contributing/" class="md-nav__link">
         
   
   
@@ -964,19 +1046,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../../changelog/" class="md-nav__link">
         
   
   
@@ -992,7 +1065,6 @@
   
 
       </a>
-      
     </li>
   
 
@@ -1025,6 +1097,47 @@
     
   
   
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#run-it" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Run it
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-carries-the-guarantee" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What carries the guarantee
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-is-real-vs-modelled" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What is real vs modelled
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
 </nav>
                   </div>
                 </div>
@@ -1043,21 +1156,52 @@
   
 
 
-<h1 id="changelog">Changelog<a class="headerlink" href="#changelog" title="Permanent link">&para;</a></h1>
-<p>The canonical changelog is <a href="https://github.com/agentrust-io/weight-custody-manifest/blob/main/CHANGELOG.md"><code>CHANGELOG.md</code></a>.</p>
-<p>Highlights of the arc so far:</p>
-<ul>
-<li><strong>Spec v0.1 → v0.9</strong> - four-layer design; resolved trusted time and split the
-  forged-attestation question (measurement-forgery half closed, key-extraction
-  half honestly open); standards path set (SCITT + CoSAI); Layer 4 fields synced.</li>
-<li><strong>SDK 0.1.0 → 0.11.x</strong> - Layer 1 signing/verification (Ed25519, ML-DSA-65,
-  hybrid); Layer 2 gate; wipe-on-lapse (+ op-count); Layer 4 lineage;
-  transparency log; threshold split-key; quote-verification machinery; and AMD
-  SEV-SNP quote verification validated against real Azure hardware (which found
-  and fixed the RSA-PSS cert-chain bug and an RFC 8785 key-ordering bug).</li>
-<li><strong>In flight</strong> - Azure vTPM provider, the reference KBS server, and a
-  CI-validated reproducible KBS image.</li>
-</ul>
+<h1 id="sovereign-self-custody-with-threshold-release">Sovereign self-custody with threshold release<a class="headerlink" href="#sovereign-self-custody-with-threshold-release" title="Permanent link">&para;</a></h1>
+<p>A sovereign customer wants to run the model in its own jurisdiction, on hardware
+it owns, and operate the key release service (KBS) itself, with no foreign party
+in the release path. That is the hostile-owner posture, and it breaks a
+convenient assumption: the owner can forge its own KBS attestation quote (open
+question 8.8, key-extraction half). So single-key self-custody is unsound for a
+sovereign, because one forged quote would self-release the key.</p>
+<p><a href="../../spec-overview/">Decision 15</a> resolves this with <strong>threshold split-key
+release</strong>: the key is split so no single party, the sovereign included, holds it.
+The attested KBS enclave reconstructs the key only from a quorum of shares from
+independent parties. One forged quote is then not enough, because it still yields
+only one share.</p>
+<h2 id="run-it">Run it<a class="headerlink" href="#run-it" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><span class="nb">cd</span><span class="w"> </span>python
+python<span class="w"> </span>examples/sovereign_self_custody.py
+</code></pre></div>
+<p>The demo uses a 2-of-3 split across the builder, the sovereign, and the
+custodian, and walks the whole flow:</p>
+<ol>
+<li>A sovereign manifest: <code>sovereign_profile.enabled</code> (quorum revocation),
+   <code>customer-self-custody</code>, mandatory <code>physical_hardening</code> and
+   <code>memory_fingerprint_challenge</code> for the hostile-owner posture, signed by all
+   three parties.</li>
+<li>The manifest verifies only with the sovereign quorum present.</li>
+<li>The key is split 2-of-3. No party holds the whole key.</li>
+<li>The attested KBS gate passes. Each party checks that attestation before
+   contributing its share.</li>
+<li>Any two shares reconstruct the key (so losing one party does not lose it);
+   this happens inside the measured enclave, so no party sees the assembled key.</li>
+<li>A single share, the sovereign's own, does <strong>not</strong> reconstruct the key. Even a
+   forged KBS quote yields only that one share, so it cannot release.</li>
+</ol>
+<h2 id="what-carries-the-guarantee">What carries the guarantee<a class="headerlink" href="#what-carries-the-guarantee" title="Permanent link">&para;</a></h2>
+<p>In this posture the bound is <strong>not</strong> wipe-on-lapse (an owner who forges
+attestation can defeat the enclave clock). It comes from threshold (no single
+party assembles the key), the sovereign revocation quorum, mandatory physical
+hardening on the KBS host, and the transparency log. The demo says so at the end
+rather than implying a floor it does not have.</p>
+<h2 id="what-is-real-vs-modelled">What is real vs modelled<a class="headerlink" href="#what-is-real-vs-modelled" title="Permanent link">&para;</a></h2>
+<p>The split, the reconstruction, the attestation gate, and the manifest's
+sovereign quorum are all real SDK code (<code>split_secret</code>, <code>combine_shares</code>,
+<code>KeyBrokerService</code>, <code>verify_manifest</code>). The share contribution "into the enclave"
+is narrated: a real deployment runs the combine inside the builder-measured KBS
+enclave so the assembled key never leaves it. And the software attestation
+provider carries no hardware root of trust; it exercises the gate logic, not real
+silicon (see <a href="../snp-quote-replay/">Replaying a real SEV-SNP quote</a> for that).</p>
 
 
 
@@ -1113,10 +1257,10 @@
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.instant", "navigation.tabs", "navigation.sections", "navigation.top", "search.suggest", "search.highlight", "content.code.copy", "toc.follow"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.tabs", "navigation.sections", "navigation.top", "search.suggest", "search.highlight", "content.code.copy", "toc.follow"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="../assets/javascripts/bundle.d7400e89.min.js"></script>
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
       
     
   </body>
