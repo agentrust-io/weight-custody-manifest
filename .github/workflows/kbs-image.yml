@@ -38,4 +38,5 @@ jobs:
           docker rm -f kbs
 
       - name: Record image id (measurement reference)
-        run: docker image inspect wcm-kbs:ci --format 'image id: {{.Id}}'
+        run: |
+          docker image inspect wcm-kbs:ci --format 'image id: {{.Id}}'
