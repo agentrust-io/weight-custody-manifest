@@ -6,9 +6,14 @@ uses semantic-ish versioning while pre-1.0.
 
 ## Unreleased
 
-**[SDK]** In flight (open PRs): `AzureSnpVtpmProvider` (SEV-SNP on Azure CVMs via
-the vTPM path), the reference KBS HTTP server (`[server]` extra), and a
-CI-validated reproducible reference KBS image.
+**[demo/tools]** Offline SEV-SNP quote replay: `examples/snp_replay.py` runs the
+KBS's Layer 2 CPU gate (parse, VCEK->ASK->ARK chain, report signature, nonce
+binding) against a recorded quote, with a committed synthetic bundle so it runs
+anywhere. `tools/capture_snp_quote.py` captures a genuine bundle on an Azure
+SEV-SNP CVM; the replay handles both the guest-nonce (bare-metal) and the Azure
+vTPM freshness topologies honestly (on Azure, REPORT_DATA binds the vTPM AK, not
+our nonce). Adds a "Replaying a real SEV-SNP quote" tutorial and wires the
+tutorials into the docs nav. No library API change.
 
 ## SDK
 
