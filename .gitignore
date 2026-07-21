@@ -1,0 +1,7 @@
+# mkdocs build output
+/site/
+
+# Python (see python/.gitignore for the SDK)
+**/__pycache__/
+**/*.py[cod]
+.venv/
