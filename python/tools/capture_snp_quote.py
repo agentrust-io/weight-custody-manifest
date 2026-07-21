@@ -40,13 +40,13 @@ THIM_URL = "http://169.254.169.254/metadata/THIM/amd/certification"
 
 def read_hcl_via_tpm() -> bytes:
     """Read the raw HCL blob from the vTPM NV index using tpm2-tools."""
-    size = subprocess.check_output(  # nosec B603 B607
-        ["tpm2_nvreadpublic", HCL_NV_INDEX]
-    ).decode()
-    # tpm2_nvread streams the bytes to stdout.
-    return subprocess.check_output(  # nosec B603 B607
-        ["tpm2_nvread", HCL_NV_INDEX]
+    # 0x01400001 is ownerread on the Azure vTPM, so read via the owner hierarchy
+    # (-C o); a plain read fails with a TPM auth error (0x9a2). Validated live.
+    subprocess.run(  # nosec B603 B607
+        ["tpm2_nvread", "-C", "o", "-o", "/tmp/hcl.bin", HCL_NV_INDEX], check=True  # nosec B108
     )
+    with open("/tmp/hcl.bin", "rb") as fh:  # nosec B108
+        return fh.read()
 
 
 def fetch_thim_chain() -> dict:

@@ -142,8 +142,13 @@ def main() -> int:
             return 1
 
     rule("What this did and did not prove")
-    print("proved   : the SEV-SNP CPU quote is genuine, unmodified, bound to our")
-    print("           nonce, and rooted in the trusted AMD chain (Layer 2 CPU half).")
+    if nonce:
+        print("proved   : the SEV-SNP CPU quote is genuine, unmodified, bound to our")
+        print("           nonce, and rooted in the trusted AMD chain (Layer 2 CPU half).")
+    else:
+        print("proved   : the SEV-SNP CPU quote is genuine and unmodified, signed by a")
+        print("           VCEK rooted in the trusted AMD chain, on real silicon (Layer 2")
+        print("           CPU half). Freshness is the vTPM-quote layer's job, not shown here.")
     print("not here  : the separate GPU (NVIDIA CC) report and the CPU-GPU nonce")
     print("           binding (SPEC 3.2 composite verification); GPU needs H100 quota.")
     if bundle["source"] == "synthetic":
