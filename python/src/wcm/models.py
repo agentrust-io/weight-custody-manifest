@@ -104,6 +104,48 @@ class KeyType(str, Enum):
     hardware = "hardware"
 
 
+class BaseConfidentiality(str, Enum):
+    """Whether the BASE weights are actually secret (SPEC.md section 3.1).
+
+    Made explicit rather than assumed, so a reader is not misled about what a
+    manifest protects:
+
+    - ``confidential``: base weights are secret (the frontier-model case).
+      Attestation-gated release protects their secrecy. This is the default and
+      the posture the rest of the spec was written around.
+    - ``gated-open``: base weights are obtainable under a gated license
+      (e.g. a community license). Secrecy is license-gated, not cryptographic.
+    - ``open``: base weights are fully public. Encrypting them protects nothing;
+      the manifest's value is integrity/provenance, license enforcement,
+      derivative custody, and the kill switch, not secrecy.
+
+    The verifier does not block on this field; it reports consistency notes
+    (see ``verify_manifest``) so an ``open`` manifest is not read as promising a
+    secrecy guarantee it cannot deliver.
+    """
+
+    confidential = "confidential"
+    gated_open = "gated-open"
+    open = "open"
+
+
+class DeploymentModel(str, Enum):
+    """Which direction the trust runs (SPEC.md section 2, principle 4).
+
+    - ``builder-to-customer``: a builder places a model into a customer's
+      environment; the vulnerable party is the builder. This is the default and
+      the primary walk-through in the spec.
+    - ``byom-symmetric``: one organization holds both the builder and custodian
+      roles, bringing its own model into confidential infrastructure it also
+      custodies. The same platform and primitives, roles collapsed onto one
+      party. Requires ``customer-self-custody`` (the org custodies its own
+      model).
+    """
+
+    builder_to_customer = "builder-to-customer"
+    byom_symmetric = "byom-symmetric"
+
+
 # ---------------------------------------------------------------------------
 # Sub-objects
 # ---------------------------------------------------------------------------
@@ -265,6 +307,12 @@ class WeightCustodyManifest(_Strict):
     release_terms: ReleaseTerms
     release_policy: ReleasePolicy
     custody: Custody
+    # Whether the base weights are actually secret, and which trust direction the
+    # deployment runs (SPEC.md 3.1, section 2). Both are signed (WCM_SIGNED_FIELDS)
+    # and both carry a backward-compatible default: a manifest that omits them is
+    # read as a confidential, builder-to-customer release (the original posture).
+    base_confidentiality: BaseConfidentiality = BaseConfidentiality.confidential
+    deployment_model: DeploymentModel = DeploymentModel.builder_to_customer
     # Layer 4 (SPEC.md 3.4): a derivative points at its parent's weights_hash and
     # records the IP split. Both are signed (see WCM_SIGNED_FIELDS). Absent on a
     # root manifest.
@@ -276,6 +324,18 @@ class WeightCustodyManifest(_Strict):
     def _derived_from_not_self(self) -> "WeightCustodyManifest":
         if self.derived_from is not None and self.derived_from == self.weights_hash:
             raise ValueError("derived_from must not equal the manifest's own weights_hash")
+        return self
+
+    @model_validator(mode="after")
+    def _byom_symmetric_is_self_custody(self) -> "WeightCustodyManifest":
+        # Symmetric BYOM means one org brings its own model into infrastructure it
+        # also custodies, so a hosted custodian is contradictory (SPEC.md 3.1).
+        if self.deployment_model is DeploymentModel.byom_symmetric:
+            if self.custody.custodian_type is not CustodianType.customer_self_custody:
+                raise ValueError(
+                    "deployment_model 'byom-symmetric' requires "
+                    "custody.custodian_type 'customer-self-custody'"
+                )
         return self
 
     @model_validator(mode="after")
