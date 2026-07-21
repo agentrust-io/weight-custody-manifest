@@ -594,15 +594,26 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#capture-a-genuine-quote" class="md-nav__link">
+  <a href="#replay-a-genuine-captured-quote" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Capture a genuine quote
+        Replay a genuine captured quote
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Capture a genuine quote">
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#capture-your-own" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Capture your own
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Capture your own">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -1115,15 +1126,26 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#capture-a-genuine-quote" class="md-nav__link">
+  <a href="#replay-a-genuine-captured-quote" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Capture a genuine quote
+        Replay a genuine captured quote
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Capture a genuine quote">
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#capture-your-own" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Capture your own
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Capture your own">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -1187,7 +1209,15 @@ python<span class="w"> </span>examples/snp_replay.py
 <p>The synthetic bundle is a self-consistent stand-in chain and report. It proves
 the verification path end to end, but it is <strong>not</strong> real silicon and is labelled
 as such in its output.</p>
-<h2 id="capture-a-genuine-quote">Capture a genuine quote<a class="headerlink" href="#capture-a-genuine-quote" title="Permanent link">&para;</a></h2>
+<h2 id="replay-a-genuine-captured-quote">Replay a genuine captured quote<a class="headerlink" href="#replay-a-genuine-captured-quote" title="Permanent link">&para;</a></h2>
+<p>The repo also ships a real quote captured from an Azure SEV-SNP CVM, so you can
+verify genuine silicon offline without capturing anything yourself:</p>
+<div class="highlight"><pre><span></span><code>python<span class="w"> </span>examples/snp_replay.py<span class="w"> </span>tests/fixtures/snp_quote_azure.json
+</code></pre></div>
+<p>That report was signed by a real AMD SEV-VCEK (Milan-B0) chaining to the AMD ARK
+root. One real-world quirk you will see: AMD issues the VCEK with serial number
+0, which recent <code>cryptography</code> warns about; loading still succeeds.</p>
+<h2 id="capture-your-own">Capture your own<a class="headerlink" href="#capture-your-own" title="Permanent link">&para;</a></h2>
 <p>To replay a real quote, capture one on an Azure SEV-SNP confidential VM
 (<code>Standard_DC2as_v5</code> is a few cents an hour and needs no special quota):</p>
 <div class="highlight"><pre><span></span><code><span class="c1"># on the CVM</span>
