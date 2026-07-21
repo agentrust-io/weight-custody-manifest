@@ -128,6 +128,23 @@ AMD SEV-SNP (vendor quote verification):
   its VCEK/ASK/ARK chain into the generic `QuoteVerifier`. Validated against a
   live Azure SEV-SNP report; the real public AMD Milan chain is a CI fixture.
 
+## Reference KBS server (optional)
+
+`wcm.server.create_app(kbs)` builds a FastAPI surface for the key broker
+(`POST /challenge`, `POST /release`, `GET /health`) with the same semantics as
+the library `KeyBrokerService`. Install the extra: `pip install ".[server]"`.
+
+```python
+from wcm import KeyBrokerService
+from wcm.server import create_app
+app = create_app(KeyBrokerService({weights_hash: key_bytes}))
+# uvicorn module:app
+```
+
+Reference-only: `/release` returns the key in the response body. A production
+KBS wraps the key to the requesting enclave's attested transport instead — do
+not expose this as-is on an untrusted network.
+
 ## Install
 
 ```bash
