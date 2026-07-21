@@ -103,11 +103,17 @@ def _serialize(obj: Any, *, exclude_none: bool, depth: int) -> str:
     )
 
 
+def _utf16_sort_key(s: str) -> bytes:
+    # RFC 8785 section 3.2.3 sorts keys by UTF-16 code units, NOT Unicode code
+    # points. They agree on the BMP but differ for supplementary-plane chars
+    # (e.g. emoji), whose lead surrogate 0xD800-0xDBFF sorts below 0xE000-0xFFFF.
+    # Sorting by the big-endian UTF-16 encoding reproduces code-unit order.
+    return s.encode("utf-16-be")
+
+
 def _serialize_dict(d: dict[str, Any], *, exclude_none: bool, depth: int) -> str:
-    # RFC 8785 section 3.2.3: sort keys by Unicode code point. Python's default
-    # str ordering is code-point order, so no special collation is needed.
     parts: list[str] = []
-    for k in sorted(d.keys()):
+    for k in sorted(d.keys(), key=_utf16_sort_key):
         v = d[k]
         if exclude_none and v is None:
             continue
