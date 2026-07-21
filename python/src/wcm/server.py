@@ -9,7 +9,7 @@ with identical semantics. It is imported only as ``wcm.server`` (never by the
 base package), so ``import wcm`` needs no web dependency.
 
 Honest caveat: for the reference server, ``/release`` returns the decryption key
-in the response body. A production KBS never does that — it wraps the key to the
+in the response body. A production KBS never does that - it wraps the key to the
 requesting enclave's attested transport (the enclave proved its identity in the
 same handshake). Do not deploy this as-is on an untrusted network.
 """

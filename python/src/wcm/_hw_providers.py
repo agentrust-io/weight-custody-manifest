@@ -3,11 +3,11 @@
 These are the enclave-side adapters that fetch a real, nonce-bound attestation
 quote and package it as WCM ``CompositeEvidence`` for the KBS to verify:
 
-  SevSnpProvider   — AMD SEV-SNP CPU quote via /dev/sev-guest (Linux 5.19+)
-  TdxProvider      — Intel TDX CPU quote via /dev/tdx-guest (Linux 6.2+)
-  NvidiaCcProvider — NVIDIA CC GPU report via an external attestation command
-  HardwareCompositeProvider — pairs a CPU provider with a GPU provider
-  select_provider  — auto-select the best available, else software fallback
+  SevSnpProvider   - AMD SEV-SNP CPU quote via /dev/sev-guest (Linux 5.19+)
+  TdxProvider      - Intel TDX CPU quote via /dev/tdx-guest (Linux 6.2+)
+  NvidiaCcProvider - NVIDIA CC GPU report via an external attestation command
+  HardwareCompositeProvider - pairs a CPU provider with a GPU provider
+  select_provider  - auto-select the best available, else software fallback
 
 ⚠️ NOT VALIDATED AGAINST REAL SILICON. The ioctl request layouts and the
 report byte offsets below mirror the documented ABI and the agentrust-io
@@ -15,7 +15,7 @@ agent-manifest implementation (Apache-2.0), but they have not been checked
 against a live SEV-SNP / TDX / NVIDIA machine. Treat every raw-report offset
 as provisional until validated on hardware. What IS exercised in CI is the
 availability detection, the software fallback, and the report *parsing* (against
-synthetic fixtures) — never a real hardware root of trust.
+synthetic fixtures) - never a real hardware root of trust.
 
 Honesty note that outlives the offsets: even a perfectly-parsed, signature-valid
 quote does not defeat a physically-extracted attestation key (TEE.fail-class,
@@ -76,9 +76,9 @@ class SevSnpProvider(CpuQuoteProvider):
     """AMD SEV-SNP CPU quote via /dev/sev-guest.
 
     Offsets (PROVISIONAL, per snp_attestation_report, kernel 6.x):
-      REPORT_DATA  at 0x50 (64 bytes)   — the guest-controlled binding field
-      MEASUREMENT  at 0x90 (48 bytes)   — launch measurement (SHA-384)
-      CHIP_ID      at 0x1A0 (64 bytes)  — identifies the VCEK
+      REPORT_DATA  at 0x50 (64 bytes)   - the guest-controlled binding field
+      MEASUREMENT  at 0x90 (48 bytes)   - launch measurement (SHA-384)
+      CHIP_ID      at 0x1A0 (64 bytes)  - identifies the VCEK
     """
 
     platform = "amd-sev-snp"
@@ -178,7 +178,7 @@ class AzureSnpVtpmProvider(CpuQuoteProvider):
 
     Azure CVMs have no /dev/sev-guest; the paravisor publishes the SNP report in
     the vTPM NV index 0x01400001, wrapped in an HCL header (validated against a
-    live Azure host — see the repo history). This provider reads that index via
+    live Azure host - see the repo history). This provider reads that index via
     ``tpm2_nvread`` and extracts the raw SNP report.
 
     Caveat carried from that validation: Azure binds the report's REPORT_DATA to

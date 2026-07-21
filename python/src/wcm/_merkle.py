@@ -180,7 +180,7 @@ def verify_consistency(
 
     True iff the size-*first_size* tree (root *first_root*) is an append-only
     positional prefix of the size-*second_size* tree (root *second_root*). Uses
-    only the roots, sizes, and proof — never the leaf data — so a monitor without
+    only the roots, sizes, and proof - never the leaf data - so a monitor without
     the store can check a log advance. Tampered or truncated proofs return False.
     """
     h = _HASH_FNS[algorithm]
