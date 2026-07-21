@@ -1,0 +1,52 @@
+site_name: Weight Custody Manifest
+site_description: An open protocol for protecting model weights deployed into customer-controlled infrastructure
+site_url: https://wcm.agentrust-io.com
+repo_url: https://github.com/agentrust-io/weight-custody-manifest
+repo_name: agentrust-io/weight-custody-manifest
+edit_uri: edit/main/docs/
+docs_dir: docs
+
+theme:
+  name: material
+  features:
+    - navigation.instant
+    - navigation.tabs
+    - navigation.sections
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - toc.follow
+  palette:
+    - scheme: default
+      toggle:
+        icon: material/brightness-4
+        name: Switch to dark mode
+    - scheme: slate
+      toggle:
+        icon: material/brightness-7
+        name: Switch to light mode
+  icon:
+    repo: fontawesome/brands/github
+
+markdown_extensions:
+  - admonition
+  - pymdownx.superfences
+  - pymdownx.highlight
+  - toc:
+      permalink: true
+
+nav:
+  - Home: index.md
+  - Specification:
+      - Overview: spec-overview.md
+      - Threat model: threat-model.md
+  - SDK:
+      - Getting started: getting-started.md
+      - Reference KBS image: reference-kbs.md
+  - Project:
+      - Roadmap: roadmap.md
+      - Limitations: limitations.md
+      - Governance: governance.md
+      - Contributing: contributing.md
+      - Changelog: changelog.md

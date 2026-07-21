@@ -20,13 +20,13 @@ This is stated plainly in `SPEC.md` section 3.6 and throughout `THREAT-MODEL.md`
 
 ## In RAND's weight-security terms
 
-Frontier labs grade weight protection in RAND's *Securing AI Model Weights* (RRA2849-1): five attacker tiers (OC1 amateur → OC5 top nation-state) and five security levels, where a security level is a *whole-organization posture* — "a system that can likely thwart" the matching attacker tier. RAND recommends confidential computing as a weight-security measure, "backed by a strong consensus in industry," so WCM is an implementation of a RAND-endorsed measure.
+Frontier labs grade weight protection in RAND's *Securing AI Model Weights* (RRA2849-1): five attacker tiers (OC1 amateur → OC5 top nation-state) and five security levels, where a security level is a *whole-organization posture* - "a system that can likely thwart" the matching attacker tier. RAND recommends confidential computing as a weight-security measure, "backed by a strong consensus in industry," so WCM is an implementation of a RAND-endorsed measure.
 
 Stated the way a lab grades it:
 
 > **WCM is the RAND-recommended confidential-computing measure; it holds against the OC1–OC3 range and, by its own concession (`SPEC.md` §3.6), not against an OC4–OC5 actor who owns the hardware.**
 
-Not faithful: *"WCM is SL3."* A security level is a whole-system posture (weight storage, physical, network, personnel, supply chain, incident response, …), so assigning one to a single control misuses the unit and reads as not knowing the framework. Place WCM by **OC tier** and by **measure** — the language a lab already grades in, used the way they use it.
+Not faithful: *"WCM is SL3."* A security level is a whole-system posture (weight storage, physical, network, personnel, supply chain, incident response, …), so assigning one to a single control misuses the unit and reads as not knowing the framework. Place WCM by **OC tier** and by **measure** - the language a lab already grades in, used the way they use it.
 
 _Reference: RAND, *Securing AI Model Weights: Preventing Theft and Misuse of Frontier Models* (RRA2849-1, 2024)._
 
@@ -36,9 +36,25 @@ This repository is the **open protocol layer**: the specification, the threat mo
 
 ## Contents
 
-- `SPEC.md` — the specification: manifest schema, attestation-gated release, runtime custody, derivative lineage, guarantee scope, and open questions.
-- `THREAT-MODEL.md` — assets, trusted computing base, adversaries, threats, and residual risks.
+- `SPEC.md` - the specification: manifest schema, attestation-gated release, runtime custody, derivative lineage, guarantee scope, and open questions.
+- `THREAT-MODEL.md` - assets, trusted computing base, adversaries, threats, and residual risks.
+- `python/` - the Python reference SDK (build, sign, verify; the KBS gate and reference server; quote verification; transparency log; threshold; PQ profile). See `python/README.md`.
+- `docs/` - documentation site sources (published to wcm.agentrust-io.com).
+- `LIMITATIONS.md` - what WCM does **not** do; read alongside `SPEC.md` §3.6.
+
+## Community & governance
+
+- **Contributing**: `CONTRIBUTING.md` (DCO sign-off; the no-overclaiming rule)
+- **Governance & maintainers**: `GOVERNANCE.md`, `MAINTAINERS.md`, `CHARTER.md`
+- **Conduct & policy**: `CODE_OF_CONDUCT.md`, `ANTITRUST.md`, `PRIVACY.md`
+- **Security**: `SECURITY.md` - report privately; the hardware-owner limitation is documented, not a vulnerability
+- **Roadmap & changes**: `ROADMAP.md`, `CHANGELOG.md`, `ADOPTERS.md`
+
+## Status
+
+Pre-1.0 and **staged for public release**: publication is gated on the hostile-owner posture stabilizing (the key-extraction half of open question 8.8, `SPEC.md` §8). Published for review and comment, not production.
 
 ## License
 
 Apache License 2.0. See `LICENSE`.
+
