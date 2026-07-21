@@ -12,8 +12,10 @@ binding) against a recorded quote, with a committed synthetic bundle so it runs
 anywhere. `tools/capture_snp_quote.py` captures a genuine bundle on an Azure
 SEV-SNP CVM; the replay handles both the guest-nonce (bare-metal) and the Azure
 vTPM freshness topologies honestly (on Azure, REPORT_DATA binds the vTPM AK, not
-our nonce). Adds a "Replaying a real SEV-SNP quote" tutorial and wires the
-tutorials into the docs nav. No library API change.
+our nonce). Ships a **genuine** quote captured from a live Azure SEV-SNP CVM
+(`tests/fixtures/snp_quote_azure.json`, real VCEK->ASK->ARK) that the replay
+verifies offline, alongside the synthetic one. Adds a "Replaying a real SEV-SNP
+quote" tutorial and wires the tutorials into the docs nav. No library API change.
 
 ## SDK
 

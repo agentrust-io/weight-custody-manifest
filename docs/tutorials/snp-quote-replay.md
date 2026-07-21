@@ -31,7 +31,20 @@ The synthetic bundle is a self-consistent stand-in chain and report. It proves
 the verification path end to end, but it is **not** real silicon and is labelled
 as such in its output.
 
-## Capture a genuine quote
+## Replay a genuine captured quote
+
+The repo also ships a real quote captured from an Azure SEV-SNP CVM, so you can
+verify genuine silicon offline without capturing anything yourself:
+
+```bash
+python examples/snp_replay.py tests/fixtures/snp_quote_azure.json
+```
+
+That report was signed by a real AMD SEV-VCEK (Milan-B0) chaining to the AMD ARK
+root. One real-world quirk you will see: AMD issues the VCEK with serial number
+0, which recent `cryptography` warns about; loading still succeeds.
+
+## Capture your own
 
 To replay a real quote, capture one on an Azure SEV-SNP confidential VM
 (`Standard_DC2as_v5` is a few cents an hour and needs no special quota):

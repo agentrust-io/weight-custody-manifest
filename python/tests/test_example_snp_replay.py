@@ -10,7 +10,9 @@ import pathlib
 import pytest
 
 EXAMPLES = pathlib.Path(__file__).resolve().parent.parent / "examples"
-BUNDLE = pathlib.Path(__file__).resolve().parent / "fixtures" / "snp_quote_synthetic.json"
+FIXTURES = pathlib.Path(__file__).resolve().parent / "fixtures"
+BUNDLE = FIXTURES / "snp_quote_synthetic.json"
+AZURE_BUNDLE = FIXTURES / "snp_quote_azure.json"
 
 
 def _load_demo():
@@ -42,6 +44,22 @@ def test_synthetic_bundle_is_labelled_not_real():
     bundle = json.loads(BUNDLE.read_text(encoding="utf-8"))
     assert bundle["source"] == "synthetic"
     assert bundle["kind"] == "wcm-snp-quote-bundle/v1"
+
+
+@pytest.mark.filterwarnings("ignore::DeprecationWarning")  # real AMD VCEK serial is 0
+def test_real_azure_bundle_verifies(monkeypatch, capsys):
+    # A GENUINE quote captured from a real Azure SEV-SNP CVM (vTPM NV 0x01400001,
+    # real VCEK->ASK->ARK). Proves the WCM path verifies actual silicon, offline.
+    if not AZURE_BUNDLE.exists():
+        pytest.skip("no captured Azure bundle committed")
+    bundle = json.loads(AZURE_BUNDLE.read_text(encoding="utf-8"))
+    assert bundle["source"] == "azure-sev-snp-vtpm"
+    monkeypatch.setattr("sys.argv", ["snp_replay.py", str(AZURE_BUNDLE)])
+    assert _load_demo().main() == 0
+    out = capsys.readouterr().out
+    assert "VCEK chains to root : True" in out
+    assert "report signature ok : True" in out
+    assert "genuine hardware quote" in out
 
 
 def test_azure_vtpm_topology_verifies_chain_and_signature(tmp_path, monkeypatch, capsys):
