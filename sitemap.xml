@@ -2,58 +2,62 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
          <loc>https://wcm.agentrust-io.com/</loc>
-         <lastmod>2026-07-21</lastmod>
+         <lastmod>2026-07-22</lastmod>
     </url>
     <url>
          <loc>https://wcm.agentrust-io.com/changelog/</loc>
-         <lastmod>2026-07-21</lastmod>
+         <lastmod>2026-07-22</lastmod>
     </url>
     <url>
          <loc>https://wcm.agentrust-io.com/contributing/</loc>
-         <lastmod>2026-07-21</lastmod>
+         <lastmod>2026-07-22</lastmod>
     </url>
     <url>
          <loc>https://wcm.agentrust-io.com/getting-started/</loc>
-         <lastmod>2026-07-21</lastmod>
+         <lastmod>2026-07-22</lastmod>
     </url>
     <url>
          <loc>https://wcm.agentrust-io.com/governance/</loc>
-         <lastmod>2026-07-21</lastmod>
+         <lastmod>2026-07-22</lastmod>
     </url>
     <url>
          <loc>https://wcm.agentrust-io.com/limitations/</loc>
-         <lastmod>2026-07-21</lastmod>
+         <lastmod>2026-07-22</lastmod>
     </url>
     <url>
          <loc>https://wcm.agentrust-io.com/reference-kbs/</loc>
-         <lastmod>2026-07-21</lastmod>
+         <lastmod>2026-07-22</lastmod>
     </url>
     <url>
          <loc>https://wcm.agentrust-io.com/roadmap/</loc>
-         <lastmod>2026-07-21</lastmod>
+         <lastmod>2026-07-22</lastmod>
     </url>
     <url>
          <loc>https://wcm.agentrust-io.com/spec-overview/</loc>
-         <lastmod>2026-07-21</lastmod>
+         <lastmod>2026-07-22</lastmod>
     </url>
     <url>
          <loc>https://wcm.agentrust-io.com/threat-model/</loc>
-         <lastmod>2026-07-21</lastmod>
+         <lastmod>2026-07-22</lastmod>
     </url>
     <url>
          <loc>https://wcm.agentrust-io.com/tutorials/how-it-works/</loc>
-         <lastmod>2026-07-21</lastmod>
+         <lastmod>2026-07-22</lastmod>
     </url>
     <url>
          <loc>https://wcm.agentrust-io.com/tutorials/open-weight-model/</loc>
-         <lastmod>2026-07-21</lastmod>
+         <lastmod>2026-07-22</lastmod>
     </url>
     <url>
          <loc>https://wcm.agentrust-io.com/tutorials/snp-quote-replay/</loc>
-         <lastmod>2026-07-21</lastmod>
+         <lastmod>2026-07-22</lastmod>
     </url>
     <url>
          <loc>https://wcm.agentrust-io.com/tutorials/sovereign-self-custody/</loc>
-         <lastmod>2026-07-21</lastmod>
+         <lastmod>2026-07-22</lastmod>
+    </url>
+    <url>
+         <loc>https://wcm.agentrust-io.com/tutorials/test-on-your-machine/</loc>
+         <lastmod>2026-07-22</lastmod>
     </url>
 </urlset>
