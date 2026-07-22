@@ -27,13 +27,29 @@ new library API. Adds a "Sovereign self-custody (threshold)" tutorial.
 
 ## SDK
 
+### 0.17.0
+- **Azure Intel TDX provider** (`AzureTdxVtpmProvider`): Azure TDX CVMs have no
+  `/dev/tdx-guest`; the paravisor exposes a TD report in the same vTPM NV index
+  SNP uses (`0x01400001`), and since a TD report is not self-verifiable this
+  provider exchanges it for a DCAP quote at the Azure IMDS `/acc/tdquote` service.
+  Validated on a live Azure `DCes_v6` host in westeurope; the captured quote
+  (`tests/fixtures/tdx_quote_azure.json`) verifies through `tdx.py` and chains to
+  Intel's real SGX Root CA. `select_cpu_provider` prefers it over the Azure SNP
+  catch-all by reading the HCL's TD-report type byte.
+- **`verify_tdx_quote(expected_nonce=...)` is now optional.** Pass `None` on the
+  Azure vTPM path, where REPORT_DATA is paravisor-bound to the vTPM AK rather than
+  a caller nonce (freshness comes from the enclosing vTPM quote); bare-metal /
+  configfs-tsm guests still pass the nonce.
+
 ### 0.16.0
 - **Intel TDX quote verification** (`tdx.py`): `parse_tdx_quote` and
   `verify_tdx_quote` for the DCAP v4 ECDSA quote. The two-level Intel structure
   (attestation key signs the quote; the QE report binds that key; the PCK leaf
   signs the QE report; PCK chains to the Intel SGX Root CA) plus the nonce
   binding, so TDX reaches SEV-SNP parity on the verify side. Exercised against a
-  synthetic DCAP quote; byte offsets validate against a real GCP C3 capture next.
+  synthetic DCAP quote AND a genuine GCP c3-standard-4 TDX capture
+  (`tests/fixtures/tdx_quote_gcp.json`), which verifies offline and chains to
+  Intel's real published SGX Root CA (fingerprint pinned in the test).
 
 ### 0.15.0
 - **Explicit `base_confidentiality`** (`confidential` | `gated-open` | `open`)

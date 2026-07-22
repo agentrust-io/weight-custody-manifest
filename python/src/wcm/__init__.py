@@ -85,6 +85,7 @@ from ._hw_providers import (
     CpuQuoteProvider,
     SevSnpProvider,
     AzureSnpVtpmProvider,
+    AzureTdxVtpmProvider,
     TdxProvider,
     NvidiaCcProvider,
     HardwareCompositeProvider,
@@ -136,7 +137,7 @@ from .tdx import (
     verify_tdx_quote,
 )
 
-__version__ = "0.16.0"
+__version__ = "0.17.0"
 
 __all__ = [
     "__version__",
@@ -206,6 +207,7 @@ __all__ = [
     "CpuQuoteProvider",
     "SevSnpProvider",
     "AzureSnpVtpmProvider",
+    "AzureTdxVtpmProvider",
     "TdxProvider",
     "NvidiaCcProvider",
     "HardwareCompositeProvider",

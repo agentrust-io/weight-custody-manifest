@@ -193,15 +193,21 @@ def verify_tdx_quote(
     quote: bytes,
     trust_store: TrustStore,
     *,
-    expected_nonce: str,
+    expected_nonce: Optional[str] = None,
     now: Optional[datetime] = None,
 ) -> QuoteVerification:
     """Verify a TDX DCAP v4 quote end to end.
 
     Checks, in order: the attestation-key signature over header+TD report; the
     attestation key's binding into the QE report; the QE report signature by the
-    PCK leaf; the PCK chain to a trusted Intel SGX root; and that the TD report's
-    REPORT_DATA binds *expected_nonce*.
+    PCK leaf; the PCK chain to a trusted Intel SGX root; and, when
+    *expected_nonce* is given, that the TD report's REPORT_DATA binds it.
+
+    Pass ``expected_nonce=None`` on platforms where REPORT_DATA is not
+    guest-controlled: on the Azure vTPM path the paravisor binds it to the vTPM
+    attestation key, so freshness comes from the enclosing vTPM quote, not this
+    field, and checking it here would always fail. Bare-metal / configfs-tsm
+    guests do control REPORT_DATA, so pass the nonce there.
     """
     current = now if now is not None else _utcnow()
     try:
@@ -240,11 +246,15 @@ def verify_tdx_quote(
     if chain_error is not None:
         return QuoteVerification(False, chain_error)
 
-    # 5. Nonce binding (guest-controlled REPORT_DATA on configfs-tsm).
-    expected = hashlib.sha256(bytes.fromhex(expected_nonce)).digest()
-    if q.report.report_data[:32] != expected:
-        return QuoteVerification(
-            False, "REPORT_DATA does not bind the challenge nonce (possible replay)"
-        )
+    # 5. Nonce binding (guest-controlled REPORT_DATA, e.g. bare-metal / configfs-tsm).
+    #    Skipped when expected_nonce is None: on the Azure vTPM path REPORT_DATA is
+    #    paravisor-bound to the vTPM AK, so freshness lives in the enclosing vTPM
+    #    quote, not here (see the docstring).
+    if expected_nonce is not None:
+        expected = hashlib.sha256(bytes.fromhex(expected_nonce)).digest()
+        if q.report.report_data[:32] != expected:
+            return QuoteVerification(
+                False, "REPORT_DATA does not bind the challenge nonce (possible replay)"
+            )
 
     return QuoteVerification(True, leaf_subject=q.pck_leaf.subject.rfc4514_string())

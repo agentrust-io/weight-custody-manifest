@@ -8,13 +8,16 @@ byte offsets against silicon later.
 """
 from __future__ import annotations
 
+import base64
 import datetime
 import hashlib
+import json
+import pathlib
 import struct
 
 import pytest
 from cryptography import x509
-from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives.asymmetric.utils import decode_dss_signature
 from cryptography.x509.oid import NameOID
@@ -24,6 +27,14 @@ from wcm._quote_verify import QuoteFormatError
 
 NOW = datetime.datetime(2026, 7, 21, 12, 0, 0, tzinfo=datetime.timezone.utc)
 NONCE = "ab" * 32
+
+FIXTURES = pathlib.Path(__file__).resolve().parent / "fixtures"
+GCP_TDX = FIXTURES / "tdx_quote_gcp.json"
+AZURE_TDX = FIXTURES / "tdx_quote_azure.json"
+# Intel's published SGX Root CA (certificates.trustedservices.intel.com),
+# confirmed to match the root of the captured GCP quote's PCK chain. Pinning it
+# is the out-of-band trust anchor a real verifier uses.
+INTEL_SGX_ROOT_CA_SHA256 = "44a0196b2b99f889b8e149e95b807a350e7424964399e885a7cbb8ccfab674d3"
 
 
 def _p256():
@@ -165,6 +176,64 @@ def test_tampered_td_report_fails():
     bad[136] ^= 0xFF  # flip an MRTD byte inside the signed body
     result = verify_tdx_quote(bytes(bad), _trust(root), expected_nonce=NONCE, now=NOW)
     assert not result.verified and "quote signature" in (result.reason or "")
+
+
+@pytest.mark.filterwarnings("ignore::DeprecationWarning")
+def test_real_gcp_tdx_quote_verifies():
+    """A GENUINE Intel TDX quote captured from a GCP c3-standard-4 confidential VM
+    (configfs-tsm), chaining to Intel's real published SGX Root CA."""
+    if not GCP_TDX.exists():
+        pytest.skip("no captured GCP TDX quote committed")
+    bundle = json.loads(GCP_TDX.read_text(encoding="utf-8"))
+    assert bundle["source"] == "gcp-c3-tdx"
+    quote = base64.b64decode(bundle["quote_b64"])
+
+    q = parse_tdx_quote(quote)
+    assert q.version == 4 and q.tee_type == 0x81
+    chain = [q.pck_leaf, *q.pck_intermediates]
+    root = next(c for c in chain if c.subject == c.issuer)
+    # The root of the captured chain must BE Intel's published root, pinned here.
+    root_fp = hashlib.sha256(root.public_bytes(serialization.Encoding.DER)).hexdigest()
+    assert root_fp == INTEL_SGX_ROOT_CA_SHA256
+    assert "Intel SGX PCK" in q.pck_leaf.subject.rfc4514_string()
+
+    ts = TrustStore()
+    ts.add_root(root)
+    result = verify_tdx_quote(quote, ts, expected_nonce=bundle["expected_nonce"])
+    assert result.verified, result.reason
+
+
+def test_verify_nonce_optional_skips_binding():
+    # expected_nonce=None skips the REPORT_DATA gate (Azure vTPM topology) while
+    # still verifying chain + signatures + QE binding.
+    quote, root = build_quote(nonce_hex="00" * 32)
+    r = verify_tdx_quote(quote, _trust(root), expected_nonce=None, now=NOW)
+    assert r.verified, r.reason
+
+
+@pytest.mark.filterwarnings("ignore::DeprecationWarning")
+def test_real_azure_tdx_quote_verifies():
+    """A GENUINE Intel TDX quote captured from an Azure DCes_v6 CVM: TD report from
+    the vTPM exchanged for a DCAP quote at IMDS /acc/tdquote. REPORT_DATA is
+    AK-bound (not our nonce), so it verifies with expected_nonce=None."""
+    if not AZURE_TDX.exists():
+        pytest.skip("no captured Azure TDX quote committed")
+    bundle = json.loads(AZURE_TDX.read_text(encoding="utf-8"))
+    assert bundle["source"] == "azure-tdx-vtpm"
+    assert bundle["expected_nonce"] is None
+    quote = base64.b64decode(bundle["quote_b64"])
+    q = parse_tdx_quote(quote)
+    assert q.version == 4 and q.tee_type == 0x81
+    chain = [q.pck_leaf, *q.pck_intermediates]
+    root = next(c for c in chain if c.subject == c.issuer)
+    assert (
+        hashlib.sha256(root.public_bytes(serialization.Encoding.DER)).hexdigest()
+        == INTEL_SGX_ROOT_CA_SHA256
+    )
+    ts = TrustStore()
+    ts.add_root(root)
+    result = verify_tdx_quote(quote, ts, expected_nonce=None)
+    assert result.verified, result.reason
 
 
 def test_broken_qe_binding_fails():
