@@ -3,19 +3,22 @@
 These are the enclave-side adapters that fetch a real, nonce-bound attestation
 quote and package it as WCM ``CompositeEvidence`` for the KBS to verify:
 
-  SevSnpProvider   - AMD SEV-SNP CPU quote via /dev/sev-guest (Linux 5.19+)
-  TdxProvider      - Intel TDX CPU quote via /dev/tdx-guest (Linux 6.2+)
-  NvidiaCcProvider - NVIDIA CC GPU report via an external attestation command
+  SevSnpProvider    - AMD SEV-SNP CPU quote via /dev/sev-guest (Linux 5.19+)
+  TdxProvider       - Intel TDX CPU quote via /dev/tdx-guest (Linux 6.2+)
+  AzureSnpVtpmProvider - AMD SEV-SNP on an Azure CVM via the vTPM paravisor path
+  AzureTdxVtpmProvider - Intel TDX on an Azure CVM (vTPM TD report + IMDS quote)
+  NvidiaCcProvider  - NVIDIA CC GPU report via an external attestation command
   HardwareCompositeProvider - pairs a CPU provider with a GPU provider
-  select_provider  - auto-select the best available, else software fallback
+  select_provider   - auto-select the best available, else software fallback
 
-⚠️ NOT VALIDATED AGAINST REAL SILICON. The ioctl request layouts and the
-report byte offsets below mirror the documented ABI and the agentrust-io
-agent-manifest implementation (Apache-2.0), but they have not been checked
-against a live SEV-SNP / TDX / NVIDIA machine. Treat every raw-report offset
-as provisional until validated on hardware. What IS exercised in CI is the
-availability detection, the software fallback, and the report *parsing* (against
-synthetic fixtures) - never a real hardware root of trust.
+Validation status: the two Azure vTPM providers ARE validated against live Azure
+hosts (SEV-SNP on DC2as_v5, TDX on DCes_v6 westeurope; their captured quotes
+verify through snp.py / tdx.py against the real AMD and Intel roots). The
+bare-metal ioctl paths (SevSnpProvider, TdxProvider) and NvidiaCcProvider are
+still PROVISIONAL: their request layouts mirror the documented ABI and the
+agentrust-io agent-manifest implementation (Apache-2.0) but are unchecked on
+that hardware. What CI exercises everywhere is availability detection, the
+software fallback, and report *parsing* against synthetic fixtures.
 
 Honesty note that outlives the offsets: even a perfectly-parsed, signature-valid
 quote does not defeat a physically-extracted attestation key (TEE.fail-class,
@@ -31,6 +34,7 @@ import os
 import shutil
 # subprocess is used only for the NVIDIA attestation command (trusted env var).
 import subprocess  # nosec B404
+import urllib.request
 from abc import ABC, abstractmethod
 from typing import Any, Optional
 
@@ -239,6 +243,104 @@ class AzureSnpVtpmProvider(CpuQuoteProvider):
         )
 
 
+class AzureTdxVtpmProvider(CpuQuoteProvider):
+    """Intel TDX CPU quote on an Azure confidential VM (vTPM paravisor path).
+
+    Azure TDX CVMs have no /dev/tdx-guest. The paravisor publishes a TD report in
+    the same vTPM NV index SNP uses (0x01400001, HCL-wrapped). Unlike an SNP
+    report, a TD report is NOT self-verifiable: it carries no PCK signature. So
+    this provider extracts the TD report and exchanges it for a full DCAP quote at
+    the Azure IMDS quote service (/acc/tdquote); that quote (VCEK-free, QE + PCK
+    chain to the Intel SGX Root CA) is what ``tdx.py`` verifies. Validated on a
+    live Azure DCes_v6 host in westeurope.
+
+    Caveat (mirrors ``AzureSnpVtpmProvider``): Azure binds the TD report's
+    REPORT_DATA to the vTPM runtime-data/AK hash, not a caller nonce, so
+    ``verify_tdx_quote`` must be called with ``expected_nonce=None`` here and
+    freshness comes from the enclosing vTPM quote, not the TD report field.
+    """
+
+    platform = "intel-tdx"
+    _NV_INDEX = "0x01400001"
+    _TPM_DEV = "/dev/tpmrm0"
+    _HCL_TDREPORT_OFFSET = 32
+    _TDREPORT_LEN = 1024
+    _TDQUOTE_URL = "http://169.254.169.254/acc/tdquote"  # fixed Azure IMDS link-local host
+
+    @staticmethod
+    def is_available() -> bool:
+        # Requires the Azure vTPM tooling AND an HCL whose embedded report is a
+        # TDX TD report (REPORTMACSTRUCT TYPE byte == 0x81). That byte is what
+        # distinguishes a TDX CVM from an Azure SEV-SNP CVM sharing this NV index.
+        if not (
+            os.path.exists(AzureTdxVtpmProvider._TPM_DEV) and shutil.which("tpm2_nvread")
+        ):
+            return False
+        try:
+            hcl = AzureTdxVtpmProvider()._fetch_hcl()
+        except AttestationUnavailableError:
+            return False
+        off = AzureTdxVtpmProvider._HCL_TDREPORT_OFFSET
+        return hcl[:4] == b"HCLA" and len(hcl) > off and hcl[off] == 0x81
+
+    def _fetch_hcl(self) -> bytes:
+        """Read the HCL report blob from the vTPM (owner hierarchy). Overridable in tests."""
+        if shutil.which("tpm2_nvread") is None:
+            raise AttestationUnavailableError("tpm2_nvread not found (Azure CVM tooling)")
+        try:
+            out = subprocess.run(  # nosec B603 B607
+                ["tpm2_nvread", "-C", "o", self._NV_INDEX],
+                capture_output=True,
+                timeout=30,
+                check=True,
+            )
+        except (OSError, subprocess.SubprocessError) as exc:
+            raise AttestationUnavailableError(
+                f"reading vTPM NV {self._NV_INDEX} failed: {exc}"
+            ) from exc
+        return out.stdout
+
+    def _fetch_quote(self, tdreport: bytes) -> bytes:
+        """Exchange a TD report for a DCAP quote at the Azure IMDS service. Overridable in tests."""
+        report_b64u = base64.urlsafe_b64encode(tdreport).rstrip(b"=").decode()
+        body = json.dumps({"report": report_b64u}).encode()
+        req = urllib.request.Request(
+            self._TDQUOTE_URL, data=body, headers={"Content-Type": "application/json"}
+        )
+        try:
+            # Fixed Azure IMDS link-local host; not attacker-controlled.
+            resp = json.loads(
+                urllib.request.urlopen(req, timeout=30).read().decode()  # nosec B310
+            )
+        except (OSError, ValueError) as exc:
+            raise AttestationUnavailableError(f"Azure /acc/tdquote failed: {exc}") from exc
+        q = resp.get("quote") or resp.get("Quote")
+        if not q:
+            raise AttestationUnavailableError("no quote in /acc/tdquote response")
+        return base64.urlsafe_b64decode(q + "=" * (-len(q) % 4))
+
+    def cpu_quote(
+        self,
+        challenge: Challenge,
+        *,
+        serving_image_measurement: str,
+        assurance_tier: str = "hardware-attested",
+    ) -> CpuQuote:
+        hcl = self._fetch_hcl()
+        tdreport = hcl[self._HCL_TDREPORT_OFFSET : self._HCL_TDREPORT_OFFSET + self._TDREPORT_LEN]
+        quote = self._fetch_quote(tdreport)
+        return CpuQuote(
+            platform=self.platform,
+            assurance_tier=assurance_tier,
+            serving_image_measurement=HashValue(serving_image_measurement),
+            nonce_echo=challenge.nonce,
+            # REPORT_DATA is Azure-vTPM-bound, not nonce-bound (see class docstring).
+            attestation_key_id="tdx-quote:azure-vtpm",
+            attestation_key_cache_age_seconds=0,
+            quote_b64=base64.b64encode(quote).decode(),
+        )
+
+
 # ---------------------------------------------------------------------------
 # GPU report provider
 # ---------------------------------------------------------------------------
@@ -340,10 +442,14 @@ def select_cpu_provider() -> Optional[CpuQuoteProvider]:
     """Return the best available CPU quote provider, or None if none is present."""
     if SevSnpProvider.is_available():
         return SevSnpProvider()  # bare-metal / KVM SEV-SNP (guest controls REPORT_DATA)
+    if TdxProvider.is_available():
+        return TdxProvider()  # bare-metal / KVM Intel TDX (guest controls REPORT_DATA)
+    # Azure TDX is checked before the Azure SNP catch-all: its is_available reads
+    # the HCL and only matches a TDX TD report, so an Azure SNP CVM falls through.
+    if AzureTdxVtpmProvider.is_available():
+        return AzureTdxVtpmProvider()  # Azure CVM Intel TDX via vTPM + IMDS /acc/tdquote
     if AzureSnpVtpmProvider.is_available():
         return AzureSnpVtpmProvider()  # Azure CVM SEV-SNP via the vTPM paravisor path
-    if TdxProvider.is_available():
-        return TdxProvider()
     return None
 
 
