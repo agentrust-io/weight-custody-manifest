@@ -144,3 +144,69 @@ def test_rights_holder_roundtrip(example_dict):
     assert m.rights_holder is not None
     assert m.rights_holder.base == "example-builder"
     assert m.rights_holder.derivative is None
+
+
+# -- multi-stage BYOM enforcement (SPEC 3.8) -----------------------------------
+
+
+def _m(example_dict, weights_hash, *, derived_from=None, derivatives=None, envs=None):
+    d = copy.deepcopy(example_dict)
+    d["weights_hash"] = weights_hash
+    if derived_from is not None:
+        d["derived_from"] = derived_from
+    if derivatives is not None:
+        d["release_terms"]["derivatives"] = derivatives
+    if envs is not None:
+        d["release_terms"]["permitted_environments"] = envs
+    return WeightCustodyManifest.model_validate(d)
+
+
+def test_monotone_derivatives_widening_rejected(example_dict):
+    root = _m(example_dict, ROOT, derivatives="fine-tune-only")
+    child = _m(example_dict, CHILD, derived_from=ROOT, derivatives="unrestricted")
+    r = verify_lineage({ROOT: root, CHILD: child}, CHILD)
+    assert not r.ok and any("widens derivatives" in v for v in r.violations)
+
+
+def test_monotone_derivatives_narrowing_ok(example_dict):
+    root = _m(example_dict, ROOT, derivatives="unrestricted")
+    child = _m(example_dict, CHILD, derived_from=ROOT, derivatives="fine-tune-only")
+    assert verify_lineage({ROOT: root, CHILD: child}, CHILD).ok
+
+
+def test_permitted_environments_cannot_widen(example_dict):
+    root = _m(example_dict, ROOT, derivatives="fine-tune-only", envs=["enc-a"])
+    child = _m(example_dict, CHILD, derived_from=ROOT, envs=["enc-a", "enc-b"])
+    r = verify_lineage({ROOT: root, CHILD: child}, CHILD)
+    assert not r.ok and any("permitted_environments" in v for v in r.violations)
+
+
+def test_permitted_environments_subset_ok(example_dict):
+    root = _m(example_dict, ROOT, derivatives="fine-tune-only", envs=["enc-a", "enc-b"])
+    child = _m(example_dict, CHILD, derived_from=ROOT, envs=["enc-a"])
+    assert verify_lineage({ROOT: root, CHILD: child}, CHILD).ok
+
+
+def test_upstream_logged_gating(example_dict):
+    root = _m(example_dict, ROOT, derivatives="fine-tune-only")
+    child = _m(example_dict, CHILD, derived_from=ROOT)
+    manifests = {ROOT: root, CHILD: child}
+    assert verify_lineage(manifests, CHILD, logged={ROOT, CHILD}).ok  # both logged
+    r = verify_lineage(manifests, CHILD, logged={CHILD})  # upstream missing
+    assert not r.ok and any("transparency log" in v for v in r.violations)
+
+
+def test_revocation_cascades(example_dict):
+    root = _m(example_dict, ROOT, derivatives="fine-tune-only")
+    child = _m(example_dict, CHILD, derived_from=ROOT)
+    manifests = {ROOT: root, CHILD: child}
+    r = verify_lineage(manifests, CHILD, revoked={ROOT})
+    assert not r.ok and any("revoked" in v and "cascades" in v for v in r.violations)
+    # revoking an unrelated hash leaves the chain valid
+    assert verify_lineage(manifests, CHILD, revoked={MISSING}).ok
+
+
+def test_gates_optional_backward_compatible(example_dict):
+    root = _m(example_dict, ROOT, derivatives="fine-tune-only")
+    child = _m(example_dict, CHILD, derived_from=ROOT)
+    assert verify_lineage({ROOT: root, CHILD: child}, CHILD).ok  # no gates -> original behavior

@@ -36,6 +36,16 @@ new library API. Adds a "Sovereign self-custody (threshold)" tutorial.
 
 ## SDK
 
+### 0.18.0
+- **Multi-stage BYOM enforcement in `verify_lineage`** (SPEC 3.8): monotone rights
+  (a derivative may narrow but never widen the structured `derivatives` policy or
+  `permitted_environments` relative to its parent), plus optional `logged=` (every
+  manifest in the chain must be present and in-force in the transparency log) and
+  `revoked=` (a revocation anywhere in the chain cascades to invalidate the leaf)
+  gates. `verify_lineage` stays pure, no crypto: the caller supplies the
+  logged/revoked hash sets from already-verified inclusion proofs. Backward-
+  compatible, the gates default off; monotone-rights is always on (structural).
+
 ### 0.17.0
 - **Azure Intel TDX provider** (`AzureTdxVtpmProvider`): Azure TDX CVMs have no
   `/dev/tdx-guest`; the paravisor exposes a TD report in the same vTPM NV index
