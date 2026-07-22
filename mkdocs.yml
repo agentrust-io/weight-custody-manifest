@@ -43,6 +43,7 @@ nav:
       - Open-weight model, end to end: tutorials/open-weight-model.md
       - Replaying a real SEV-SNP quote: tutorials/snp-quote-replay.md
       - Sovereign self-custody (threshold): tutorials/sovereign-self-custody.md
+      - Test on your machine (real model): tutorials/test-on-your-machine.md
   - Specification:
       - Overview: spec-overview.md
       - Threat model: threat-model.md
