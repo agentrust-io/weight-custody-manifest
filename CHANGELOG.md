@@ -6,6 +6,15 @@ uses semantic-ish versioning while pre-1.0.
 
 ## Unreleased
 
+**[demo]** Run WCM on a real open model, locally (`examples/real_open_model.py`):
+downloads a real open-weight model (default SmolLM2-135M), hashes its ACTUAL
+safetensors into the manifest, and runs the whole flow (sign, gate, wipe-on-lapse,
+license, derivative + lineage) with the software attestation mock. Includes a
+tamper demo (a one-byte-flipped fork no longer matches the manifest) and an
+optional `--infer` that loads the model and generates so the certified serving
+stack is a real running model. Adds a "Test on your machine" tutorial. No library
+change; download/inference deps are imported lazily and CI does not download.
+
 **[demo/tools]** Offline SEV-SNP quote replay: `examples/snp_replay.py` runs the
 KBS's Layer 2 CPU gate (parse, VCEK->ASK->ARK chain, report signature, nonce
 binding) against a recorded quote, with a committed synthetic bundle so it runs
