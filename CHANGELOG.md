@@ -106,6 +106,17 @@ new library API. Adds a "Sovereign self-custody (threshold)" tutorial.
 
 ## Specification
 
+- **v0.11** - specified the KBS enclave image contents and threat model to
+  implementable detail (resolving open question 8.2, so self-custody moves from
+  described to specified), and added multi-stage BYOM as a sequential re-custody
+  protocol over the existing lineage and transparency-log primitives (section
+  3.8: chained `derived_from`, release gated on upstream being logged, monotone
+  rights, cascading revocation). No new manifest fields; broad multi-party
+  co-governance stays the one deliberately-open BYOM piece.
+- **v0.10** - `base_confidentiality` (`confidential` | `gated-open` | `open`) and
+  `deployment_model` (`builder-to-customer` | `byom-symmetric`) added to the
+  manifest, both under the joint signature; the verifier reports non-blocking
+  consistency notes rather than blocking.
 - **v0.9** - Layer 4 fields (`derived_from`, `rights_holder`, structured
   `derivatives`) synced into the manifest examples.
 - **v0.8** - resolved trusted time (`trusted_time_source`, three tiers) and split
