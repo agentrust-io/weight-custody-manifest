@@ -116,6 +116,13 @@ new library API. Adds a "Sovereign self-custody (threshold)" tutorial.
 
 ## Specification
 
+- **v0.12** - reframed the publication posture: closing the key-extraction half
+  of open question 8.8 is no longer a precondition for publishing the open spec
+  and SDK. That half is disclosed as a scoped limit against a hardware owner
+  outside the operator-trust model (a party a builder self-selects against),
+  addressed by physical hardening + accountability today and extraction-resistant
+  silicon on the vendor roadmap. Security claims unchanged; only the "therefore
+  withhold" logic is dropped, in favour of leading with the limit.
 - **v0.11** - specified the KBS enclave image contents and threat model to
   implementable detail (resolving open question 8.2, so self-custody moves from
   described to specified), and added multi-stage BYOM as a sequential re-custody
