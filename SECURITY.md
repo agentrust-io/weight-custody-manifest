@@ -35,4 +35,4 @@ Include:
 
 ## Publication status
 
-This repository is pre-1.0 and its public release is staged behind the hostile-owner posture stabilizing (open question 8.8). Until then, treat everything here as a design under review, not a production security boundary.
+This repository is pre-1.0. Its public release is a deliberate decision by the Project Lead and is not gated on open question 8.8; the hostile-owner residual is documented (see the honest baseline above), not a release blocker. Treat everything here as a design under review, not a production security boundary.

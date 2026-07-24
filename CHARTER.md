@@ -1,7 +1,7 @@
 # Technical Charter - Weight Custody Manifest
 
 **Standards path**: IETF SCITT (technical) and CoSAI (positioning)
-**Status**: pre-1.0 draft - public release staged behind open question 8.8
+**Status**: pre-1.0 draft - public release is a deliberate Project Lead decision, not gated on open question 8.8
 **Version**: 0.1 (aligned with spec v0.9)
 
 ---
