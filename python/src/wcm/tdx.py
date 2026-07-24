@@ -194,6 +194,7 @@ def verify_tdx_quote(
     trust_store: TrustStore,
     *,
     expected_nonce: Optional[str] = None,
+    channel_binding: bytes = b"",
     now: Optional[datetime] = None,
 ) -> QuoteVerification:
     """Verify a TDX DCAP v4 quote end to end.
@@ -208,6 +209,12 @@ def verify_tdx_quote(
     attestation key, so freshness comes from the enclosing vTPM quote, not this
     field, and checking it here would always fail. Bare-metal / configfs-tsm
     guests do control REPORT_DATA, so pass the nonce there.
+
+    ``channel_binding`` is the enclave's attested transport public key (raw
+    bytes) when channel binding is in use, else empty; REPORT_DATA must then bind
+    ``sha256(nonce || channel_binding)``, so a relay cannot swap in its own
+    transport key (SPEC 3.2). Only meaningful with a guest-controlled
+    REPORT_DATA, i.e. alongside a non-None *expected_nonce*.
     """
     current = now if now is not None else _utcnow()
     try:
@@ -251,10 +258,13 @@ def verify_tdx_quote(
     #    paravisor-bound to the vTPM AK, so freshness lives in the enclosing vTPM
     #    quote, not here (see the docstring).
     if expected_nonce is not None:
-        expected = hashlib.sha256(bytes.fromhex(expected_nonce)).digest()
+        expected = hashlib.sha256(bytes.fromhex(expected_nonce) + channel_binding).digest()
         if q.report.report_data[:32] != expected:
-            return QuoteVerification(
-                False, "REPORT_DATA does not bind the challenge nonce (possible replay)"
+            reason = (
+                "REPORT_DATA does not bind the challenge nonce and transport key (possible relay)"
+                if channel_binding
+                else "REPORT_DATA does not bind the challenge nonce (possible replay)"
             )
+            return QuoteVerification(False, reason)
 
     return QuoteVerification(True, leaf_subject=q.pck_leaf.subject.rfc4514_string())

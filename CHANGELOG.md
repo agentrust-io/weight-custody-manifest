@@ -36,6 +36,26 @@ new library API. Adds a "Sovereign self-custody (threshold)" tutorial.
 
 ## SDK
 
+### 0.19.0
+- **Channel binding for Layer 2 key release** (SPEC 3.2, CVE-2026-33697): closes
+  the quote-relay / key-diversion gap that nonce binding alone left open. New
+  `wcm._seal` (`generate_transport_keypair`, `seal_to_public_key`, `open_sealed`,
+  `SealError`) object-seals a released key to the enclave's attested transport key
+  (ephemeral-static X25519 + HKDF-SHA256 + ChaCha20-Poly1305, stdlib crypto, no
+  new dependency), mirroring cA2A's sealed-channel scheme. `CpuQuote` gains
+  `transport_public_key`; providers fold it into REPORT_DATA under the nonce
+  (`sha256(nonce || transport_pubkey)`), so a relay cannot substitute its own key
+  without failing verification. `QuoteVerifier.verify` and `verify_tdx_quote` take
+  a `channel_binding` kwarg; `KeyBrokerService` takes `require_channel_binding`
+  (default False) and adds a `channel_binding` gate check, and `ReleaseDecision`
+  gains `sealed_key`. When channel binding is required the raw key is never
+  returned, only the sealed blob, so a relayed release yields ciphertext the relay
+  cannot open. The reference server (`wcm.server`) now requires channel binding
+  and returns `sealed_key_b64` instead of a plaintext key. Backward-compatible:
+  `channel_binding` defaults empty (reduces to `sha256(nonce)`) and
+  `require_channel_binding` defaults off, so existing evidence and flows are
+  unchanged.
+
 ### 0.18.0
 - **Multi-stage BYOM enforcement in `verify_lineage`** (SPEC 3.8): monotone rights
   (a derivative may narrow but never widen the structured `derivatives` policy or
@@ -116,6 +136,14 @@ new library API. Adds a "Sovereign self-custody (threshold)" tutorial.
 
 ## Specification
 
+- **v0.13** - added channel binding to the Layer 2 release handshake (section
+  3.2). The enclave folds a transport public key into the quote's REPORT_DATA
+  under the nonce, and the KBS seals the released key to that transport key rather
+  than returning it on the channel. Closes the quote-relay / key-diversion gap
+  (the intra-handshake binding gap, CVE-2026-33697) that nonce binding alone left
+  open: a relayed quote yields only ciphertext the relay cannot open, and
+  substituting a transport key breaks quote verification. New threat T4.4 in the
+  threat model (v0.5). No new manifest fields.
 - **v0.12** - reframed the publication posture: closing the key-extraction half
   of open question 8.8 is no longer a precondition for publishing the open spec
   and SDK. That half is disclosed as a scoped limit against a hardware owner

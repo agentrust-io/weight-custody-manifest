@@ -8,7 +8,12 @@ import pytest
 pytest.importorskip("fastapi")
 from fastapi.testclient import TestClient  # noqa: E402
 
-from wcm import KeyBrokerService, SoftwareProvider  # noqa: E402
+from wcm import (  # noqa: E402
+    KeyBrokerService,
+    SoftwareProvider,
+    generate_transport_keypair,
+    open_sealed,
+)
 from wcm.server import create_app  # noqa: E402
 
 KEY = b"served-decryption-key-32bytes-xx"
@@ -16,7 +21,11 @@ KEY = b"served-decryption-key-32bytes-xx"
 
 @pytest.fixture
 def client_and_manifest(example_manifest):
-    kbs = KeyBrokerService({example_manifest.weights_hash: KEY})
+    # The reference server requires channel binding (SPEC 3.2): the key leaves
+    # only sealed to the enclave's attested transport key.
+    kbs = KeyBrokerService(
+        {example_manifest.weights_hash: KEY}, require_channel_binding=True
+    )
     return TestClient(create_app(kbs)), kbs, example_manifest
 
 
@@ -49,9 +58,10 @@ def test_release_happy_path(client_and_manifest):
     from wcm._challenge import Challenge
     from datetime import datetime, timezone
 
+    priv, pub = generate_transport_keypair()
     ch = Challenge(nonce=nonce, issued_at=datetime.now(timezone.utc), expires_at=datetime.now(timezone.utc))
     evidence = SoftwareProvider().produce(
-        ch, serving_image_measurement=current, gpu_measurement=rim
+        ch, serving_image_measurement=current, gpu_measurement=rim, transport_public_key=pub
     )
     body = {
         "manifest": manifest.model_dump(mode="json", exclude_none=True),
@@ -61,7 +71,30 @@ def test_release_happy_path(client_and_manifest):
     assert r.status_code == 200
     data = r.json()
     assert data["released"] is True
-    assert base64.b64decode(data["key_b64"]) == KEY
+    # The server never returns a raw key; only the enclave's transport key opens it.
+    assert "key_b64" not in data
+    assert open_sealed(base64.b64decode(data["sealed_key_b64"]), priv) == KEY
+
+
+def test_release_without_transport_key_denied(client_and_manifest):
+    client, _, manifest = client_and_manifest
+    current, rim = _measurements(manifest)
+    nonce = client.post("/challenge").json()["nonce"]
+    from wcm._challenge import Challenge
+    from datetime import datetime, timezone
+
+    ch = Challenge(nonce=nonce, issued_at=datetime.now(timezone.utc), expires_at=datetime.now(timezone.utc))
+    # No transport key: the channel-binding gate denies release.
+    evidence = SoftwareProvider().produce(
+        ch, serving_image_measurement=current, gpu_measurement=rim
+    )
+    body = {
+        "manifest": manifest.model_dump(mode="json", exclude_none=True),
+        "evidence": evidence.model_dump(mode="json", exclude_none=True),
+    }
+    data = client.post("/release", json=body).json()
+    assert data["released"] is False and data["sealed_key_b64"] is None
+    assert any(c["name"] == "channel_binding" and not c["passed"] for c in data["checks"])
 
 
 def test_release_denies_bad_evidence(client_and_manifest):
@@ -71,9 +104,12 @@ def test_release_denies_bad_evidence(client_and_manifest):
     from wcm._challenge import Challenge
     from datetime import datetime, timezone
 
+    _, pub = generate_transport_keypair()
     ch = Challenge(nonce=nonce, issued_at=datetime.now(timezone.utc), expires_at=datetime.now(timezone.utc))
     # No GPU report -> gpu check fails.
-    evidence = SoftwareProvider().produce(ch, serving_image_measurement=current, include_gpu=False)
+    evidence = SoftwareProvider().produce(
+        ch, serving_image_measurement=current, include_gpu=False, transport_public_key=pub
+    )
     body = {
         "manifest": manifest.model_dump(mode="json", exclude_none=True),
         "evidence": evidence.model_dump(mode="json", exclude_none=True),
@@ -81,7 +117,7 @@ def test_release_denies_bad_evidence(client_and_manifest):
     r = client.post("/release", json=body)
     assert r.status_code == 200
     data = r.json()
-    assert data["released"] is False and data["key_b64"] is None
+    assert data["released"] is False and data["sealed_key_b64"] is None
 
 
 def test_release_malformed_manifest_422(client_and_manifest):

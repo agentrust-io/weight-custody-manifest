@@ -1,17 +1,19 @@
 """Reference KBS HTTP surface (SPEC.md section 3.2). Requires the ``[server]`` extra.
 
     POST /challenge  -> {nonce, issued_at, expires_at}
-    POST /release    -> {manifest, evidence} -> {released, key_b64|null, checks}
+    POST /release    -> {manifest, evidence} -> {released, sealed_key_b64|null, checks}
     GET  /health     -> {status: "ok"}
 
 This is the reference protocol surface; it wraps the library ``KeyBrokerService``
 with identical semantics. It is imported only as ``wcm.server`` (never by the
 base package), so ``import wcm`` needs no web dependency.
 
-Honest caveat: for the reference server, ``/release`` returns the decryption key
-in the response body. A production KBS never does that - it wraps the key to the
-requesting enclave's attested transport (the enclave proved its identity in the
-same handshake). Do not deploy this as-is on an untrusted network.
+Channel binding: the enclave carries its attested transport public key in the
+evidence (``cpu.transport_public_key``), and ``/release`` returns the key only as
+``sealed_key_b64`` sealed to that key, never in the clear. A relayed quote (the
+intra-handshake gap, CVE-2026-33697) therefore yields only ciphertext the relay
+cannot open. The env-built KBS sets ``require_channel_binding=True``, so a
+request without a transport key is denied.
 """
 from __future__ import annotations
 
@@ -61,7 +63,11 @@ def create_app(kbs: KeyBrokerService) -> FastAPI:
         decision = kbs.verify_and_release(manifest, evidence)
         return {
             "released": decision.released,
-            "key_b64": base64.b64encode(decision.key).decode() if decision.key else None,
+            "sealed_key_b64": (
+                base64.b64encode(decision.sealed_key).decode()
+                if decision.sealed_key
+                else None
+            ),
             "checks": [
                 {"name": c.name, "passed": c.passed, "detail": c.detail}
                 for c in decision.checks
@@ -85,7 +91,9 @@ def build_kbs_from_env() -> KeyBrokerService:
         with open(path, "r", encoding="utf-8") as fh:
             raw = json.load(fh)
         keystore = {wh: base64.b64decode(k) for wh, k in raw.items()}
-    return KeyBrokerService(keystore)
+    # The reference network surface requires channel binding: the key leaves
+    # only sealed to the enclave's attested transport key (SPEC 3.2).
+    return KeyBrokerService(keystore, require_channel_binding=True)
 
 
 def app_from_env() -> FastAPI:
