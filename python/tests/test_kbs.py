@@ -6,8 +6,11 @@ import pytest
 
 from wcm import (
     KeyBrokerService,
+    SealError,
     SoftwareProvider,
     WeightCustodyManifest,
+    generate_transport_keypair,
+    open_sealed,
 )
 
 KEY = b"decryption-key-for-these-weights"
@@ -22,11 +25,12 @@ def _now_after_retire():
     return lambda: datetime(2026, 7, 19, 12, 0, 0, tzinfo=timezone.utc)
 
 
-def _kbs(example_manifest, *, now=None, revoked=None):
+def _kbs(example_manifest, *, now=None, revoked=None, require_channel_binding=False):
     return KeyBrokerService(
         {example_manifest.weights_hash: KEY},
         now=now or _now_after_retire(),
         revoked_attestation_keys=revoked,
+        require_channel_binding=require_channel_binding,
     )
 
 
@@ -273,3 +277,72 @@ def test_memory_fingerprint_clean_releases(example_dict):
     decision = kbs.verify_and_release(manifest, ev)
     assert decision.released
     assert decision.key == KEY
+
+
+# -- channel binding (SPEC 3.2, CVE-2026-33697 relay defense) ------------------
+
+
+def test_channel_binding_off_by_default_returns_raw_key(example_manifest):
+    # Backward compatibility: no channel binding required, raw key as before.
+    kbs = _kbs(example_manifest)
+    current, _, _, rim = _measurements(example_manifest)
+    challenge = kbs.issue_challenge()
+    ev = SoftwareProvider().produce(
+        challenge, serving_image_measurement=current, gpu_measurement=rim
+    )
+    decision = kbs.verify_and_release(example_manifest, ev)
+    assert decision.released
+    assert decision.key == KEY and decision.sealed_key is None
+
+
+def test_channel_binding_required_seals_key_to_enclave(example_manifest):
+    kbs = _kbs(example_manifest, require_channel_binding=True)
+    current, _, _, rim = _measurements(example_manifest)
+    challenge = kbs.issue_challenge()
+    enclave_priv, enclave_pub = generate_transport_keypair()
+    ev = SoftwareProvider().produce(
+        challenge,
+        serving_image_measurement=current,
+        gpu_measurement=rim,
+        transport_public_key=enclave_pub,
+    )
+    decision = kbs.verify_and_release(example_manifest, ev)
+    assert decision.released
+    # The raw key never crosses the channel; only the enclave transport key opens it.
+    assert decision.key is None
+    assert decision.sealed_key is not None
+    assert open_sealed(decision.sealed_key, enclave_priv) == KEY
+    # A relay holding a different channel key gets only ciphertext.
+    attacker_priv, _ = generate_transport_keypair()
+    with pytest.raises(SealError):
+        open_sealed(decision.sealed_key, attacker_priv)
+
+
+def test_channel_binding_required_but_absent_denied(example_manifest):
+    kbs = _kbs(example_manifest, require_channel_binding=True)
+    current, _, _, rim = _measurements(example_manifest)
+    challenge = kbs.issue_challenge()
+    ev = SoftwareProvider().produce(
+        challenge, serving_image_measurement=current, gpu_measurement=rim
+    )  # no transport_public_key
+    decision = kbs.verify_and_release(example_manifest, ev)
+    assert not decision.released
+    assert decision.sealed_key is None
+    cb = [c for c in decision.checks if c.name == "channel_binding"][0]
+    assert not cb.passed and "transport_public_key" in (cb.detail or "")
+
+
+def test_channel_binding_malformed_transport_key_denied(example_manifest):
+    kbs = _kbs(example_manifest, require_channel_binding=True)
+    current, _, _, rim = _measurements(example_manifest)
+    challenge = kbs.issue_challenge()
+    ev = SoftwareProvider().produce(
+        challenge,
+        serving_image_measurement=current,
+        gpu_measurement=rim,
+        transport_public_key="zz" * 32,  # not valid hex
+    )
+    decision = kbs.verify_and_release(example_manifest, ev)
+    assert not decision.released
+    cb = [c for c in decision.checks if c.name == "channel_binding"][0]
+    assert not cb.passed

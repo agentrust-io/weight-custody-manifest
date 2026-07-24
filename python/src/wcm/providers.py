@@ -31,8 +31,20 @@ class AttestationProvider(ABC):
     """Interface every provider implements."""
 
     @abstractmethod
-    def produce(self, challenge: Challenge, *, serving_image_measurement: str) -> CompositeEvidence:
-        """Produce composite evidence bound to *challenge*'s nonce."""
+    def produce(
+        self,
+        challenge: Challenge,
+        *,
+        serving_image_measurement: str,
+        transport_public_key: Optional[str] = None,
+    ) -> CompositeEvidence:
+        """Produce composite evidence bound to *challenge*'s nonce.
+
+        ``transport_public_key`` (hex X25519) is the enclave transport key the
+        KBS seals the released key to; when set it is bound into the quote for
+        channel binding (SPEC 3.2). Optional so the pre-channel-binding flow is
+        unchanged.
+        """
         raise NotImplementedError
 
 
@@ -62,6 +74,7 @@ class SoftwareProvider(AttestationProvider):
         aliasing_detected: bool = False,
         attestation_key_id: str = "vcek-mock-0001",
         cache_age_seconds: int = 0,
+        transport_public_key: Optional[str] = None,
     ) -> CompositeEvidence:
         nonce = challenge.nonce
 
@@ -72,6 +85,9 @@ class SoftwareProvider(AttestationProvider):
             nonce_echo=nonce,
             attestation_key_id=attestation_key_id,
             attestation_key_cache_age_seconds=cache_age_seconds,
+            # The mock carries no raw quote, so nothing binds this into hardware;
+            # it is here so the gate can seal to it and the relay path is testable.
+            transport_public_key=transport_public_key,
         )
 
         gpu: Optional[GpuReport] = None

@@ -44,9 +44,21 @@ from .attestation import CompositeEvidence, CpuQuote, GpuReport
 from .providers import AttestationProvider, AttestationUnavailableError, SoftwareProvider
 
 
-def _report_data_for(nonce_hex: str) -> bytes:
-    """64-byte REPORT_DATA binding the KBS nonce: sha256(nonce) zero-padded."""
-    return hashlib.sha256(bytes.fromhex(nonce_hex)).digest() + bytes(32)
+def _report_data_for(nonce_hex: str, channel_binding: bytes = b"") -> bytes:
+    """64-byte REPORT_DATA: sha256(nonce || channel_binding), zero-padded.
+
+    ``channel_binding`` is the enclave's transport public key (raw 32 bytes) when
+    channel binding is in use, else empty. Folding it in under the nonce is what
+    stops a relay from substituting its own transport key: changing the key would
+    change REPORT_DATA and fail quote verification. With an empty binding this is
+    sha256(nonce), the pre-channel-binding value, so existing quotes still verify.
+    """
+    return hashlib.sha256(bytes.fromhex(nonce_hex) + channel_binding).digest() + bytes(32)
+
+
+def _channel_binding(transport_public_key: Optional[str]) -> bytes:
+    """Raw bytes of a hex transport key for REPORT_DATA, or empty if unset."""
+    return bytes.fromhex(transport_public_key) if transport_public_key else b""
 
 
 # ---------------------------------------------------------------------------
@@ -72,6 +84,7 @@ class CpuQuoteProvider(ABC):
         *,
         serving_image_measurement: str,
         assurance_tier: str = "hardware-attested",
+        transport_public_key: Optional[str] = None,
     ) -> CpuQuote:
         raise NotImplementedError
 
@@ -114,8 +127,13 @@ class SevSnpProvider(CpuQuoteProvider):
         *,
         serving_image_measurement: str,
         assurance_tier: str = "hardware-attested",
+        transport_public_key: Optional[str] = None,
     ) -> CpuQuote:
-        raw = self._fetch_report(_report_data_for(challenge.nonce))
+        # Bare-metal / KVM SEV-SNP: the guest controls REPORT_DATA, so the
+        # transport key is bound there under the nonce (channel binding).
+        raw = self._fetch_report(
+            _report_data_for(challenge.nonce, _channel_binding(transport_public_key))
+        )
         chip_id = raw[0x1A0 : 0x1A0 + 64]
         return CpuQuote(
             platform=self.platform,
@@ -125,6 +143,7 @@ class SevSnpProvider(CpuQuoteProvider):
             attestation_key_id="vcek:" + chip_id[:8].hex(),
             attestation_key_cache_age_seconds=0,
             quote_b64=base64.b64encode(raw).decode(),
+            transport_public_key=transport_public_key,
         )
 
 
@@ -163,8 +182,13 @@ class TdxProvider(CpuQuoteProvider):
         *,
         serving_image_measurement: str,
         assurance_tier: str = "hardware-attested",
+        transport_public_key: Optional[str] = None,
     ) -> CpuQuote:
-        raw = self._fetch_report(_report_data_for(challenge.nonce))
+        # configfs-tsm / bare-metal TDX: the guest controls REPORT_DATA, so the
+        # transport key is bound there under the nonce (channel binding).
+        raw = self._fetch_report(
+            _report_data_for(challenge.nonce, _channel_binding(transport_public_key))
+        )
         return CpuQuote(
             platform=self.platform,
             assurance_tier=assurance_tier,
@@ -174,6 +198,7 @@ class TdxProvider(CpuQuoteProvider):
             attestation_key_id="tdx-quote:" + raw[64:72].hex(),
             attestation_key_cache_age_seconds=0,
             quote_b64=base64.b64encode(raw).decode(),
+            transport_public_key=transport_public_key,
         )
 
 
@@ -227,11 +252,16 @@ class AzureSnpVtpmProvider(CpuQuoteProvider):
         *,
         serving_image_measurement: str,
         assurance_tier: str = "hardware-attested",
+        transport_public_key: Optional[str] = None,
     ) -> CpuQuote:
         from .snp import extract_snp_report_from_hcl, parse_snp_report
 
         report = extract_snp_report_from_hcl(self._fetch_hcl())
         parsed = parse_snp_report(report)
+        # transport_public_key is carried on the quote so the KBS can still seal
+        # the released key to it. As with nonce_echo, the raw report's REPORT_DATA
+        # is vTPM-bound (not guest-controlled), so the transport key's binding into
+        # hardware rides the enclosing vTPM quote, not this SNP report field.
         return CpuQuote(
             platform=self.platform,
             assurance_tier=assurance_tier,
@@ -240,6 +270,7 @@ class AzureSnpVtpmProvider(CpuQuoteProvider):
             attestation_key_id="vcek:" + parsed.chip_id[:8].hex(),
             attestation_key_cache_age_seconds=0,
             quote_b64=base64.b64encode(report).decode(),
+            transport_public_key=transport_public_key,
         )
 
 
@@ -325,6 +356,7 @@ class AzureTdxVtpmProvider(CpuQuoteProvider):
         *,
         serving_image_measurement: str,
         assurance_tier: str = "hardware-attested",
+        transport_public_key: Optional[str] = None,
     ) -> CpuQuote:
         hcl = self._fetch_hcl()
         tdreport = hcl[self._HCL_TDREPORT_OFFSET : self._HCL_TDREPORT_OFFSET + self._TDREPORT_LEN]
@@ -334,10 +366,12 @@ class AzureTdxVtpmProvider(CpuQuoteProvider):
             assurance_tier=assurance_tier,
             serving_image_measurement=HashValue(serving_image_measurement),
             nonce_echo=challenge.nonce,
-            # REPORT_DATA is Azure-vTPM-bound, not nonce-bound (see class docstring).
+            # REPORT_DATA is Azure-vTPM-bound, not nonce-bound (see class docstring);
+            # the transport key's hardware binding likewise rides the vTPM quote.
             attestation_key_id="tdx-quote:azure-vtpm",
             attestation_key_cache_age_seconds=0,
             quote_b64=base64.b64encode(quote).decode(),
+            transport_public_key=transport_public_key,
         )
 
 
@@ -429,10 +463,16 @@ class HardwareCompositeProvider(AttestationProvider):
         self._gpu = gpu
 
     def produce(
-        self, challenge: Challenge, *, serving_image_measurement: str
+        self,
+        challenge: Challenge,
+        *,
+        serving_image_measurement: str,
+        transport_public_key: Optional[str] = None,
     ) -> CompositeEvidence:
         cpu_quote = self._cpu.cpu_quote(
-            challenge, serving_image_measurement=serving_image_measurement
+            challenge,
+            serving_image_measurement=serving_image_measurement,
+            transport_public_key=transport_public_key,
         )
         gpu_report = self._gpu.gpu_report(challenge) if self._gpu is not None else None
         return CompositeEvidence(cpu=cpu_quote, gpu=gpu_report)

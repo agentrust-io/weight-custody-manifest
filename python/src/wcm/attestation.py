@@ -38,6 +38,11 @@ class CpuQuote(_Strict):
     attestation_key_id: str  # VCEK id (AMD) or equivalent
     attestation_key_cache_age_seconds: int = 0
     quote_b64: Optional[str] = None
+    # Hex X25519 public key the enclave vouches for, folded into REPORT_DATA
+    # under the nonce (see _seal, _hw_providers). When present the KBS seals the
+    # released key to it, so a relayed quote yields only ciphertext (SPEC 3.2
+    # channel binding). Absent on the pre-channel-binding evidence shape.
+    transport_public_key: Optional[str] = None
 
 
 class GpuReport(_Strict):

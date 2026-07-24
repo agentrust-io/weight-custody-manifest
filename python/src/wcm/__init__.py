@@ -93,6 +93,12 @@ from ._hw_providers import (
     select_cpu_provider,
 )
 from .kbs import KeyBrokerService, ReleaseDecision, CheckResult
+from ._seal import (
+    generate_transport_keypair,
+    seal_to_public_key,
+    open_sealed,
+    SealError,
+)
 from ._quote_verify import (
     QuoteVerifier,
     QuoteVerification,
@@ -137,7 +143,7 @@ from .tdx import (
     verify_tdx_quote,
 )
 
-__version__ = "0.18.0"
+__version__ = "0.19.0"
 
 __all__ = [
     "__version__",
@@ -216,6 +222,10 @@ __all__ = [
     "KeyBrokerService",
     "ReleaseDecision",
     "CheckResult",
+    "generate_transport_keypair",
+    "seal_to_public_key",
+    "open_sealed",
+    "SealError",
     "QuoteVerifier",
     "QuoteVerification",
     "TrustStore",

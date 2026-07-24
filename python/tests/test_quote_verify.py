@@ -25,7 +25,10 @@ from wcm import (
     JsonQuoteParser,
     KeyBrokerService,
     QuoteVerifier,
+    SealError,
     TrustStore,
+    generate_transport_keypair,
+    open_sealed,
     verify_cert_chain,
 )
 
@@ -302,3 +305,77 @@ def test_kbs_without_verifier_notes_structural_only(example_manifest):
     assert decision.released
     chk = [c for c in decision.checks if c.name == "cpu_quote_verified"][0]
     assert chk.passed and "structural trust only" in (chk.detail or "")
+
+
+# -- channel binding (SPEC 3.2, CVE-2026-33697 relay defense) ------------------
+
+
+def _report_body_cb(nonce_hex: str, channel_binding: bytes, offset: int = 0) -> bytes:
+    digest = hashlib.sha256(bytes.fromhex(nonce_hex) + channel_binding).digest()
+    return bytes(offset) + digest + bytes(32) + b"measurement-and-tcb-fields"
+
+
+def test_verifier_binds_transport_key_into_report_data():
+    pki = Pki()
+    _, enclave_pub = generate_transport_keypair()
+    cb = bytes.fromhex(enclave_pub)
+    q = _container(pki, _report_body_cb(NONCE, cb))
+    v = _verifier(pki)
+    # The transport key the quote was built over verifies.
+    assert v.verify(q, expected_nonce=NONCE, channel_binding=cb, now=NOW).verified
+    # A relay swapping in a different transport key no longer matches REPORT_DATA.
+    _, attacker_pub = generate_transport_keypair()
+    r = v.verify(q, expected_nonce=NONCE, channel_binding=bytes.fromhex(attacker_pub), now=NOW)
+    assert not r.verified and "relay" in (r.reason or "")
+
+
+KEY32 = b"the-weight-decryption-key-32byte"
+
+
+def test_relayed_release_is_denied_and_yields_only_ciphertext(example_manifest):
+    """Core CVE-2026-33697 fix.
+
+    A valid quote binds the enclave's transport key into REPORT_DATA under the
+    nonce. On the legitimate path the KBS seals the key to that transport key, so
+    even the released material is useless to a relay. And a relay that swaps in
+    its own transport key to divert the seal breaks the REPORT_DATA binding, so
+    verification fails and nothing is released.
+    """
+    pki = Pki()
+    current, rim = _measurements(example_manifest)
+    kbs = KeyBrokerService(
+        {example_manifest.weights_hash: KEY32},
+        now=lambda: NOW,
+        cpu_quote_verifier=_verifier(pki),
+        require_channel_binding=True,
+    )
+
+    # Legitimate enclave: transport key bound into REPORT_DATA under the nonce.
+    enclave_priv, enclave_pub = generate_transport_keypair()
+    attacker_priv, attacker_pub = generate_transport_keypair()
+    cb = bytes.fromhex(enclave_pub)
+
+    challenge = kbs.issue_challenge()
+    q = _container(pki, _report_body_cb(challenge.nonce, cb))
+    ev = _evidence(challenge.nonce, quote_b64=q, current=current, rim=rim)
+    ev.cpu.transport_public_key = enclave_pub
+
+    decision = kbs.verify_and_release(example_manifest, ev)
+    assert decision.released
+    # No raw key ever crosses the channel; only the enclave transport key opens it.
+    assert decision.key is None and decision.sealed_key is not None
+    assert open_sealed(decision.sealed_key, enclave_priv) == KEY32
+    # A relay observing the sealed release cannot open it with its own key.
+    with pytest.raises(SealError):
+        open_sealed(decision.sealed_key, attacker_priv)
+
+    # Relay/diversion: present the enclave's quote (bound to enclave_pub) but claim
+    # the attacker's transport key so the seal would land on the attacker channel.
+    # The bound REPORT_DATA no longer matches, so the quote fails verification.
+    challenge2 = kbs.issue_challenge()
+    q2 = _container(pki, _report_body_cb(challenge2.nonce, cb))  # still the enclave binding
+    relayed = _evidence(challenge2.nonce, quote_b64=q2, current=current, rim=rim)
+    relayed.cpu.transport_public_key = attacker_pub  # diverted target
+    d2 = kbs.verify_and_release(example_manifest, relayed)
+    assert not d2.released
+    assert any(c.name == "cpu_quote_verified" and not c.passed for c in d2.checks)
