@@ -4,7 +4,7 @@ WCM is an open specification and reference SDK for protecting model weights when
 
 ## Before you start
 
-This is a **pre-1.0 design under review**, and its public release is staged behind the hostile-owner posture stabilizing (open question 8.8). Breaking spec changes (schema incompatibilities, changed release/attestation semantics, guarantee-scope changes) require an issue and discussion before a PR. Non-breaking additions and bug fixes can go straight to a PR.
+This is a **pre-1.0 design under review**. Its public release is a deliberate call by the Project Lead, not gated on open question 8.8 (the hostile-owner residual is documented as an honest limitation, not a release blocker). Breaking spec changes (schema incompatibilities, changed release/attestation semantics, guarantee-scope changes) require an issue and discussion before a PR. Non-breaking additions and bug fixes can go straight to a PR.
 
 The one non-negotiable: **do not overclaim.** WCM's value is its honesty about what the silicon does and does not guarantee (see `SPEC.md` §3.6). A contribution that quietly strengthens a claim beyond what the hardware delivers will be rejected.
 

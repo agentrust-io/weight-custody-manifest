@@ -3,10 +3,11 @@
 An open specification for protecting model weights when a builder deploys them
 into a customer's own or sovereign infrastructure.
 
-!!! warning "Pre-1.0, staged for release"
-    This is a design under review, not a production standard. Its public release
-    is staged behind the hostile-owner posture stabilizing (open question 8.8).
-    Do not rely on it for production.
+!!! warning "Pre-1.0, design under review"
+    This is a design under review, not a production standard. Public release is a
+    deliberate decision by the Project Lead and is not gated on open question 8.8;
+    the hostile-owner residual is documented, not a release blocker. Do not rely
+    on it for production.
 
 ## The trust direction
 

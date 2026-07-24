@@ -12,4 +12,4 @@ The canonical roadmap is [`ROADMAP.md`](https://github.com/agentrust-io/weight-c
   half of 8.8, which needs new silicon), the SCITT/CoSAI standards path, and
   additional language SDKs.
 
-Public release is staged behind the Project Lead judging the 8.8 gate met.
+Public release is a deliberate decision by the Project Lead; it is not gated on open question 8.8.

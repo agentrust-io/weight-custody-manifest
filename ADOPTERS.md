@@ -12,7 +12,7 @@ To add your organization, open a PR editing this file. Include: organization nam
 
 ## Community evaluations
 
-_None listed yet. WCM is a pre-1.0 design under review; its public release is staged behind open question 8.8._
+_None listed yet. WCM is a pre-1.0 design under review; its public release is a deliberate Project Lead decision, not gated on open question 8.8._
 
 ---
 

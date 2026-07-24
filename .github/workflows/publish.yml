@@ -6,8 +6,8 @@ name: publish
 # setup on (Test)PyPI.
 #
 # NOTE: publishing puts the SDK SOURCE on a public index (the sdist/wheel contain
-# the code). That is a go-public decision (staged behind open question 8.8);
-# cutting a Release is the deliberate trigger.
+# the code). That is a deliberate go-public decision; cutting a Release is the
+# trigger.
 
 on:
   release:

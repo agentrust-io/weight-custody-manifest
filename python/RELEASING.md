@@ -4,9 +4,9 @@ Publishing uses **PyPI Trusted Publishing** (OIDC) via `.github/workflows/publis
 No API token is stored in the repo.
 
 > Publishing puts the SDK **source** on a public index (the sdist and wheel
-> contain the code). That is a go-public decision, staged behind open question
-> 8.8. Cutting a Release is the deliberate trigger; the repo can stay private
-> while the package is public, but the code will be public either way.
+> contain the code). That is a deliberate go-public decision; cutting a Release
+> is the trigger. The repo can stay private while the package is public, but the
+> code is public either way.
 
 ## One-time setup (Project Lead)
 
@@ -39,8 +39,8 @@ pip install -i https://test.pypi.org/simple/ weight-custody-manifest
 3. Commit via PR, merge to `main`.
 4. Tag and create a GitHub Release on that commit:
    ```bash
-   git tag v0.14.0 && git push origin v0.14.0
-   gh release create v0.14.0 --target main --title v0.14.0 --notes-from-tag
+   git tag v0.19.0 && git push origin v0.19.0
+   gh release create v0.19.0 --target main --title v0.19.0 --notes-from-tag
    ```
 5. The `publish` workflow builds and uploads to PyPI via the trusted publisher.
 
