@@ -40,10 +40,7 @@ nav:
   - Home: index.md
   - Tutorials:
       - How WCM works: tutorials/how-it-works.md
-      - Open-weight model, end to end: tutorials/open-weight-model.md
-      - Replaying a real SEV-SNP quote: tutorials/snp-quote-replay.md
-      - Sovereign self-custody (threshold): tutorials/sovereign-self-custody.md
-      - Test on your machine (real model): tutorials/test-on-your-machine.md
+      - Runnable examples: https://github.com/agentrust-io/examples/tree/main/weight-custody-manifest
   - Specification:
       - Overview: spec-overview.md
       - Threat model: threat-model.md

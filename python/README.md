@@ -243,18 +243,15 @@ print(session.time_floor)  # 'sound' for secure-tsc, 'weaker' for the hybrid, 'n
 #   session.use_key()  ->  raises KeyWipedError
 ```
 
-## End-to-end example
+## End-to-end examples
 
-`examples/open_model_e2e.py` runs the full six-step flow against an open-weight
-model with a software (mock) attestation provider, narrated as it goes:
-
-```bash
-python examples/open_model_e2e.py
-```
-
-It is honest about the open-weight reframe (base-weight secrecy is moot; the work
-is integrity, license, and derivative custody). See the
-[tutorial](../docs/tutorials/open-weight-model.md).
+Runnable end-to-end demos live in the public examples repo,
+[agentrust-io/examples/weight-custody-manifest](https://github.com/agentrust-io/examples/tree/main/weight-custody-manifest),
+where they depend on the published `weight-custody-manifest` package: the full
+six-step flow on an open-weight model, a 2-of-3 sovereign threshold release, and
+an offline SEV-SNP quote replay. They are honest about the open-weight reframe
+(base-weight secrecy is moot; the work is integrity, license, and derivative
+custody).
 
 ## Test
 
