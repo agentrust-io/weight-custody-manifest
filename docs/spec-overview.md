@@ -1,6 +1,6 @@
 # Specification overview
 
-The full normative text is [`SPEC.md`](https://github.com/agentrust-io/weight-custody-manifest/blob/main/SPEC.md) (v0.9). WCM is four layers plus a transparency log.
+The full normative text is [`SPEC.md`](https://github.com/agentrust-io/weight-custody-manifest/blob/main/SPEC.md) (v0.13). WCM is four layers plus a transparency log.
 
 ## Layer 1 - the manifest
 

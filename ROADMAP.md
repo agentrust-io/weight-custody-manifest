@@ -4,7 +4,7 @@
 
 Published for review and comment, **not for production**, until the hostile-owner posture stabilizes (open question 8.8).
 
-- **Specification** (`SPEC.md` v0.9): four layers (manifest, attestation-gated release, runtime custody, derivative lineage), transparency log, guarantee-scope honesty (§3.6), and the open questions in §8.
+- **Specification** (`SPEC.md` v0.13): four layers (manifest, attestation-gated release, runtime custody, derivative lineage), transparency log, guarantee-scope honesty (§3.6), and the open questions in §8.
 - **Threat model** (`THREAT-MODEL.md`): assets, TCB, adversaries, threats, residual risk.
 - **Python reference SDK** (`python/`): the full protocol on software / synthetic test doubles -
   - Layer 1 joint signing + verification (Ed25519, ML-DSA-65, and hybrid profiles)
