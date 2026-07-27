@@ -1,86 +1,86 @@
-# WCM reference SDK (Python) — Layers 1, 2 (gate), and wipe-on-lapse
+# WCM reference SDK (Python) - Layers 1, 2 (gate), and wipe-on-lapse
 
 Reference implementation of the [Weight Custody Manifest](../SPEC.md):
 
-- **Layer 1** — build a manifest, sign it **jointly** (builder + custodian, plus
+- **Layer 1** - build a manifest, sign it **jointly** (builder + custodian, plus
   a sovereign quorum when the sovereign profile is on), and verify those signatures.
-- **Layer 2 (gate)** — the attestation-gated key-release handshake: the KBS
+- **Layer 2 (gate)** - the attestation-gated key-release handshake: the KBS
   issues a nonce, the enclave returns composite CPU+GPU evidence over it, and the
   KBS releases the key only if every §3.2 check passes.
-- **Wipe-on-lapse** — the runtime custody floor: the enclave holds a released key
+- **Wipe-on-lapse** - the runtime custody floor: the enclave holds a released key
   only for the cadence window and zeroizes it if it does not re-attest in time.
-- **Quote verification** — the KBS-side trust decision: cert-chain validation +
+- **Quote verification** - the KBS-side trust decision: cert-chain validation +
   report-signature check + cryptographic nonce binding on the raw quote.
-- **Layer 4 (lineage)** — derivative manifests chain back to the root via
+- **Layer 4 (lineage)** - derivative manifests chain back to the root via
   `derived_from`; the lineage verifier resolves the chain, detects cycles and
   missing parents, and enforces a parent's structured `derivatives` policy.
-- **Transparency log** — an append-only Merkle log (RFC 9162) with signed tree
+- **Transparency log** - an append-only Merkle log (RFC 9162) with signed tree
   heads, inclusion proofs, and consistency proofs, so equivocation and
   suppressed revocations become detectable.
-- **Threshold split-key** — Shamir sharing so a sovereign self-custody key needs
+- **Threshold split-key** - Shamir sharing so a sovereign self-custody key needs
   a quorum of custodians to reconstruct; no single party can self-release.
-- **Post-quantum profile** — ML-DSA-65 (FIPS 204) and an Ed25519+ML-DSA-65
+- **Post-quantum profile** - ML-DSA-65 (FIPS 204) and an Ed25519+ML-DSA-65
   hybrid; manifests verify under the standard, PQ, or hybrid profile.
-- **AMD SEV-SNP quote verification** — real v3 report parser + VCEK report-signature
+- **AMD SEV-SNP quote verification** - real v3 report parser + VCEK report-signature
   verification, validated against a live Azure SEV-SNP report and the real AMD
-  Milan chain (RSA-PSS) — the latter committed as a CI fixture.
+  Milan chain (RSA-PSS) - the latter committed as a CI fixture.
 
 > **Pre-1.0, tracking a pre-1.0 spec. Not ready to build against.**
 > The cert-chain + signature + nonce-binding **machinery is validated against real
 > hardware**: an AMD SEV-SNP report and the real VCEK→ASK→ARK Milan chain (this is
 > what surfaced and fixed the RSA-PSS bug). What is still **not** validated: the
 > `/dev/sev-guest` ioctl offsets in `_hw_providers` (Azure uses the vTPM path
-> instead — see `snp.extract_snp_report_from_hcl`), and the **NVIDIA GPU** path,
+> instead - see `snp.extract_snp_report_from_hcl`), and the **NVIDIA GPU** path,
 > which stays provisional until an H100 CC report is captured. None of this closes
 > the key-extraction hole (open question 8.8): a physically-extracted key produces
 > a genuinely valid signature that passes every check. Wipe-on-lapse bounds
 > exposure only if the clock cannot be stalled (`trusted_time_source` →
 > `time_floor`) and only against an operator who cannot forge attestation.
 > Intel TDX validation, GPU-side quote verification, and the reproducible
-> reference KBS image are **not** here yet — see the repo `ROADMAP.md`.
+> reference KBS image are **not** here yet - see the repo `ROADMAP.md`.
 
 ## What it does
 
 Layer 1 (authority):
 
-- **`models.py`** — the manifest schema as Pydantic v2 with `extra="forbid"`,
+- **`models.py`** - the manifest schema as Pydantic v2 with `extra="forbid"`,
   including the v0.8 fields (`trusted_time_source`, `memory_fingerprint_challenge`,
   `attestation_revocation_check`).
-- **`_canonicalize.py`** — RFC 8785 (JCS), kept in sync with the agentrust-io
+- **`_canonicalize.py`** - RFC 8785 (JCS), kept in sync with the agentrust-io
   family so a manifest signed by one tool verifies under another.
-- **`_signing.py`** — Ed25519 (standard profile), ML-DSA-65 (post-quantum, FIPS
+- **`_signing.py`** - Ed25519 (standard profile), ML-DSA-65 (post-quantum, FIPS
   204, via cryptography's native support), and an Ed25519+ML-DSA-65 hybrid where
   both must verify. One signature block per party, tagged with `role` and `signer`.
-- **`_verify.py`** — checks the required roles signed and every signature is
+- **`_verify.py`** - checks the required roles signed and every signature is
   cryptographically valid; enforces the sovereign quorum rule.
-- **`cli.py`** — `wcm keygen | sign | verify`.
+- **`cli.py`** - `wcm keygen | sign | verify`.
 
 Layer 2 (release gate):
 
-- **`_challenge.py`** — single-use KBS nonces with expiry (`kbs-nonce-required`).
-- **`attestation.py`** — evidence models: a CPU CVM quote and a separate GPU
+- **`_challenge.py`** - single-use KBS nonces with expiry (`kbs-nonce-required`).
+- **`attestation.py`** - evidence models: a CPU CVM quote and a separate GPU
   report echoing the same nonce, plus the v0.8 memory-fingerprint response.
-- **`providers.py`** — `AttestationProvider` interface + a `SoftwareProvider`
+- **`providers.py`** - `AttestationProvider` interface + a `SoftwareProvider`
   mock (no hardware root of trust; for tests and local dev only).
-- **`_hw_providers.py`** — hardware producers: `SevSnpProvider` /
+- **`_hw_providers.py`** - hardware producers: `SevSnpProvider` /
   `TdxProvider` (CPU quote via `/dev/sev-guest` / `/dev/tdx-guest`),
   `AzureSnpVtpmProvider` (SEV-SNP on an Azure CVM via the vTPM NV `0x01400001`
-  paravisor path — the flow validated on a live Azure host),
+  paravisor path - the flow validated on a live Azure host),
   `NvidiaCcProvider` (GPU report via an external tool), `HardwareCompositeProvider`,
   and `select_provider()` (auto-select, software fallback). The bare-metal ioctl
   offsets remain provisional; the Azure vTPM extraction is validated.
-- **`kbs.py`** — `KeyBrokerService`: composite verification (nonce, platform,
+- **`kbs.py`** - `KeyBrokerService`: composite verification (nonce, platform,
   assurance tier, serving-image status + prefer-current, GPU measurement and
   CPU↔GPU binding, memory-fingerprint, revocation freshness, optional
   cryptographic quote verification) and gated release.
-- **`_quote_verify.py`** — `QuoteVerifier`: X.509 cert-chain validation +
+- **`_quote_verify.py`** - `QuoteVerifier`: X.509 cert-chain validation +
   report-signature check + nonce binding, with a pluggable `TrustStore` and
   `QuoteParser`. Wire it into the KBS via `cpu_quote_verifier=`; when unset, the
   gate says `structural trust only` in its check detail.
 
 Wipe-on-lapse (runtime custody):
 
-- **`custody.py`** — `EnclaveSession`: holds a released key for the cadence
+- **`custody.py`** - `EnclaveSession`: holds a released key for the cadence
   window, renews on `reattest()`, zeroizes on lapse; `use_key()` never serves
   past the deadline. `time_floor` reports how much the bound is worth given the
   manifest's `trusted_time_source`. For the hybrid, `max_operations` anchors the
@@ -89,7 +89,7 @@ Wipe-on-lapse (runtime custody):
 
 Layer 4 (derivative lineage):
 
-- **`lineage.py`** — `verify_lineage(manifests, leaf_hash)` walks `derived_from`
+- **`lineage.py`** - `verify_lineage(manifests, leaf_hash)` walks `derived_from`
   to the root, returning the chain, cycles/missing-parent violations, and policy
   notes. A parent's structured `derivatives` policy (`none` / `fine-tune-only` /
   `unrestricted`) is enforced; the freeform `permitted_derivatives` legal string
@@ -98,8 +98,8 @@ Layer 4 (derivative lineage):
 
 Transparency (authority-layer integrity):
 
-- **`_merkle.py`** — RFC 9162 Merkle tree: inclusion and consistency proofs.
-- **`transparency.py`** — `TransparencyLog`: append manifests / revocations /
+- **`_merkle.py`** - RFC 9162 Merkle tree: inclusion and consistency proofs.
+- **`transparency.py`** - `TransparencyLog`: append manifests / revocations /
   measurement-set changes, emit Ed25519 signed tree heads, and prove inclusion
   and append-only growth. `find()` lets a monitor detect a *missing* expected
   entry (a suppressed revocation). Verification (`verify_sth` / `verify_inclusion`
@@ -107,7 +107,7 @@ Transparency (authority-layer integrity):
 
 Sovereign self-custody:
 
-- **`threshold.py`** — `split_secret(key, threshold=t, shares=n)` /
+- **`threshold.py`** - `split_secret(key, threshold=t, shares=n)` /
   `combine_shares()`: Shamir Secret Sharing over GF(256). Any `t` shares
   reconstruct the key; any `t-1` reveal nothing, so no single custodian (the
   builder included) can self-release (SPEC §3.5, decision 15).
@@ -122,7 +122,7 @@ Post-quantum profile:
 
 AMD SEV-SNP (vendor quote verification):
 
-- **`snp.py`** — `parse_snp_report` (v3 ABI), `verify_snp_report_signature`
+- **`snp.py`** - `parse_snp_report` (v3 ABI), `verify_snp_report_signature`
   (VCEK, ECDSA P-384, AMD's little-endian r‖s), `extract_snp_report_from_hcl`
   (Azure vTPM `0x01400001` wrapper), and `SnpQuoteParser`, which plugs a report +
   its VCEK/ASK/ARK chain into the generic `QuoteVerifier`. Validated against a
@@ -142,7 +142,7 @@ app = create_app(KeyBrokerService({weights_hash: key_bytes}))
 ```
 
 Reference-only: `/release` returns the key in the response body. A production
-KBS wraps the key to the requesting enclave's attested transport instead — do
+KBS wraps the key to the requesting enclave's attested transport instead - do
 not expose this as-is on an untrusted network.
 
 ## Install
