@@ -4,7 +4,7 @@ The canonical changelog is [`CHANGELOG.md`](https://github.com/agentrust-io/weig
 
 Highlights of the arc so far:
 
-- **Spec v0.1 → v0.9** - four-layer design; resolved trusted time and split the
+- **Spec v0.1 → v0.13** - four-layer design; resolved trusted time and split the
   forged-attestation question (measurement-forgery half closed, key-extraction
   half honestly open); standards path set (SCITT + CoSAI); Layer 4 fields synced.
 - **SDK 0.1.0 → 0.11.x** - Layer 1 signing/verification (Ed25519, ML-DSA-65,

@@ -2,7 +2,7 @@
 
 The canonical roadmap is [`ROADMAP.md`](https://github.com/agentrust-io/weight-custody-manifest/blob/main/ROADMAP.md).
 
-- **Now** - pre-1.0 developer preview: spec v0.9, threat model, and a Python
+- **Now** - pre-1.0 developer preview: spec v0.13, threat model, and a Python
   reference SDK covering the full protocol on software / synthetic doubles, with
   AMD SEV-SNP quote verification validated on real Azure hardware and a
   CI-validated reproducible KBS image.
