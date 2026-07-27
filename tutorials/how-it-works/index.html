@@ -16,7 +16,7 @@
         <link rel="prev" href="../..">
       
       
-        <link rel="next" href="../open-weight-model/">
+        <link rel="next" href="../../spec-overview/">
       
       
         
@@ -586,98 +586,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../open-weight-model/" class="md-nav__link">
+      <a href="https://github.com/agentrust-io/examples/tree/main/weight-custody-manifest" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Open-weight model, end to end
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../snp-quote-replay/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Replaying a real SEV-SNP quote
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../sovereign-self-custody/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Sovereign self-custody (threshold)
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../test-on-your-machine/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Test on your machine (real model)
+    Runnable examples
   
 
     
@@ -1230,7 +1146,7 @@
 
 <h1 id="how-wcm-works-the-six-steps">How WCM works (the six steps)<a class="headerlink" href="#how-wcm-works-the-six-steps" title="Permanent link">&para;</a></h1>
 <p>A plain-language tour of the flow. Nothing here assumes cryptography background;
-the <a href="../open-weight-model/">end-to-end open-weight tutorial</a> then runs it for real.</p>
+the <a href="https://github.com/agentrust-io/examples/tree/main/weight-custody-manifest">runnable examples</a> then run it for real.</p>
 <h2 id="the-problem-in-one-sentence">The problem, in one sentence<a class="headerlink" href="#the-problem-in-one-sentence" title="Permanent link">&para;</a></h2>
 <p>When a model builder deploys weights into <strong>someone else's</strong> infrastructure
 (on-prem, sovereign cloud, air-gapped), the usual trust direction flips: the
@@ -1247,7 +1163,7 @@ operators it does not control. WCM is the protocol for that direction.</p>
   decryption key only into a verified enclave.</li>
 </ul>
 <p>For an open-weight deployment these roles often collapse into one enterprise
-governance function (see the <a href="../open-weight-model/">open-weight tutorial</a>).</p>
+governance function (see the <a href="https://github.com/agentrust-io/examples/tree/main/weight-custody-manifest">runnable examples</a>).</p>
 <h2 id="the-six-steps">The six steps<a class="headerlink" href="#the-six-steps" title="Permanent link">&para;</a></h2>
 <p><strong>0. Certify - the manifest.</strong> The builder writes a signed manifest: the
 <code>weights_hash</code>, the release terms (license, permitted derivatives), and the
@@ -1292,8 +1208,8 @@ cryptographic custody. See <a href="../../limitations/">Limitations</a> and <cod
 <p>For a <strong>closed</strong> model, steps 0-2 are doing secrecy work: keep the weights
 hidden. For an <strong>open</strong> model the base weights are public, so that secrecy is
 theater - but the same steps still do integrity, license, and (above all)
-derivative-custody work. That flip is the subject of the
-<a href="../open-weight-model/">next tutorial</a>.</p>
+derivative-custody work. That flip is shown in the
+<a href="https://github.com/agentrust-io/examples/tree/main/weight-custody-manifest">runnable open-model example</a>.</p>
 
 
 
