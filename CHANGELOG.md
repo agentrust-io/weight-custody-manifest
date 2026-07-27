@@ -6,6 +6,14 @@ uses semantic-ish versioning while pre-1.0.
 
 ## Unreleased
 
+**[repo]** Moved the runnable examples and demos out of this repo into the public
+[agentrust-io/examples](https://github.com/agentrust-io/examples/tree/main/weight-custody-manifest)
+(per-product catalog) and [agentrust-io/demos](https://github.com/agentrust-io/demos)
+(talk track), where they depend on the published `weight-custody-manifest` PyPI
+package rather than an in-repo checkout. The SDK keeps `examples/manifest.example.json`
+as a CLI docs fixture. The demo notes below describe those examples as originally
+added here.
+
 **[demo]** Run WCM on a real open model, locally (`examples/real_open_model.py`):
 downloads a real open-weight model (default SmolLM2-135M), hashes its ACTUAL
 safetensors into the manifest, and runs the whole flow (sign, gate, wipe-on-lapse,
