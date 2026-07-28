@@ -30,7 +30,7 @@ jobs:
           python -m pip install --upgrade build twine
           cd python && python -m build --outdir ../dist
           twine check ../dist/*
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: dist
           path: dist/
