@@ -44,6 +44,20 @@ new library API. Adds a "Sovereign self-custody (threshold)" tutorial.
 
 ## SDK
 
+### 0.20.0
+- **NVIDIA CC GPU-report verification** (SPEC 3.2 composite attestation): new
+  `wcm.nvidia` (`build_gpu_verifier`, `NvidiaCcReportParser`) verifies the H100
+  CC GPU report with the same machinery as the CPU quote (cert chain to NVIDIA's
+  device root, report signature, nonce binding), reusing `QuoteVerifier`.
+  `KeyBrokerService` gains `gpu_report_verifier`: when set, a new
+  `gpu_report_verified` gate cryptographically checks the GPU chain; when unset
+  it stays structural-only and says so, so default behaviour is unchanged. The
+  GPU report is bound to the CPU quote by the shared KBS nonce. Honest scope: it
+  ships no NVIDIA root, and the binary SPDM report offsets are PROVISIONAL until
+  validated against a real H100 capture (`NCC40ads_H100_v5`); the reused
+  verification machinery is tested against a synthetic device PKI.
+  Backward-compatible.
+
 ### 0.19.0
 - **Channel binding for Layer 2 key release** (SPEC 3.2, CVE-2026-33697): closes
   the quote-relay / key-diversion gap that nonce binding alone left open. New
