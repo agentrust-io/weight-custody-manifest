@@ -44,6 +44,24 @@ new library API. Adds a "Sovereign self-custody (threshold)" tutorial.
 
 ## SDK
 
+### 0.22.0
+- **NVIDIA H100 GPU CC verification validated on real silicon.** `wcm.nvidia` is
+  rewritten around the real on-wire format, confirmed against a live
+  `Standard_NCC40ads_H100_v5` attestation (cross-checked with NVIDIA's own local
+  verifier) and committed as a fixture: the report echoes the RAW 32-byte nonce
+  at offset 4 (not `sha256(nonce)` like the CPU SEV-SNP / TDX path), the signature
+  is the last 96 bytes (ECDSA P-384 raw `r||s` over `report[:-96]`, SHA-384) by
+  the leaf key, and the device cert chain roots in the self-signed NVIDIA Device
+  Identity CA. New `NvidiaGpuVerifier` / `build_gpu_verifier` verify the cert
+  chain to the pinned NVIDIA root, the report signature, and the raw-nonce
+  binding; `parse_gpu_report` + `verify_gpu_report_signature` are the primitives.
+  `KeyBrokerService`'s `gpu_report_verifier` now takes this verifier, with the GPU
+  evidence bundling the report plus its device cert chain in `GpuReport.quote_b64`
+  (no manifest-schema change). This replaces the 0.20.0 PROVISIONAL placeholder
+  (which reused the generic `QuoteVerifier` and the CPU sha256-nonce / DER-signature
+  conventions that do not fit NVIDIA). WCM ships only the public NVIDIA device
+  root. Completes the real-silicon matrix: SEV-SNP + TDX + H100 CC.
+
 ### 0.21.0
 - **OpenSSF model-signing provenance interop** (SPEC 3.9): a manifest can carry an
   optional, signed `provenance.model_signing` reference to an OpenSSF model-signing
@@ -171,6 +189,11 @@ new library API. Adds a "Sovereign self-custody (threshold)" tutorial.
 
 ## Specification
 
+- **v0.15** - records that the reference SDK's NVIDIA H100 GPU CC verification is
+  now validated against a real confidential-compute attestation captured on live
+  silicon (device cert chain to the NVIDIA Device Identity CA, ECDSA-P384/SHA384
+  report signature, raw-nonce binding). A maturity/assurance note; no normative
+  protocol change.
 - **v0.14** - added provenance interop (section 3.9): an optional `provenance`
   field, under the joint signature, references an OpenSSF model-signing signature
   over the base weights, and `verify_provenance` cryptographically checks that

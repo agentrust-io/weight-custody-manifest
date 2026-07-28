@@ -22,6 +22,7 @@ from typing import Callable, Iterable, Mapping, Optional
 from ._challenge import Challenge, ChallengeError, ChallengeStore
 from ._quote_verify import QuoteVerifier
 from ._seal import seal_to_public_key
+from .nvidia import NvidiaGpuVerifier
 from .attestation import CompositeEvidence
 from .models import (
     MemoryFingerprintChallenge,
@@ -69,7 +70,7 @@ class KeyBrokerService:
         revoked_attestation_keys: Optional[Iterable[str]] = None,
         max_attestation_cache_age_seconds: int = 600,
         cpu_quote_verifier: Optional[QuoteVerifier] = None,
-        gpu_report_verifier: Optional[QuoteVerifier] = None,
+        gpu_report_verifier: Optional[NvidiaGpuVerifier] = None,
         require_channel_binding: bool = False,
     ) -> None:
         # keystore maps weights_hash -> the decryption key to release.
@@ -356,9 +357,10 @@ class KeyBrokerService:
             return CheckResult(
                 "gpu_report_verified", False, "verifier configured but GPU report has no raw quote"
             )
-        # The GPU report carries no transport key (channel binding is CPU-side),
-        # so REPORT_DATA binds sha256(nonce) alone. The shared nonce is what ties
-        # this report to the CPU quote (composite binding in _check_gpu).
+        # The GPU evidence bundles the report and its device cert chain; the
+        # report echoes the raw KBS nonce (offset 4), which is what ties it to
+        # the CPU quote (composite binding in _check_gpu). No transport key on
+        # the GPU side.
         result = self._gpu_report_verifier.verify(
             gpu.quote_b64, expected_nonce=nonce, now=self._now()
         )
