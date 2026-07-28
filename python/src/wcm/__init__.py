@@ -62,6 +62,8 @@ from .models import (
     KeyType,
     BaseConfidentiality,
     DeploymentModel,
+    Provenance,
+    ModelSigningProvenance,
 )
 from ._verify import (
     verify_manifest,
@@ -147,8 +149,13 @@ from .nvidia import (
     build_gpu_verifier,
     NVIDIA_REPORT_DATA_OFFSET,
 )
+from .provenance import (
+    verify_provenance,
+    model_signing_digest,
+    ProvenanceResult,
+)
 
-__version__ = "0.20.0"
+__version__ = "0.21.0"
 
 __all__ = [
     "__version__",
@@ -201,6 +208,8 @@ __all__ = [
     "KeyType",
     "BaseConfidentiality",
     "DeploymentModel",
+    "Provenance",
+    "ModelSigningProvenance",
     "verify_manifest",
     "VerificationContext",
     "VerificationResult",
@@ -271,4 +280,7 @@ __all__ = [
     "NvidiaCcReportParser",
     "build_gpu_verifier",
     "NVIDIA_REPORT_DATA_OFFSET",
+    "verify_provenance",
+    "model_signing_digest",
+    "ProvenanceResult",
 ]

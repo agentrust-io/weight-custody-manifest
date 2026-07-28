@@ -16,7 +16,7 @@ modeled here; this package is the manifest and its joint signatures only.
 from __future__ import annotations
 
 from enum import Enum
-from typing import Any, Optional
+from typing import Any, Literal, Optional
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -191,6 +191,36 @@ class RightsHolder(_Strict):
     derivative: Optional[str] = None  # holder of the fine-tune IP (e.g. the customer)
 
 
+class ModelSigningProvenance(_Strict):
+    """A reference to an OpenSSF model-signing signature (SPEC.md section 3.9).
+
+    WCM does not re-sign the model files; it records a pointer to the signature
+    that already attests them, so a verifier can cross-check that the custody
+    manifest and the model-signing signature cover the same artifact. WCM is the
+    custody-and-release layer; model-signing is the provenance layer beneath it.
+
+    ``signed_digest`` is the stable digest WCM derives from the model-signing
+    manifest (``provenance.model_signing_digest``); ``verify_provenance`` verifies
+    the signature and re-derives this digest from the model files to bind the two.
+    """
+
+    method: Literal["openssf-model-signing"] = "openssf-model-signing"
+    signed_digest: str
+    transparency: Optional[str] = None  # e.g. a Sigstore/Rekor locator or URI
+    signer: Optional[str] = None  # the model-signing identity, if disclosed
+
+
+class Provenance(_Strict):
+    """Where the base weights came from, referenced not re-derived (SPEC.md 3.9).
+
+    Optional and extensible: today it carries an OpenSSF model-signing reference;
+    other provenance systems can be added as sibling fields without changing the
+    custody or release semantics.
+    """
+
+    model_signing: Optional[ModelSigningProvenance] = None
+
+
 class RequiredGpuMeasurement(_Strict):
     rim_pin: str
     note: Optional[str] = None
@@ -318,6 +348,10 @@ class WeightCustodyManifest(_Strict):
     # root manifest.
     derived_from: Optional[HashValue] = None
     rights_holder: Optional[RightsHolder] = None
+    # Provenance interop (SPEC.md 3.9): an optional signed reference to an OpenSSF
+    # model-signing signature for the base weights. Signed (WCM_SIGNED_FIELDS);
+    # absent on a manifest that does not cross-reference a model-signing bundle.
+    provenance: Optional[Provenance] = None
     signatures: list[ManifestSignature] = Field(default_factory=list)
 
     @model_validator(mode="after")
