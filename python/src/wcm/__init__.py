@@ -142,8 +142,13 @@ from .tdx import (
     parse_tdx_quote,
     verify_tdx_quote,
 )
+from .nvidia import (
+    NvidiaCcReportParser,
+    build_gpu_verifier,
+    NVIDIA_REPORT_DATA_OFFSET,
+)
 
-__version__ = "0.19.0"
+__version__ = "0.20.0"
 
 __all__ = [
     "__version__",
@@ -263,4 +268,7 @@ __all__ = [
     "TdxReport",
     "parse_tdx_quote",
     "verify_tdx_quote",
+    "NvidiaCcReportParser",
+    "build_gpu_verifier",
+    "NVIDIA_REPORT_DATA_OFFSET",
 ]

@@ -69,6 +69,7 @@ class KeyBrokerService:
         revoked_attestation_keys: Optional[Iterable[str]] = None,
         max_attestation_cache_age_seconds: int = 600,
         cpu_quote_verifier: Optional[QuoteVerifier] = None,
+        gpu_report_verifier: Optional[QuoteVerifier] = None,
         require_channel_binding: bool = False,
     ) -> None:
         # keystore maps weights_hash -> the decryption key to release.
@@ -81,6 +82,12 @@ class KeyBrokerService:
         # (signature + cert chain + nonce binding). When None, the gate trusts
         # the structured fields only, and says so in the check detail.
         self._cpu_quote_verifier = cpu_quote_verifier
+        # When set, the GPU report's raw bytes are cryptographically verified
+        # (signature + cert chain to NVIDIA's device root + nonce binding), the
+        # GPU analog of cpu_quote_verifier. When None, the GPU is trusted on its
+        # structured fields only (the existing _check_gpu composite binding), and
+        # the check says so. See nvidia.build_gpu_verifier.
+        self._gpu_report_verifier = gpu_report_verifier
         # When True, the evidence must carry an attested transport public key and
         # the released key is sealed to it (never returned in the clear), so a
         # relayed quote yields only ciphertext (SPEC 3.2 channel binding). Off by
@@ -158,6 +165,10 @@ class KeyBrokerService:
         # 7b. Cryptographic quote verification (signature + cert chain + nonce +
         #     transport-key binding) when a verifier is configured.
         checks.append(self._check_cpu_quote(evidence, nonce, channel_binding))
+
+        # 7c. Cryptographic GPU-report verification (signature + cert chain to
+        #     NVIDIA's device root + nonce binding) when a verifier is configured.
+        checks.append(self._check_gpu_report(evidence, nonce))
 
         # 8. A key actually exists for this weights_hash.
         have_key = manifest.weights_hash in self._keystore
@@ -326,6 +337,32 @@ class KeyBrokerService:
             quote_b64, expected_nonce=nonce, channel_binding=channel_binding, now=self._now()
         )
         return CheckResult("cpu_quote_verified", result.verified, result.reason)
+
+    def _check_gpu_report(
+        self, evidence: CompositeEvidence, nonce: str
+    ) -> CheckResult:
+        if self._gpu_report_verifier is None:
+            return CheckResult(
+                "gpu_report_verified",
+                True,
+                "not configured: structural trust only (no cryptographic GPU verification)",
+            )
+        gpu = evidence.gpu
+        if gpu is None:
+            # Whether a GPU is required at all is _check_gpu's job; if none is
+            # present there is no report to cryptographically verify.
+            return CheckResult("gpu_report_verified", True, "no GPU report present")
+        if gpu.quote_b64 is None:
+            return CheckResult(
+                "gpu_report_verified", False, "verifier configured but GPU report has no raw quote"
+            )
+        # The GPU report carries no transport key (channel binding is CPU-side),
+        # so REPORT_DATA binds sha256(nonce) alone. The shared nonce is what ties
+        # this report to the CPU quote (composite binding in _check_gpu).
+        result = self._gpu_report_verifier.verify(
+            gpu.quote_b64, expected_nonce=nonce, now=self._now()
+        )
+        return CheckResult("gpu_report_verified", result.verified, result.reason)
 
     def _check_attestation_revocation(
         self, manifest: WeightCustodyManifest, evidence: CompositeEvidence
