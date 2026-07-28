@@ -145,9 +145,13 @@ from .tdx import (
     verify_tdx_quote,
 )
 from .nvidia import (
-    NvidiaCcReportParser,
+    NvidiaGpuVerifier,
+    GpuAttestationReport,
+    GpuReportFormatError,
+    parse_gpu_report,
+    verify_gpu_report_signature,
     build_gpu_verifier,
-    NVIDIA_REPORT_DATA_OFFSET,
+    NVIDIA_NONCE_OFFSET,
 )
 from .provenance import (
     verify_provenance,
@@ -155,7 +159,7 @@ from .provenance import (
     ProvenanceResult,
 )
 
-__version__ = "0.21.0"
+__version__ = "0.22.0"
 
 __all__ = [
     "__version__",
@@ -277,9 +281,13 @@ __all__ = [
     "TdxReport",
     "parse_tdx_quote",
     "verify_tdx_quote",
-    "NvidiaCcReportParser",
+    "NvidiaGpuVerifier",
+    "GpuAttestationReport",
+    "GpuReportFormatError",
+    "parse_gpu_report",
+    "verify_gpu_report_signature",
     "build_gpu_verifier",
-    "NVIDIA_REPORT_DATA_OFFSET",
+    "NVIDIA_NONCE_OFFSET",
     "verify_provenance",
     "model_signing_digest",
     "ProvenanceResult",
