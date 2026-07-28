@@ -36,6 +36,9 @@ server = [
   "fastapi>=0.111,<1",
   "uvicorn[standard]>=0.29",
 ]
+model-signing = [
+  "model-signing>=1.1,<2",
+]
 dev = [
   "pytest>=8",
   "pytest-cov>=5",
@@ -44,6 +47,7 @@ dev = [
   "pip-audit>=2.7",
   "fastapi>=0.111,<1",
   "httpx>=0.27",
+  "model-signing>=1.1,<2",
 ]
 
 [project.scripts]

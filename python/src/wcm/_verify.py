@@ -191,6 +191,16 @@ def _consistency_notes(manifest: WeightCustodyManifest) -> list[str]:
                 "same governing org."
             )
 
+    if manifest.provenance is not None and manifest.provenance.model_signing is not None:
+        ms = manifest.provenance.model_signing
+        loc = f", transparency={ms.transparency}" if ms.transparency else ""
+        notes.append(
+            f"provenance: references an OpenSSF model-signing signature (method "
+            f"'{ms.method}', signed_digest {ms.signed_digest}{loc}). The reference "
+            "is under the joint signature; call verify_provenance to cryptographically "
+            "check that model-signing signature against the model files."
+        )
+
     return notes
 
 

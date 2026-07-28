@@ -58,6 +58,7 @@ WCM_SIGNED_FIELDS: tuple[str, ...] = (
     "deployment_model",
     "derived_from",
     "rights_holder",
+    "provenance",
 )
 
 

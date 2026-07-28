@@ -44,6 +44,19 @@ new library API. Adds a "Sovereign self-custody (threshold)" tutorial.
 
 ## SDK
 
+### 0.21.0
+- **OpenSSF model-signing provenance interop** (SPEC 3.9): a manifest can carry an
+  optional, signed `provenance.model_signing` reference to an OpenSSF model-signing
+  signature over the base weights (`Provenance` / `ModelSigningProvenance`, added to
+  `WCM_SIGNED_FIELDS`). `verify_manifest` records it as a non-blocking note; new
+  `verify_provenance(manifest, model_path, signature_path, public_key)` (module
+  `wcm.provenance`) cryptographically verifies the model-signing signature over the
+  model files and binds it to the manifest by re-deriving `signed_digest`
+  (`model_signing_digest`). Positions WCM as the custody-and-release layer on top of
+  model signing, not a competitor. `model-signing` is an optional dependency
+  (`pip install "weight-custody-manifest[model-signing]"`). Backward-compatible: the
+  field defaults absent, so existing manifests and pre-images are unchanged.
+
 ### 0.20.0
 - **NVIDIA CC GPU-report verification** (SPEC 3.2 composite attestation): new
   `wcm.nvidia` (`build_gpu_verifier`, `NvidiaCcReportParser`) verifies the H100
@@ -158,6 +171,13 @@ new library API. Adds a "Sovereign self-custody (threshold)" tutorial.
 
 ## Specification
 
+- **v0.14** - added provenance interop (section 3.9): an optional `provenance`
+  field, under the joint signature, references an OpenSSF model-signing signature
+  over the base weights, and `verify_provenance` cryptographically checks that
+  signature and binds it to the manifest by re-deriving the signed digest. WCM
+  composes with model signing (the provenance layer) rather than replacing it, and
+  does not re-sign the model files. No change to release, attestation, or custody
+  semantics.
 - **v0.13** - added channel binding to the Layer 2 release handshake (section
   3.2). The enclave folds a transport public key into the quote's REPORT_DATA
   under the nonce, and the KBS seals the released key to that transport key rather
