@@ -54,11 +54,11 @@ dev = [
 wcm = "wcm.cli:main"
 
 [project.urls]
-Homepage = "https://wcm.agentrust-io.com"
-Documentation = "https://wcm.agentrust-io.com"
-Repository = "https://github.com/agentrust-io/weight-custody-manifest"
-Changelog = "https://github.com/agentrust-io/weight-custody-manifest/blob/main/CHANGELOG.md"
-"Bug Tracker" = "https://github.com/agentrust-io/weight-custody-manifest/issues"
+# The spec/SDK repo is private for now, and Pages (wcm.agentrust-io.com) is not
+# served while it is. Point these at public, live surfaces so the PyPI page has
+# no dead links. Restore to the repo + docs site when it goes public.
+Homepage = "https://github.com/agentrust-io/examples/tree/main/weight-custody-manifest"
+Documentation = "https://github.com/agentrust-io/examples/tree/main/weight-custody-manifest"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/wcm"]
