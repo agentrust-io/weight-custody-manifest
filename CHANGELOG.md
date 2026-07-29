@@ -44,6 +44,18 @@ new library API. Adds a "Sovereign self-custody (threshold)" tutorial.
 
 ## SDK
 
+### 0.23.0
+- **CLI reaches the whole protocol.** `wcm` gained four verbs beyond
+  keygen/sign/verify: `wcm inspect` (summarize a manifest's fields and release
+  policy), `wcm gate` (a release-policy diagnostic using a mock software
+  attestation, prints every gate check and the release verdict, for authoring
+  and debugging a policy), `wcm verify-quote --kind {snp,tdx,gpu}` (verify a
+  captured SEV-SNP / TDX / NVIDIA H100 CC quote bundle, pinning the vendor root
+  by fingerprint where the root travels in the evidence), and `wcm verify-provenance`
+  (cross-verify an OpenSSF model-signing signature against the manifest; needs
+  the `[model-signing]` extra). No library changes; the CLI wires up the existing
+  `snp`/`tdx`/`nvidia`/`kbs`/`provenance` machinery.
+
 ### 0.22.1
 - **Packaging:** repoint the PyPI project URLs (Homepage / Documentation) to
   public, live surfaces (the runnable examples catalog) while the spec/SDK repo
