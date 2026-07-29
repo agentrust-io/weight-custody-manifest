@@ -53,7 +53,12 @@ Layer 1 (authority):
   both must verify. One signature block per party, tagged with `role` and `signer`.
 - **`_verify.py`** - checks the required roles signed and every signature is
   cryptographically valid; enforces the sovereign quorum rule.
-- **`cli.py`** - `wcm keygen | sign | verify`.
+- **`cli.py`** - `wcm keygen | sign | verify | inspect | gate | verify-quote | verify-provenance`.
+  `inspect` summarizes a manifest; `gate` runs the release policy against a mock
+  attestation and prints every check (a diagnostic, not a live release);
+  `verify-quote --kind {snp,tdx,gpu}` verifies a captured quote bundle; and
+  `verify-provenance` cross-verifies an OpenSSF model-signing signature (needs the
+  `[model-signing]` extra).
 
 Layer 2 (release gate):
 
