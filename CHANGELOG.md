@@ -44,6 +44,12 @@ new library API. Adds a "Sovereign self-custody (threshold)" tutorial.
 
 ## SDK
 
+### 0.22.1
+- **Packaging:** repoint the PyPI project URLs (Homepage / Documentation) to
+  public, live surfaces (the runnable examples catalog) while the spec/SDK repo
+  is private and Pages is not served, so the PyPI page has no dead links. No code
+  change. Restore to the repo + docs site when it goes public.
+
 ### 0.22.0
 - **NVIDIA H100 GPU CC verification validated on real silicon.** `wcm.nvidia` is
   rewritten around the real on-wire format, confirmed against a live
