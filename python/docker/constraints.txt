@@ -4,4 +4,4 @@
 # docs/reproducible-kbs-image.md.
 pydantic==2.13.4
 cryptography==49.0.0
-fastapi==0.140.7
+fastapi==0.141.1
