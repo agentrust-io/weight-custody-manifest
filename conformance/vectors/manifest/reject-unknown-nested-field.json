@@ -1,7 +1,10 @@
 {
   "id": "reject-unknown-nested-field",
+  "level": "L1",
+  "kind": "manifest",
   "description": "An unrecognized key inside a nested object. Every object in the manifest forbids additional properties, not just the top level.",
   "expect": "reject",
+  "code": "WCM-L1-0001",
   "reject_reason": "unknown field 'custody.unexpected_field'",
   "schema_expressible": true,
   "manifest": {

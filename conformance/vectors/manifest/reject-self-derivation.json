@@ -1,7 +1,10 @@
 {
   "id": "reject-self-derivation",
+  "level": "L1",
+  "kind": "manifest",
   "description": "A manifest that derives from itself makes the lineage walk in SPEC 3.4 non-terminating. NOT EXPRESSIBLE IN JSON SCHEMA: comparing the values at two instance locations has no standard form, so a schema-only implementation must enforce this separately. The reference model enforces it in a validator.",
   "expect": "reject",
+  "code": "WCM-L1-0009",
   "reject_reason": "derived_from must not equal the manifest's own weights_hash",
   "schema_expressible": false,
   "manifest": {

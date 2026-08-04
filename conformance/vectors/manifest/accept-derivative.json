@@ -1,5 +1,7 @@
 {
   "id": "accept-derivative",
+  "level": "L1",
+  "kind": "manifest",
   "description": "A derivative manifest: derived_from points at the parent's weights_hash, rights_holder records the base/derivative IP split, and the machine-checkable derivatives policy is set (SPEC 3.4).",
   "expect": "accept",
   "manifest": {

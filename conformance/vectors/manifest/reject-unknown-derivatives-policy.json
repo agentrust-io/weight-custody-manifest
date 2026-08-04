@@ -1,7 +1,10 @@
 {
   "id": "reject-unknown-derivatives-policy",
+  "level": "L1",
+  "kind": "manifest",
   "description": "The machine-checkable derivatives field is a closed set (none, fine-tune-only, unrestricted). Freeform legal terms belong in permitted_derivatives.",
   "expect": "reject",
+  "code": "WCM-L1-0004",
   "reject_reason": "derivatives must be one of none, fine-tune-only, unrestricted",
   "schema_expressible": true,
   "manifest": {

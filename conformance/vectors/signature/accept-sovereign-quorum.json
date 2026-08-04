@@ -1,0 +1,147 @@
+{
+  "id": "accept-sovereign-quorum",
+  "level": "L1",
+  "kind": "signature",
+  "description": "With the sovereign profile enabled, the sovereign becomes a required role: three signatures, and the sovereign block's signer matches the declared sovereign_signer.",
+  "expect": "accept",
+  "trusted_keys": [
+    {
+      "algorithm": "Ed25519",
+      "public_key": "2a6F9mzZglcRXc6CpainwFuHwlVF9AAmnr_xMU8Suno",
+      "role_hint": "builder"
+    },
+    {
+      "algorithm": "Ed25519",
+      "public_key": "dRRsEM_gBqpWyIluP1kRu2CRLNKEimuaDMP8tlbraZI",
+      "role_hint": "custodian"
+    },
+    {
+      "algorithm": "Ed25519",
+      "public_key": "p4KTXkgu3x0N06Cn2QQDSQGT1gCSvQIfhFenJrAp9A4",
+      "role_hint": "sovereign"
+    }
+  ],
+  "manifest": {
+    "manifest_version": "1.0",
+    "weights_hash": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+    "builder": {
+      "identity": "example-builder",
+      "signing_key": "ed25519:builder-key"
+    },
+    "release_terms": {
+      "license": "customer-deployment-agreement-ref:CDA-2026-0001",
+      "permitted_derivatives": "fine-tune-only, no re-export of base weights",
+      "permitted_environments": [
+        "attested-enclave"
+      ]
+    },
+    "release_policy": {
+      "required_assurance_tier": "hardware-attested",
+      "physical_hardening": "not-required",
+      "trusted_time_source": "none-best-effort",
+      "memory_fingerprint_challenge": "not-required",
+      "required_hw_platform": [
+        "amd-sev-snp"
+      ],
+      "tenancy": "shared",
+      "required_serving_image": {
+        "signer": "ed25519:builder-key",
+        "release_rule": "prefer-current",
+        "accepted_measurements": [
+          {
+            "measurement": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+            "status": "current"
+          }
+        ]
+      },
+      "key_release_mode": "attestation-gated",
+      "replay_protection": "kbs-nonce-required",
+      "revocation_authority": "quorum",
+      "sovereign_profile": {
+        "enabled": true,
+        "revocation_authority": "quorum",
+        "sovereign_signer": "sovereign-authority"
+      }
+    },
+    "custody": {
+      "custodian": "example-custodian",
+      "custodian_type": "customer-self-custody",
+      "kbs_image": {
+        "measurement": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+        "signer": "ed25519:custodian-key"
+      },
+      "enclave_id": "did:example:enclave-01",
+      "attestation_cadence": "24h"
+    },
+    "base_confidentiality": "confidential",
+    "deployment_model": "builder-to-customer",
+    "signatures": [
+      {
+        "role": "builder",
+        "signer": "example-builder",
+        "algorithm": "Ed25519",
+        "key_id": "30cccabda89c6867c98a82bb3676c105936adddcbd0deb32988dbb0842a1c45f",
+        "key_type": "software",
+        "signed_at": "2026-08-04T00:00:00Z",
+        "signature_value": "5X8uhVBHGmgpfNG_3G8nLk8gdmo29fKf4fWe1j1zaSyEeYczMBH1hi4DFOzFTFuDz38UmfglyZg_xFIRQ0cDCg",
+        "signed_fields": [
+          "manifest_version",
+          "weights_hash",
+          "builder",
+          "release_terms",
+          "release_policy",
+          "custody",
+          "base_confidentiality",
+          "deployment_model",
+          "derived_from",
+          "rights_holder",
+          "provenance"
+        ]
+      },
+      {
+        "role": "custodian",
+        "signer": "example-custodian",
+        "algorithm": "Ed25519",
+        "key_id": "52153e8ce394214fc975403711db076d4413e921fd49e502be7a1f801baf6469",
+        "key_type": "software",
+        "signed_at": "2026-08-04T00:00:00Z",
+        "signature_value": "aG20omQCfHzgbBeMyTKGbtDKILfQVXx1lehIDxSAv-xzTzulzDSbIGn3TGC694x__3SOJmNSvglndoHK2AuXCw",
+        "signed_fields": [
+          "manifest_version",
+          "weights_hash",
+          "builder",
+          "release_terms",
+          "release_policy",
+          "custody",
+          "base_confidentiality",
+          "deployment_model",
+          "derived_from",
+          "rights_holder",
+          "provenance"
+        ]
+      },
+      {
+        "role": "sovereign",
+        "signer": "sovereign-authority",
+        "algorithm": "Ed25519",
+        "key_id": "b5ccbef5572beadaa19fe50152919766fac053f9829d00917b9e88b41d609758",
+        "key_type": "software",
+        "signed_at": "2026-08-04T00:00:00Z",
+        "signature_value": "ESD_5fYQKHiqCGPt_J1S3wWNyHTxmJKtBPxFHeJYTc5d69yEYFr753fHnVYkpQ5lN-05y6XJDqasL2oLFV6ZAA",
+        "signed_fields": [
+          "manifest_version",
+          "weights_hash",
+          "builder",
+          "release_terms",
+          "release_policy",
+          "custody",
+          "base_confidentiality",
+          "deployment_model",
+          "derived_from",
+          "rights_holder",
+          "provenance"
+        ]
+      }
+    ]
+  }
+}

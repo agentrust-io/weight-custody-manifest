@@ -1,5 +1,7 @@
 {
   "id": "accept-hostile-owner-posture",
+  "level": "L1",
+  "kind": "manifest",
   "description": "The hostile-owner posture with every optional release-policy control set: mandatory physical hardening, a secure-TSC time floor, the memory-fingerprint challenge, composite CPU+GPU attestation, and a live revocation check. Also exercises all three accepted-measurement statuses.",
   "expect": "accept",
   "manifest": {

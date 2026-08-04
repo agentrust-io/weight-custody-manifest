@@ -1,5 +1,7 @@
 {
   "id": "accept-byom-symmetric",
+  "level": "L1",
+  "kind": "manifest",
   "description": "Symmetric BYOM: one organization holds both the builder and custodian roles for its own model, which requires customer-self-custody.",
   "expect": "accept",
   "manifest": {

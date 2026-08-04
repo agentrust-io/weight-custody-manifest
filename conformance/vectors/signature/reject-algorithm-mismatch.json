@@ -1,0 +1,121 @@
+{
+  "id": "reject-algorithm-mismatch",
+  "level": "L1",
+  "kind": "signature",
+  "description": "The signature declares ML-DSA-65 but its key is trusted for Ed25519. Each key is trusted for exactly one algorithm, so an implementation must not fall back to whatever algorithm happens to verify.",
+  "expect": "reject",
+  "code": "WCM-L1-0104",
+  "reject_reason": "algorithm mismatch: key trusted for Ed25519, signature is ML-DSA-65",
+  "trusted_keys": [
+    {
+      "algorithm": "Ed25519",
+      "public_key": "2a6F9mzZglcRXc6CpainwFuHwlVF9AAmnr_xMU8Suno",
+      "role_hint": "builder"
+    },
+    {
+      "algorithm": "Ed25519",
+      "public_key": "dRRsEM_gBqpWyIluP1kRu2CRLNKEimuaDMP8tlbraZI",
+      "role_hint": "custodian"
+    }
+  ],
+  "manifest": {
+    "manifest_version": "1.0",
+    "weights_hash": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+    "builder": {
+      "identity": "example-builder",
+      "signing_key": "ed25519:builder-key"
+    },
+    "release_terms": {
+      "license": "customer-deployment-agreement-ref:CDA-2026-0001",
+      "permitted_derivatives": "fine-tune-only, no re-export of base weights",
+      "permitted_environments": [
+        "attested-enclave"
+      ]
+    },
+    "release_policy": {
+      "required_assurance_tier": "hardware-attested",
+      "physical_hardening": "not-required",
+      "trusted_time_source": "none-best-effort",
+      "memory_fingerprint_challenge": "not-required",
+      "required_hw_platform": [
+        "amd-sev-snp"
+      ],
+      "tenancy": "shared",
+      "required_serving_image": {
+        "signer": "ed25519:builder-key",
+        "release_rule": "prefer-current",
+        "accepted_measurements": [
+          {
+            "measurement": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+            "status": "current"
+          }
+        ]
+      },
+      "key_release_mode": "attestation-gated",
+      "replay_protection": "kbs-nonce-required",
+      "revocation_authority": "builder-and-opaque-joint",
+      "sovereign_profile": {
+        "enabled": false,
+        "revocation_authority": "quorum"
+      }
+    },
+    "custody": {
+      "custodian": "example-custodian",
+      "custodian_type": "customer-self-custody",
+      "kbs_image": {
+        "measurement": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+        "signer": "ed25519:custodian-key"
+      },
+      "enclave_id": "did:example:enclave-01",
+      "attestation_cadence": "24h"
+    },
+    "base_confidentiality": "confidential",
+    "deployment_model": "builder-to-customer",
+    "signatures": [
+      {
+        "role": "builder",
+        "signer": "example-builder",
+        "algorithm": "Ed25519",
+        "key_id": "30cccabda89c6867c98a82bb3676c105936adddcbd0deb32988dbb0842a1c45f",
+        "key_type": "software",
+        "signed_at": "2026-08-04T00:00:00Z",
+        "signature_value": "yo2JzI03jW8Znt3-ehf6Z97Q468IIwQjOGl246W6Lv50eTWTu3l7GiVlBH4WbzXVERY_ixC70ELdtSuXF5-3Dg",
+        "signed_fields": [
+          "manifest_version",
+          "weights_hash",
+          "builder",
+          "release_terms",
+          "release_policy",
+          "custody",
+          "base_confidentiality",
+          "deployment_model",
+          "derived_from",
+          "rights_holder",
+          "provenance"
+        ]
+      },
+      {
+        "role": "custodian",
+        "signer": "example-custodian",
+        "algorithm": "ML-DSA-65",
+        "key_id": "52153e8ce394214fc975403711db076d4413e921fd49e502be7a1f801baf6469",
+        "key_type": "software",
+        "signed_at": "2026-08-04T00:00:00Z",
+        "signature_value": "BubuWHjpnXI6BZAGJPks5ng6zngPx2b_1LmStTn8hrt1-Z6s0IJKWI4aD6GgfE2GBjEsfqt5KPlNcWTKyTOnBQ",
+        "signed_fields": [
+          "manifest_version",
+          "weights_hash",
+          "builder",
+          "release_terms",
+          "release_policy",
+          "custody",
+          "base_confidentiality",
+          "deployment_model",
+          "derived_from",
+          "rights_holder",
+          "provenance"
+        ]
+      }
+    ]
+  }
+}

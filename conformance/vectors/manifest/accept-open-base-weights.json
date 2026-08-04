@@ -1,5 +1,7 @@
 {
   "id": "accept-open-base-weights",
+  "level": "L1",
+  "kind": "manifest",
   "description": "A manifest over public open-weight base weights. Valid: the four layers still do integrity, license, derivative-custody and kill-switch work. The reference verifier reports a non-blocking consistency note, which is not a validity question, so the schema says nothing about it.",
   "expect": "accept",
   "manifest": {

@@ -1,6 +1,8 @@
 {
   "id": "accept-signature-blocks",
-  "description": "Signature-array shape for the joint builder+custodian signature, including the post-quantum hybrid profile where signature_value is empty and both component signatures are carried. Whether these signatures VERIFY is Layer 1 verification, not schema validation: the values here are placeholders.",
+  "level": "L1",
+  "kind": "manifest",
+  "description": "Signature-array shape for the joint builder+custodian signature, including the post-quantum hybrid profile where signature_value is empty and both component signatures are carried. Whether these signatures VERIFY is a Layer 1 signature vector, not a structural one: the values here are placeholders.",
   "expect": "accept",
   "manifest": {
     "manifest_version": "1.0",

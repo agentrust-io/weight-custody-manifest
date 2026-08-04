@@ -1,7 +1,10 @@
 {
   "id": "reject-non-hex-hash-digest",
+  "level": "L1",
+  "kind": "manifest",
   "description": "The digest half must be lowercase hex. Uppercase or non-hex characters are rejected rather than normalized, so two manifests cannot disagree on case for the same weights.",
   "expect": "reject",
+  "code": "WCM-L1-0003",
   "reject_reason": "weights_hash digest is not 64 lowercase hex characters",
   "schema_expressible": true,
   "manifest": {

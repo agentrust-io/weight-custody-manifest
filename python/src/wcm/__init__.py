@@ -159,6 +159,18 @@ from .provenance import (
     ProvenanceResult,
 )
 from .schema import SCHEMA_ID, manifest_schema, schema_path
+from .conformance import (
+    CODES,
+    LEVELS,
+    Level,
+    Outcome,
+    SuiteReport,
+    Verdict,
+    evaluate,
+    load_vectors,
+    run_reference,
+    score_results,
+)
 
 __version__ = "0.23.0"
 
@@ -295,4 +307,14 @@ __all__ = [
     "SCHEMA_ID",
     "manifest_schema",
     "schema_path",
+    "CODES",
+    "LEVELS",
+    "Level",
+    "Verdict",
+    "Outcome",
+    "SuiteReport",
+    "evaluate",
+    "load_vectors",
+    "run_reference",
+    "score_results",
 ]

@@ -1,5 +1,7 @@
 {
   "id": "accept-minimal",
+  "level": "L1",
+  "kind": "manifest",
   "description": "Only the required fields. Everything else takes its specified default, so a manifest this small is a complete, valid manifest.",
   "expect": "accept",
   "manifest": {
