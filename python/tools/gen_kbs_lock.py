@@ -38,11 +38,13 @@ import re
 import subprocess
 import sys
 import tempfile
+import tomllib
 import urllib.request
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-DOCKER_DIR = HERE.parent / "docker"
+PROJECT_DIR = HERE.parent
+DOCKER_DIR = PROJECT_DIR / "docker"
 
 #: The image's interpreter. Must match the base image in docker/Dockerfile.
 PYTHON_VERSION = "3.12"
@@ -56,11 +58,30 @@ PLATFORMS = (
     "manylinux_2_34_x86_64",
 )
 
-#: What the runtime stage installs: the server extra's dependency closure.
-RUNTIME_ROOTS = ("pydantic", "cryptography", "fastapi", "uvicorn[standard]")
+#: The extra whose closure the runtime stage installs.
+RUNTIME_EXTRA = "server"
 
-#: What the builder stage needs to build the wheel with --no-build-isolation.
-BUILD_ROOTS = ("hatchling",)
+
+def runtime_roots() -> tuple[str, ...]:
+    """The project's own declared requirements, read from pyproject.toml.
+
+    Read rather than restated. Naming the packages here instead would let the lock
+    resolve a version the package declares incompatible: the runtime stage installs
+    the wheel with ``--no-deps``, so nothing would catch it, and the image would
+    ship a dependency `pyproject.toml` forbids. That is not hypothetical; it is
+    what happened when this listed bare package names.
+    """
+    with (PROJECT_DIR / "pyproject.toml").open("rb") as handle:
+        project = tomllib.load(handle)["project"]
+    roots = list(project["dependencies"])
+    roots += project["optional-dependencies"][RUNTIME_EXTRA]
+    return tuple(roots)
+
+
+def build_roots() -> tuple[str, ...]:
+    """The build backend's requirements, also read rather than restated."""
+    with (PROJECT_DIR / "pyproject.toml").open("rb") as handle:
+        return tuple(tomllib.load(handle)["build-system"]["requires"])
 
 #: Resolved separately because a non-Linux host evaluates their markers away.
 EXTRA_RUNTIME = ("uvloop",)
@@ -132,7 +153,7 @@ def _render(pins: dict[str, str], title: str, note: list[str]) -> str:
 
 
 def build_locks() -> dict[Path, str]:
-    runtime = _resolve(RUNTIME_ROOTS)
+    runtime = _resolve(runtime_roots())
     runtime.update(_resolve(EXTRA_RUNTIME))
     for name in EXCLUDE:
         runtime.pop(name, None)
@@ -142,14 +163,16 @@ def build_locks() -> dict[Path, str]:
             runtime,
             "Hash-locked RUNTIME dependencies for the reference KBS image.",
             [
-                "Every distribution pip may select for a pinned version is listed, so the",
-                "set is platform-independent: pip matches whichever file it picks. Installed",
-                "with --require-hashes, so an unpinned or substituted artifact fails the",
-                "build rather than silently changing the image measurement.",
+                "Resolved from pyproject.toml's own declared requirements, so a pin here",
+                "cannot violate what the package says it supports. Every distribution pip",
+                "may select for a pinned version is listed, so the set is",
+                "platform-independent: pip matches whichever file it picks. Installed with",
+                "--require-hashes, so an unpinned or substituted artifact fails the build",
+                "rather than silently changing the image measurement.",
             ],
         ),
         DOCKER_DIR / "requirements-build.lock": _render(
-            _resolve(BUILD_ROOTS),
+            _resolve(build_roots()),
             "Hash-locked BUILD dependencies for the reference KBS image.",
             [
                 "Only used in the builder stage, to build the wcm wheel with",

@@ -14,14 +14,21 @@
 #      files*, because pip and hatchling stamp build time into what they write and
 #      a layer digest covers mtimes. Normalizing in a later layer would not help:
 #      each layer's digest is sealed when that layer is created.
+#   5. pip installs with --no-compile. pip byte-compiles by default, and a .pyc
+#      embeds the source mtime, so normalizing mtimes afterwards leaves .pyc files
+#      holding the pre-normalization value: reproducible-looking sources over
+#      irreproducible bytecode. PYTHONDONTWRITEBYTECODE does not cover this; it
+#      governs the interpreter, not pip's own compile pass.
 #
 # Layers are deliberately coarse for the same reason: one RUN that installs,
 # creates the user, and normalizes is one digest to keep stable, where three RUNs
 # would be three.
 #
-# CI builds twice, the second time with --no-cache, and asserts identical layer
-# digests. See docs/reproducible-kbs-image.md for what that does and does not
-# prove (in particular, it is a same-runner check, not a cross-machine one).
+# CI runs docker/verify-reproducible.sh, which builds twice (the second time with
+# --no-cache) and compares the EXPORTED FILESYSTEM CONTENT of the two images. See
+# docs/reproducible-kbs-image.md for why content rather than layer digests, and
+# for what the check does and does not prove (it is a same-runner check, not a
+# cross-machine one).
 #
 # Build from the REPO ROOT:
 #   docker build -f python/docker/Dockerfile -t wcm-kbs .
@@ -61,7 +68,7 @@ WORKDIR /src/python
 # --no-build-isolation: hatchling comes from the hash-locked set, so the build
 # fetches nothing. The wheel's own mtime is normalized here, so the COPY of it
 # into the runtime stage lands in a deterministic layer.
-RUN pip install --no-cache-dir --require-hashes -r /tmp/requirements-build.lock \
+RUN pip install --no-cache-dir --no-compile --require-hashes -r /tmp/requirements-build.lock \
     && python -m hatchling build -t wheel -d /wheel \
     && touch --no-dereference --date="@${SOURCE_DATE_EPOCH}" /wheel /wheel/*.whl \
     && ls -l /wheel
@@ -89,8 +96,8 @@ COPY --from=builder /wheel /tmp/wheel
 # resolution enabled this would reintroduce an unpinned fetch), create the
 # non-root user, then normalize mtimes. The find is wrapped so its failure on a
 # missing path cannot mask a pip failure earlier in the chain.
-RUN pip install --no-cache-dir --require-hashes -r /tmp/requirements.lock \
-    && pip install --no-cache-dir --no-deps --no-index /tmp/wheel/*.whl \
+RUN pip install --no-cache-dir --no-compile --require-hashes -r /tmp/requirements.lock \
+    && pip install --no-cache-dir --no-compile --no-deps --no-index /tmp/wheel/*.whl \
     && rm -rf /tmp/requirements.lock /tmp/wheel \
     && useradd --uid 10001 --no-create-home --shell /usr/sbin/nologin kbs \
     && { find "${SITE_PACKAGES}" /usr/local/bin /etc/passwd /etc/group \

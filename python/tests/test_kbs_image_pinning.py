@@ -108,6 +108,66 @@ def test_every_pip_install_is_hash_checked_or_local() -> None:
     assert "--no-deps" in wheel_install and "--no-index" in wheel_install
 
 
+def test_every_pip_install_disables_byte_compilation() -> None:
+    """pip's compile pass is the subtlest way to lose reproducibility.
+
+    A .pyc embeds the source mtime, so normalizing mtimes afterwards leaves
+    bytecode holding the old value: the sources look reproducible and the image is
+    not. PYTHONDONTWRITEBYTECODE does not help, since it governs the interpreter
+    rather than pip.
+    """
+    for line in _instructions():
+        if "pip install" in line:
+            assert "--no-compile" in line, line
+
+
+def test_lock_roots_come_from_pyproject_not_a_restatement() -> None:
+    """Guards against the bug this had: bare package names in the generator.
+
+    Listing the packages in the tool let the lock resolve a version pyproject
+    declares incompatible (cryptography 50 against a <50 bound). Nothing caught
+    it, because the runtime stage installs the wheel with --no-deps.
+    """
+    source = (Path(gen_kbs_lock.__file__)).read_text(encoding="utf-8")
+    assert "tomllib" in source
+    assert "optional-dependencies" in source
+    roots = gen_kbs_lock.runtime_roots()
+    assert any(root.startswith("cryptography") and "<" in root for root in roots), roots
+    assert gen_kbs_lock.build_roots() == ("hatchling",)
+
+
+def test_locked_versions_satisfy_the_project_constraints() -> None:
+    """The pins actually inside the declared bounds, not merely sourced from them."""
+    bounds: dict[str, tuple[int, ...]] = {}
+    for root in gen_kbs_lock.runtime_roots():
+        match = re.match(r"^([A-Za-z0-9._-]+)[^<]*<([0-9.]+)", root)
+        if match:
+            name = re.sub(r"[-_.]+", "-", match.group(1)).lower()
+            bounds[name] = tuple(int(p) for p in match.group(2).split("."))
+    assert bounds, "expected at least one upper-bounded dependency to check"
+
+    text = (DOCKER_DIR / "requirements.lock").read_text(encoding="utf-8")
+    pinned = dict(re.findall(r"^([A-Za-z0-9._-]+)==([0-9][^ \\\n;]*)", text, re.MULTILINE))
+    for name, upper in bounds.items():
+        assert name in pinned, f"{name} is declared but not in the lock"
+        version = tuple(int(p) for p in re.findall(r"\d+", pinned[name])[: len(upper)])
+        assert version < upper, f"{name}=={pinned[name]} violates the <{'.'.join(map(str, upper))} bound"
+
+
+def test_reproducibility_check_is_wired_into_ci() -> None:
+    script = DOCKER_DIR / "verify-reproducible.sh"
+    assert script.is_file()
+    body = script.read_text(encoding="utf-8")
+    # --no-cache on the second build is the whole point: a cached rebuild would
+    # pass trivially.
+    assert "--no-cache" in body
+    assert "sha256sum" in body
+    workflow = (
+        Path(__file__).resolve().parents[2] / ".github" / "workflows" / "kbs-image.yml"
+    ).read_text(encoding="utf-8")
+    assert "verify-reproducible.sh" in workflow
+
+
 def test_runtime_stage_does_not_carry_build_tooling() -> None:
     """hatchling is installed in the builder stage only."""
     builder, _, runtime = DOCKERFILE.partition("# Runtime:")

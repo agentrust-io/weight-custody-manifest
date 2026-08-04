@@ -54,25 +54,13 @@ jobs:
           fi
           docker run --rm --entrypoint python wcm-kbs:ci -c "import wcm, wcm.schema; print('wcm', wcm.__version__, wcm.schema.SCHEMA_ID)"
 
-      - name: Rebuild from scratch and assert identical layers
-        # The reproducibility claim, tested rather than asserted. --no-cache so
-        # the second build genuinely redoes every step; reusing the cache would
-        # make this pass trivially and prove nothing.
-        #
-        # Layer digests, not the image id: the image config carries a `created`
-        # timestamp taken from wall-clock, so image ids differ by design while
-        # the FILESYSTEM should not.
-        run: |
-          docker build --no-cache -f python/docker/Dockerfile -t wcm-kbs:ci2 .
-          docker image inspect wcm-kbs:ci  --format '{{json .RootFS.Layers}}' > layers1.json
-          docker image inspect wcm-kbs:ci2 --format '{{json .RootFS.Layers}}' > layers2.json
-          echo "build 1: $(cat layers1.json)"
-          echo "build 2: $(cat layers2.json)"
-          if ! diff -u layers1.json layers2.json; then
-            echo "::error::two builds of the same source produced different layers; the image is not reproducible"
-            exit 1
-          fi
-          echo "reproducible: both builds produced identical layer digests"
+      - name: Verify the build is reproducible
+        # Builds twice (second with --no-cache) and compares the exported
+        # filesystem CONTENT. Content rather than layer digests, because BuildKit
+        # stamps build-time mtimes onto COPY destination directory entries that no
+        # in-image normalization can reach, and content is what a KBS measurement
+        # is about anyway. See the script header and docs/reproducible-kbs-image.md.
+        run: ./python/docker/verify-reproducible.sh
 
       - name: Record the measurement reference
         run: |
