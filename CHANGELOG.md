@@ -6,6 +6,13 @@ uses semantic-ish versioning while pre-1.0.
 
 ## Unreleased
 
+**[docs]** Synced the README `Status` section to the v0.12 publication posture. It
+still said publication was gated on the key-extraction half of open question 8.8,
+which v0.12 explicitly reversed and which `SPEC.md` §3.6, `ROADMAP.md`, `CHARTER.md`,
+`CONTRIBUTING.md`, `SECURITY.md`, `ADOPTERS.md` and the `docs/` site had all already
+corrected. The README was the only file left claiming the document was being withheld.
+No change to the spec or to any security claim.
+
 **[repo]** Moved the runnable examples and demos out of this repo into the public
 [agentrust-io/examples](https://github.com/agentrust-io/examples/tree/main/weight-custody-manifest)
 (per-product catalog) and [agentrust-io/demos](https://github.com/agentrust-io/demos)
