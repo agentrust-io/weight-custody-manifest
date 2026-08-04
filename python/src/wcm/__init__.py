@@ -158,6 +158,7 @@ from .provenance import (
     model_signing_digest,
     ProvenanceResult,
 )
+from .schema import SCHEMA_ID, manifest_schema, schema_path
 
 __version__ = "0.23.0"
 
@@ -291,4 +292,7 @@ __all__ = [
     "verify_provenance",
     "model_signing_digest",
     "ProvenanceResult",
+    "SCHEMA_ID",
+    "manifest_schema",
+    "schema_path",
 ]

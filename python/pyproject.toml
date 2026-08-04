@@ -48,6 +48,10 @@ dev = [
   "fastapi>=0.111,<1",
   "httpx>=0.27",
   "model-signing>=1.1,<2",
+  # Only for tests/test_schema.py, which checks the published JSON Schema and the
+  # Pydantic model accept and reject the same vectors. Not a runtime dependency:
+  # wcm.schema hands back the schema document and leaves validation to the caller.
+  "jsonschema>=4.21",
 ]
 
 [project.scripts]
@@ -63,8 +67,22 @@ Documentation = "https://github.com/agentrust-io/examples/tree/main/weight-custo
 [tool.hatch.build.targets.wheel]
 packages = ["src/wcm"]
 
+# The normative manifest JSON Schema is canonically at the REPO root (schema/),
+# next to SPEC.md, because it is a specification artifact rather than a Python
+# one. Ship a copy inside the package so wcm.schema works from an installed
+# wheel, not only from a checkout.
+[tool.hatch.build.targets.wheel.force-include]
+"../schema/wcm-manifest-v1.schema.json" = "wcm/_schema/wcm-manifest-v1.schema.json"
+
 [tool.hatch.build.targets.sdist]
-include = ["src/", "tests/", "examples/", "README.md"]
+include = ["src/", "tests/", "examples/", "tools/", "README.md"]
+
+# The sdist is built from python/, so the repo-root schema and the vector corpus
+# that tests/test_schema.py reads have to be pulled in explicitly, or an sdist
+# build cannot run its own test suite.
+[tool.hatch.build.targets.sdist.force-include]
+"../schema" = "schema"
+"../conformance" = "conformance"
 
 [tool.hatch.version]
 path = "src/wcm/__init__.py"

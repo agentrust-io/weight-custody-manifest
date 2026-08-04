@@ -1,0 +1,909 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://wcm.agentrust-io.com/schema/manifest/v1.json",
+  "title": "Weight Custody Manifest",
+  "description": "The Layer 1 Weight Custody Manifest: the jointly signed artifact a builder issues to state which weights are released, under what terms, and against which release policy (SPEC.md section 3.1).\n\nFrozen at v1: fields are added, never removed or repurposed, and no existing field's meaning or value set narrows. See schema/README.md for the versioning policy and for the one model constraint this schema cannot express (derived_from must not equal weights_hash, which requires comparing two instance locations and has no standard JSON Schema form).",
+  "additionalProperties": false,
+  "properties": {
+    "manifest_version": {
+      "title": "Manifest Version",
+      "type": "string"
+    },
+    "weights_hash": {
+      "pattern": "^(sha256|shake256):[0-9a-f]{64}$",
+      "title": "Weights Hash",
+      "type": "string"
+    },
+    "builder": {
+      "$ref": "#/$defs/Builder"
+    },
+    "release_terms": {
+      "$ref": "#/$defs/ReleaseTerms"
+    },
+    "release_policy": {
+      "$ref": "#/$defs/ReleasePolicy"
+    },
+    "custody": {
+      "$ref": "#/$defs/Custody"
+    },
+    "base_confidentiality": {
+      "$ref": "#/$defs/BaseConfidentiality",
+      "default": "confidential"
+    },
+    "deployment_model": {
+      "$ref": "#/$defs/DeploymentModel",
+      "default": "builder-to-customer"
+    },
+    "derived_from": {
+      "anyOf": [
+        {
+          "pattern": "^(sha256|shake256):[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Derived From"
+    },
+    "rights_holder": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/RightsHolder"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "provenance": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Provenance"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "signatures": {
+      "items": {
+        "$ref": "#/$defs/ManifestSignature"
+      },
+      "title": "Signatures",
+      "type": "array"
+    }
+  },
+  "required": [
+    "manifest_version",
+    "weights_hash",
+    "builder",
+    "release_terms",
+    "release_policy",
+    "custody"
+  ],
+  "type": "object",
+  "allOf": [
+    {
+      "$comment": "deployment_model 'byom-symmetric' requires custody.custodian_type 'customer-self-custody'",
+      "if": {
+        "properties": {
+          "deployment_model": {
+            "const": "byom-symmetric"
+          }
+        },
+        "required": [
+          "deployment_model"
+        ]
+      },
+      "then": {
+        "properties": {
+          "custody": {
+            "properties": {
+              "custodian_type": {
+                "const": "customer-self-custody"
+              }
+            },
+            "required": [
+              "custodian_type"
+            ]
+          }
+        },
+        "required": [
+          "custody"
+        ]
+      }
+    },
+    {
+      "$comment": "with release_policy.sovereign_profile.enabled, release_policy.revocation_authority must be 'quorum'",
+      "if": {
+        "properties": {
+          "release_policy": {
+            "properties": {
+              "sovereign_profile": {
+                "properties": {
+                  "enabled": {
+                    "const": true
+                  }
+                },
+                "required": [
+                  "enabled"
+                ]
+              }
+            },
+            "required": [
+              "sovereign_profile"
+            ]
+          }
+        },
+        "required": [
+          "release_policy"
+        ]
+      },
+      "then": {
+        "properties": {
+          "release_policy": {
+            "properties": {
+              "revocation_authority": {
+                "const": "quorum"
+              }
+            },
+            "required": [
+              "revocation_authority"
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "AcceptedMeasurement": {
+      "additionalProperties": false,
+      "properties": {
+        "measurement": {
+          "pattern": "^(sha256|shake256):[0-9a-f]{64}$",
+          "title": "Measurement",
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/$defs/ServingImageStatus"
+        },
+        "retire_after": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Retire After"
+        }
+      },
+      "required": [
+        "measurement",
+        "status"
+      ],
+      "title": "AcceptedMeasurement",
+      "type": "object",
+      "if": {
+        "properties": {
+          "status": {
+            "const": "retiring"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "required": [
+          "retire_after"
+        ],
+        "properties": {
+          "retire_after": {
+            "type": "string"
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "retire_after": {
+            "type": "null"
+          }
+        }
+      }
+    },
+    "AssuranceTier": {
+      "description": "The single baseline for anything above a pilot is hardware-attested;\nclaim-only assurance is not offered for frontier weights (SPEC.md 3.1).",
+      "enum": [
+        "hardware-attested"
+      ],
+      "title": "AssuranceTier",
+      "type": "string"
+    },
+    "BaseConfidentiality": {
+      "description": "Whether the BASE weights are actually secret (SPEC.md section 3.1).\n\nMade explicit rather than assumed, so a reader is not misled about what a\nmanifest protects:\n\n- ``confidential``: base weights are secret (the frontier-model case).\n  Attestation-gated release protects their secrecy. This is the default and\n  the posture the rest of the spec was written around.\n- ``gated-open``: base weights are obtainable under a gated license\n  (e.g. a community license). Secrecy is license-gated, not cryptographic.\n- ``open``: base weights are fully public. Encrypting them protects nothing;\n  the manifest's value is integrity/provenance, license enforcement,\n  derivative custody, and the kill switch, not secrecy.\n\nThe verifier does not block on this field; it reports consistency notes\n(see ``verify_manifest``) so an ``open`` manifest is not read as promising a\nsecrecy guarantee it cannot deliver.",
+      "enum": [
+        "confidential",
+        "gated-open",
+        "open"
+      ],
+      "title": "BaseConfidentiality",
+      "type": "string"
+    },
+    "Builder": {
+      "additionalProperties": false,
+      "properties": {
+        "identity": {
+          "title": "Identity",
+          "type": "string"
+        },
+        "signing_key": {
+          "title": "Signing Key",
+          "type": "string"
+        }
+      },
+      "required": [
+        "identity",
+        "signing_key"
+      ],
+      "title": "Builder",
+      "type": "object"
+    },
+    "CustodianType": {
+      "enum": [
+        "opaque-hosted",
+        "customer-self-custody"
+      ],
+      "title": "CustodianType",
+      "type": "string"
+    },
+    "Custody": {
+      "additionalProperties": false,
+      "properties": {
+        "custodian": {
+          "title": "Custodian",
+          "type": "string"
+        },
+        "custodian_type": {
+          "$ref": "#/$defs/CustodianType"
+        },
+        "kbs_image": {
+          "$ref": "#/$defs/KbsImage"
+        },
+        "enclave_id": {
+          "title": "Enclave Id",
+          "type": "string"
+        },
+        "attestation_cadence": {
+          "title": "Attestation Cadence",
+          "type": "string"
+        },
+        "kbs_attestation_cadence": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Kbs Attestation Cadence"
+        }
+      },
+      "required": [
+        "custodian",
+        "custodian_type",
+        "kbs_image",
+        "enclave_id",
+        "attestation_cadence"
+      ],
+      "title": "Custody",
+      "type": "object"
+    },
+    "DeploymentModel": {
+      "description": "Which direction the trust runs (SPEC.md section 2, principle 4).\n\n- ``builder-to-customer``: a builder places a model into a customer's\n  environment; the vulnerable party is the builder. This is the default and\n  the primary walk-through in the spec.\n- ``byom-symmetric``: one organization holds both the builder and custodian\n  roles, bringing its own model into confidential infrastructure it also\n  custodies. The same platform and primitives, roles collapsed onto one\n  party. Requires ``customer-self-custody`` (the org custodies its own\n  model).",
+      "enum": [
+        "builder-to-customer",
+        "byom-symmetric"
+      ],
+      "title": "DeploymentModel",
+      "type": "string"
+    },
+    "DerivativePolicy": {
+      "description": "Machine-checkable derivative permission (SPEC.md section 3.4).\n\nThe freeform ``permitted_derivatives`` string carries the legal terms; this\nenum is the part a lineage verifier can enforce. ``none`` forbids any\nderivative; ``fine-tune-only`` and ``unrestricted`` both permit a derivative\nto exist (the SDK does not police the *kind* of derivative structurally).",
+      "enum": [
+        "none",
+        "fine-tune-only",
+        "unrestricted"
+      ],
+      "title": "DerivativePolicy",
+      "type": "string"
+    },
+    "KbsImage": {
+      "additionalProperties": false,
+      "properties": {
+        "measurement": {
+          "pattern": "^(sha256|shake256):[0-9a-f]{64}$",
+          "title": "Measurement",
+          "type": "string"
+        },
+        "signer": {
+          "title": "Signer",
+          "type": "string"
+        },
+        "note": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Note"
+        }
+      },
+      "required": [
+        "measurement",
+        "signer"
+      ],
+      "title": "KbsImage",
+      "type": "object"
+    },
+    "KeyReleaseMode": {
+      "enum": [
+        "attestation-gated"
+      ],
+      "title": "KeyReleaseMode",
+      "type": "string"
+    },
+    "KeyType": {
+      "enum": [
+        "software",
+        "hardware"
+      ],
+      "title": "KeyType",
+      "type": "string"
+    },
+    "ManifestSignature": {
+      "additionalProperties": false,
+      "properties": {
+        "role": {
+          "$ref": "#/$defs/SignatureRole"
+        },
+        "signer": {
+          "title": "Signer",
+          "type": "string"
+        },
+        "algorithm": {
+          "$ref": "#/$defs/SignatureAlgorithm",
+          "default": "Ed25519"
+        },
+        "key_id": {
+          "title": "Key Id",
+          "type": "string"
+        },
+        "key_type": {
+          "$ref": "#/$defs/KeyType",
+          "default": "software"
+        },
+        "signed_at": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Signed At"
+        },
+        "signature_value": {
+          "title": "Signature Value",
+          "type": "string"
+        },
+        "classical_signature": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Classical Signature"
+        },
+        "pq_signature": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Pq Signature"
+        },
+        "signed_fields": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Signed Fields"
+        }
+      },
+      "required": [
+        "role",
+        "signer",
+        "key_id",
+        "signature_value"
+      ],
+      "title": "ManifestSignature",
+      "type": "object"
+    },
+    "MemoryFingerprintChallenge": {
+      "description": "v0.8, the measurement-forgery (BadRAM-class) defense from open\nquestion 8.8. Required in the hostile-owner posture.",
+      "enum": [
+        "required-for-hostile-owner-posture",
+        "not-required"
+      ],
+      "title": "MemoryFingerprintChallenge",
+      "type": "string"
+    },
+    "ModelSigningProvenance": {
+      "additionalProperties": false,
+      "description": "A reference to an OpenSSF model-signing signature (SPEC.md section 3.9).\n\nWCM does not re-sign the model files; it records a pointer to the signature\nthat already attests them, so a verifier can cross-check that the custody\nmanifest and the model-signing signature cover the same artifact. WCM is the\ncustody-and-release layer; model-signing is the provenance layer beneath it.\n\n``signed_digest`` is the stable digest WCM derives from the model-signing\nmanifest (``provenance.model_signing_digest``); ``verify_provenance`` verifies\nthe signature and re-derives this digest from the model files to bind the two.",
+      "properties": {
+        "method": {
+          "const": "openssf-model-signing",
+          "default": "openssf-model-signing",
+          "title": "Method",
+          "type": "string"
+        },
+        "signed_digest": {
+          "title": "Signed Digest",
+          "type": "string"
+        },
+        "transparency": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Transparency"
+        },
+        "signer": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Signer"
+        }
+      },
+      "required": [
+        "signed_digest"
+      ],
+      "title": "ModelSigningProvenance",
+      "type": "object"
+    },
+    "PhysicalHardening": {
+      "enum": [
+        "not-required",
+        "tamper-evident-enclosure+access-control+chain-of-custody"
+      ],
+      "title": "PhysicalHardening",
+      "type": "string"
+    },
+    "Provenance": {
+      "additionalProperties": false,
+      "description": "Where the base weights came from, referenced not re-derived (SPEC.md 3.9).\n\nOptional and extensible: today it carries an OpenSSF model-signing reference;\nother provenance systems can be added as sibling fields without changing the\ncustody or release semantics.",
+      "properties": {
+        "model_signing": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ModelSigningProvenance"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "title": "Provenance",
+      "type": "object"
+    },
+    "ReleasePolicy": {
+      "additionalProperties": false,
+      "properties": {
+        "required_assurance_tier": {
+          "$ref": "#/$defs/AssuranceTier"
+        },
+        "physical_hardening": {
+          "$ref": "#/$defs/PhysicalHardening",
+          "default": "not-required"
+        },
+        "trusted_time_source": {
+          "$ref": "#/$defs/TrustedTimeSource",
+          "default": "none-best-effort"
+        },
+        "memory_fingerprint_challenge": {
+          "$ref": "#/$defs/MemoryFingerprintChallenge",
+          "default": "not-required"
+        },
+        "required_hw_platform": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Required Hw Platform",
+          "type": "array"
+        },
+        "required_gpu_measurement": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RequiredGpuMeasurement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "tenancy": {
+          "$ref": "#/$defs/Tenancy",
+          "default": "shared"
+        },
+        "required_serving_image": {
+          "$ref": "#/$defs/RequiredServingImage"
+        },
+        "key_release_mode": {
+          "$ref": "#/$defs/KeyReleaseMode",
+          "default": "attestation-gated"
+        },
+        "replay_protection": {
+          "$ref": "#/$defs/ReplayProtection",
+          "default": "kbs-nonce-required"
+        },
+        "attestation_revocation_check": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Attestation Revocation Check"
+        },
+        "revocation_authority": {
+          "$ref": "#/$defs/RevocationAuthority",
+          "default": "builder-and-opaque-joint"
+        },
+        "sovereign_profile": {
+          "$ref": "#/$defs/SovereignProfile"
+        }
+      },
+      "required": [
+        "required_assurance_tier",
+        "required_hw_platform",
+        "required_serving_image"
+      ],
+      "title": "ReleasePolicy",
+      "type": "object"
+    },
+    "ReleaseTerms": {
+      "additionalProperties": false,
+      "properties": {
+        "license": {
+          "title": "License",
+          "type": "string"
+        },
+        "permitted_derivatives": {
+          "title": "Permitted Derivatives",
+          "type": "string"
+        },
+        "permitted_environments": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Permitted Environments",
+          "type": "array"
+        },
+        "jurisdiction_restriction": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Jurisdiction Restriction"
+        },
+        "derivatives": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DerivativePolicy"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "license",
+        "permitted_derivatives",
+        "permitted_environments"
+      ],
+      "title": "ReleaseTerms",
+      "type": "object"
+    },
+    "ReplayProtection": {
+      "enum": [
+        "kbs-nonce-required"
+      ],
+      "title": "ReplayProtection",
+      "type": "string"
+    },
+    "RequiredGpuMeasurement": {
+      "additionalProperties": false,
+      "properties": {
+        "rim_pin": {
+          "title": "Rim Pin",
+          "type": "string"
+        },
+        "note": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Note"
+        }
+      },
+      "required": [
+        "rim_pin"
+      ],
+      "title": "RequiredGpuMeasurement",
+      "type": "object"
+    },
+    "RequiredServingImage": {
+      "additionalProperties": false,
+      "properties": {
+        "signer": {
+          "title": "Signer",
+          "type": "string"
+        },
+        "release_rule": {
+          "title": "Release Rule",
+          "type": "string"
+        },
+        "accepted_measurements": {
+          "items": {
+            "$ref": "#/$defs/AcceptedMeasurement"
+          },
+          "minItems": 1,
+          "title": "Accepted Measurements",
+          "type": "array"
+        },
+        "note": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Note"
+        }
+      },
+      "required": [
+        "signer",
+        "release_rule",
+        "accepted_measurements"
+      ],
+      "title": "RequiredServingImage",
+      "type": "object"
+    },
+    "RevocationAuthority": {
+      "enum": [
+        "builder-and-opaque-joint",
+        "quorum"
+      ],
+      "title": "RevocationAuthority",
+      "type": "string"
+    },
+    "RightsHolder": {
+      "additionalProperties": false,
+      "description": "Who holds IP over the base weights vs the fine-tune (SPEC.md 3.4).",
+      "properties": {
+        "base": {
+          "title": "Base",
+          "type": "string"
+        },
+        "derivative": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Derivative"
+        }
+      },
+      "required": [
+        "base"
+      ],
+      "title": "RightsHolder",
+      "type": "object"
+    },
+    "ServingImageStatus": {
+      "enum": [
+        "current",
+        "retiring",
+        "revoked"
+      ],
+      "title": "ServingImageStatus",
+      "type": "string"
+    },
+    "SignatureAlgorithm": {
+      "enum": [
+        "Ed25519",
+        "ML-DSA-65",
+        "hybrid-Ed25519-ML-DSA-65"
+      ],
+      "title": "SignatureAlgorithm",
+      "type": "string"
+    },
+    "SignatureRole": {
+      "enum": [
+        "builder",
+        "custodian",
+        "sovereign",
+        "additional"
+      ],
+      "title": "SignatureRole",
+      "type": "string"
+    },
+    "SovereignProfile": {
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "default": false,
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "revocation_authority": {
+          "$ref": "#/$defs/RevocationAuthority",
+          "default": "quorum"
+        },
+        "sovereign_signer": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sovereign Signer"
+        },
+        "additional_signers": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Additional Signers"
+        },
+        "note": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Note"
+        }
+      },
+      "title": "SovereignProfile",
+      "type": "object",
+      "if": {
+        "properties": {
+          "enabled": {
+            "const": true
+          }
+        },
+        "required": [
+          "enabled"
+        ]
+      },
+      "then": {
+        "required": [
+          "sovereign_signer"
+        ],
+        "properties": {
+          "revocation_authority": {
+            "const": "quorum"
+          },
+          "sovereign_signer": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "Tenancy": {
+      "enum": [
+        "shared",
+        "dedicated"
+      ],
+      "title": "Tenancy",
+      "type": "string"
+    },
+    "TrustedTimeSource": {
+      "description": "v0.8, resolves former open question 8.9. Names the clock the\nwipe-on-lapse floor trusts, per deployment, rather than assuming one.",
+      "enum": [
+        "secure-tsc",
+        "lease-with-op-count-hybrid",
+        "none-best-effort"
+      ],
+      "title": "TrustedTimeSource",
+      "type": "string"
+    }
+  }
+}

@@ -59,6 +59,8 @@ Four layers, deliberately mirroring the shape of the platform's existing custome
 
 Before any weights move, the builder issues a signed manifest describing exactly what is being released and under what terms. This is the artifact this document is named for, and it is the one piece of this architecture built to also serve as the customer facing evidence of what was released, in case of audit or dispute.
 
+The normative machine-readable form of this section is [`schema/wcm-manifest-v1.schema.json`](schema/wcm-manifest-v1.schema.json), a JSON Schema 2020-12 document identified by `https://wcm.agentrust-io.com/schema/manifest/v1.json`. It is **frozen at v1 and additive-only**: fields and permitted enum values may be added, but nothing is removed, renamed, made required, narrowed, or repurposed inside v1, so an implementation written against it stays valid as the specification continues to evolve pre-1.0. One constraint below (`derived_from` must not equal `weights_hash`) cannot be expressed in JSON Schema and is verifier-side only; [`schema/README.md`](schema/README.md) records the versioning policy and that gap, and [`conformance/vectors/manifest/`](conformance/vectors/manifest/) carries the structural vectors an implementation is checked against. The JSON below is illustrative and abbreviated; where the two differ, the schema governs.
+
 ```json
 {
   "manifest_version": "0.1",

@@ -23,6 +23,10 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 COPY python/ /app/python/
+# The normative manifest JSON Schema lives at the repo root and the wheel build
+# force-includes it into the package, so the build needs it alongside python/.
+# It also belongs in this image on its own merits: the KBS validates manifests.
+COPY schema/ /app/schema/
 RUN pip install --no-cache-dir -c /app/python/docker/constraints.txt "/app/python[server]"
 
 # Run as a non-root, no-login user.

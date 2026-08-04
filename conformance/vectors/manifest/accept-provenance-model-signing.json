@@ -1,0 +1,55 @@
+{
+  "id": "accept-provenance-model-signing",
+  "description": "Provenance interop (SPEC 3.9): a signed reference to an OpenSSF model-signing signature over the base weights. WCM composes with model signing rather than replacing it, and does not re-sign the model files.",
+  "expect": "accept",
+  "manifest": {
+    "manifest_version": "1.0",
+    "weights_hash": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+    "builder": {
+      "identity": "example-builder",
+      "signing_key": "ed25519:builder-key"
+    },
+    "release_terms": {
+      "license": "customer-deployment-agreement-ref:CDA-2026-0001",
+      "permitted_derivatives": "fine-tune-only, no re-export of base weights",
+      "permitted_environments": [
+        "attested-enclave"
+      ]
+    },
+    "release_policy": {
+      "required_assurance_tier": "hardware-attested",
+      "required_hw_platform": [
+        "amd-sev-snp"
+      ],
+      "required_serving_image": {
+        "signer": "ed25519:builder-key",
+        "release_rule": "prefer-current",
+        "accepted_measurements": [
+          {
+            "measurement": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+            "status": "current"
+          }
+        ]
+      }
+    },
+    "custody": {
+      "custodian": "example-custodian",
+      "custodian_type": "customer-self-custody",
+      "kbs_image": {
+        "measurement": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+        "signer": "ed25519:custodian-key"
+      },
+      "enclave_id": "did:example:enclave-01",
+      "attestation_cadence": "24h"
+    },
+    "base_confidentiality": "gated-open",
+    "provenance": {
+      "model_signing": {
+        "method": "openssf-model-signing",
+        "signed_digest": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
+        "transparency": "https://rekor.example/api/v1/log/entries/abc123",
+        "signer": "https://github.com/example/model-release/.github/workflows/sign.yml@refs/heads/main"
+      }
+    }
+  }
+}
