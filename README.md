@@ -52,7 +52,7 @@ This repository is the **open protocol layer**: the specification, the threat mo
 
 ## Status
 
-Pre-1.0 and **staged for public release**: publication is gated on the hostile-owner posture stabilizing (the key-extraction half of open question 8.8, `SPEC.md` §8). Published for review and comment, not production.
+Pre-1.0, published for review and comment, **not for production**. Public release is a deliberate Project Lead decision and is **not** gated on the key-extraction half of open question 8.8: that residual is disclosed and scoped out of the operator-trust model (`SPEC.md` §3.6) rather than treated as a reason to withhold the document.
 
 ## License
 
