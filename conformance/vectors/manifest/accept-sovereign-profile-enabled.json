@@ -1,5 +1,7 @@
 {
   "id": "accept-sovereign-profile-enabled",
+  "level": "L1",
+  "kind": "manifest",
   "description": "An enabled sovereign profile, correctly configured: quorum revocation at both the profile and the release-policy level, and a named sovereign signer.",
   "expect": "accept",
   "manifest": {

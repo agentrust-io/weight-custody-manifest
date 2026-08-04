@@ -1,7 +1,10 @@
 {
   "id": "reject-claim-only-assurance-tier",
+  "level": "L1",
+  "kind": "manifest",
   "description": "hardware-attested is the only assurance tier. Claim-only assurance is not offered for frontier weights (SPEC 3.1).",
   "expect": "reject",
+  "code": "WCM-L1-0004",
   "reject_reason": "required_assurance_tier must be 'hardware-attested'",
   "schema_expressible": true,
   "manifest": {

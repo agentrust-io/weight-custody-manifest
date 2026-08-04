@@ -39,7 +39,7 @@ This repository is the **open protocol layer**: the specification, the threat mo
 - `SPEC.md` - the specification: manifest schema, attestation-gated release, runtime custody, derivative lineage, guarantee scope, and open questions.
 - `THREAT-MODEL.md` - assets, trusted computing base, adversaries, threats, and residual risks.
 - `schema/` - the normative manifest JSON Schema, **frozen at v1** and additive-only. The machine-readable form of `SPEC.md` §3.1; see `schema/README.md` for the versioning policy and the one constraint JSON Schema cannot express.
-- `conformance/` - language-neutral test vectors an implementation in any language is checked against.
+- `conformance/` - language-neutral test vectors and a scoring contract, run by `wcm conformance`. L1 (manifest and joint signature) and L4 (derivative lineage) are vectored; L2 and L3 are specified but **not yet vectored**, so a passing run is not a claim of full protocol conformance. See `conformance/README.md`.
 - `python/` - the Python reference SDK (build, sign, verify; the KBS gate and reference server; quote verification; transparency log; threshold; PQ profile). See `python/README.md`.
 - `docs/` - documentation site sources (published to wcm.agentrust-io.com).
 - `LIMITATIONS.md` - what WCM does **not** do; read alongside `SPEC.md` §3.6.

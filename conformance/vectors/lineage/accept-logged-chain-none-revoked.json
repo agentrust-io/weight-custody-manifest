@@ -1,0 +1,144 @@
+{
+  "id": "accept-logged-chain-none-revoked",
+  "level": "L4",
+  "kind": "lineage",
+  "description": "A three-generation chain where the caller has confirmed every member is in the transparency log and none is revoked. This is the full SPEC 3.8 gate: release is conditional on every upstream manifest being logged.",
+  "expect": "accept",
+  "manifests": [
+    {
+      "manifest_version": "1.0",
+      "weights_hash": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+      "builder": {
+        "identity": "example-builder",
+        "signing_key": "ed25519:builder-key"
+      },
+      "release_terms": {
+        "license": "customer-deployment-agreement-ref:CDA-2026-0001",
+        "permitted_derivatives": "fine-tune-only, no re-export of base weights",
+        "permitted_environments": [
+          "attested-enclave"
+        ],
+        "derivatives": "fine-tune-only"
+      },
+      "release_policy": {
+        "required_assurance_tier": "hardware-attested",
+        "required_hw_platform": [
+          "amd-sev-snp"
+        ],
+        "required_serving_image": {
+          "signer": "ed25519:builder-key",
+          "release_rule": "prefer-current",
+          "accepted_measurements": [
+            {
+              "measurement": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+              "status": "current"
+            }
+          ]
+        }
+      },
+      "custody": {
+        "custodian": "example-custodian",
+        "custodian_type": "customer-self-custody",
+        "kbs_image": {
+          "measurement": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+          "signer": "ed25519:custodian-key"
+        },
+        "enclave_id": "did:example:enclave-01",
+        "attestation_cadence": "24h"
+      },
+      "derived_from": "sha256:2222222222222222222222222222222222222222222222222222222222222222"
+    },
+    {
+      "manifest_version": "1.0",
+      "weights_hash": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+      "builder": {
+        "identity": "example-builder",
+        "signing_key": "ed25519:builder-key"
+      },
+      "release_terms": {
+        "license": "customer-deployment-agreement-ref:CDA-2026-0001",
+        "permitted_derivatives": "fine-tune-only, no re-export of base weights",
+        "permitted_environments": [
+          "attested-enclave"
+        ],
+        "derivatives": "fine-tune-only"
+      },
+      "release_policy": {
+        "required_assurance_tier": "hardware-attested",
+        "required_hw_platform": [
+          "amd-sev-snp"
+        ],
+        "required_serving_image": {
+          "signer": "ed25519:builder-key",
+          "release_rule": "prefer-current",
+          "accepted_measurements": [
+            {
+              "measurement": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+              "status": "current"
+            }
+          ]
+        }
+      },
+      "custody": {
+        "custodian": "example-custodian",
+        "custodian_type": "customer-self-custody",
+        "kbs_image": {
+          "measurement": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+          "signer": "ed25519:custodian-key"
+        },
+        "enclave_id": "did:example:enclave-01",
+        "attestation_cadence": "24h"
+      },
+      "derived_from": "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+    },
+    {
+      "manifest_version": "1.0",
+      "weights_hash": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "builder": {
+        "identity": "example-builder",
+        "signing_key": "ed25519:builder-key"
+      },
+      "release_terms": {
+        "license": "customer-deployment-agreement-ref:CDA-2026-0001",
+        "permitted_derivatives": "fine-tune-only, no re-export of base weights",
+        "permitted_environments": [
+          "attested-enclave"
+        ],
+        "derivatives": "unrestricted"
+      },
+      "release_policy": {
+        "required_assurance_tier": "hardware-attested",
+        "required_hw_platform": [
+          "amd-sev-snp"
+        ],
+        "required_serving_image": {
+          "signer": "ed25519:builder-key",
+          "release_rule": "prefer-current",
+          "accepted_measurements": [
+            {
+              "measurement": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+              "status": "current"
+            }
+          ]
+        }
+      },
+      "custody": {
+        "custodian": "example-custodian",
+        "custodian_type": "customer-self-custody",
+        "kbs_image": {
+          "measurement": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+          "signer": "ed25519:custodian-key"
+        },
+        "enclave_id": "did:example:enclave-01",
+        "attestation_cadence": "24h"
+      }
+    }
+  ],
+  "leaf": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+  "logged": [
+    "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+    "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+    "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+  ],
+  "revoked": []
+}

@@ -1,7 +1,10 @@
 {
   "id": "reject-byom-symmetric-hosted-custodian",
+  "level": "L1",
+  "kind": "manifest",
   "description": "Symmetric BYOM means one organization brings its own model into infrastructure it also custodies, so a hosted custodian contradicts the deployment model.",
   "expect": "reject",
+  "code": "WCM-L1-0008",
   "reject_reason": "deployment_model 'byom-symmetric' requires custody.custodian_type 'customer-self-custody'",
   "schema_expressible": true,
   "manifest": {

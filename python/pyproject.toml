@@ -73,6 +73,10 @@ packages = ["src/wcm"]
 # wheel, not only from a checkout.
 [tool.hatch.build.targets.wheel.force-include]
 "../schema/wcm-manifest-v1.schema.json" = "wcm/_schema/wcm-manifest-v1.schema.json"
+# Same reasoning for the conformance vectors: canonically a specification
+# artifact at the repo root, shipped inside the package so `wcm conformance`
+# works from an installed wheel.
+"../conformance/vectors" = "wcm/_conformance/vectors"
 
 [tool.hatch.build.targets.sdist]
 include = ["src/", "tests/", "examples/", "tools/", "README.md"]

@@ -1,7 +1,10 @@
 {
   "id": "reject-sovereign-enabled-non-quorum-profile",
+  "level": "L1",
+  "kind": "manifest",
   "description": "An enabled sovereign profile requires quorum revocation inside the profile. Joint builder-and-custodian authority would leave the sovereign out of the decision the profile exists to give it.",
   "expect": "reject",
+  "code": "WCM-L1-0007",
   "reject_reason": "sovereign_profile.enabled requires revocation_authority='quorum'",
   "schema_expressible": true,
   "manifest": {

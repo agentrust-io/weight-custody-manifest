@@ -1,7 +1,10 @@
 {
   "id": "reject-unsupported-hash-algorithm",
+  "level": "L1",
+  "kind": "manifest",
   "description": "weights_hash must be sha256 or shake256 with 64 lowercase hex characters.",
   "expect": "reject",
+  "code": "WCM-L1-0003",
   "reject_reason": "weights_hash does not match the required hash pattern",
   "schema_expressible": true,
   "manifest": {

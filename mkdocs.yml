@@ -44,6 +44,7 @@ nav:
   - Specification:
       - Overview: spec-overview.md
       - Threat model: threat-model.md
+      - Schema and conformance: conformance.md
   - SDK:
       - Getting started: getting-started.md
       - Reference KBS image: reference-kbs.md

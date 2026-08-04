@@ -1,7 +1,10 @@
 {
   "id": "reject-retiring-without-retire-after",
+  "level": "L1",
+  "kind": "manifest",
   "description": "A retiring measurement must say when it retires, or 'retiring' carries no deadline and never actually retires.",
   "expect": "reject",
+  "code": "WCM-L1-0006",
   "reject_reason": "a 'retiring' accepted_measurement requires 'retire_after'",
   "schema_expressible": true,
   "manifest": {

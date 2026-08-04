@@ -1,5 +1,7 @@
 {
   "id": "accept-provenance-model-signing",
+  "level": "L1",
+  "kind": "manifest",
   "description": "Provenance interop (SPEC 3.9): a signed reference to an OpenSSF model-signing signature over the base weights. WCM composes with model signing rather than replacing it, and does not re-sign the model files.",
   "expect": "accept",
   "manifest": {

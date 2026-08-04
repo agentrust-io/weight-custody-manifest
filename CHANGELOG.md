@@ -37,6 +37,46 @@ removing the model validator cannot make the parity test go quietly green. No ne
 runtime dependency: `wcm.schema` returns the schema document and leaves
 validation to the caller (`jsonschema` is a dev-only test dependency).
 
+**[spec/sdk]** **Conformance suite** (`conformance/`) so an independent
+implementation can be checked against the same inputs the reference is, in any
+language. Four levels matching the four layers, `WCM-*` error codes
+(`conformance/codes.md`), 42 language-neutral JSON vectors, and a runner exposed
+as `wcm conformance` that both self-tests this SDK and scores another
+implementation's results file. Ships in the wheel, so it works from
+`pip install weight-custody-manifest`.
+
+Three rules make a pass mean something: every valid input must be accepted (an
+over-strict implementation fails too), every invalid one must be rejected **for
+the declared code** (so "reject everything" cannot pass), and a vector with no
+reported result counts as a failure (so a partial submission cannot claim a
+level). All three are tested directly, with deliberate cheating attempts.
+
+**Coverage is partial and the suite says so on every run.** L1 (manifest and
+joint signature, 32 vectors) and L4 (derivative lineage, 10) are vectored. L2
+(attestation-gated release) and L3 (runtime custody) are specified with their
+codes allocated but have **no vectors yet**: L1 and L4 are checks over documents,
+while L2 and L3 are protocol behaviour over live state (single-use nonces,
+released key material, clocks, operation counters), which needs a
+scripted-scenario format with deterministic seeds that is not designed yet.
+`wcm conformance` names the levels it did not cover and exits non-zero if asked
+to score one of them, so a green L1+L4 run cannot be read as full protocol
+conformance.
+
+Two interop details surfaced while building the vectors, both now stated as L1
+requirements rather than left as traps: an implementation must **materialize
+schema defaults before computing the signing pre-image** (the verifier
+canonicalizes the parsed manifest, so canonicalizing the raw document as received
+yields a different pre-image and rejects valid signatures), and the
+self-derivation check must live **outside** the JSON Schema, so an implementation
+that delegates all structural validation to the schema fails
+`reject-self-derivation`.
+
+Also: `python/docker/Dockerfile` now copies the repo-root `schema/` and
+`conformance/` into the build context, which the wheel build force-includes, and
+the KBS image should carry the schema it validates against anyway. `docs/` gains a
+schema-and-conformance page, and `docs/spec-overview.md` was corrected from v0.13
+to the current v0.15.
+
 **[docs]** Synced the README `Status` section to the v0.12 publication posture. It
 still said publication was gated on the key-extraction half of open question 8.8,
 which v0.12 explicitly reversed and which `SPEC.md` §3.6, `ROADMAP.md`, `CHARTER.md`,

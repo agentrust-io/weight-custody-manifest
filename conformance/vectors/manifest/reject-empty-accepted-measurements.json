@@ -1,7 +1,10 @@
 {
   "id": "reject-empty-accepted-measurements",
+  "level": "L1",
+  "kind": "manifest",
   "description": "At least one accepted serving-image measurement is required, otherwise no serving stack could ever satisfy the release gate.",
   "expect": "reject",
+  "code": "WCM-L1-0005",
   "reject_reason": "accepted_measurements must contain at least one entry",
   "schema_expressible": true,
   "manifest": {

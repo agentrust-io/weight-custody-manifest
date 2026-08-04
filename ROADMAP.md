@@ -5,6 +5,8 @@
 Published for review and comment, **not for production**. Publication of the open spec and SDK is **not** gated on the key-extraction half of open question 8.8 (§3.6): that residual is disclosed and scoped out of the operator-trust model rather than treated as a reason to withhold the document.
 
 - **Specification** (`SPEC.md` v0.15): four layers (manifest, attestation-gated release, runtime custody, derivative lineage), transparency log, guarantee-scope honesty (§3.6), a model-signing provenance interop (§3.9), and the open questions in §8.
+- **Manifest JSON Schema** (`schema/`), the machine-readable form of §3.1, **frozen at v1** and additive-only. One constraint (`derived_from` != `weights_hash`) is not expressible in JSON Schema and stays verifier-side, documented rather than glossed.
+- **Conformance suite** (`conformance/`): language-neutral vectors plus a scoring contract, run by `wcm conformance`. **L1 (manifest and joint signature) and L4 (derivative lineage) are vectored; L2 and L3 are specified with codes allocated but have no vectors yet**, because they are protocol behaviour over live state rather than checks over documents. A passing run names the levels it covered and the ones it did not.
 - **Threat model** (`THREAT-MODEL.md`): assets, TCB, adversaries, threats, residual risk.
 - **Python reference SDK** (`python/`, published on PyPI): the full protocol -
   - Layer 1 joint signing + verification (Ed25519, ML-DSA-65, and hybrid profiles)
@@ -22,13 +24,14 @@ Published for review and comment, **not for production**. Publication of the ope
 
 - **Bit-for-bit reproducible KBS image** - base-image digest pinning + hash-locked dependencies on top of the current build.
 - **Bare-metal `/dev/*-guest` provider validation** - the raw-ioctl SNP/TDX providers stay provisional until validated on a bare-metal host (cloud CVMs use the validated vTPM path).
-- **Path to 1.0** - finalize the remaining open questions (8.1 reconciliation window, multi-party co-governance), freeze the manifest schema, and set a versioning policy.
+- **L2 and L3 conformance vectors** - a scripted-scenario format with deterministic seeds, so attestation-gated release and runtime custody can be scored the way L1 and L4 already are.
+- **Path to 1.0** - finalize the remaining open questions (8.1 reconciliation window, multi-party co-governance). The manifest schema is frozen and its versioning policy is written (`schema/README.md`); what remains is the spec text catching up to it.
 - Community and design-partner feedback on the manifest schema and the sovereign profile.
 
 ## Later - 1.0 and standards
 
 - Resolve or bound the remaining open questions in §8 (the key-extraction half of 8.8 needs new silicon and is disclosed as a scoped limit, not a blocker on the spec).
-- Standards path: IETF SCITT (technical) and CoSAI (positioning), with WCM constructs mapped to SCITT roles (§3.4); a conformance suite for third-party implementations.
+- Standards path: IETF SCITT (technical) and CoSAI (positioning), with WCM constructs mapped to SCITT roles (§3.4). The conformance suite third-party implementations are scored against now exists for L1 and L4 (see **Now** above); full coverage is the L2/L3 vector work under **Next**.
 - Threshold and self-custody hardening promoted from preview to specified.
 - Additional language SDKs as the community grows.
 

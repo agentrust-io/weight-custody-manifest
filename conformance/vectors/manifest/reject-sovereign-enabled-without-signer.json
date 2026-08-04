@@ -1,7 +1,10 @@
 {
   "id": "reject-sovereign-enabled-without-signer",
+  "level": "L1",
+  "kind": "manifest",
   "description": "An enabled sovereign profile with no sovereign_signer names no party to hold the veto, so the quorum it claims does not exist.",
   "expect": "reject",
+  "code": "WCM-L1-0007",
   "reject_reason": "sovereign_profile.enabled requires 'sovereign_signer'",
   "schema_expressible": true,
   "manifest": {

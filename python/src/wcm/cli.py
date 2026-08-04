@@ -11,6 +11,8 @@ Verbs:
                                            Verify a captured attestation quote.
   wcm verify-provenance MANIFEST --model DIR --signature SIG --public-key PEM
                                            Cross-verify OpenSSF model-signing.
+  wcm conformance [--level L1|L2|L3|L4] [--results FILE] [--list-vectors]
+                  [--list-codes]           Run the conformance suite.
 
 Keys are read from files, never passed on the command line: a private key on
 argv leaks into process listings and shell history, and a base64url key can
@@ -356,6 +358,56 @@ def cmd_verify_provenance(args: argparse.Namespace) -> int:
     return 0 if result.verified else 1
 
 
+def cmd_conformance(args: argparse.Namespace) -> int:
+    from .conformance import (
+        CODES,
+        DECLARED_ONLY_LEVELS,
+        LEVELS,
+        load_vectors,
+        run_reference,
+        score_results,
+        vectors_dir,
+    )
+
+    if args.list_codes:
+        for code, description in CODES.items():
+            print(f"{code}  {description}")
+        return 0
+
+    if args.list_vectors:
+        for vector in load_vectors(level=args.level):
+            print(f"{vector['level']}  {vector['kind']:10} {vector['expect']:6} {vector['id']}")
+        return 0
+
+    if args.results:
+        with open(args.results, encoding="utf-8") as handle:
+            payload = json.load(handle)
+        report = score_results(payload, level=args.level)
+        subject = payload.get("implementation", args.results)
+    else:
+        report = run_reference(level=args.level)
+        subject = "reference implementation (this SDK)"
+
+    print(f"vectors   : {vectors_dir()}")
+    print(f"subject   : {subject}")
+    print(report.render())
+    if not args.results:
+        # The reference deriving its own codes is a weaker signal than an
+        # independent implementation doing so; say which one this was.
+        print("note      : reference self-test; verdicts and WCM-* codes both checked")
+    covered = ", ".join(r.level for r in report.levels if r.ok) or "none"
+    print(f"levels ok : {covered}")
+    if DECLARED_ONLY_LEVELS and args.level is None:
+        pending = ", ".join(
+            f"{lid} ({LEVELS[lid].title})" for lid in DECLARED_ONLY_LEVELS
+        )
+        print(
+            f"NOT COVERED: {pending}. These levels are specified but have no "
+            "vectors yet, so this run says nothing about them."
+        )
+    return 0 if report.ok else 1
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="wcm", description=__doc__)
     sub = parser.add_subparsers(dest="command", required=True)
@@ -428,6 +480,28 @@ def build_parser() -> argparse.ArgumentParser:
     p_vp.add_argument("--signature", required=True, help="Path to the model-signing signature")
     p_vp.add_argument("--public-key", required=True, help="EC public key (PEM) to verify under")
     p_vp.set_defaults(func=cmd_verify_provenance)
+
+    p_conf = sub.add_parser(
+        "conformance",
+        help="Run the conformance suite, or score another implementation's results",
+    )
+    p_conf.add_argument(
+        "--level",
+        choices=sorted(("L1", "L2", "L3", "L4")),
+        help="Score one level only (default: every level that has vectors)",
+    )
+    p_conf.add_argument(
+        "--results",
+        help="Score this results JSON instead of self-testing the reference "
+        "(see conformance/README.md for the shape)",
+    )
+    p_conf.add_argument(
+        "--list-vectors", action="store_true", help="List the vectors and exit"
+    )
+    p_conf.add_argument(
+        "--list-codes", action="store_true", help="List the WCM-* error codes and exit"
+    )
+    p_conf.set_defaults(func=cmd_conformance)
 
     return parser
 

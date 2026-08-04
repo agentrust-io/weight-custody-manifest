@@ -1,7 +1,10 @@
 {
   "id": "reject-retire-after-on-current",
+  "level": "L1",
+  "kind": "manifest",
   "description": "retire_after is exclusive to a retiring measurement. On a current one it would imply a retirement the status does not declare.",
   "expect": "reject",
+  "code": "WCM-L1-0006",
   "reject_reason": "'retire_after' is only valid on a 'retiring' accepted_measurement",
   "schema_expressible": true,
   "manifest": {

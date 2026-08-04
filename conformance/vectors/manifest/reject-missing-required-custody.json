@@ -1,7 +1,10 @@
 {
   "id": "reject-missing-required-custody",
+  "level": "L1",
+  "kind": "manifest",
   "description": "The custody block is required: a manifest with no custodian and no KBS image names nobody to gate release.",
   "expect": "reject",
+  "code": "WCM-L1-0002",
   "reject_reason": "'custody' is required",
   "schema_expressible": true,
   "manifest": {

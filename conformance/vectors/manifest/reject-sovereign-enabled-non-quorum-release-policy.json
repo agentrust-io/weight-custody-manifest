@@ -1,7 +1,10 @@
 {
   "id": "reject-sovereign-enabled-non-quorum-release-policy",
+  "level": "L1",
+  "kind": "manifest",
   "description": "With the sovereign profile on, top-level revocation must also be quorum-based: a unilateral path at the release-policy level would bypass the profile's veto.",
   "expect": "reject",
+  "code": "WCM-L1-0007",
   "reject_reason": "with sovereign_profile.enabled, release_policy.revocation_authority must be 'quorum'",
   "schema_expressible": true,
   "manifest": {

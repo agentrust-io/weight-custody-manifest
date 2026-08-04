@@ -1,7 +1,10 @@
 {
   "id": "reject-unknown-top-level-field",
+  "level": "L1",
+  "kind": "manifest",
   "description": "An unrecognized top-level key. The spec defines exhaustive field sets, so an unknown key is structural drift, not an extension point.",
   "expect": "reject",
+  "code": "WCM-L1-0001",
   "reject_reason": "unknown field 'unexpected_field' (additionalProperties is false)",
   "schema_expressible": true,
   "manifest": {
