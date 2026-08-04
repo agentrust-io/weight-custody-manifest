@@ -3,9 +3,23 @@ name: python
 on:
   push:
     branches: [main]
-    paths: ["python/**", ".github/workflows/python.yml"]
+    # schema/ and conformance/ live outside python/ but the suite validates them
+    # (tests/test_schema.py checks the committed schema against the generator and
+    # both against the vector corpus), so a change to either must run these tests.
+    paths:
+      - "python/**"
+      - "schema/**"
+      - "conformance/**"
+      - ".github/workflows/python.yml"
   pull_request:
-    paths: ["python/**", ".github/workflows/python.yml"]
+    # schema/ and conformance/ live outside python/ but the suite validates them
+    # (tests/test_schema.py checks the committed schema against the generator and
+    # both against the vector corpus), so a change to either must run these tests.
+    paths:
+      - "python/**"
+      - "schema/**"
+      - "conformance/**"
+      - ".github/workflows/python.yml"
 
 permissions:
   contents: read

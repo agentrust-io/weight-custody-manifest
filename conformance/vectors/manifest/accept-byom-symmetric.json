@@ -1,0 +1,47 @@
+{
+  "id": "accept-byom-symmetric",
+  "description": "Symmetric BYOM: one organization holds both the builder and custodian roles for its own model, which requires customer-self-custody.",
+  "expect": "accept",
+  "manifest": {
+    "manifest_version": "1.0",
+    "weights_hash": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+    "builder": {
+      "identity": "example-builder",
+      "signing_key": "ed25519:builder-key"
+    },
+    "release_terms": {
+      "license": "customer-deployment-agreement-ref:CDA-2026-0001",
+      "permitted_derivatives": "fine-tune-only, no re-export of base weights",
+      "permitted_environments": [
+        "attested-enclave"
+      ]
+    },
+    "release_policy": {
+      "required_assurance_tier": "hardware-attested",
+      "required_hw_platform": [
+        "amd-sev-snp"
+      ],
+      "required_serving_image": {
+        "signer": "ed25519:builder-key",
+        "release_rule": "prefer-current",
+        "accepted_measurements": [
+          {
+            "measurement": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+            "status": "current"
+          }
+        ]
+      }
+    },
+    "custody": {
+      "custodian": "example-custodian",
+      "custodian_type": "customer-self-custody",
+      "kbs_image": {
+        "measurement": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+        "signer": "ed25519:custodian-key"
+      },
+      "enclave_id": "did:example:enclave-01",
+      "attestation_cadence": "24h"
+    },
+    "deployment_model": "byom-symmetric"
+  }
+}

@@ -6,6 +6,37 @@ uses semantic-ish versioning while pre-1.0.
 
 ## Unreleased
 
+**[spec/sdk]** Normative manifest **JSON Schema, frozen at v1**
+(`schema/wcm-manifest-v1.schema.json`, `$id`
+`https://wcm.agentrust-io.com/schema/manifest/v1.json`). Until now the manifest
+existed only as prose in SPEC.md §3.1 plus the Pydantic reference model, so a
+third-party implementer had nothing machine-readable to validate against. The
+structural half is generated from the model (`python/tools/gen_schema.py`, with a
+`--check` mode CI runs, so the committed file cannot drift); the four cross-field
+rules the model enforces in validators are hand-carried as `if`/`then` blocks.
+Ships inside the wheel, so `wcm.schema.manifest_schema()` works from an installed
+package. Adds a shared vector corpus at `conformance/vectors/manifest/` (24
+language-neutral accept/reject cases) that `tests/test_schema.py` runs against
+both the schema and the model, asserting they agree.
+
+Frozen means additive-only: fields and enum values may be added, but nothing is
+removed, renamed, made required, narrowed, or repurposed inside v1, and a
+breaking change would publish `.../manifest/v2.json` alongside rather than edit
+v1. That is a deliberate trade, since the spec itself is still pre-1.0: an
+implementer gets a stable target now, and anything the spec grows into arrives as
+an addition. `manifest_version` stays unconstrained; it versions the manifest
+instance under the issuing builder's scheme, not the schema.
+
+**Honest gap, documented not papered over:** one model constraint,
+`derived_from != weights_hash`, is not expressible in standard JSON Schema, which
+cannot compare the values at two instance locations. It stays a verifier-side
+check. It is recorded in `schema/README.md`, carried as a negative vector marked
+`schema_expressible: false`, and asserted directly in the tests, so a
+schema-only implementation cannot pass by delegating everything to the schema and
+removing the model validator cannot make the parity test go quietly green. No new
+runtime dependency: `wcm.schema` returns the schema document and leaves
+validation to the caller (`jsonschema` is a dev-only test dependency).
+
 **[docs]** Synced the README `Status` section to the v0.12 publication posture. It
 still said publication was gated on the key-extraction half of open question 8.8,
 which v0.12 explicitly reversed and which `SPEC.md` §3.6, `ROADMAP.md`, `CHARTER.md`,

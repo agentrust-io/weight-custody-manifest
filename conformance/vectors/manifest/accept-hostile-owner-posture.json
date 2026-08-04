@@ -1,0 +1,68 @@
+{
+  "id": "accept-hostile-owner-posture",
+  "description": "The hostile-owner posture with every optional release-policy control set: mandatory physical hardening, a secure-TSC time floor, the memory-fingerprint challenge, composite CPU+GPU attestation, and a live revocation check. Also exercises all three accepted-measurement statuses.",
+  "expect": "accept",
+  "manifest": {
+    "manifest_version": "1.0",
+    "weights_hash": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+    "builder": {
+      "identity": "example-builder",
+      "signing_key": "ed25519:builder-key"
+    },
+    "release_terms": {
+      "license": "customer-deployment-agreement-ref:CDA-2026-0001",
+      "permitted_derivatives": "fine-tune-only, no re-export of base weights",
+      "permitted_environments": [
+        "attested-enclave"
+      ],
+      "jurisdiction_restriction": "US, EU",
+      "derivatives": "fine-tune-only"
+    },
+    "release_policy": {
+      "required_assurance_tier": "hardware-attested",
+      "required_hw_platform": [
+        "amd-sev-snp",
+        "nvidia-cc-gpu"
+      ],
+      "required_serving_image": {
+        "signer": "ed25519:builder-key",
+        "release_rule": "prefer-current",
+        "accepted_measurements": [
+          {
+            "measurement": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+            "status": "current"
+          },
+          {
+            "measurement": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+            "status": "retiring",
+            "retire_after": "2026-12-31T00:00:00Z"
+          },
+          {
+            "measurement": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+            "status": "revoked"
+          }
+        ]
+      },
+      "physical_hardening": "tamper-evident-enclosure+access-control+chain-of-custody",
+      "trusted_time_source": "secure-tsc",
+      "memory_fingerprint_challenge": "required-for-hostile-owner-posture",
+      "required_gpu_measurement": {
+        "rim_pin": "nvidia-rim:driver+vbios-golden-measurement-id",
+        "note": "GPU evidence is a separate chain from the CVM report; both are bound by the same nonce (SPEC 3.2)"
+      },
+      "tenancy": "dedicated",
+      "attestation_revocation_check": "live-per-release, max-cache-age: short-window"
+    },
+    "custody": {
+      "custodian": "example-custodian",
+      "custodian_type": "customer-self-custody",
+      "kbs_image": {
+        "measurement": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+        "signer": "ed25519:custodian-key"
+      },
+      "enclave_id": "did:example:enclave-01",
+      "attestation_cadence": "24h",
+      "kbs_attestation_cadence": "6h"
+    }
+  }
+}
