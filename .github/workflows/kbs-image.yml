@@ -3,12 +3,19 @@ name: kbs-image
 on:
   push:
     branches: [main]
-    paths: ["python/**", ".github/workflows/kbs-image.yml", ".dockerignore"]
+    paths:
+      - "python/**"
+      - "schema/**"
+      - "conformance/**"
+      - ".github/workflows/kbs-image.yml"
+      - ".dockerignore"
   pull_request:
     paths:
       - "python/docker/**"
       - "python/src/wcm/server.py"
       - "python/pyproject.toml"
+      - "schema/**"
+      - "conformance/**"
       - ".github/workflows/kbs-image.yml"
       - ".dockerignore"
 
@@ -37,6 +44,25 @@ jobs:
           docker logs kbs
           docker rm -f kbs
 
-      - name: Record image id (measurement reference)
+      - name: Assert no build tooling reached the runtime image
+        # The runtime stage installs the wheel with --no-deps against a
+        # hash-locked closure, so hatchling must not be present.
         run: |
+          if docker run --rm --entrypoint python wcm-kbs:ci -c "import hatchling" 2>/dev/null; then
+            echo "::error::hatchling leaked into the runtime image"
+            exit 1
+          fi
+          docker run --rm --entrypoint python wcm-kbs:ci -c "import wcm, wcm.schema; print('wcm', wcm.__version__, wcm.schema.SCHEMA_ID)"
+
+      - name: Verify the build is reproducible
+        # Builds twice (second with --no-cache) and compares the exported
+        # filesystem CONTENT. Content rather than layer digests, because BuildKit
+        # stamps build-time mtimes onto COPY destination directory entries that no
+        # in-image normalization can reach, and content is what a KBS measurement
+        # is about anyway. See the script header and docs/reproducible-kbs-image.md.
+        run: ./python/docker/verify-reproducible.sh
+
+      - name: Record the measurement reference
+        run: |
+          docker image inspect wcm-kbs:ci --format 'layers: {{json .RootFS.Layers}}'
           docker image inspect wcm-kbs:ci --format 'image id: {{.Id}}'

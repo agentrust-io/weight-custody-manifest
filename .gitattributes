@@ -1,0 +1,5 @@
+# Shell scripts must keep LF endings. This repo is developed on Windows and its
+# CI runs on Linux, and a CRLF in a script breaks the shebang and every command
+# in it. Nothing else is pinned here: the rest of the tree is read by tools that
+# do not care about endings, and forcing them repo-wide would churn every file.
+*.sh text eol=lf

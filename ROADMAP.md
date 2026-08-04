@@ -22,7 +22,7 @@ Published for review and comment, **not for production**. Publication of the ope
 
 ## Next
 
-- **Bit-for-bit reproducible KBS image** - base-image digest pinning + hash-locked dependencies on top of the current build.
+- **Cross-builder verification of the KBS image.** The image is bit-for-bit reproducible (base pinned by digest, fully hash-locked dependencies, normalized mtimes) and CI proves two `--no-cache` builds produce identical layers. What remains is confirming that across *independent* builders on different machines, which is a certification step rather than a CI one.
 - **Bare-metal `/dev/*-guest` provider validation** - the raw-ioctl SNP/TDX providers stay provisional until validated on a bare-metal host (cloud CVMs use the validated vTPM path).
 - **L2 and L3 conformance vectors** - a scripted-scenario format with deterministic seeds, so attestation-gated release and runtime custody can be scored the way L1 and L4 already are.
 - **Path to 1.0** - finalize the remaining open questions (8.1 reconciliation window, multi-party co-governance). The manifest schema is frozen and its versioning policy is written (`schema/README.md`); what remains is the spec text catching up to it.
