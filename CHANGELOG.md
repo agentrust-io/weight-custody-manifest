@@ -52,26 +52,39 @@ direct dependencies, so it could not.
   `pip --require-hashes`. Each pin lists *every* artifact PyPI publishes for that
   version, so the lock is not tied to one wheel tag. Regenerate with
   `python tools/gen_kbs_lock.py` (`--check` for staleness), which resolves for the
-  image's platform rather than the host's.
+  image's platform rather than the host's, and from `pyproject.toml`'s own declared
+  requirements, so a pin cannot violate what the package says it supports.
 - **No unpinned fetch anywhere in the build.** The wheel is built in a discarded
   builder stage with `--no-build-isolation` against the locked build set, then
   installed `--no-deps --no-index`. CI asserts `import hatchling` fails in the
   runtime image.
 - **mtimes normalized to `SOURCE_DATE_EPOCH`** inside each layer that writes
-  files, because pip and hatchling stamp build time into what they write and a
-  layer digest covers mtimes. Scoped to the paths the build touches; a blanket
-  `find /` would copy every base-image file up into the final layer.
-- **CI builds twice, the second with `--no-cache`, and requires identical layer
-  digests.** It compares `RootFS.Layers` rather than the image id, since the image
-  config carries a wall-clock `created` timestamp that differs by design.
+  files, because pip and hatchling stamp build time into what they write. Scoped
+  to the paths the build touches; a blanket `find /` would copy every base-image
+  file up into the final layer.
+- **`pip --no-compile`.** pip byte-compiles by default and a `.pyc` embeds the
+  source mtime, so normalizing mtimes afterwards leaves bytecode holding the old
+  value: reproducible-looking sources over irreproducible bytecode.
+  `PYTHONDONTWRITEBYTECODE` does not cover it, since it governs the interpreter
+  rather than pip's compile pass.
+- **`docker/verify-reproducible.sh`**, run by CI and runnable locally: builds
+  twice (the second with `--no-cache`) and compares the two images' **exported
+  filesystem content**, every entry's type, permissions and path plus a sha256 of
+  every regular file, then prints a stable content digest. Content rather than
+  layer digests, because BuildKit stamps a build-time mtime onto the destination
+  directory entry a `COPY` creates, which no in-image normalization can reach, so
+  layer comparison fails on metadata noise that says nothing about what the image
+  contains. Verified: two independent builds produce byte-identical content across
+  5,948 files.
 
 **Scope stated precisely** in `python/docs/reproducible-kbs-image.md`: this proves
 the build does not depend on when it ran, on cached layers, or on what a resolver
-would have picked that day. It does **not** prove cross-machine reproducibility,
-since both builds share one runner, one Docker version, and one checkout, and
-`COPY` carries source-file mtimes. The honest claim is reproducible under a fixed
-builder with every content input pinned; verifying across independent builders
-belongs to whoever certifies a deployment.
+would have picked that day. All three of those actually broke the check while it
+was being written, which is the argument for having it. It does **not** prove
+cross-machine reproducibility, since both builds share one runner, one Docker
+version, and one checkout. The honest claim is reproducible under a fixed builder
+with every content input pinned; verifying across independent builders belongs to
+whoever certifies a deployment.
 
 **[spec/sdk]** **Conformance suite** (`conformance/`) so an independent
 implementation can be checked against the same inputs the reference is, in any
