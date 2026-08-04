@@ -71,11 +71,11 @@ self-derivation check must live **outside** the JSON Schema, so an implementatio
 that delegates all structural validation to the schema fails
 `reject-self-derivation`.
 
-Also: `python/docker/Dockerfile` now copies the repo-root `schema/` into the
-build context, which the wheel build force-includes, and the KBS image should
-carry the schema it validates against anyway. `docs/` gains a schema-and-
-conformance page, and `docs/spec-overview.md` was corrected from v0.13 to the
-current v0.15.
+Also: `python/docker/Dockerfile` now copies the repo-root `schema/` and
+`conformance/` into the build context, which the wheel build force-includes, and
+the KBS image should carry the schema it validates against anyway. `docs/` gains a
+schema-and-conformance page, and `docs/spec-overview.md` was corrected from v0.13
+to the current v0.15.
 
 **[docs]** Synced the README `Status` section to the v0.12 publication posture. It
 still said publication was gated on the key-extraction half of open question 8.8,
