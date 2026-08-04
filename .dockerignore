@@ -9,3 +9,8 @@ python/.venv
 .git
 **/htmlcov
 **/.coverage
+# Build outputs: a stale local dist/ or site/ copied into the build context would
+# change layer content, which the reproducibility check would then flag.
+**/dist
+**/build
+site

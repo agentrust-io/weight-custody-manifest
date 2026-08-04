@@ -3,12 +3,19 @@ name: kbs-image
 on:
   push:
     branches: [main]
-    paths: ["python/**", ".github/workflows/kbs-image.yml", ".dockerignore"]
+    paths:
+      - "python/**"
+      - "schema/**"
+      - "conformance/**"
+      - ".github/workflows/kbs-image.yml"
+      - ".dockerignore"
   pull_request:
     paths:
       - "python/docker/**"
       - "python/src/wcm/server.py"
       - "python/pyproject.toml"
+      - "schema/**"
+      - "conformance/**"
       - ".github/workflows/kbs-image.yml"
       - ".dockerignore"
 
@@ -37,6 +44,37 @@ jobs:
           docker logs kbs
           docker rm -f kbs
 
-      - name: Record image id (measurement reference)
+      - name: Assert no build tooling reached the runtime image
+        # The runtime stage installs the wheel with --no-deps against a
+        # hash-locked closure, so hatchling must not be present.
         run: |
+          if docker run --rm --entrypoint python wcm-kbs:ci -c "import hatchling" 2>/dev/null; then
+            echo "::error::hatchling leaked into the runtime image"
+            exit 1
+          fi
+          docker run --rm --entrypoint python wcm-kbs:ci -c "import wcm, wcm.schema; print('wcm', wcm.__version__, wcm.schema.SCHEMA_ID)"
+
+      - name: Rebuild from scratch and assert identical layers
+        # The reproducibility claim, tested rather than asserted. --no-cache so
+        # the second build genuinely redoes every step; reusing the cache would
+        # make this pass trivially and prove nothing.
+        #
+        # Layer digests, not the image id: the image config carries a `created`
+        # timestamp taken from wall-clock, so image ids differ by design while
+        # the FILESYSTEM should not.
+        run: |
+          docker build --no-cache -f python/docker/Dockerfile -t wcm-kbs:ci2 .
+          docker image inspect wcm-kbs:ci  --format '{{json .RootFS.Layers}}' > layers1.json
+          docker image inspect wcm-kbs:ci2 --format '{{json .RootFS.Layers}}' > layers2.json
+          echo "build 1: $(cat layers1.json)"
+          echo "build 2: $(cat layers2.json)"
+          if ! diff -u layers1.json layers2.json; then
+            echo "::error::two builds of the same source produced different layers; the image is not reproducible"
+            exit 1
+          fi
+          echo "reproducible: both builds produced identical layer digests"
+
+      - name: Record the measurement reference
+        run: |
+          docker image inspect wcm-kbs:ci --format 'layers: {{json .RootFS.Layers}}'
           docker image inspect wcm-kbs:ci --format 'image id: {{.Id}}'

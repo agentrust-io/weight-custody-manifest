@@ -1,7 +1,0 @@
-# Pinned direct dependencies for the reference KBS image (validated versions).
-# For bit-for-bit reproducibility, extend this to a fully hash-locked set
-# (pip-compile --generate-hashes) and pin the base image by digest — see
-# docs/reproducible-kbs-image.md.
-pydantic==2.13.4
-cryptography==49.0.0
-fastapi==0.141.1

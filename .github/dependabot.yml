@@ -22,3 +22,17 @@ updates:
     open-pull-requests-limit: 5
     labels:
       - dependencies
+
+  # The KBS image base is pinned by digest for reproducibility, which means it
+  # does not pick up security updates on its own. Dependabot moving the digest is
+  # what keeps the pin from going stale. Note that a base bump makes the image
+  # measurement change, which is expected and is why the measurement is pinned
+  # per release rather than assumed constant.
+  - package-ecosystem: docker
+    directory: /python/docker
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
