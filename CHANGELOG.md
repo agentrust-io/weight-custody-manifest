@@ -222,6 +222,31 @@ new library API. Adds a "Sovereign self-custody (threshold)" tutorial.
 
 ## SDK
 
+### 0.24.0
+- **Normative manifest JSON Schema, frozen at v1** (`schema/`, `$id`
+  `https://wcm.agentrust-io.com/schema/manifest/v1.json`). Generated from the
+  reference model and augmented with the cross-field rules Pydantic does not
+  export; `wcm.schema.manifest_schema()` reads it from the installed wheel.
+  Additive-only from here. One constraint (`derived_from` != `weights_hash`) is not
+  expressible in JSON Schema and stays verifier-side, documented rather than
+  glossed.
+- **Conformance suite** (`conformance/`, `wcm conformance`): 91 language-neutral
+  vectors across all four levels, a `WCM-*` error-code registry, and a scoring
+  contract for other implementations. L1 and L4 over documents; L2 (the release
+  gate, policy *and* cryptographic quote verification) and L3 (runtime custody) as
+  time-ordered scenarios with an injected clock. Every reportable code is exercised
+  by a vector; the two remaining limits are printed on every run.
+- **`retire_after` parsing fixed** (`kbs.py`): a value without a timezone offset
+  raised `TypeError` out of `verify_and_release` and aborted the release path. Naive
+  is now read as UTC, an explicit offset is honoured, and an unparseable value fails
+  closed. Found by the new L2 vectors.
+- **Bit-for-bit reproducible KBS image**: base pinned by digest, 22 hash-locked
+  dependencies replacing 3 direct pins, no unpinned network fetch in the build,
+  normalized mtimes, `pip --no-compile`, and `docker/verify-reproducible.sh` which
+  CI runs to compare two builds' filesystem content.
+- No breaking API changes. New modules `wcm.schema` and `wcm.conformance`; new CLI
+  verb `wcm conformance`; new dev-only dependency `jsonschema`.
+
 ### 0.23.0
 - **CLI reaches the whole protocol.** `wcm` gained four verbs beyond
   keygen/sign/verify: `wcm inspect` (summarize a manifest's fields and release
