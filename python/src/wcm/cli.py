@@ -363,6 +363,7 @@ def cmd_conformance(args: argparse.Namespace) -> int:
         CODES,
         DECLARED_ONLY_LEVELS,
         LEVELS,
+        NOT_YET_VECTORED_CODES,
         load_vectors,
         run_reference,
         score_results,
@@ -404,6 +405,15 @@ def cmd_conformance(args: argparse.Namespace) -> int:
         print(
             f"NOT COVERED: {pending}. These levels are specified but have no "
             "vectors yet, so this run says nothing about them."
+        )
+    if NOT_YET_VECTORED_CODES and args.level is None:
+        # Every level is vectored, but not every requirement within one is. Say
+        # which, so a green run is not read as covering the whole level.
+        pending_codes = ", ".join(sorted(NOT_YET_VECTORED_CODES))
+        print(
+            f"NOT COVERED: {pending_codes}. Cryptographic quote verification "
+            "(signature and cert chain to a vendor root) has no vectors yet, so a "
+            "pass does not cover it."
         )
     return 0 if report.ok else 1
 

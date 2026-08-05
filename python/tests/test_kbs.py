@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 from datetime import datetime, timezone
 
 import pytest
@@ -346,3 +347,84 @@ def test_channel_binding_malformed_transport_key_denied(example_manifest):
     assert not decision.released
     cb = [c for c in decision.checks if c.name == "channel_binding"][0]
     assert not cb.passed
+
+
+# ---------------------------------------------------------------------------
+# retire_after parsing
+#
+# The value arrives in a manifest, so the gate cannot assume it is well formed.
+# Found while building the L2 conformance vectors: a naive timestamp used to raise
+# TypeError out of verify_and_release, aborting the release path on a manifest that
+# had merely omitted a timezone offset.
+# ---------------------------------------------------------------------------
+
+
+def _retiring_only_manifest(example_dict, retire_after):
+    """A manifest whose only accepted image is retiring, with *retire_after* verbatim."""
+    doc = copy.deepcopy(example_dict)
+    rsi = doc["release_policy"]["required_serving_image"]
+    retiring = rsi["accepted_measurements"][1]["measurement"]
+    rsi["accepted_measurements"] = [
+        {"measurement": retiring, "status": "retiring", "retire_after": retire_after}
+    ]
+    return WeightCustodyManifest.model_validate(doc), retiring
+
+
+def _decide(manifest, measurement, *, now):
+    kbs = KeyBrokerService({str(manifest.weights_hash): b"k" * 32}, now=now)
+    challenge = kbs.issue_challenge()
+    rim = manifest.release_policy.required_gpu_measurement
+    ev = SoftwareProvider().produce(
+        challenge,
+        serving_image_measurement=measurement,
+        gpu_measurement=rim.rim_pin if rim else None,
+    )
+    decision = kbs.verify_and_release(manifest, ev)
+    return decision, [c for c in decision.checks if c.name == "serving_image"][0]
+
+
+def test_naive_retire_after_is_read_as_utc_and_does_not_raise(example_dict):
+    """A timestamp with no offset must compare, not blow up."""
+    manifest, measurement = _retiring_only_manifest(example_dict, "2026-07-16T00:00:00")
+    decision, _ = _decide(
+        manifest, measurement, now=lambda: datetime(2026, 1, 1, tzinfo=timezone.utc)
+    )
+    assert decision.released, [c for c in decision.checks if not c.passed]
+
+
+def test_naive_retire_after_still_expires(example_dict):
+    """Reading it as UTC must not turn the deadline off."""
+    manifest, measurement = _retiring_only_manifest(example_dict, "2026-07-16T00:00:00")
+    decision, check = _decide(
+        manifest, measurement, now=lambda: datetime(2026, 8, 1, tzinfo=timezone.utc)
+    )
+    assert not decision.released
+    assert "past retire_after" in (check.detail or "")
+
+
+def test_aware_retire_after_keeps_its_offset(example_dict):
+    """An explicit offset is honoured rather than overwritten with UTC.
+
+    23:00 on 2026-07-15 at +02:00 is 21:00 UTC, so a 22:00 UTC clock is past it.
+    Reading the value as UTC instead would put the deadline an hour in the future
+    and wrongly release.
+    """
+    manifest, measurement = _retiring_only_manifest(
+        example_dict, "2026-07-15T23:00:00+02:00"
+    )
+    decision, check = _decide(
+        manifest, measurement, now=lambda: datetime(2026, 7, 15, 22, tzinfo=timezone.utc)
+    )
+    assert not decision.released
+    assert "past retire_after" in (check.detail or "")
+
+
+@pytest.mark.parametrize("bad", ["soon", "", "2026-13-45T99:99:99", "next tuesday"])
+def test_unparseable_retire_after_fails_closed(example_dict, bad):
+    """A deadline we cannot read is not a deadline that has not passed."""
+    manifest, measurement = _retiring_only_manifest(example_dict, bad)
+    decision, check = _decide(
+        manifest, measurement, now=lambda: datetime(2026, 1, 1, tzinfo=timezone.utc)
+    )
+    assert not decision.released
+    assert "not a parseable timestamp" in (check.detail or "")

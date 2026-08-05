@@ -6,7 +6,7 @@ Published for review and comment, **not for production**. Publication of the ope
 
 - **Specification** (`SPEC.md` v0.15): four layers (manifest, attestation-gated release, runtime custody, derivative lineage), transparency log, guarantee-scope honesty (§3.6), a model-signing provenance interop (§3.9), and the open questions in §8.
 - **Manifest JSON Schema** (`schema/`), the machine-readable form of §3.1, **frozen at v1** and additive-only. One constraint (`derived_from` != `weights_hash`) is not expressible in JSON Schema and stays verifier-side, documented rather than glossed.
-- **Conformance suite** (`conformance/`): language-neutral vectors plus a scoring contract, run by `wcm conformance`. **L1 (manifest and joint signature) and L4 (derivative lineage) are vectored; L2 and L3 are specified with codes allocated but have no vectors yet**, because they are protocol behaviour over live state rather than checks over documents. A passing run names the levels it covered and the ones it did not.
+- **Conformance suite** (`conformance/`): 83 language-neutral vectors plus a scoring contract, run by `wcm conformance`. **All four levels are vectored** - L1 and L4 over documents, L2 (the release gate) and L3 (runtime custody) as time-ordered scenarios with an injected clock. Cryptographic quote verification inside L2 is the one uncovered requirement, and the runner prints it on every run rather than letting a pass imply it.
 - **Threat model** (`THREAT-MODEL.md`): assets, TCB, adversaries, threats, residual risk.
 - **Python reference SDK** (`python/`, published on PyPI): the full protocol -
   - Layer 1 joint signing + verification (Ed25519, ML-DSA-65, and hybrid profiles)
@@ -24,14 +24,14 @@ Published for review and comment, **not for production**. Publication of the ope
 
 - **Cross-builder verification of the KBS image.** The image is bit-for-bit reproducible (base pinned by digest, fully hash-locked dependencies, normalized mtimes) and CI proves two `--no-cache` builds produce identical layers. What remains is confirming that across *independent* builders on different machines, which is a certification step rather than a CI one.
 - **Bare-metal `/dev/*-guest` provider validation** - the raw-ioctl SNP/TDX providers stay provisional until validated on a bare-metal host (cloud CVMs use the validated vTPM path).
-- **L2 and L3 conformance vectors** - a scripted-scenario format with deterministic seeds, so attestation-gated release and runtime custody can be scored the way L1 and L4 already are.
+- **Conformance vectors for cryptographic quote verification** - the one uncovered L2 requirement (`WCM-L2-0011`, `WCM-L2-0012`). Needs a vector shape that supplies raw hardware evidence and a trust store, and an honest way to express nonce binding given that the Azure SEV-SNP capture binds the vTPM attestation key in `REPORT_DATA` rather than a caller nonce.
 - **Path to 1.0** - finalize the remaining open questions (8.1 reconciliation window, multi-party co-governance). The manifest schema is frozen and its versioning policy is written (`schema/README.md`); what remains is the spec text catching up to it.
 - Community and design-partner feedback on the manifest schema and the sovereign profile.
 
 ## Later - 1.0 and standards
 
 - Resolve or bound the remaining open questions in §8 (the key-extraction half of 8.8 needs new silicon and is disclosed as a scoped limit, not a blocker on the spec).
-- Standards path: IETF SCITT (technical) and CoSAI (positioning), with WCM constructs mapped to SCITT roles (§3.4). The conformance suite third-party implementations are scored against now exists for L1 and L4 (see **Now** above); full coverage is the L2/L3 vector work under **Next**.
+- Standards path: IETF SCITT (technical) and CoSAI (positioning), with WCM constructs mapped to SCITT roles (§3.4). The conformance suite third-party implementations are scored against covers all four levels (see **Now** above); the remaining gap is cryptographic quote verification, under **Next**.
 - Threshold and self-custody hardening promoted from preview to specified.
 - Additional language SDKs as the community grows.
 

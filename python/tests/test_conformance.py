@@ -27,7 +27,11 @@ import pytest
 from wcm.conformance import (
     CODES,
     DECLARED_ONLY_LEVELS,
+    DIAGNOSTIC_ONLY_CODES,
     LEVELS,
+    NOT_YET_VECTORED_CODES,
+    LevelReport,
+    SuiteReport,
     VECTORED_LEVELS,
     Verdict,
     evaluate,
@@ -103,7 +107,9 @@ def test_vector_code_level_matches_vector_level() -> None:
 def test_codes_md_matches_the_registry() -> None:
     """The published table and the code must not drift apart."""
     text = _codes_md().read_text(encoding="utf-8")
-    documented = dict(re.findall(r"^\| `(WCM-[^`]+)` \| (.+?) \|$", text, re.MULTILINE))
+    documented = dict(
+        re.findall(r"^\| `(WCM-[^`]+)` \| (.+?) \|.*\|$", text, re.MULTILINE)
+    )
     assert documented == CODES, (
         "conformance/codes.md and wcm.conformance.CODES disagree. "
         f"only in docs: {sorted(set(documented) - set(CODES))}; "
@@ -111,28 +117,62 @@ def test_codes_md_matches_the_registry() -> None:
     )
 
 
-def test_every_vectored_level_code_is_exercised() -> None:
-    """A code on a vectored level with no vector is an unenforced claim.
+def test_codes_md_marks_the_exempt_codes() -> None:
+    """The two exemptions must be visible in the published table, not just in code."""
+    text = _codes_md().read_text(encoding="utf-8")
+    for code in DIAGNOSTIC_ONLY_CODES:
+        row = next(line for line in text.splitlines() if f"`{code}`" in line)
+        assert "diagnostic only" in row, code
+    for code in NOT_YET_VECTORED_CODES:
+        row = next(line for line in text.splitlines() if f"`{code}`" in line)
+        assert "not yet vectored" in row, code
 
-    Codes on L2/L3 are deliberately unexercised: those levels have no vectors
-    yet, which is the documented gap, not an oversight.
-    """
+
+def test_every_code_is_exercised_or_explicitly_exempt() -> None:
+    """A code with no vector and no exemption is an unenforced claim."""
     used = {v["code"] for v in REJECTS}
+    exempt = DIAGNOSTIC_ONLY_CODES | NOT_YET_VECTORED_CODES
     unexercised = sorted(
         code
         for code in CODES
-        if level_of_code(code) in VECTORED_LEVELS and code not in used
+        if level_of_code(code) in VECTORED_LEVELS
+        and code not in used
+        and code not in exempt
     )
     assert not unexercised, f"declared but never exercised by a vector: {unexercised}"
 
 
-def test_declared_only_levels_have_codes_but_no_vectors() -> None:
-    for level_id in DECLARED_ONLY_LEVELS:
-        assert not load_vectors(level=level_id), f"{level_id} unexpectedly has vectors"
-        assert any(level_of_code(c) == level_id for c in CODES), (
-            f"{level_id} has no codes allocated, so an implementation has nothing "
-            "to report against"
-        )
+def test_the_exemption_lists_do_not_quietly_grow() -> None:
+    """Both exemptions are deliberate and small; adding to either is a decision.
+
+    Without this, "add it to the exempt set" becomes the way to make a failing
+    code disappear, which is the same failure mode as suppressing a CVE.
+    """
+    assert DIAGNOSTIC_ONLY_CODES == {"WCM-L3-0003", "WCM-L3-0004"}
+    assert NOT_YET_VECTORED_CODES == {"WCM-L2-0011", "WCM-L2-0012"}
+    assert not (DIAGNOSTIC_ONLY_CODES & NOT_YET_VECTORED_CODES)
+    # An exempt code must still be a real registered code.
+    for code in DIAGNOSTIC_ONLY_CODES | NOT_YET_VECTORED_CODES:
+        assert code in CODES, code
+
+
+def test_not_yet_vectored_codes_really_have_no_vector() -> None:
+    used = {v["code"] for v in REJECTS}
+    assert not (NOT_YET_VECTORED_CODES & used), (
+        "a code listed as not-yet-vectored now has a vector; remove it from "
+        "NOT_YET_VECTORED_CODES"
+    )
+
+
+def test_every_level_is_vectored() -> None:
+    """All four levels have corpora now; DECLARED_ONLY_LEVELS should be empty.
+
+    The declared-only machinery stays, because it is what keeps a future level
+    from silently reporting a pass before it has vectors (see
+    test_a_level_without_vectors_cannot_pass).
+    """
+    assert DECLARED_ONLY_LEVELS == ()
+    assert set(VECTORED_LEVELS) == set(LEVELS)
 
 
 # --------------------------------------------------------------------------
@@ -230,19 +270,26 @@ def test_results_for_an_unknown_vector_are_surfaced() -> None:
 # --------------------------------------------------------------------------
 
 
-def test_declared_only_level_cannot_pass() -> None:
-    for level_id in DECLARED_ONLY_LEVELS:
-        report = run_reference(level=level_id)
-        assert not report.ok, f"{level_id} has no vectors and must not report a pass"
-        assert level_id in report.unscoreable
+def test_a_level_without_vectors_cannot_pass() -> None:
+    """The guard for whatever level gets added next.
+
+    Every level is vectored today, so this exercises the machinery directly rather
+    than relying on L2 or L3 still being empty. A LevelReport with no vectors must
+    report ok=False: unscoreable is not the same as passed.
+    """
+    empty = LevelReport(level="L2", vectored=False, outcomes=[])
+    assert not empty.ok
+    assert not SuiteReport(levels=[empty], unscoreable=["L2"]).ok
+    # And with vectors declared but none present, still not a pass.
+    assert not LevelReport(level="L2", vectored=True, outcomes=[]).ok
 
 
-def test_full_report_names_the_uncovered_levels() -> None:
+def test_full_report_names_every_level() -> None:
     rendered = run_reference().render()
-    for level_id in DECLARED_ONLY_LEVELS:
+    for level_id, level in LEVELS.items():
         assert level_id in rendered
-        assert LEVELS[level_id].title in rendered
-    assert "no vectors yet" in rendered
+        assert level.title in rendered
+    assert "FAIL" not in rendered
 
 
 # --------------------------------------------------------------------------
@@ -258,8 +305,14 @@ def test_vectors_dir_resolves_and_holds_every_kind() -> None:
     assert expected <= kinds
 
 
-def test_vector_ids_are_unique_and_match_filenames() -> None:
-    assert len(IDS) == len(set(IDS))
+def test_vector_ids_are_globally_unique_and_match_filenames() -> None:
+    """Unique across every kind, not just within one.
+
+    The results-file contract keys on `id` alone, so two vectors sharing a name in
+    different directories would silently collapse into one scored entry.
+    """
+    duplicates = sorted({i for i in IDS if IDS.count(i) > 1})
+    assert not duplicates, f"vector ids are not globally unique: {duplicates}"
     for kind_dir in sorted(p for p in vectors_dir().iterdir() if p.is_dir()):
         for path in sorted(kind_dir.glob("*.json")):
             vector = json.loads(path.read_text(encoding="utf-8"))
@@ -269,7 +322,13 @@ def test_vector_ids_are_unique_and_match_filenames() -> None:
 
 def test_load_vectors_filters() -> None:
     assert load_vectors(level="L4") == load_vectors(kind="lineage")
-    assert len(load_vectors(level="L1")) == len(VECTORS) - len(load_vectors(level="L4"))
+    assert load_vectors(level="L2") == load_vectors(kind="gate")
+    assert load_vectors(level="L3") == load_vectors(kind="custody")
+    # L1 is the only level with two kinds.
+    assert len(load_vectors(level="L1")) == len(
+        load_vectors(kind="manifest")
+    ) + len(load_vectors(kind="signature"))
+    assert sum(len(load_vectors(level=lid)) for lid in LEVELS) == len(VECTORS)
     with pytest.raises(ValueError, match="unknown level"):
         load_vectors(level="L9")
 

@@ -35,6 +35,28 @@ def _utcnow() -> datetime:
     return datetime.now(timezone.utc)
 
 
+def _parse_retire_after(text: str) -> Optional[datetime]:
+    """Parse an accepted-measurement ``retire_after``, or None if unparseable.
+
+    Two things this must get right, because the value arrives in a manifest rather
+    than from our own code:
+
+    - **A naive timestamp is read as UTC.** The gate's clock is timezone-aware, and
+      comparing it against a naive datetime raises ``TypeError``, which would abort
+      the whole release path on a manifest that merely omitted an offset. The spec's
+      own example carries ``Z``, but nothing enforces it, so assume UTC and carry on.
+    - **An unparseable value returns None** for the caller to fail closed on, rather
+      than propagating an exception.
+    """
+    try:
+        parsed = datetime.fromisoformat(text)
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=timezone.utc)
+    return parsed
+
+
 @dataclass(frozen=True)
 class CheckResult:
     name: str
@@ -223,7 +245,18 @@ class KeyBrokerService:
         )
         if match.status is ServingImageStatus.retiring:
             if match.retire_after is not None:
-                retire_after = datetime.fromisoformat(match.retire_after)
+                retire_after = _parse_retire_after(match.retire_after)
+                if retire_after is None:
+                    # Fail closed. A deadline we cannot read is not a deadline that
+                    # has not passed, and this value reaches us from a manifest, so
+                    # an unparseable one must deny rather than raise out of the
+                    # release path.
+                    return CheckResult(
+                        "serving_image",
+                        False,
+                        f"retire_after {match.retire_after!r} is not a parseable "
+                        "timestamp, so the retirement deadline cannot be evaluated",
+                    )
                 if self._now() > retire_after:
                     return CheckResult(
                         "serving_image", False, "retiring image is past retire_after"
