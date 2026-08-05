@@ -222,7 +222,29 @@ new library API. Adds a "Sovereign self-custody (threshold)" tutorial.
 
 ## SDK
 
+### 0.24.1
+- **Packaging fix; 0.24.0 was never published.** `python -m build` builds the sdist,
+  unpacks it, and builds the wheel from that, and in an unpacked sdist
+  `pyproject.toml` sits at the sdist root (PEP 517 requires it there), so the static
+  `../schema` and `../conformance/vectors` force-includes pointed outside it and the
+  build raised `FileNotFoundError`. `pip install <sdist>` would have failed for
+  anyone, not only the release job. Resolved by a build hook
+  (`python/hatch_build.py`) that finds the artifacts at build time: at the repo root
+  from a source tree, beside `pyproject.toml` from an unpacked sdist.
+- **The regression test that should have existed.** Nothing before a Release ran
+  `python -m build`: `publish.yml` only fires on a Release, and every other job
+  installs editable or invokes hatchling directly, neither of which goes through the
+  sdist round-trip. The `python` workflow now has a `packaging` job that builds the
+  way the release does, runs `twine check`, then installs **from the sdist** into a
+  fresh venv and runs the shipped conformance suite, proving the packaged schema and
+  vectors are reachable from an installed package.
+- No library changes. Everything listed under 0.24.0 ships here.
+
 ### 0.24.0
+
+> Tagged but **never published to PyPI**: the release build failed on the packaging
+> bug fixed in 0.24.1. Install 0.24.1 for everything below.
+
 - **Normative manifest JSON Schema, frozen at v1** (`schema/`, `$id`
   `https://wcm.agentrust-io.com/schema/manifest/v1.json`). Generated from the
   reference model and augmented with the cross-field rules Pydantic does not
