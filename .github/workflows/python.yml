@@ -25,6 +25,44 @@ permissions:
   contents: read
 
 jobs:
+  packaging:
+    # The release path, exercised on every PR. `python -m build` builds the sdist,
+    # unpacks it, and builds the wheel FROM THAT, which is a different filesystem
+    # layout than the source tree: pyproject.toml sits at the sdist root, so
+    # repo-root artifacts are beside it rather than at `../`. Invoking hatchling
+    # directly does not go through that step, so a packaging bug can pass every
+    # other job here and only surface when a Release is cut. That is exactly what
+    # happened to 0.24.0.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Build sdist and wheel the way the release does
+        working-directory: python
+        run: |
+          python -m pip install --upgrade pip build twine
+          python -m build
+          twine check dist/*
+
+      - name: Install FROM THE SDIST and run the shipped suite
+        # From the sdist, not the wheel: installing the sdist forces a wheel build
+        # out of it, which is the step that broke. And it proves the packaged
+        # schema and vectors are actually reachable from an installed package.
+        run: |
+          python -m venv /tmp/sdist-venv
+          /tmp/sdist-venv/bin/pip install --quiet python/dist/*.tar.gz
+          /tmp/sdist-venv/bin/python - <<'PY'
+          import wcm
+          from wcm.conformance import load_vectors
+          assert wcm.manifest_schema()["$id"].endswith("/v1.json")
+          assert len(load_vectors()) > 50, "vectors missing from the installed package"
+          print("installed", wcm.__version__, "with", len(load_vectors()), "vectors")
+          PY
+          /tmp/sdist-venv/bin/wcm conformance
+
   test:
     runs-on: ubuntu-latest
     strategy:
