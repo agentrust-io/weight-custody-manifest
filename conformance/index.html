@@ -1141,6 +1141,7 @@ defined, matching the four protocol layers:</p>
 <th>Level</th>
 <th>Title</th>
 <th>Vectors</th>
+<th>Shape</th>
 </tr>
 </thead>
 <tbody>
@@ -1148,31 +1149,39 @@ defined, matching the four protocol layers:</p>
 <td>L1</td>
 <td>Manifest and joint signature</td>
 <td>32</td>
+<td>documents</td>
 </tr>
 <tr>
 <td>L2</td>
 <td>Attestation-gated release</td>
-<td><strong>none yet</strong></td>
+<td>29</td>
+<td>scenarios</td>
 </tr>
 <tr>
 <td>L3</td>
 <td>Runtime custody</td>
-<td><strong>none yet</strong></td>
+<td>12</td>
+<td>scenarios</td>
 </tr>
 <tr>
 <td>L4</td>
 <td>Derivative lineage</td>
 <td>10</td>
+<td>documents</td>
 </tr>
 </tbody>
 </table>
-<p><strong>L2 and L3 have no vectors, so no implementation can be scored on them today.</strong>
-Their requirements are written down and their error codes are allocated, but L1
-and L4 are checks over documents while L2 and L3 are protocol behaviour over live
-state (single-use nonces, released keys, clocks, operation counters). Expressing
-those needs a scripted-scenario format that is not designed yet. Passing L1 and
-L4 is conformance to the manifest and lineage layers, not to WCM as a whole, and
-the runner says so on every run.</p>
+<p>All four levels are vectored, 83 vectors in total. L1 and L4 ask a question about a
+document. L2 and L3 ask what a system does over <em>time</em>, so their vectors are
+ordered scenarios with an injected clock and named nonces: a nonce is single-use, a
+lease lapses, an operation budget runs down.</p>
+<p><strong>One requirement inside L2 is still uncovered:</strong> cryptographic quote verification,
+the signature and certificate chain against a vendor root (<code>WCM-L2-0011</code>,
+<code>WCM-L2-0012</code>). That needs raw hardware evidence plus trust anchors rather than the
+declarative evidence the gate vectors carry. Both codes are marked in the registry
+and printed on every full run, so a green result is not read as covering them. A
+passing L2 means the gate enforces the manifest's policy; it does not mean the gate
+can tell a genuine quote from a fabricated one.</p>
 <p>Running it:</p>
 <div class="highlight"><pre><span></span><code>pip<span class="w"> </span>install<span class="w"> </span>weight-custody-manifest
 
