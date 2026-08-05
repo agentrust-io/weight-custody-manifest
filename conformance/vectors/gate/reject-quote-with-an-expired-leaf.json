@@ -1,0 +1,93 @@
+{
+  "id": "reject-quote-with-an-expired-leaf",
+  "level": "L2",
+  "kind": "gate",
+  "description": "A leaf certificate that has expired at the scenario clock. Attestation-key certificates are deliberately short-lived, which is one of the compensating controls for extracted platform keys, and that only works if expiry is enforced.",
+  "expect": "reject",
+  "code": "WCM-L2-0011",
+  "reject_reason": "the leaf certificate is expired at the time of verification",
+  "manifest": {
+    "manifest_version": "1.0",
+    "weights_hash": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+    "builder": {
+      "identity": "example-builder",
+      "signing_key": "ed25519:builder-key"
+    },
+    "release_terms": {
+      "license": "customer-deployment-agreement-ref:CDA-2026-0001",
+      "permitted_derivatives": "fine-tune-only, no re-export of base weights",
+      "permitted_environments": [
+        "attested-enclave"
+      ]
+    },
+    "release_policy": {
+      "required_assurance_tier": "hardware-attested",
+      "required_hw_platform": [
+        "amd-sev-snp"
+      ],
+      "required_serving_image": {
+        "signer": "ed25519:builder-key",
+        "release_rule": "prefer-current",
+        "accepted_measurements": [
+          {
+            "measurement": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+            "status": "current"
+          }
+        ]
+      }
+    },
+    "custody": {
+      "custodian": "example-custodian",
+      "custodian_type": "customer-self-custody",
+      "kbs_image": {
+        "measurement": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+        "signer": "ed25519:custodian-key"
+      },
+      "enclave_id": "did:example:enclave-01",
+      "attestation_cadence": "1h"
+    }
+  },
+  "kbs": {
+    "clock": "2026-01-01T00:00:00+00:00",
+    "keystore": {
+      "sha256:1111111111111111111111111111111111111111111111111111111111111111": "a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1"
+    },
+    "cpu_quote_verifier": {
+      "parser": "json",
+      "trusted_roots_pem": [
+        "-----BEGIN CERTIFICATE-----\nMIIBZTCCAQugAwIBAgIUPAzE137pe2QKN5v/dMedHcLAfBQwCgYIKoZIzj0EAwIw\nKDEmMCQGA1UEAwwdd2NtLWNvbmZvcm1hbmNlLXBsYXRmb3JtLXJvb3QwHhcNMjUw\nMTAxMDAwMDAwWhcNMzUxMjMwMDAwMDAwWjAoMSYwJAYDVQQDDB13Y20tY29uZm9y\nbWFuY2UtcGxhdGZvcm0tcm9vdDBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABKBi\nc7d69P5nHYrAsYzLXnJYvQwajsRnZGDcxnvKlsv/HkP6O5Bw55BMorh9tpj2MVH2\nm2dvFqd8P4bxrGJEPnijEzARMA8GA1UdEwEB/wQFMAMBAf8wCgYIKoZIzj0EAwID\nSAAwRQIgO1xc+DeNPebprWKgLbtPWTDB4DIBNTUcuUcUMF8CPY8CIQDXy95QxDQv\nQQQXpcQroiMZCULaNYw97mKi/s6T+auAKA==\n-----END CERTIFICATE-----\n"
+      ]
+    }
+  },
+  "steps": [
+    {
+      "op": "challenge",
+      "as": "n1"
+    },
+    {
+      "op": "release",
+      "expect": "deny",
+      "code": "WCM-L2-0011",
+      "evidence": {
+        "cpu": {
+          "platform": "amd-sev-snp",
+          "assurance_tier": "hardware-attested",
+          "serving_image_measurement": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+          "nonce_echo": "$n1",
+          "attestation_key_id": "vcek-conformance-0001",
+          "quote": {
+            "report_data": {
+              "nonce": "$n1"
+            },
+            "report_data_offset": 0,
+            "leaf_pem": "-----BEGIN CERTIFICATE-----\nMIIBSTCB8KADAgECAhRHRG6ocFtp+CzlXX2Oqs5UkgYYiDAKBggqhkjOPQQDAjAw\nMS4wLAYDVQQDDCV3Y20tY29uZm9ybWFuY2UtcGxhdGZvcm0taW50ZXJtZWRpYXRl\nMB4XDTI0MTEyNzAwMDAwMFoXDTI1MTIwMjAwMDAwMFowGjEYMBYGA1UEAwwPYXR0\nZXN0YXRpb24ta2V5MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEWNOeHz5UYFJo\nbDPtjJyXT+3Os7FPhRfusGSY/jsbF4FyIxqCedZm3Rw1xwsx/CTk4ru5HB27DzMq\nCmRB5TyNTTAKBggqhkjOPQQDAgNIADBFAiEAlvS2I3Sdq7ElQn7BtctE0QsKc/Hl\n3UAunQk53f5yYbACICK0puXUMqpq8GkjzkQ7q9pHRYS+EMa/Ud0CfiRwArzt\n-----END CERTIFICATE-----\n",
+            "leaf_key_pem": "-----BEGIN PRIVATE KEY-----\nMIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgTtL9+o8SQQ0g6px9\nsvyk1AtSpjcYGqw+ywWy0L//i6KhRANCAARY054fPlRgUmhsM+2MnJdP7c6zsU+F\nF+6wZJj+OxsXgXIjGoJ51mbdHDXHCzH8JOTiu7kcHbsPMyoKZEHlPI1N\n-----END PRIVATE KEY-----\n",
+            "intermediates_pem": [
+              "-----BEGIN CERTIFICATE-----\nMIIBbjCCAROgAwIBAgIUAx5tHOR6me3sl8c6CC9dOF2oWCEwCgYIKoZIzj0EAwIw\nKDEmMCQGA1UEAwwdd2NtLWNvbmZvcm1hbmNlLXBsYXRmb3JtLXJvb3QwHhcNMjUw\nMTAxMDAwMDAwWhcNMzUxMjMwMDAwMDAwWjAwMS4wLAYDVQQDDCV3Y20tY29uZm9y\nbWFuY2UtcGxhdGZvcm0taW50ZXJtZWRpYXRlMFkwEwYHKoZIzj0CAQYIKoZIzj0D\nAQcDQgAEo4y1UnzB9pmxksCCme+a0+3l6DGO+E66UIaV0O9aXeHfPNWs7sJvWEjS\nNrj7Jx4d8lVPU2EjYeTEGuCKBn+FJqMTMBEwDwYDVR0TAQH/BAUwAwEB/zAKBggq\nhkjOPQQDAgNJADBGAiEAlXj3b2CWaCdWYqGZoj7oGOSJAQtsnoa8D/kBR3B56gUC\nIQDJ1bE9+LN72T9LHNpZ5N4c93W2cDW79OIl+C4DxBPjiw==\n-----END CERTIFICATE-----\n"
+            ]
+          }
+        }
+      }
+    }
+  ]
+}

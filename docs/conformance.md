@@ -41,22 +41,26 @@ defined, matching the four protocol layers:
 | Level | Title | Vectors | Shape |
 | --- | --- | --- | --- |
 | L1 | Manifest and joint signature | 32 | documents |
-| L2 | Attestation-gated release | 29 | scenarios |
+| L2 | Attestation-gated release | 37 | scenarios |
 | L3 | Runtime custody | 12 | scenarios |
 | L4 | Derivative lineage | 10 | documents |
 
-All four levels are vectored, 83 vectors in total. L1 and L4 ask a question about a
-document. L2 and L3 ask what a system does over *time*, so their vectors are
+91 vectors. All four levels are vectored and every reportable error code is
+exercised by at least one vector, which a test enforces. L1 and L4 ask a question
+about a document. L2 and L3 ask what a system does over *time*, so their vectors are
 ordered scenarios with an injected clock and named nonces: a nonce is single-use, a
 lease lapses, an operation budget runs down.
 
-**One requirement inside L2 is still uncovered:** cryptographic quote verification,
-the signature and certificate chain against a vendor root (`WCM-L2-0011`,
-`WCM-L2-0012`). That needs raw hardware evidence plus trust anchors rather than the
-declarative evidence the gate vectors carry. Both codes are marked in the registry
-and printed on every full run, so a green result is not read as covering them. A
-passing L2 means the gate enforces the manifest's policy; it does not mean the gate
-can tell a genuine quote from a fabricated one.
+Two limits remain, and `wcm conformance` prints both on every full run rather than
+leaving a green result to be over-read:
+
+- **The quote vectors use a synthetic PKI**, not vendor roots. They prove an
+  implementation verifies a certificate chain, a report signature and a
+  `REPORT_DATA` nonce binding correctly. They do not prove it can parse a real AMD,
+  Intel or NVIDIA quote, which is vendor-format work the SDK covers with committed
+  real-silicon fixtures.
+- **GPU-side cryptographic verification is not vectored.** The quote vectors cover
+  the CPU quote; the NVIDIA device chain is covered by the SDK's H100 fixture.
 
 Running it:
 

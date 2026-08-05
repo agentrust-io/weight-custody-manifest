@@ -10,14 +10,17 @@ concern and `0101`-`0199` the second, where a level has two (L1 is structural
 validity then joint-signature verification). Codes are append-only: a retired
 code is not reused, and a description is only ever widened, never narrowed.
 
-Two markers appear below:
+One marker appears below:
 
 - **diagnostic only** - names a way an implementation can be *wrong* rather than
   an outcome it reports. Nothing raises "your re-attestation failed to renew the
   lease"; the suite concludes it when a step that should have succeeded did not.
   A vector can never *expect* one of these.
-- **not yet vectored** - reportable, but no vector exercises it, so a passing run
-  says nothing about it. Listed rather than omitted so the gap is visible.
+
+Every other code is exercised by at least one vector, and a test enforces that.
+For limits that are not a whole code (GPU-side cryptographic verification, and
+the synthetic PKI the quote vectors use), see `COVERAGE_NOTES` in
+`wcm.conformance`, which `wcm conformance` prints on every full run.
 
 This file and `wcm.conformance.CODES` are checked against each other in CI, so
 an implementation can rely on either.
@@ -55,8 +58,8 @@ an implementation can rely on either.
 | `WCM-L2-0008` | CPU and GPU evidence do not echo the same nonce |  |
 | `WCM-L2-0009` | memory-fingerprint challenge is absent or failed in a posture that requires it |  |
 | `WCM-L2-0010` | attestation-revocation check is absent or staler than the policy allows |  |
-| `WCM-L2-0011` | quote signature or certificate chain does not verify to a trusted root | *not yet vectored* |
-| `WCM-L2-0012` | REPORT_DATA does not bind the challenge nonce | *not yet vectored* |
+| `WCM-L2-0011` | quote signature or certificate chain does not verify to a trusted root |  |
+| `WCM-L2-0012` | REPORT_DATA does not bind the challenge nonce |  |
 | `WCM-L2-0013` | released key is not sealed to the attested transport key (channel binding) |  |
 | `WCM-L2-0014` | a retiring serving image was released past its retire_after |  |
 | `WCM-L2-0015` | GPU measurement does not match required_gpu_measurement.rim_pin |  |

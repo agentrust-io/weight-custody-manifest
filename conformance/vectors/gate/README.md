@@ -25,18 +25,30 @@ The policy gate, in full:
   returned **sealed** rather than in the clear
 - key availability for the requested `weights_hash`
 
+And cryptographic quote verification, through the reference JSON container:
+
+- the certificate chain reaches a **pinned trusted root**, so presenting your own
+  self-signed CA does not help
+- the report signature verifies under the leaf key, catching a report edited after
+  signing even when the chain and the nonce binding are intact
+- an expired leaf is refused, which is what makes short-lived attestation-key
+  certificates a real compensating control rather than a decoration
+- `REPORT_DATA` binds the presented nonce, so a captured quote cannot be replayed
+- with channel binding, `REPORT_DATA` binds `sha256(nonce || transport_key)`, so a
+  **relay substituting its own transport key** is detected (CVE-2026-33697). The
+  relay cannot re-sign the report, so the binding stops matching.
+- a configured verifier does not silently fall back to structural trust when the
+  evidence carries no raw quote
+
 ## What is not covered
 
-**Cryptographic quote verification** (`WCM-L2-0011`, `WCM-L2-0012`): the quote
-signature and certificate chain against a vendor root, and `REPORT_DATA` nonce
-binding. The evidence in these vectors is declarative, so an implementation builds
-its own evidence objects from named fields rather than parsing bytes chosen here.
-Verifying real quotes needs raw hardware evidence plus trust anchors, which is a
-different vector shape. The repo has real-silicon fixtures for SEV-SNP, TDX and
-H100 CC to build it from.
-
-So a green L2 run means the gate enforces the manifest's policy. It does not mean
-the gate can tell a genuine quote from a fabricated one.
+- **A synthetic PKI, not vendor roots.** These vectors prove an implementation
+  verifies a chain, a signature and a nonce binding correctly. They do not prove it
+  can parse a real AMD, Intel or NVIDIA quote: that is vendor-format work, covered
+  by the SDK's committed real-silicon fixtures rather than by vectors.
+- **GPU-side cryptographic verification.** The quote vectors verify the CPU quote.
+  The NVIDIA path is a separate verifier over a real device chain with the raw nonce
+  at offset 4, and the H100 fixture in the SDK's own tests covers it today.
 
 ## Reading a denial
 

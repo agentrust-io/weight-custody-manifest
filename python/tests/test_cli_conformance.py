@@ -10,7 +10,12 @@ import json
 from pathlib import Path
 
 from wcm.cli import main
-from wcm.conformance import NOT_YET_VECTORED_CODES, VECTORED_LEVELS, load_vectors
+from wcm.conformance import (
+    COVERAGE_NOTES,
+    NOT_YET_VECTORED_CODES,
+    VECTORED_LEVELS,
+    load_vectors,
+)
 
 
 def _perfect_results() -> dict:
@@ -35,18 +40,20 @@ def test_self_test_passes_and_names_covered_levels(capsys):
     assert "levels ok : " + ", ".join(VECTORED_LEVELS) in out
 
 
-def test_self_test_warns_about_uncovered_requirements(capsys):
-    """The honesty framing, now at code rather than level granularity.
+def test_self_test_states_what_it_does_not_cover(capsys):
+    """A green run must still print its limits.
 
-    Every level is vectored, but cryptographic quote verification inside L2 is not,
-    so a green run must still say what it did not cover.
+    Every level is vectored and every reportable code is exercised, which is
+    precisely when a pass gets over-read. The prose limits are the remaining
+    honesty, so they have to reach the operator.
     """
     assert main(["conformance"]) == 0
     out = capsys.readouterr().out
-    assert "NOT COVERED:" in out
+    assert out.count("NOT COVERED:") >= len(COVERAGE_NOTES)
+    assert "GPU-side cryptographic verification is not vectored" in out
+    assert "synthetic PKI" in out
     for code in NOT_YET_VECTORED_CODES:
         assert code in out
-    assert "quote verification" in out
 
 
 def test_single_vectored_level(capsys):

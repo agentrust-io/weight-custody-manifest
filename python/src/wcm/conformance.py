@@ -186,19 +186,26 @@ DIAGNOSTIC_ONLY_CODES = frozenset(
     }
 )
 
-#: Reportable codes with no vector yet, listed so the gap is visible instead of
-#: merely absent. Both belong to cryptographic quote verification, which needs raw
-#: hardware evidence plus trust anchors rather than the declarative evidence the
-#: gate vectors carry. The repo has real-silicon fixtures to build these from, but
-#: two things need designing first: how a vector supplies a trust store, and how to
-#: express nonce binding honestly given that on the Azure SEV-SNP capture
-#: REPORT_DATA binds the vTPM attestation key rather than a caller-supplied nonce.
-#: A test asserts this set does not grow.
-NOT_YET_VECTORED_CODES = frozenset(
-    {
-        "WCM-L2-0011",  # quote signature / cert chain does not verify
-        "WCM-L2-0012",  # REPORT_DATA does not bind the challenge nonce
-    }
+#: Reportable codes with no vector yet, listed so a gap is visible instead of merely
+#: absent. Empty: every reportable code is now exercised. The mechanism stays,
+#: because the honest way to add a code ahead of its vector is to declare the gap
+#: rather than leave it implicit. A test asserts nothing is added silently.
+NOT_YET_VECTORED_CODES: frozenset[str] = frozenset()
+
+#: Requirements the suite does not cover, in prose, for the ones that are not a
+#: whole code. Printed on every full run, because a limit nobody reads is not a
+#: disclosed limit. Keep each entry to what an implementer would need to know.
+COVERAGE_NOTES: tuple[str, ...] = (
+    "GPU-side cryptographic verification is not vectored. The L2 quote vectors "
+    "verify the CPU quote (chain, signature, REPORT_DATA binding) through the "
+    "reference JSON container. The NVIDIA path is a different verifier over a real "
+    "device chain, and the H100 fixture in the SDK's own tests is what covers it "
+    "today; a vector would need the device chain and the raw-nonce-at-offset-4 "
+    "convention expressed in the corpus.",
+    "Quote vectors use a synthetic PKI, not vendor roots. They prove an "
+    "implementation verifies a chain, a signature and a nonce binding correctly. "
+    "They do NOT prove it can parse a real AMD, Intel or NVIDIA quote, which is "
+    "vendor-format work the SDK covers with committed real-silicon fixtures.",
 )
 
 
@@ -510,6 +517,85 @@ def _gate_code(failures: list[Any]) -> tuple[Optional[str], str]:
     return None, detail
 
 
+def _mint_quote(recipe: dict[str, Any], bindings: dict[str, str]) -> str:
+    """Build a quote container from a vector's recipe.
+
+    Quote vectors are recipes, not fixed artifacts, for one unavoidable reason: a
+    quote's REPORT_DATA has to bind the nonce, and the nonce is generated at
+    scenario time (it must be unpredictable, so a committed vector cannot know it).
+    A pre-baked quote could therefore only ever demonstrate a mismatch.
+
+    So the vector carries the chain, a test signing key, and a *description* of
+    what REPORT_DATA should bind, and the runner assembles the quote. The ask on an
+    implementation is that it can sign a report body, which any language with
+    ECDSA can do. The container shape is JsonQuoteParser's, documented in
+    conformance/README.md, so nothing here is Python-specific.
+    """
+    import base64
+    import hashlib
+
+    from cryptography.hazmat.primitives import hashes, serialization
+    from cryptography.hazmat.primitives.asymmetric import ec
+
+    binding = recipe["report_data"]
+    nonce_hex = _resolve(binding["nonce"], bindings)
+    material = bytes.fromhex(nonce_hex)
+    transport = binding.get("transport_public_key")
+    if transport:
+        material += bytes.fromhex(transport)
+    report_data = hashlib.sha256(material).digest()
+
+    offset = int(recipe.get("report_data_offset", 0))
+    body = (
+        bytes(offset)
+        + report_data
+        + bytes.fromhex(recipe.get("trailing_body_hex", "00" * 32))
+    )
+
+    key = serialization.load_pem_private_key(
+        recipe["leaf_key_pem"].encode(), password=None
+    )
+    if not isinstance(key, ec.EllipticCurvePrivateKey):
+        # Narrowed rather than cast: a vector carrying an RSA or Ed25519 key would
+        # otherwise fail deep inside sign() with an unhelpful error.
+        raise ValueError(
+            "quote recipes sign with an EC key (ECDSA/SHA-256); got "
+            f"{type(key).__name__}"
+        )
+    signature = key.sign(body, ec.ECDSA(hashes.SHA256()))
+
+    if recipe.get("tamper_report_after_signing"):
+        # Flip a byte outside REPORT_DATA, so the chain and the binding are intact
+        # and only the signature can catch it.
+        mutable = bytearray(body)
+        mutable[-1] ^= 0xFF
+        body = bytes(mutable)
+
+    document = {
+        "report_b64": base64.b64encode(body).decode(),
+        "signature_b64": base64.b64encode(signature).decode(),
+        "leaf_pem": recipe["leaf_pem"],
+        "intermediates_pem": recipe.get("intermediates_pem", []),
+        "report_data_offset": offset,
+    }
+    return base64.b64encode(json.dumps(document).encode()).decode()
+
+
+def _build_cpu_quote_verifier(config: dict[str, Any]) -> Any:
+    from ._quote_verify import JsonQuoteParser, QuoteVerifier, TrustStore
+
+    parser_name = config.get("parser", "json")
+    if parser_name != "json":
+        raise ValueError(
+            f"vector asks for the {parser_name!r} quote parser; only the reference "
+            "'json' container is used by the current vectors"
+        )
+    trust = TrustStore()
+    for pem in config["trusted_roots_pem"]:
+        trust.add_root_pem(pem)
+    return QuoteVerifier(JsonQuoteParser(), trust)
+
+
 def _eval_gate(vector: dict[str, Any]) -> Verdict:
     from .attestation import CompositeEvidence
     from .kbs import KeyBrokerService
@@ -530,6 +616,11 @@ def _eval_gate(vector: dict[str, Any]) -> Verdict:
             config.get("max_attestation_cache_age_seconds", 600)
         ),
         require_channel_binding=bool(config.get("require_channel_binding", False)),
+        cpu_quote_verifier=(
+            _build_cpu_quote_verifier(config["cpu_quote_verifier"])
+            if "cpu_quote_verifier" in config
+            else None
+        ),
     )
 
     bindings: dict[str, str] = {}
@@ -540,9 +631,13 @@ def _eval_gate(vector: dict[str, Any]) -> Verdict:
         elif op == "advance_clock":
             advance(float(step["seconds"]))
         elif op == "release":
-            evidence = CompositeEvidence.model_validate(
-                _resolve(step["evidence"], bindings)
-            )
+            raw = _resolve(step["evidence"], bindings)
+            # A cpu.quote recipe is assembled here, since it has to bind the nonce
+            # this scenario just issued.
+            recipe = raw.get("cpu", {}).pop("quote", None)
+            if recipe is not None:
+                raw["cpu"]["quote_b64"] = _mint_quote(recipe, bindings)
+            evidence = CompositeEvidence.model_validate(raw)
             decision = kbs.verify_and_release(manifest, evidence)
             want = step["expect"]
             if want == "allow":
