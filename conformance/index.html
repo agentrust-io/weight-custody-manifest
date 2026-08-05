@@ -1154,7 +1154,7 @@ defined, matching the four protocol layers:</p>
 <tr>
 <td>L2</td>
 <td>Attestation-gated release</td>
-<td>29</td>
+<td>37</td>
 <td>scenarios</td>
 </tr>
 <tr>
@@ -1171,17 +1171,22 @@ defined, matching the four protocol layers:</p>
 </tr>
 </tbody>
 </table>
-<p>All four levels are vectored, 83 vectors in total. L1 and L4 ask a question about a
-document. L2 and L3 ask what a system does over <em>time</em>, so their vectors are
+<p>91 vectors. All four levels are vectored and every reportable error code is
+exercised by at least one vector, which a test enforces. L1 and L4 ask a question
+about a document. L2 and L3 ask what a system does over <em>time</em>, so their vectors are
 ordered scenarios with an injected clock and named nonces: a nonce is single-use, a
 lease lapses, an operation budget runs down.</p>
-<p><strong>One requirement inside L2 is still uncovered:</strong> cryptographic quote verification,
-the signature and certificate chain against a vendor root (<code>WCM-L2-0011</code>,
-<code>WCM-L2-0012</code>). That needs raw hardware evidence plus trust anchors rather than the
-declarative evidence the gate vectors carry. Both codes are marked in the registry
-and printed on every full run, so a green result is not read as covering them. A
-passing L2 means the gate enforces the manifest's policy; it does not mean the gate
-can tell a genuine quote from a fabricated one.</p>
+<p>Two limits remain, and <code>wcm conformance</code> prints both on every full run rather than
+leaving a green result to be over-read:</p>
+<ul>
+<li><strong>The quote vectors use a synthetic PKI</strong>, not vendor roots. They prove an
+  implementation verifies a certificate chain, a report signature and a
+  <code>REPORT_DATA</code> nonce binding correctly. They do not prove it can parse a real AMD,
+  Intel or NVIDIA quote, which is vendor-format work the SDK covers with committed
+  real-silicon fixtures.</li>
+<li><strong>GPU-side cryptographic verification is not vectored.</strong> The quote vectors cover
+  the CPU quote; the NVIDIA device chain is covered by the SDK's H100 fixture.</li>
+</ul>
 <p>Running it:</p>
 <div class="highlight"><pre><span></span><code>pip<span class="w"> </span>install<span class="w"> </span>weight-custody-manifest
 
