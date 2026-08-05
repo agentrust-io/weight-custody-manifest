@@ -26,6 +26,7 @@ import pytest
 
 from wcm.conformance import (
     CODES,
+    COVERAGE_NOTES,
     DECLARED_ONLY_LEVELS,
     DIAGNOSTIC_ONLY_CODES,
     LEVELS,
@@ -143,13 +144,16 @@ def test_every_code_is_exercised_or_explicitly_exempt() -> None:
 
 
 def test_the_exemption_lists_do_not_quietly_grow() -> None:
-    """Both exemptions are deliberate and small; adding to either is a decision.
+    """Exemptions are deliberate; adding one is a decision.
 
     Without this, "add it to the exempt set" becomes the way to make a failing
     code disappear, which is the same failure mode as suppressing a CVE.
     """
     assert DIAGNOSTIC_ONLY_CODES == {"WCM-L3-0003", "WCM-L3-0004"}
-    assert NOT_YET_VECTORED_CODES == {"WCM-L2-0011", "WCM-L2-0012"}
+    assert NOT_YET_VECTORED_CODES == frozenset(), (
+        "every reportable code is vectored; a new entry here needs a reason in "
+        "conformance/README.md, not just a line of code"
+    )
     assert not (DIAGNOSTIC_ONLY_CODES & NOT_YET_VECTORED_CODES)
     # An exempt code must still be a real registered code.
     for code in DIAGNOSTIC_ONLY_CODES | NOT_YET_VECTORED_CODES:
@@ -162,6 +166,20 @@ def test_not_yet_vectored_codes_really_have_no_vector() -> None:
         "a code listed as not-yet-vectored now has a vector; remove it from "
         "NOT_YET_VECTORED_CODES"
     )
+
+
+def test_coverage_notes_exist_and_say_what_is_missing() -> None:
+    """The prose limits are load-bearing, so they must actually be there.
+
+    Every reportable code is vectored now, which is exactly when it gets easy to
+    read a green run as total coverage. These notes are what stop that.
+    """
+    assert COVERAGE_NOTES, "coverage limits must be stated somewhere the runner prints"
+    for note in COVERAGE_NOTES:
+        assert len(note) > 80, f"too terse to be useful: {note!r}"
+    joined = " ".join(COVERAGE_NOTES)
+    assert "GPU" in joined
+    assert "synthetic PKI" in joined
 
 
 def test_every_level_is_vectored() -> None:

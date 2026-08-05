@@ -13,24 +13,28 @@ gets scored.
 | Level | Title | Vectors | Shape |
 | --- | --- | --- | --- |
 | L1 | Manifest and joint signature | **32** | documents |
-| L2 | Attestation-gated release | **29** | scenarios |
+| L2 | Attestation-gated release | **37** | scenarios |
 | L3 | Runtime custody | **12** | scenarios |
 | L4 | Derivative lineage | **10** | documents |
 
-All four levels are vectored. L1 and L4 ask a question about a document. L2 and L3
-ask what a system does over *time*, so their vectors are ordered scenarios (see
-[Scenario vectors](#scenario-vectors) below).
+91 vectors. All four levels are vectored and **every reportable error code is
+exercised by at least one vector**, which a test enforces. L1 and L4 ask a question
+about a document. L2 and L3 ask what a system does over *time*, so their vectors
+are ordered scenarios (see [Scenario vectors](#scenario-vectors)).
 
-**One requirement inside L2 is still not covered:** cryptographic quote
-verification, meaning the quote signature and certificate chain against a vendor
-root (`WCM-L2-0011`, `WCM-L2-0012`). Those need raw hardware evidence plus trust
-anchors rather than the declarative evidence these vectors carry. The repo has
-real-silicon fixtures to build them from, but two things need designing first: how
-a vector supplies a trust store, and how to express nonce binding honestly given
-that on the Azure SEV-SNP capture `REPORT_DATA` binds the vTPM attestation key
-rather than a caller-supplied nonce. Both codes are listed in
-`wcm.conformance.NOT_YET_VECTORED_CODES` and marked in [`codes.md`](codes.md), and
-the runner prints them on every full run, so a pass is not read as covering them.
+That is the point at which a pass gets over-read, so here is what it still does
+**not** mean. Both limits are printed by `wcm conformance` on every full run, from
+`COVERAGE_NOTES` in `wcm.conformance`:
+
+- **The quote vectors use a synthetic PKI, not vendor roots.** They prove an
+  implementation verifies a certificate chain, a report signature and a
+  `REPORT_DATA` nonce binding correctly. They do not prove it can parse a real AMD,
+  Intel or NVIDIA quote. That is vendor-format work, and the SDK covers it with
+  committed real-silicon fixtures rather than with vectors.
+- **GPU-side cryptographic verification is not vectored.** The L2 quote vectors
+  verify the CPU quote. The NVIDIA path is a separate verifier over a real device
+  chain with a raw nonce at offset 4, and the H100 fixture in the SDK's own tests
+  is what covers it today.
 
 ## The levels
 
@@ -81,9 +85,11 @@ posture requires it; attestation-revocation freshness; quote signature and
 certificate chain to a trusted root; and channel binding, so the released key is
 sealed to the attested transport key rather than returned on the channel.
 
-Vectored as scenarios (`vectors/gate/`). The policy gate is fully covered. The
-cryptographic half, verifying the quote signature and certificate chain against
-a vendor root, is not: see the coverage note above.
+Vectored as scenarios (`vectors/gate/`), covering both halves: the policy gate, and
+cryptographic quote verification through the reference JSON container (chain to a
+trusted root, report signature, and `REPORT_DATA` binding including the transport
+key when channel binding is in use). See the coverage notes above for what the
+synthetic PKI does and does not establish.
 
 ### L3 - Runtime custody
 
@@ -131,6 +137,7 @@ everywhere:
   "kbs": {
     "clock": "2026-01-01T00:00:00+00:00",
     "keystore": { "sha256:...": "<key as hex>" },
+    "cpu_quote_verifier": { "parser": "json", "trusted_roots_pem": ["..."] },
     "challenge_ttl_seconds": 300,
     "max_attestation_cache_age_seconds": 600,
     "revoked_attestation_keys": [],
@@ -145,6 +152,38 @@ everywhere:
   ]
 }
 ```
+
+#### Quote recipes
+
+When `kbs.cpu_quote_verifier` is set, `cpu.quote` carries a **recipe** rather than a
+finished quote, and the runner assembles the quote at scenario time:
+
+```jsonc
+"cpu": {
+  "quote": {
+    "report_data": { "nonce": "$n1", "transport_public_key": "b2b2..." },
+    "report_data_offset": 0,
+    "leaf_pem": "...", "leaf_key_pem": "...", "intermediates_pem": ["..."],
+    "tamper_report_after_signing": false
+  }
+}
+```
+
+A recipe rather than a fixed artifact for one unavoidable reason: `REPORT_DATA` has
+to bind the nonce, and the nonce is generated at scenario time because it must be
+unpredictable. A pre-baked quote could only ever demonstrate a *mismatch*. So the
+vector supplies the chain, a test signing key, and a description of what
+`REPORT_DATA` should bind, and the implementation assembles it: report body =
+`offset` zero bytes, then `sha256(nonce || transport_key?)`, then trailing body
+bytes, signed ECDSA/SHA-256 by the leaf key. The container is
+`base64(JSON)` in the shape `JsonQuoteParser` documents (`report_b64`,
+`signature_b64`, `leaf_pem`, `intermediates_pem`, `report_data_offset`).
+
+`tamper_report_after_signing` flips a byte outside `REPORT_DATA` after signing, so
+the chain and the nonce binding stay intact and only the signature can catch it.
+
+The keys in these vectors are test keys, generated once and committed. They protect
+nothing.
 
 `evidence` is the composite bundle (SPEC 3.2): a `cpu` quote, an optional `gpu`
 report, an optional `memory_fingerprint`. It is declarative on purpose: an
@@ -267,22 +306,28 @@ quietly unenforced.
 Keep the input as small as the case needs, and make `description` say what the
 rule protects rather than restating the JSON.
 
-Two registry markers exist and both are deliberately small, with a test asserting
-neither grows quietly. Adding to one should be a decision, not the way a failing
-code is made to disappear:
+One registry marker exists, and a test asserts it does not grow quietly. Adding to
+it should be a decision, not the way a failing code is made to disappear:
 
 - **diagnostic only** (`WCM-L3-0003`, `WCM-L3-0004`) names a way an implementation
   can be *wrong* rather than an outcome it reports. Nothing raises "your
   re-attestation failed to renew the lease"; the suite concludes it when a step
   that should have succeeded did not. A vector can never *expect* one.
-- **not yet vectored** (`WCM-L2-0011`, `WCM-L2-0012`) is reportable but unexercised,
-  listed so the gap is visible instead of merely absent.
+
+`NOT_YET_VECTORED_CODES` is currently empty. It stays as a mechanism, because if a
+code is ever added ahead of its vector, declaring the gap is better than leaving it
+implicit.
 
 ## What building this corpus found
 
 Worth recording, because it is the argument for having a suite at all rather than
 trusting that the implementation is right:
 
+- **A configured quote verifier could be bypassed by omitting the quote.** Or so it
+  needed checking: `reject-quote-missing-when-a-verifier-is-configured` exists
+  because falling back to structural trust would turn a configured verifier into a
+  no-op, which is the kind of thing that passes review and fails in production. The
+  gate does deny; now something proves it.
 - **`retire_after` without a timezone crashed the gate.** The value arrives in a
   manifest and the gate's clock is timezone-aware, so a naive timestamp raised
   `TypeError` out of `verify_and_release` and aborted the whole release path. Now a

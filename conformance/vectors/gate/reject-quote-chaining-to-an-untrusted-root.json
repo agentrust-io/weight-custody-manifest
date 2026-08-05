@@ -1,0 +1,91 @@
+{
+  "id": "reject-quote-chaining-to-an-untrusted-root",
+  "level": "L2",
+  "kind": "gate",
+  "description": "A structurally perfect quote, correctly signed, binding the right nonce, whose chain ends at a root the verifier does not trust. Anyone can mint a self-signed CA, so trust has to come from the pinned root rather than from the evidence presenting one.",
+  "expect": "reject",
+  "code": "WCM-L2-0011",
+  "reject_reason": "the certificate chain does not reach a trusted root",
+  "manifest": {
+    "manifest_version": "1.0",
+    "weights_hash": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+    "builder": {
+      "identity": "example-builder",
+      "signing_key": "ed25519:builder-key"
+    },
+    "release_terms": {
+      "license": "customer-deployment-agreement-ref:CDA-2026-0001",
+      "permitted_derivatives": "fine-tune-only, no re-export of base weights",
+      "permitted_environments": [
+        "attested-enclave"
+      ]
+    },
+    "release_policy": {
+      "required_assurance_tier": "hardware-attested",
+      "required_hw_platform": [
+        "amd-sev-snp"
+      ],
+      "required_serving_image": {
+        "signer": "ed25519:builder-key",
+        "release_rule": "prefer-current",
+        "accepted_measurements": [
+          {
+            "measurement": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+            "status": "current"
+          }
+        ]
+      }
+    },
+    "custody": {
+      "custodian": "example-custodian",
+      "custodian_type": "customer-self-custody",
+      "kbs_image": {
+        "measurement": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+        "signer": "ed25519:custodian-key"
+      },
+      "enclave_id": "did:example:enclave-01",
+      "attestation_cadence": "1h"
+    }
+  },
+  "kbs": {
+    "clock": "2026-01-01T00:00:00+00:00",
+    "keystore": {
+      "sha256:1111111111111111111111111111111111111111111111111111111111111111": "a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1"
+    },
+    "cpu_quote_verifier": {
+      "parser": "json",
+      "trusted_roots_pem": [
+        "-----BEGIN CERTIFICATE-----\nMIIBZTCCAQugAwIBAgIUPAzE137pe2QKN5v/dMedHcLAfBQwCgYIKoZIzj0EAwIw\nKDEmMCQGA1UEAwwdd2NtLWNvbmZvcm1hbmNlLXBsYXRmb3JtLXJvb3QwHhcNMjUw\nMTAxMDAwMDAwWhcNMzUxMjMwMDAwMDAwWjAoMSYwJAYDVQQDDB13Y20tY29uZm9y\nbWFuY2UtcGxhdGZvcm0tcm9vdDBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABKBi\nc7d69P5nHYrAsYzLXnJYvQwajsRnZGDcxnvKlsv/HkP6O5Bw55BMorh9tpj2MVH2\nm2dvFqd8P4bxrGJEPnijEzARMA8GA1UdEwEB/wQFMAMBAf8wCgYIKoZIzj0EAwID\nSAAwRQIgO1xc+DeNPebprWKgLbtPWTDB4DIBNTUcuUcUMF8CPY8CIQDXy95QxDQv\nQQQXpcQroiMZCULaNYw97mKi/s6T+auAKA==\n-----END CERTIFICATE-----\n"
+      ]
+    }
+  },
+  "steps": [
+    {
+      "op": "challenge",
+      "as": "n1"
+    },
+    {
+      "op": "release",
+      "expect": "deny",
+      "code": "WCM-L2-0011",
+      "evidence": {
+        "cpu": {
+          "platform": "amd-sev-snp",
+          "assurance_tier": "hardware-attested",
+          "serving_image_measurement": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+          "nonce_echo": "$n1",
+          "attestation_key_id": "vcek-conformance-0001",
+          "quote": {
+            "report_data": {
+              "nonce": "$n1"
+            },
+            "report_data_offset": 0,
+            "leaf_pem": "-----BEGIN CERTIFICATE-----\nMIIBPTCB5aADAgECAhRkLTWQdUefBgxVGba7Ir2tWia36zAKBggqhkjOPQQDAjAl\nMSMwIQYDVQQDDBp3Y20tY29uZm9ybWFuY2Utcm9ndWUtcm9vdDAeFw0yNTAxMDEw\nMDAwMDBaFw0zNTEyMzAwMDAwMDBaMBoxGDAWBgNVBAMMD2F0dGVzdGF0aW9uLWtl\neTBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABEQ6X8SiTdqGw+jrMmJ23EeJnxeh\no7Zz5dh+Y5i6g0P5ntORQTK0lNjCLzokY7ccDD4ls2kvo8m6pTQaBIoNJW4wCgYI\nKoZIzj0EAwIDRwAwRAIgfkmT6ey1VDxjtCify6scHTFUTcOhWtPWvWszrYkEesgC\nIG7qavSsQrosiupPZVdk/Fcx6UTSjdHgMAq0uydivNBJ\n-----END CERTIFICATE-----\n",
+            "leaf_key_pem": "-----BEGIN PRIVATE KEY-----\nMIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQg3UzfSLQVn7XEt/D5\ngLVNgJ13LKDXxwF1WlDm08nkHK6hRANCAAREOl/Eok3ahsPo6zJidtxHiZ8XoaO2\nc+XYfmOYuoND+Z7TkUEytJTYwi86JGO3HAw+JbNpL6PJuqU0GgSKDSVu\n-----END PRIVATE KEY-----\n",
+            "intermediates_pem": []
+          }
+        }
+      }
+    }
+  ]
+}

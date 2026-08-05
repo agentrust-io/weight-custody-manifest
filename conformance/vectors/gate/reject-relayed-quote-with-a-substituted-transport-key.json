@@ -1,0 +1,96 @@
+{
+  "id": "reject-relayed-quote-with-a-substituted-transport-key",
+  "level": "L2",
+  "kind": "gate",
+  "description": "The relay attack (CVE-2026-33697). A genuine quote binding the real enclave's transport key is relayed, and the relay presents its OWN transport key hoping to have the released secret sealed to it. Folding the transport key into REPORT_DATA is what makes the substitution detectable: the relay cannot re-sign the report, so the binding no longer matches.",
+  "expect": "reject",
+  "code": "WCM-L2-0012",
+  "reject_reason": "REPORT_DATA binds a different transport key than the one presented",
+  "manifest": {
+    "manifest_version": "1.0",
+    "weights_hash": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+    "builder": {
+      "identity": "example-builder",
+      "signing_key": "ed25519:builder-key"
+    },
+    "release_terms": {
+      "license": "customer-deployment-agreement-ref:CDA-2026-0001",
+      "permitted_derivatives": "fine-tune-only, no re-export of base weights",
+      "permitted_environments": [
+        "attested-enclave"
+      ]
+    },
+    "release_policy": {
+      "required_assurance_tier": "hardware-attested",
+      "required_hw_platform": [
+        "amd-sev-snp"
+      ],
+      "required_serving_image": {
+        "signer": "ed25519:builder-key",
+        "release_rule": "prefer-current",
+        "accepted_measurements": [
+          {
+            "measurement": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+            "status": "current"
+          }
+        ]
+      }
+    },
+    "custody": {
+      "custodian": "example-custodian",
+      "custodian_type": "customer-self-custody",
+      "kbs_image": {
+        "measurement": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+        "signer": "ed25519:custodian-key"
+      },
+      "enclave_id": "did:example:enclave-01",
+      "attestation_cadence": "1h"
+    }
+  },
+  "kbs": {
+    "clock": "2026-01-01T00:00:00+00:00",
+    "keystore": {
+      "sha256:1111111111111111111111111111111111111111111111111111111111111111": "a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1"
+    },
+    "cpu_quote_verifier": {
+      "parser": "json",
+      "trusted_roots_pem": [
+        "-----BEGIN CERTIFICATE-----\nMIIBZTCCAQugAwIBAgIUPAzE137pe2QKN5v/dMedHcLAfBQwCgYIKoZIzj0EAwIw\nKDEmMCQGA1UEAwwdd2NtLWNvbmZvcm1hbmNlLXBsYXRmb3JtLXJvb3QwHhcNMjUw\nMTAxMDAwMDAwWhcNMzUxMjMwMDAwMDAwWjAoMSYwJAYDVQQDDB13Y20tY29uZm9y\nbWFuY2UtcGxhdGZvcm0tcm9vdDBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABKBi\nc7d69P5nHYrAsYzLXnJYvQwajsRnZGDcxnvKlsv/HkP6O5Bw55BMorh9tpj2MVH2\nm2dvFqd8P4bxrGJEPnijEzARMA8GA1UdEwEB/wQFMAMBAf8wCgYIKoZIzj0EAwID\nSAAwRQIgO1xc+DeNPebprWKgLbtPWTDB4DIBNTUcuUcUMF8CPY8CIQDXy95QxDQv\nQQQXpcQroiMZCULaNYw97mKi/s6T+auAKA==\n-----END CERTIFICATE-----\n"
+      ]
+    },
+    "require_channel_binding": true
+  },
+  "steps": [
+    {
+      "op": "challenge",
+      "as": "n1"
+    },
+    {
+      "op": "release",
+      "expect": "deny",
+      "code": "WCM-L2-0012",
+      "evidence": {
+        "cpu": {
+          "platform": "amd-sev-snp",
+          "assurance_tier": "hardware-attested",
+          "serving_image_measurement": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+          "nonce_echo": "$n1",
+          "attestation_key_id": "vcek-conformance-0001",
+          "quote": {
+            "report_data": {
+              "nonce": "$n1",
+              "transport_public_key": "b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2"
+            },
+            "report_data_offset": 0,
+            "leaf_pem": "-----BEGIN CERTIFICATE-----\nMIIBSDCB8KADAgECAhQj0Q6Ow+zGvE/crZcUvbDsLKneTzAKBggqhkjOPQQDAjAw\nMS4wLAYDVQQDDCV3Y20tY29uZm9ybWFuY2UtcGxhdGZvcm0taW50ZXJtZWRpYXRl\nMB4XDTI1MDEwMTAwMDAwMFoXDTM1MTIzMDAwMDAwMFowGjEYMBYGA1UEAwwPYXR0\nZXN0YXRpb24ta2V5MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEr4/ULGIr1Xcd\ndyLHDAgcysAMxKjBAF3gUpM07RZxjv1kQ9mjfyz+TTSFewRiO1iX3/fCjMnm997/\nRBu88oAGpzAKBggqhkjOPQQDAgNHADBEAiB0j62bMz1WsaTuj/J6y4YbkCU9K1uZ\nQiYnj5FllMOlEQIgK+8rJdeH5Yr5quKNzYFl+dQLg/1pDk6llAG/HR6L8gg=\n-----END CERTIFICATE-----\n",
+            "leaf_key_pem": "-----BEGIN PRIVATE KEY-----\nMIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQg1xUNjN2coQ7WtfLW\nkThFm+qQhJLnr8+uNLvDI5GhqaOhRANCAASvj9QsYivVdx13IscMCBzKwAzEqMEA\nXeBSkzTtFnGO/WRD2aN/LP5NNIV7BGI7WJff98KMyeb33v9EG7zygAan\n-----END PRIVATE KEY-----\n",
+            "intermediates_pem": [
+              "-----BEGIN CERTIFICATE-----\nMIIBbjCCAROgAwIBAgIUAx5tHOR6me3sl8c6CC9dOF2oWCEwCgYIKoZIzj0EAwIw\nKDEmMCQGA1UEAwwdd2NtLWNvbmZvcm1hbmNlLXBsYXRmb3JtLXJvb3QwHhcNMjUw\nMTAxMDAwMDAwWhcNMzUxMjMwMDAwMDAwWjAwMS4wLAYDVQQDDCV3Y20tY29uZm9y\nbWFuY2UtcGxhdGZvcm0taW50ZXJtZWRpYXRlMFkwEwYHKoZIzj0CAQYIKoZIzj0D\nAQcDQgAEo4y1UnzB9pmxksCCme+a0+3l6DGO+E66UIaV0O9aXeHfPNWs7sJvWEjS\nNrj7Jx4d8lVPU2EjYeTEGuCKBn+FJqMTMBEwDwYDVR0TAQH/BAUwAwEB/zAKBggq\nhkjOPQQDAgNJADBGAiEAlXj3b2CWaCdWYqGZoj7oGOSJAQtsnoa8D/kBR3B56gUC\nIQDJ1bE9+LN72T9LHNpZ5N4c93W2cDW79OIl+C4DxBPjiw==\n-----END CERTIFICATE-----\n"
+            ]
+          },
+          "transport_public_key": "c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3"
+        }
+      }
+    }
+  ]
+}
