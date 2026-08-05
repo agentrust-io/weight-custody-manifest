@@ -14,13 +14,18 @@ Two modes:
 - **External scoring.** ``score_results()`` takes the results another
   implementation produced from the same vectors and reports per-level pass/fail.
 
-Honest scope, restated wherever it can be missed: **only L1 and L4 have vectors.**
-L2 (attestation-gated release) and L3 (runtime custody) are specified as
-requirements here and in ``conformance/README.md``, but they are protocol
-behaviour over live state (single-use nonces, keys, clocks, operation counters)
-rather than static documents, and no vector corpus for them exists yet. A green
-run reports the levels it actually covered and says so; it is not a claim of full
-protocol conformance.
+All four levels are vectored. L1 and L4 ask questions about documents; L2 and L3
+ask what a system does over time, so their vectors are ordered scenarios with an
+injected clock and named nonces (see ``_eval_gate`` / ``_eval_custody``).
+
+Honest scope, since a green run should not be read as more than it is: L2 covers
+the **policy gate** (nonce freshness and single use, platform, tier, serving-image
+status and prefer-current, composite CPU-to-GPU binding, memory fingerprint,
+revocation freshness, channel binding, key availability). It does **not** yet
+cover cryptographic quote verification, signature and certificate chain against a
+vendor root, which needs raw hardware evidence and trust anchors rather than the
+declarative evidence these vectors carry. Those two codes are listed in
+``NOT_YET_VECTORED_CODES`` so the gap is visible rather than merely absent.
 """
 from __future__ import annotations
 
@@ -81,7 +86,7 @@ LEVELS: dict[str, Level] = {
             "chain, and channel binding so the released key is sealed to the "
             "attested transport key rather than returned on the channel."
         ),
-        kinds=(),
+        kinds=("gate",),
     ),
     "L3": Level(
         id="L3",
@@ -93,7 +98,7 @@ LEVELS: dict[str, Level] = {
             "renew on successful re-attestation, and report the trusted-time floor "
             "actually in force instead of implying a stronger one."
         ),
-        kinds=(),
+        kinds=("custody",),
     ),
     "L4": Level(
         id="L4",
@@ -135,7 +140,7 @@ CODES: dict[str, str] = {
     "WCM-L1-0103": "signature key_id is not trusted by the verifier",
     "WCM-L1-0104": "signature algorithm does not match the algorithm its key is trusted for",
     "WCM-L1-0105": "sovereign signature is not from the declared sovereign_signer",
-    # L2, attestation-gated release (declared; no vectors yet)
+    # L2, attestation-gated release
     "WCM-L2-0001": "KBS nonce is unknown, expired, or already used",
     "WCM-L2-0002": "platform is not in required_hw_platform",
     "WCM-L2-0003": "assurance tier is below required_assurance_tier",
@@ -149,7 +154,11 @@ CODES: dict[str, str] = {
     "WCM-L2-0011": "quote signature or certificate chain does not verify to a trusted root",
     "WCM-L2-0012": "REPORT_DATA does not bind the challenge nonce",
     "WCM-L2-0013": "released key is not sealed to the attested transport key (channel binding)",
-    # L3, runtime custody (declared; no vectors yet)
+    "WCM-L2-0014": "a retiring serving image was released past its retire_after",
+    "WCM-L2-0015": "GPU measurement does not match required_gpu_measurement.rim_pin",
+    "WCM-L2-0016": "the attestation key is listed as revoked",
+    "WCM-L2-0017": "no key is held for this weights_hash",
+    # L3, runtime custody
     "WCM-L3-0001": "key was usable after the attestation lease lapsed (must be zeroized, not suspended)",
     "WCM-L3-0002": "operation budget was exhausted without requiring re-attestation",
     "WCM-L3-0003": "successful re-attestation did not renew the lease or reset the budget",
@@ -162,6 +171,35 @@ CODES: dict[str, str] = {
     "WCM-L4-0005": "a manifest in the chain is not present or in force in the transparency log",
     "WCM-L4-0006": "a manifest in the chain is revoked; revocation cascades to the leaf",
 }
+
+
+#: Codes that name a way an implementation can be WRONG, rather than an outcome it
+#: reports. Nothing raises "your re-attestation failed to renew the lease": the
+#: suite concludes it when a step that should have succeeded raises instead. They
+#: are registered so a report can cite them, and they are exempt from the
+#: "every code on a vectored level is exercised by a vector" check, because a
+#: vector can never *expect* them.
+DIAGNOSTIC_ONLY_CODES = frozenset(
+    {
+        "WCM-L3-0003",  # concluded when a post-reattest operation is refused
+        "WCM-L3-0004",  # concluded when the reported time floor is too strong
+    }
+)
+
+#: Reportable codes with no vector yet, listed so the gap is visible instead of
+#: merely absent. Both belong to cryptographic quote verification, which needs raw
+#: hardware evidence plus trust anchors rather than the declarative evidence the
+#: gate vectors carry. The repo has real-silicon fixtures to build these from, but
+#: two things need designing first: how a vector supplies a trust store, and how to
+#: express nonce binding honestly given that on the Azure SEV-SNP capture
+#: REPORT_DATA binds the vTPM attestation key rather than a caller-supplied nonce.
+#: A test asserts this set does not grow.
+NOT_YET_VECTORED_CODES = frozenset(
+    {
+        "WCM-L2-0011",  # quote signature / cert chain does not verify
+        "WCM-L2-0012",  # REPORT_DATA does not bind the challenge nonce
+    }
+)
 
 
 def level_of_code(code: str) -> str:
@@ -369,10 +407,263 @@ def _eval_lineage(vector: dict[str, Any]) -> Verdict:
     return Verdict("reject", code, joined)
 
 
+# ---------------------------------------------------------------------------
+# L2 and L3: scenario vectors
+# ---------------------------------------------------------------------------
+#
+# L1 and L4 ask a question about a document. L2 and L3 ask what a system does over
+# time: a nonce is single-use, a lease lapses, an operation budget runs down. So
+# their vectors are ordered SCENARIOS, and every source of nondeterminism is
+# either injected or named:
+#
+#   - the clock is supplied by the vector and only moves on an explicit
+#     advance_clock step, so "the lease lapsed" is a fact about the scenario
+#     rather than about how long the test took to run;
+#   - nonces are generated by the implementation (they must be unpredictable, so
+#     a vector cannot hardcode them), and a `challenge` step binds one to a name
+#     that later steps reference as "$name". A literal value where a reference
+#     would go is how a never-issued nonce is expressed.
+#
+# That keeps the vectors language-neutral: an implementation in any language walks
+# the steps, performs each operation, and compares the outcome.
+
+
+class _ScenarioError(Exception):
+    """A step's outcome did not match, with the code the reference derived."""
+
+    def __init__(self, step_index: int, detail: str, code: Optional[str] = None) -> None:
+        super().__init__(detail)
+        self.step_index = step_index
+        self.detail = detail
+        self.code = code
+
+
+def _clock(start: str) -> tuple[Any, Any]:
+    """A mutable injected clock: returns (now_callable, advance_callable)."""
+    from datetime import datetime, timedelta
+
+    state = {"now": datetime.fromisoformat(start)}
+
+    def now() -> Any:
+        return state["now"]
+
+    def advance(seconds: float) -> None:
+        state["now"] = state["now"] + timedelta(seconds=seconds)
+
+    return now, advance
+
+
+def _resolve(value: Any, bindings: dict[str, str]) -> Any:
+    """Substitute "$name" references to nonces bound by a challenge step."""
+    if isinstance(value, str) and value.startswith("$"):
+        name = value[1:]
+        if name not in bindings:
+            raise ValueError(f"step references unbound nonce '{value}'")
+        return bindings[name]
+    if isinstance(value, dict):
+        return {k: _resolve(v, bindings) for k, v in value.items()}
+    if isinstance(value, list):
+        return [_resolve(v, bindings) for v in value]
+    return value
+
+
+_GATE_CODES: tuple[tuple[str, tuple[str, ...], str], ...] = (
+    # (check name, substrings that must appear in the detail, code).
+    # An empty substring tuple matches any detail for that check.
+    ("nonce_fresh", (), "WCM-L2-0001"),
+    ("cpu_platform_allowed", (), "WCM-L2-0002"),
+    ("assurance_tier", (), "WCM-L2-0003"),
+    ("serving_image", ("not in accepted_measurements",), "WCM-L2-0004"),
+    ("serving_image", ("prefer-current",), "WCM-L2-0005"),
+    ("serving_image", ("revoked",), "WCM-L2-0006"),
+    ("serving_image", ("retire_after",), "WCM-L2-0014"),
+    ("gpu", ("absent",), "WCM-L2-0007"),
+    ("gpu", ("nonce echo",), "WCM-L2-0008"),
+    ("gpu", ("rim_pin",), "WCM-L2-0015"),
+    ("memory_fingerprint", (), "WCM-L2-0009"),
+    ("attestation_revocation", ("is revoked",), "WCM-L2-0016"),
+    ("attestation_revocation", ("cache",), "WCM-L2-0010"),
+    ("cpu_quote_verified", ("nonce",), "WCM-L2-0012"),
+    ("cpu_quote_verified", (), "WCM-L2-0011"),
+    ("gpu_report_verified", ("nonce",), "WCM-L2-0012"),
+    ("gpu_report_verified", (), "WCM-L2-0011"),
+    ("channel_binding", (), "WCM-L2-0013"),
+    ("key_available", (), "WCM-L2-0017"),
+)
+
+
+def _gate_code(failures: list[Any]) -> tuple[Optional[str], str]:
+    """Map the gate's first failing check onto an L2 code.
+
+    Matched most-specific-first within a check name, since one check reports
+    several distinct failures (serving_image alone covers not-accepted,
+    prefer-current, revoked, and past-retire_after).
+    """
+    detail = "; ".join(f"{c.name}: {c.detail or 'failed'}" for c in failures)
+    for check in failures:
+        for name, markers, code in _GATE_CODES:
+            if check.name != name:
+                continue
+            text = check.detail or ""
+            if all(marker in text for marker in markers):
+                return code, detail
+    return None, detail
+
+
+def _eval_gate(vector: dict[str, Any]) -> Verdict:
+    from .attestation import CompositeEvidence
+    from .kbs import KeyBrokerService
+
+    manifest = WeightCustodyManifest.model_validate(vector["manifest"])
+    config = vector.get("kbs", {})
+    now, advance = _clock(config.get("clock", "2026-01-01T00:00:00+00:00"))
+
+    keystore = {
+        str(h): bytes.fromhex(k) for h, k in (config.get("keystore") or {}).items()
+    }
+    kbs = KeyBrokerService(
+        keystore,
+        challenge_ttl_seconds=int(config.get("challenge_ttl_seconds", 300)),
+        now=now,
+        revoked_attestation_keys=config.get("revoked_attestation_keys"),
+        max_attestation_cache_age_seconds=int(
+            config.get("max_attestation_cache_age_seconds", 600)
+        ),
+        require_channel_binding=bool(config.get("require_channel_binding", False)),
+    )
+
+    bindings: dict[str, str] = {}
+    for index, step in enumerate(vector["steps"]):
+        op = step["op"]
+        if op == "challenge":
+            bindings[step["as"]] = kbs.issue_challenge().nonce
+        elif op == "advance_clock":
+            advance(float(step["seconds"]))
+        elif op == "release":
+            evidence = CompositeEvidence.model_validate(
+                _resolve(step["evidence"], bindings)
+            )
+            decision = kbs.verify_and_release(manifest, evidence)
+            want = step["expect"]
+            if want == "allow":
+                if not decision.released:
+                    code, detail = _gate_code(decision.failures)
+                    raise _ScenarioError(index, f"expected allow, denied: {detail}", code)
+                form = step.get("key_form", "clear")
+                got_form = "sealed" if decision.sealed_key is not None else "clear"
+                if form != got_form:
+                    raise _ScenarioError(
+                        index, f"expected the key {form}, got it {got_form}"
+                    )
+            else:
+                if decision.released:
+                    raise _ScenarioError(index, "expected deny, the gate released the key")
+                code, detail = _gate_code(decision.failures)
+                return Verdict("reject", code, f"step {index}: {detail}")
+        else:
+            raise ValueError(f"unknown gate step op {op!r}")
+
+    return Verdict("accept", None, "every step behaved as the scenario requires")
+
+
+def _eval_custody(vector: dict[str, Any]) -> Verdict:
+    from .custody import (
+        EnclaveSession,
+        KeyWipedError,
+        ReattestationRequired,
+        parse_cadence,
+    )
+
+    manifest = WeightCustodyManifest.model_validate(vector["manifest"])
+    config = vector["custody"]
+    now, advance = _clock(config.get("clock", "2026-01-01T00:00:00+00:00"))
+    session = EnclaveSession(
+        bytes.fromhex(config["key"]),
+        cadence_seconds=parse_cadence(manifest.custody.attestation_cadence),
+        trusted_time_source=manifest.release_policy.trusted_time_source,
+        max_operations=config.get("max_operations"),
+        weights_hash=str(manifest.weights_hash),
+        now=now,
+    )
+
+    def _run(index: int, step: dict[str, Any], action: Any) -> Optional[Verdict]:
+        """Run *action*, scoring it against the step's expectation."""
+        want = step.get("expect", "ok")
+        try:
+            action()
+        except KeyWipedError as exc:
+            if want == "ok":
+                raise _ScenarioError(
+                    index, f"expected success, key was wiped: {exc}", "WCM-L3-0001"
+                ) from exc
+            return Verdict("reject", "WCM-L3-0001", f"step {index}: {exc}")
+        except ReattestationRequired as exc:
+            if want == "ok":
+                raise _ScenarioError(
+                    index,
+                    f"expected success, re-attestation was demanded: {exc}",
+                    "WCM-L3-0002",
+                ) from exc
+            return Verdict("reject", "WCM-L3-0002", f"step {index}: {exc}")
+        if want != "ok":
+            raise _ScenarioError(index, f"expected {want}, the operation succeeded")
+        return None
+
+    for index, step in enumerate(vector["steps"]):
+        op = step["op"]
+        if op == "advance_clock":
+            advance(float(step["seconds"]))
+        elif op == "use_key":
+            done = _run(index, step, session.use_key)
+            if done is not None:
+                return done
+        elif op == "reattest":
+            done = _run(index, step, session.reattest)
+            if done is not None:
+                return done
+        elif op == "tick":
+            session.tick()
+            want_state = step.get("state")
+            if want_state is not None and session.state.value != want_state:
+                raise _ScenarioError(
+                    index, f"expected state {want_state}, got {session.state.value}"
+                )
+        elif op == "assert_state":
+            if session.state.value != step["state"]:
+                raise _ScenarioError(
+                    index, f"expected state {step['state']}, got {session.state.value}"
+                )
+        elif op == "assert_time_floor":
+            # A floor stronger than the source supports is the misreport in
+            # WCM-L3-0004: the guarantee would be read as bounded when it is not.
+            if session.time_floor.value != step["floor"]:
+                raise _ScenarioError(
+                    index,
+                    f"expected time floor {step['floor']}, got {session.time_floor.value}",
+                    "WCM-L3-0004",
+                )
+        elif op == "assert_operations_remaining":
+            # A method, unlike its sibling property operations_used. Inconsistent,
+            # but it is published API and this is not the PR to break it in.
+            got = session.operations_remaining()
+            if got != step["remaining"]:
+                raise _ScenarioError(
+                    index,
+                    f"expected {step['remaining']} operations remaining, got {got}",
+                    "WCM-L3-0003",
+                )
+        else:
+            raise ValueError(f"unknown custody step op {op!r}")
+
+    return Verdict("accept", None, "every step behaved as the scenario requires")
+
+
 _EVALUATORS = {
     "manifest": _eval_manifest,
     "signature": _eval_signature,
     "lineage": _eval_lineage,
+    "gate": _eval_gate,
+    "custody": _eval_custody,
 }
 
 
@@ -381,7 +672,13 @@ def evaluate(vector: dict[str, Any]) -> Verdict:
     evaluator = _EVALUATORS.get(vector["kind"])
     if evaluator is None:
         raise ValueError(f"no evaluator for vector kind {vector['kind']!r}")
-    return evaluator(vector)
+    try:
+        return evaluator(vector)
+    except _ScenarioError as exc:
+        # A scenario step that should have succeeded did not. That is an "accept"
+        # vector failing, reported with the code the failure diagnoses, so the
+        # report says which requirement broke rather than only that one did.
+        return Verdict("reject", exc.code, f"step {exc.step_index}: {exc.detail}")
 
 
 # ---------------------------------------------------------------------------

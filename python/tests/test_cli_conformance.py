@@ -10,7 +10,7 @@ import json
 from pathlib import Path
 
 from wcm.cli import main
-from wcm.conformance import DECLARED_ONLY_LEVELS, VECTORED_LEVELS, load_vectors
+from wcm.conformance import NOT_YET_VECTORED_CODES, VECTORED_LEVELS, load_vectors
 
 
 def _perfect_results() -> dict:
@@ -35,14 +35,18 @@ def test_self_test_passes_and_names_covered_levels(capsys):
     assert "levels ok : " + ", ".join(VECTORED_LEVELS) in out
 
 
-def test_self_test_warns_about_uncovered_levels(capsys):
-    """The whole point of the honesty framing: a green run must not read as full
-    conformance while L2 and L3 have no vectors."""
+def test_self_test_warns_about_uncovered_requirements(capsys):
+    """The honesty framing, now at code rather than level granularity.
+
+    Every level is vectored, but cryptographic quote verification inside L2 is not,
+    so a green run must still say what it did not cover.
+    """
     assert main(["conformance"]) == 0
     out = capsys.readouterr().out
     assert "NOT COVERED:" in out
-    for level_id in DECLARED_ONLY_LEVELS:
-        assert level_id in out
+    for code in NOT_YET_VECTORED_CODES:
+        assert code in out
+    assert "quote verification" in out
 
 
 def test_single_vectored_level(capsys):
@@ -52,12 +56,11 @@ def test_single_vectored_level(capsys):
     assert "L1" not in out.split("subject")[-1].split("levels ok")[0]
 
 
-def test_declared_only_level_exits_nonzero(capsys):
-    """You cannot pass a level that has no vectors."""
-    assert main(["conformance", "--level", "L2"]) == 1
-    out = capsys.readouterr().out
-    assert "no vectors yet" in out
-    assert "levels ok : none" in out
+def test_every_level_scores_on_its_own(capsys):
+    """Each level is independently scoreable now that all four are vectored."""
+    for level_id in VECTORED_LEVELS:
+        assert main(["conformance", "--level", level_id]) == 0
+        assert f"{level_id}  PASS" in capsys.readouterr().out
 
 
 def test_score_a_perfect_results_file(tmp_path: Path, capsys):

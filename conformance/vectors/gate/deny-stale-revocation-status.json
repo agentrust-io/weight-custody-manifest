@@ -1,0 +1,79 @@
+{
+  "id": "deny-stale-revocation-status",
+  "level": "L2",
+  "kind": "gate",
+  "description": "A revocation status older than the policy's window. A cached 'not revoked' from long ago is not evidence of anything now, which is the whole point of requiring a live check.",
+  "expect": "reject",
+  "code": "WCM-L2-0010",
+  "reject_reason": "the revocation status cache is staler than the allowed window",
+  "manifest": {
+    "manifest_version": "1.0",
+    "weights_hash": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+    "builder": {
+      "identity": "example-builder",
+      "signing_key": "ed25519:builder-key"
+    },
+    "release_terms": {
+      "license": "customer-deployment-agreement-ref:CDA-2026-0001",
+      "permitted_derivatives": "fine-tune-only, no re-export of base weights",
+      "permitted_environments": [
+        "attested-enclave"
+      ]
+    },
+    "release_policy": {
+      "required_assurance_tier": "hardware-attested",
+      "required_hw_platform": [
+        "amd-sev-snp"
+      ],
+      "required_serving_image": {
+        "signer": "ed25519:builder-key",
+        "release_rule": "prefer-current",
+        "accepted_measurements": [
+          {
+            "measurement": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+            "status": "current"
+          }
+        ]
+      },
+      "attestation_revocation_check": "live-per-release, max-cache-age: short-window"
+    },
+    "custody": {
+      "custodian": "example-custodian",
+      "custodian_type": "customer-self-custody",
+      "kbs_image": {
+        "measurement": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+        "signer": "ed25519:custodian-key"
+      },
+      "enclave_id": "did:example:enclave-01",
+      "attestation_cadence": "1h"
+    }
+  },
+  "kbs": {
+    "clock": "2026-01-01T00:00:00+00:00",
+    "keystore": {
+      "sha256:1111111111111111111111111111111111111111111111111111111111111111": "a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1"
+    },
+    "max_attestation_cache_age_seconds": 600
+  },
+  "steps": [
+    {
+      "op": "challenge",
+      "as": "n1"
+    },
+    {
+      "op": "release",
+      "evidence": {
+        "cpu": {
+          "platform": "amd-sev-snp",
+          "assurance_tier": "hardware-attested",
+          "serving_image_measurement": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+          "nonce_echo": "$n1",
+          "attestation_key_id": "vcek-mock-0001",
+          "attestation_key_cache_age_seconds": 4000
+        }
+      },
+      "expect": "deny",
+      "code": "WCM-L2-0010"
+    }
+  ]
+}

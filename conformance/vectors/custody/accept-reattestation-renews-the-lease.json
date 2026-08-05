@@ -1,0 +1,74 @@
+{
+  "id": "accept-reattestation-renews-the-lease",
+  "level": "L3",
+  "kind": "custody",
+  "description": "Re-attesting before the deadline renews the window, so serving continues past the point where the original lease would have lapsed. If this fails, the implementation is not renewing (WCM-L3-0003).",
+  "expect": "accept",
+  "manifest": {
+    "manifest_version": "1.0",
+    "weights_hash": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+    "builder": {
+      "identity": "example-builder",
+      "signing_key": "ed25519:builder-key"
+    },
+    "release_terms": {
+      "license": "customer-deployment-agreement-ref:CDA-2026-0001",
+      "permitted_derivatives": "fine-tune-only, no re-export of base weights",
+      "permitted_environments": [
+        "attested-enclave"
+      ]
+    },
+    "release_policy": {
+      "required_assurance_tier": "hardware-attested",
+      "required_hw_platform": [
+        "amd-sev-snp"
+      ],
+      "required_serving_image": {
+        "signer": "ed25519:builder-key",
+        "release_rule": "prefer-current",
+        "accepted_measurements": [
+          {
+            "measurement": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+            "status": "current"
+          }
+        ]
+      }
+    },
+    "custody": {
+      "custodian": "example-custodian",
+      "custodian_type": "customer-self-custody",
+      "kbs_image": {
+        "measurement": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+        "signer": "ed25519:custodian-key"
+      },
+      "enclave_id": "did:example:enclave-01",
+      "attestation_cadence": "1h"
+    }
+  },
+  "custody": {
+    "clock": "2026-01-01T00:00:00+00:00",
+    "key": "a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1"
+  },
+  "steps": [
+    {
+      "op": "advance_clock",
+      "seconds": 3000
+    },
+    {
+      "op": "reattest",
+      "expect": "ok"
+    },
+    {
+      "op": "advance_clock",
+      "seconds": 3000
+    },
+    {
+      "op": "use_key",
+      "expect": "ok"
+    },
+    {
+      "op": "assert_state",
+      "state": "holding"
+    }
+  ]
+}

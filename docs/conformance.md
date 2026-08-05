@@ -38,20 +38,25 @@ the corresponding conformance vector. See
 holds language-neutral JSON vectors and a scoring contract. Four levels are
 defined, matching the four protocol layers:
 
-| Level | Title | Vectors |
-| --- | --- | --- |
-| L1 | Manifest and joint signature | 32 |
-| L2 | Attestation-gated release | **none yet** |
-| L3 | Runtime custody | **none yet** |
-| L4 | Derivative lineage | 10 |
+| Level | Title | Vectors | Shape |
+| --- | --- | --- | --- |
+| L1 | Manifest and joint signature | 32 | documents |
+| L2 | Attestation-gated release | 29 | scenarios |
+| L3 | Runtime custody | 12 | scenarios |
+| L4 | Derivative lineage | 10 | documents |
 
-**L2 and L3 have no vectors, so no implementation can be scored on them today.**
-Their requirements are written down and their error codes are allocated, but L1
-and L4 are checks over documents while L2 and L3 are protocol behaviour over live
-state (single-use nonces, released keys, clocks, operation counters). Expressing
-those needs a scripted-scenario format that is not designed yet. Passing L1 and
-L4 is conformance to the manifest and lineage layers, not to WCM as a whole, and
-the runner says so on every run.
+All four levels are vectored, 83 vectors in total. L1 and L4 ask a question about a
+document. L2 and L3 ask what a system does over *time*, so their vectors are
+ordered scenarios with an injected clock and named nonces: a nonce is single-use, a
+lease lapses, an operation budget runs down.
+
+**One requirement inside L2 is still uncovered:** cryptographic quote verification,
+the signature and certificate chain against a vendor root (`WCM-L2-0011`,
+`WCM-L2-0012`). That needs raw hardware evidence plus trust anchors rather than the
+declarative evidence the gate vectors carry. Both codes are marked in the registry
+and printed on every full run, so a green result is not read as covering them. A
+passing L2 means the gate enforces the manifest's policy; it does not mean the gate
+can tell a genuine quote from a fabricated one.
 
 Running it:
 
