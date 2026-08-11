@@ -6,6 +6,10 @@ uses semantic-ish versioning while pre-1.0.
 
 ## Unreleased
 
+**[security/sdk]** Raised the runtime `cryptography` floor to `50.0`, excluding
+the vulnerable 49.x releases reported by `pip-audit` while retaining the
+existing upper bound for the current major-version compatibility contract.
+
 **[spec/sdk]** Normative manifest **JSON Schema, frozen at v1**
 (`schema/wcm-manifest-v1.schema.json`, `$id`
 `https://wcm.agentrust-io.com/schema/manifest/v1.json`). Until now the manifest
