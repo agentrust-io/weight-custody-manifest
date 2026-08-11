@@ -26,7 +26,7 @@ jobs:
   build-and-smoke-test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Build the reference KBS image
         run: docker build -f python/docker/Dockerfile -t wcm-kbs:ci .
