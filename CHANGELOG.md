@@ -10,6 +10,11 @@ uses semantic-ish versioning while pre-1.0.
 the vulnerable 49.x releases reported by `pip-audit` while retaining the
 existing upper bound for the current major-version compatibility contract.
 
+**[security/ci]** Pinned every GitHub Actions dependency, including the PyPI
+trusted-publishing action, to an immutable commit. This prevents a mutable tag
+from changing the code executed by the release or documentation deployment
+workflow without a reviewable repository change.
+
 **[spec/sdk]** Normative manifest **JSON Schema, frozen at v1**
 (`schema/wcm-manifest-v1.schema.json`, `$id`
 `https://wcm.agentrust-io.com/schema/manifest/v1.json`). Until now the manifest
