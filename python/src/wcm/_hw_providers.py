@@ -34,6 +34,7 @@ import hashlib
 import json
 import os
 import shutil
+import tempfile
 # subprocess is used only for the NVIDIA attestation command (trusted env var).
 import subprocess  # nosec B404
 import urllib.request
@@ -247,6 +248,8 @@ class AzureSnpVtpmProvider(CpuQuoteProvider):
     platform = "amd-sev-snp"
     _NV_INDEX = "0x01400001"
     _TPM_DEV = "/dev/tpmrm0"
+    _AK_HANDLE = "0x81000003"
+    _THIM_URL = "http://169.254.169.254/metadata/THIM/amd/certification"
 
     @staticmethod
     def is_available() -> bool:
@@ -283,12 +286,13 @@ class AzureSnpVtpmProvider(CpuQuoteProvider):
     ) -> CpuQuote:
         from .snp import extract_snp_report_from_hcl, parse_snp_report
 
-        report = extract_snp_report_from_hcl(self._fetch_hcl())
+        hcl = self._fetch_hcl()
+        report = extract_snp_report_from_hcl(hcl)
         parsed = parse_snp_report(report)
-        # transport_public_key is carried on the quote so the KBS can still seal
-        # the released key to it. As with nonce_echo, the raw report's REPORT_DATA
-        # is vTPM-bound (not guest-controlled), so the transport key's binding into
-        # hardware rides the enclosing vTPM quote, not this SNP report field.
+        binding = _report_data_for(
+            challenge.nonce, _channel_binding(transport_public_key)
+        )[:32]
+        bundle = self._fetch_freshness_bundle(hcl, binding)
         return CpuQuote(
             platform=self.platform,
             assurance_tier=assurance_tier,
@@ -296,9 +300,60 @@ class AzureSnpVtpmProvider(CpuQuoteProvider):
             nonce_echo=challenge.nonce,
             attestation_key_id="vcek:" + parsed.chip_id[:8].hex(),
             attestation_key_cache_age_seconds=0,
-            quote_b64=base64.b64encode(report).decode(),
+            quote_b64=base64.b64encode(json.dumps(bundle).encode()).decode(),
             transport_public_key=transport_public_key,
         )
+
+    def _fetch_freshness_bundle(self, hcl: bytes, binding: bytes) -> dict[str, Any]:
+        """Capture the HCL-authenticated AK's fresh PCR-23 quote."""
+        for tool in ("tpm2_readpublic", "tpm2_quote"):
+            if shutil.which(tool) is None:
+                raise AttestationUnavailableError(f"{tool} not found (Azure CVM tooling)")
+        try:
+            req = urllib.request.Request(self._THIM_URL, headers={"Metadata": "true"})
+            thim = json.loads(urllib.request.urlopen(req, timeout=10).read().decode())  # nosec B310
+            with tempfile.TemporaryDirectory(prefix="wcm-vtpm-") as tmp:
+                ak = os.path.join(tmp, "ak.pem")
+                msg = os.path.join(tmp, "quote.msg")
+                sig = os.path.join(tmp, "quote.sig")
+                subprocess.run(  # nosec B603 B607
+                    ["tpm2_readpublic", "-c", self._AK_HANDLE, "-f", "pem", "-o", ak],
+                    capture_output=True,
+                    timeout=30,
+                    check=True,
+                )
+                subprocess.run(  # nosec B603 B607
+                    [
+                        "tpm2_quote", "-c", self._AK_HANDLE, "-l", "sha256:23",
+                        "-q", binding.hex(), "-m", msg, "-s", sig, "-g", "sha256",
+                    ],
+                    capture_output=True,
+                    timeout=30,
+                    check=True,
+                )
+                ak_pem = open(ak, encoding="utf-8").read()
+                quote = open(msg, "rb").read()
+                signature = open(sig, "rb").read()
+        except (OSError, ValueError, subprocess.SubprocessError) as exc:
+            raise AttestationUnavailableError(f"Azure vTPM freshness capture failed: {exc}") from exc
+        chain = self._split_pems(thim.get("certificateChain", ""))
+        vcek = thim.get("vcekCert") or thim.get("vcek") or thim.get("vcekCertificate")
+        if not vcek or not chain:
+            raise AttestationUnavailableError("Azure THIM response lacks VCEK/AMD chain")
+        return {
+            "kind": "wcm-azure-snp-vtpm/v1",
+            "hcl_b64": base64.b64encode(hcl).decode(),
+            "ak_pem": ak_pem,
+            "tpm_quote_b64": base64.b64encode(quote).decode(),
+            "tpm_signature_b64": base64.b64encode(signature).decode(),
+            "vcek_pem": vcek,
+            "intermediates_pem": chain[:-1],
+        }
+
+    @staticmethod
+    def _split_pems(blob: str) -> list[str]:
+        marker = "-----END CERTIFICATE-----"
+        return [part + marker + "\n" for part in blob.split(marker) if "BEGIN CERTIFICATE" in part]
 
 
 class AzureTdxVtpmProvider(CpuQuoteProvider):

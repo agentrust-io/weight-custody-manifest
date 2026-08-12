@@ -26,9 +26,8 @@ class _Strict(BaseModel):
 class CpuQuote(_Strict):
     """CPU confidential-VM quote (SEV-SNP / TDX class).
 
-    ``quote_b64`` optionally carries the raw hardware report (base64) so a
-    future verifier-side pass can check its signature and cert chain; the
-    current gate uses the structured fields only.
+    ``quote_b64`` optionally carries a raw hardware report or a platform-specific
+    evidence bundle (base64) for verifier-side cryptographic checks.
     """
 
     platform: str  # e.g. "amd-sev-snp"
