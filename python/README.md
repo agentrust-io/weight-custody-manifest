@@ -72,8 +72,10 @@ Layer 2 (release gate):
   `AzureSnpVtpmProvider` (SEV-SNP on an Azure CVM via the vTPM NV `0x01400001`
   paravisor path - the flow validated on a live Azure host),
   `NvidiaCcProvider` (GPU report via an external tool), `HardwareCompositeProvider`,
-  and `select_provider()` (auto-select, software fallback). The bare-metal ioctl
-  offsets remain provisional; the Azure vTPM extraction is validated.
+  and `select_provider()` (auto-select, software fallback). The SEV-SNP ioctl
+  path is validated on a live GCP N2D guest. TDX report generation is validated
+  on a live GCP C3 guest, while remote quote generation remains provisional;
+  the Azure vTPM extraction is validated.
 - **`kbs.py`** - `KeyBrokerService`: composite verification (nonce, platform,
   assurance tier, serving-image status + prefer-current, GPU measurement and
   CPU↔GPU binding, memory-fingerprint, revocation freshness, optional

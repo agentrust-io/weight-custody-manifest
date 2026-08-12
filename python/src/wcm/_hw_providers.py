@@ -4,7 +4,7 @@ These are the enclave-side adapters that fetch a real, nonce-bound attestation
 quote and package it as WCM ``CompositeEvidence`` for the KBS to verify:
 
   SevSnpProvider    - AMD SEV-SNP CPU quote via /dev/sev-guest (Linux 5.19+)
-  TdxProvider       - Intel TDX CPU quote via /dev/tdx-guest (Linux 6.2+)
+  TdxProvider       - Intel TDX CPU report via /dev/tdx_guest (Linux 6.2+)
   AzureSnpVtpmProvider - AMD SEV-SNP on an Azure CVM via the vTPM paravisor path
   AzureTdxVtpmProvider - Intel TDX on an Azure CVM (vTPM TD report + IMDS quote)
   NvidiaCcProvider  - NVIDIA CC GPU report via an external attestation command
@@ -14,10 +14,11 @@ quote and package it as WCM ``CompositeEvidence`` for the KBS to verify:
 Validation status: the two Azure vTPM providers ARE validated against live Azure
 hosts (SEV-SNP on DC2as_v5, TDX on DCes_v6 westeurope; their captured quotes
 verify through snp.py / tdx.py against the real AMD and Intel roots). The
-bare-metal ioctl paths (SevSnpProvider, TdxProvider) and NvidiaCcProvider are
-still PROVISIONAL: their request layouts mirror the documented ABI and the
-agentrust-io agent-manifest implementation (Apache-2.0) but are unchecked on
-that hardware. What CI exercises everywhere is availability detection, the
+bare-metal SEV-SNP ioctl path is validated on a live GCP N2D SEV-SNP guest. The
+bare-metal TDX report ioctl path is also validated on a live GCP C3 guest;
+conversion of that TDREPORT into a remotely verifiable TDX quote remains
+provisional. NvidiaCcProvider is also still PROVISIONAL. What CI exercises
+everywhere is availability detection, the
 software fallback, and report *parsing* against synthetic fixtures.
 
 Honesty note that outlives the offsets: even a perfectly-parsed, signature-valid
@@ -28,6 +29,7 @@ that hole.
 from __future__ import annotations
 
 import base64
+import ctypes
 import hashlib
 import json
 import os
@@ -92,7 +94,7 @@ class CpuQuoteProvider(ABC):
 class SevSnpProvider(CpuQuoteProvider):
     """AMD SEV-SNP CPU quote via /dev/sev-guest.
 
-    Offsets (PROVISIONAL, per snp_attestation_report, kernel 6.x):
+    Offsets (per snp_attestation_report, kernel 6.x):
       REPORT_DATA  at 0x50 (64 bytes)   - the guest-controlled binding field
       MEASUREMENT  at 0x90 (48 bytes)   - launch measurement (SHA-384)
       CHIP_ID      at 0x1A0 (64 bytes)  - identifies the VCEK
@@ -100,7 +102,7 @@ class SevSnpProvider(CpuQuoteProvider):
 
     platform = "amd-sev-snp"
     _DEV = "/dev/sev-guest"
-    _IOCTL = 0xC0A00300  # SNP_GET_REPORT, _IOWR('S', 0, struct snp_guest_req_ioctl)
+    _IOCTL = 0xC0205300  # SNP_GET_REPORT, _IOWR('S', 0, 32-byte guest request)
 
     @staticmethod
     def is_available() -> bool:
@@ -108,18 +110,41 @@ class SevSnpProvider(CpuQuoteProvider):
 
     def _fetch_report(self, report_data: bytes) -> bytes:
         """Fetch a raw SNP report with the given REPORT_DATA. Overridable in tests."""
-        buf = bytearray(4096)
-        buf[:64] = report_data
+        class _GuestRequest(ctypes.Structure):
+            _fields_ = [
+                ("msg_version", ctypes.c_uint8),
+                ("req_data", ctypes.c_uint64),
+                ("resp_data", ctypes.c_uint64),
+                ("exitinfo2", ctypes.c_uint64),
+            ]
+
+        request = ctypes.create_string_buffer(96)
+        ctypes.memmove(request, report_data, 64)
+        response = ctypes.create_string_buffer(4000)
+        ioctl_arg = _GuestRequest(
+            msg_version=1,
+            req_data=ctypes.addressof(request),
+            resp_data=ctypes.addressof(response),
+            exitinfo2=0,
+        )
         try:
             import fcntl  # Linux-only; absent off-Linux, which means no SEV-SNP here
 
             with open(self._DEV, "rb") as dev:
-                fcntl.ioctl(dev, self._IOCTL, buf)  # type: ignore[attr-defined]
+                fcntl.ioctl(dev, self._IOCTL, ioctl_arg)  # type: ignore[attr-defined]
         except (OSError, ImportError) as exc:
             raise AttestationUnavailableError(
                 f"SEV-SNP report request failed ({self._DEV}): {exc}"
             ) from exc
-        return bytes(buf)
+        status = int.from_bytes(response.raw[0:4], "little")
+        report_size = int.from_bytes(response.raw[4:8], "little")
+        if status != 0 or report_size != 1184:
+            raise AttestationUnavailableError(
+                "SEV-SNP report response invalid "
+                f"(status={status}, report_size={report_size}, "
+                f"exitinfo2={ioctl_arg.exitinfo2})"
+            )
+        return response.raw[32 : 32 + report_size]
 
     def cpu_quote(
         self,
@@ -148,14 +173,16 @@ class SevSnpProvider(CpuQuoteProvider):
 
 
 class TdxProvider(CpuQuoteProvider):
-    """Intel TDX CPU quote via /dev/tdx-guest.
+    """Intel TDX CPU report via /dev/tdx_guest.
 
-    Offsets (PROVISIONAL): the request places REPORTDATA at buf[0:64]; the TD
-    report's reportdata lands at 104 within the returned structure.
+    The ioctl request is 64 bytes of REPORTDATA followed by a 1,024-byte
+    TDREPORT. REPORTDATA is at offset 128 within the returned TDREPORT's
+    REPORTMACSTRUCT. A TDREPORT still needs a quote-generation service before a
+    remote verifier can validate it against Intel collateral.
     """
 
     platform = "intel-tdx"
-    _DEV = "/dev/tdx-guest"
+    _DEV = "/dev/tdx_guest"
     _IOCTL = 0xC4405401  # TDX_CMD_GET_REPORT0, _IOWR('T', 1, struct tdx_report_req)
 
     @staticmethod
@@ -174,7 +201,7 @@ class TdxProvider(CpuQuoteProvider):
             raise AttestationUnavailableError(
                 f"TDX report request failed ({self._DEV}): {exc}"
             ) from exc
-        return bytes(buf)
+        return bytes(buf[64:])
 
     def cpu_quote(
         self,
@@ -195,7 +222,7 @@ class TdxProvider(CpuQuoteProvider):
             serving_image_measurement=HashValue(serving_image_measurement),
             nonce_echo=challenge.nonce,
             # TDX has no VCEK; the quoting enclave's cert identifies the key.
-            attestation_key_id="tdx-quote:" + raw[64:72].hex(),
+            attestation_key_id="tdx-report:" + raw[:8].hex(),
             attestation_key_cache_age_seconds=0,
             quote_b64=base64.b64encode(raw).decode(),
             transport_public_key=transport_public_key,
