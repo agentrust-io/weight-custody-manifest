@@ -17,7 +17,9 @@ and independently reproduced. Full details:
 docker build -f python/docker/Dockerfile -t wcm-kbs .
 docker run --rm -p 8080:8080 \
   -v "$PWD/keystore.json:/run/secrets/keystore.json:ro" \
-  -e WCM_KEYSTORE_FILE=/run/secrets/keystore.json wcm-kbs
+  -v "$PWD/cpu-root.pem:/run/trust/cpu-root.pem:ro" \
+  -e WCM_KEYSTORE_FILE=/run/secrets/keystore.json \
+  -e WCM_CPU_TRUST_ROOT_FILE=/run/trust/cpu-root.pem wcm-kbs
 ```
 
 Keys are supplied at runtime, never baked into the image. CI builds, runs, and
@@ -33,3 +35,7 @@ operator hardening steps, documented in the link above).
     source keys from a KMS/HSM-backed mounted secret, restrict network ingress,
     and attest/pin the KBS image itself. Do not expose the reference image
     directly on an untrusted network.
+
+    The environment-built server fails closed when `WCM_CPU_TRUST_ROOT_FILE` is
+    absent: health and challenge issuance remain available, but every release is
+    denied rather than falling back to structural CPU evidence.

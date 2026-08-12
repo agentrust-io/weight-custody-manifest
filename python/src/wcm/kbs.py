@@ -94,6 +94,7 @@ class KeyBrokerService:
         cpu_quote_verifier: Optional[QuoteVerifier] = None,
         gpu_report_verifier: Optional[NvidiaGpuVerifier] = None,
         require_channel_binding: bool = False,
+        require_cpu_quote_verification: bool = False,
     ) -> None:
         # keystore maps weights_hash -> the decryption key to release.
         self._keystore: dict[str, bytes] = dict(keystore)
@@ -116,6 +117,7 @@ class KeyBrokerService:
         # relayed quote yields only ciphertext (SPEC 3.2 channel binding). Off by
         # default: the pre-channel-binding release shape is unchanged.
         self._require_channel_binding = require_channel_binding
+        self._require_cpu_quote_verification = require_cpu_quote_verification
 
     def issue_challenge(self) -> Challenge:
         return self._challenges.issue()
@@ -357,6 +359,12 @@ class KeyBrokerService:
         self, evidence: CompositeEvidence, nonce: str, channel_binding: bytes
     ) -> CheckResult:
         if self._cpu_quote_verifier is None:
+            if self._require_cpu_quote_verification:
+                return CheckResult(
+                    "cpu_quote_verified",
+                    False,
+                    "cryptographic CPU quote verifier required but not configured",
+                )
             return CheckResult(
                 "cpu_quote_verified",
                 True,

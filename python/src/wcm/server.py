@@ -22,6 +22,7 @@ import json
 import os
 from typing import Any
 
+from cryptography import x509
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, ValidationError
 
@@ -29,6 +30,7 @@ from . import __version__
 from .attestation import CompositeEvidence
 from .kbs import KeyBrokerService
 from .models import WeightCustodyManifest
+from ._quote_verify import JsonQuoteParser, QuoteVerifier, TrustStore
 
 
 class ReleaseRequest(BaseModel):
@@ -91,9 +93,23 @@ def build_kbs_from_env() -> KeyBrokerService:
         with open(path, "r", encoding="utf-8") as fh:
             raw = json.load(fh)
         keystore = {wh: base64.b64decode(k) for wh, k in raw.items()}
-    # The reference network surface requires channel binding: the key leaves
-    # only sealed to the enclave's attested transport key (SPEC 3.2).
-    return KeyBrokerService(keystore, require_channel_binding=True)
+    cpu_verifier = None
+    root_path = os.environ.get("WCM_CPU_TRUST_ROOT_FILE")
+    if root_path:
+        with open(root_path, "rb") as fh:
+            root = x509.load_pem_x509_certificate(fh.read())
+        trust = TrustStore()
+        trust.add_root(root)
+        cpu_verifier = QuoteVerifier(JsonQuoteParser(), trust)
+    # A network release surface must not silently downgrade to structural CPU
+    # evidence. Without a trusted root it serves health/challenges but refuses
+    # every release.
+    return KeyBrokerService(
+        keystore,
+        cpu_quote_verifier=cpu_verifier,
+        require_channel_binding=True,
+        require_cpu_quote_verification=True,
+    )
 
 
 def app_from_env() -> FastAPI:
