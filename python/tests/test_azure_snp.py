@@ -7,6 +7,7 @@ fetch (a synthetic HCL wrapping a synthetic SNP report).
 from __future__ import annotations
 
 import base64
+import json
 import struct
 
 import pytest
@@ -40,10 +41,16 @@ def test_parse_path_with_mocked_fetch():
     p = AzureSnpVtpmProvider()
     hcl = _synth_hcl()
     p._fetch_hcl = lambda: hcl  # type: ignore[method-assign]
+    p._fetch_freshness_bundle = lambda got, binding: {  # type: ignore[method-assign]
+        "kind": "wcm-azure-snp-vtpm/v1",
+        "hcl_b64": base64.b64encode(got).decode(),
+        "binding": binding.hex(),
+    }
     ch = _challenge()
     quote = p.cpu_quote(ch, serving_image_measurement="sha256:" + "5e2d" * 16)
     assert quote.platform == "amd-sev-snp"
     assert quote.nonce_echo == ch.nonce
     assert quote.attestation_key_id == "vcek:" + (b"\x5a" * 8).hex()
-    # quote_b64 is the extracted raw SNP report (1184 bytes).
-    assert len(base64.b64decode(quote.quote_b64)) == 0x4A0
+    bundle = json.loads(base64.b64decode(quote.quote_b64))
+    assert base64.b64decode(bundle["hcl_b64"]) == hcl
+    assert len(bytes.fromhex(bundle["binding"])) == 32

@@ -4,7 +4,7 @@ These are the enclave-side adapters that fetch a real, nonce-bound attestation
 quote and package it as WCM ``CompositeEvidence`` for the KBS to verify:
 
   SevSnpProvider    - AMD SEV-SNP CPU quote via /dev/sev-guest (Linux 5.19+)
-  TdxProvider       - Intel TDX CPU quote via /dev/tdx-guest (Linux 6.2+)
+  TdxProvider       - Intel TDX CPU report via /dev/tdx_guest (Linux 6.2+)
   AzureSnpVtpmProvider - AMD SEV-SNP on an Azure CVM via the vTPM paravisor path
   AzureTdxVtpmProvider - Intel TDX on an Azure CVM (vTPM TD report + IMDS quote)
   NvidiaCcProvider  - NVIDIA CC GPU report via an external attestation command
@@ -14,10 +14,11 @@ quote and package it as WCM ``CompositeEvidence`` for the KBS to verify:
 Validation status: the two Azure vTPM providers ARE validated against live Azure
 hosts (SEV-SNP on DC2as_v5, TDX on DCes_v6 westeurope; their captured quotes
 verify through snp.py / tdx.py against the real AMD and Intel roots). The
-bare-metal ioctl paths (SevSnpProvider, TdxProvider) and NvidiaCcProvider are
-still PROVISIONAL: their request layouts mirror the documented ABI and the
-agentrust-io agent-manifest implementation (Apache-2.0) but are unchecked on
-that hardware. What CI exercises everywhere is availability detection, the
+bare-metal SEV-SNP ioctl path is validated on a live GCP N2D SEV-SNP guest. The
+bare-metal TDX report ioctl path is also validated on a live GCP C3 guest;
+conversion of that TDREPORT into a remotely verifiable TDX quote remains
+provisional. NvidiaCcProvider is also still PROVISIONAL. What CI exercises
+everywhere is availability detection, the
 software fallback, and report *parsing* against synthetic fixtures.
 
 Honesty note that outlives the offsets: even a perfectly-parsed, signature-valid
@@ -28,10 +29,12 @@ that hole.
 from __future__ import annotations
 
 import base64
+import ctypes
 import hashlib
 import json
 import os
 import shutil
+import tempfile
 # subprocess is used only for the NVIDIA attestation command (trusted env var).
 import subprocess  # nosec B404
 import urllib.request
@@ -92,7 +95,7 @@ class CpuQuoteProvider(ABC):
 class SevSnpProvider(CpuQuoteProvider):
     """AMD SEV-SNP CPU quote via /dev/sev-guest.
 
-    Offsets (PROVISIONAL, per snp_attestation_report, kernel 6.x):
+    Offsets (per snp_attestation_report, kernel 6.x):
       REPORT_DATA  at 0x50 (64 bytes)   - the guest-controlled binding field
       MEASUREMENT  at 0x90 (48 bytes)   - launch measurement (SHA-384)
       CHIP_ID      at 0x1A0 (64 bytes)  - identifies the VCEK
@@ -100,7 +103,7 @@ class SevSnpProvider(CpuQuoteProvider):
 
     platform = "amd-sev-snp"
     _DEV = "/dev/sev-guest"
-    _IOCTL = 0xC0A00300  # SNP_GET_REPORT, _IOWR('S', 0, struct snp_guest_req_ioctl)
+    _IOCTL = 0xC0205300  # SNP_GET_REPORT, _IOWR('S', 0, 32-byte guest request)
 
     @staticmethod
     def is_available() -> bool:
@@ -108,18 +111,41 @@ class SevSnpProvider(CpuQuoteProvider):
 
     def _fetch_report(self, report_data: bytes) -> bytes:
         """Fetch a raw SNP report with the given REPORT_DATA. Overridable in tests."""
-        buf = bytearray(4096)
-        buf[:64] = report_data
+        class _GuestRequest(ctypes.Structure):
+            _fields_ = [
+                ("msg_version", ctypes.c_uint8),
+                ("req_data", ctypes.c_uint64),
+                ("resp_data", ctypes.c_uint64),
+                ("exitinfo2", ctypes.c_uint64),
+            ]
+
+        request = ctypes.create_string_buffer(96)
+        ctypes.memmove(request, report_data, 64)
+        response = ctypes.create_string_buffer(4000)
+        ioctl_arg = _GuestRequest(
+            msg_version=1,
+            req_data=ctypes.addressof(request),
+            resp_data=ctypes.addressof(response),
+            exitinfo2=0,
+        )
         try:
             import fcntl  # Linux-only; absent off-Linux, which means no SEV-SNP here
 
             with open(self._DEV, "rb") as dev:
-                fcntl.ioctl(dev, self._IOCTL, buf)  # type: ignore[attr-defined]
+                fcntl.ioctl(dev, self._IOCTL, ioctl_arg)  # type: ignore[attr-defined]
         except (OSError, ImportError) as exc:
             raise AttestationUnavailableError(
                 f"SEV-SNP report request failed ({self._DEV}): {exc}"
             ) from exc
-        return bytes(buf)
+        status = int.from_bytes(response.raw[0:4], "little")
+        report_size = int.from_bytes(response.raw[4:8], "little")
+        if status != 0 or report_size != 1184:
+            raise AttestationUnavailableError(
+                "SEV-SNP report response invalid "
+                f"(status={status}, report_size={report_size}, "
+                f"exitinfo2={ioctl_arg.exitinfo2})"
+            )
+        return response.raw[32 : 32 + report_size]
 
     def cpu_quote(
         self,
@@ -148,14 +174,16 @@ class SevSnpProvider(CpuQuoteProvider):
 
 
 class TdxProvider(CpuQuoteProvider):
-    """Intel TDX CPU quote via /dev/tdx-guest.
+    """Intel TDX CPU report via /dev/tdx_guest.
 
-    Offsets (PROVISIONAL): the request places REPORTDATA at buf[0:64]; the TD
-    report's reportdata lands at 104 within the returned structure.
+    The ioctl request is 64 bytes of REPORTDATA followed by a 1,024-byte
+    TDREPORT. REPORTDATA is at offset 128 within the returned TDREPORT's
+    REPORTMACSTRUCT. A TDREPORT still needs a quote-generation service before a
+    remote verifier can validate it against Intel collateral.
     """
 
     platform = "intel-tdx"
-    _DEV = "/dev/tdx-guest"
+    _DEV = "/dev/tdx_guest"
     _IOCTL = 0xC4405401  # TDX_CMD_GET_REPORT0, _IOWR('T', 1, struct tdx_report_req)
 
     @staticmethod
@@ -174,7 +202,7 @@ class TdxProvider(CpuQuoteProvider):
             raise AttestationUnavailableError(
                 f"TDX report request failed ({self._DEV}): {exc}"
             ) from exc
-        return bytes(buf)
+        return bytes(buf[64:])
 
     def cpu_quote(
         self,
@@ -195,7 +223,7 @@ class TdxProvider(CpuQuoteProvider):
             serving_image_measurement=HashValue(serving_image_measurement),
             nonce_echo=challenge.nonce,
             # TDX has no VCEK; the quoting enclave's cert identifies the key.
-            attestation_key_id="tdx-quote:" + raw[64:72].hex(),
+            attestation_key_id="tdx-report:" + raw[:8].hex(),
             attestation_key_cache_age_seconds=0,
             quote_b64=base64.b64encode(raw).decode(),
             transport_public_key=transport_public_key,
@@ -220,6 +248,8 @@ class AzureSnpVtpmProvider(CpuQuoteProvider):
     platform = "amd-sev-snp"
     _NV_INDEX = "0x01400001"
     _TPM_DEV = "/dev/tpmrm0"
+    _AK_HANDLE = "0x81000003"
+    _THIM_URL = "http://169.254.169.254/metadata/THIM/amd/certification"
 
     @staticmethod
     def is_available() -> bool:
@@ -256,12 +286,13 @@ class AzureSnpVtpmProvider(CpuQuoteProvider):
     ) -> CpuQuote:
         from .snp import extract_snp_report_from_hcl, parse_snp_report
 
-        report = extract_snp_report_from_hcl(self._fetch_hcl())
+        hcl = self._fetch_hcl()
+        report = extract_snp_report_from_hcl(hcl)
         parsed = parse_snp_report(report)
-        # transport_public_key is carried on the quote so the KBS can still seal
-        # the released key to it. As with nonce_echo, the raw report's REPORT_DATA
-        # is vTPM-bound (not guest-controlled), so the transport key's binding into
-        # hardware rides the enclosing vTPM quote, not this SNP report field.
+        binding = _report_data_for(
+            challenge.nonce, _channel_binding(transport_public_key)
+        )[:32]
+        bundle = self._fetch_freshness_bundle(hcl, binding)
         return CpuQuote(
             platform=self.platform,
             assurance_tier=assurance_tier,
@@ -269,9 +300,60 @@ class AzureSnpVtpmProvider(CpuQuoteProvider):
             nonce_echo=challenge.nonce,
             attestation_key_id="vcek:" + parsed.chip_id[:8].hex(),
             attestation_key_cache_age_seconds=0,
-            quote_b64=base64.b64encode(report).decode(),
+            quote_b64=base64.b64encode(json.dumps(bundle).encode()).decode(),
             transport_public_key=transport_public_key,
         )
+
+    def _fetch_freshness_bundle(self, hcl: bytes, binding: bytes) -> dict[str, Any]:
+        """Capture the HCL-authenticated AK's fresh PCR-23 quote."""
+        for tool in ("tpm2_readpublic", "tpm2_quote"):
+            if shutil.which(tool) is None:
+                raise AttestationUnavailableError(f"{tool} not found (Azure CVM tooling)")
+        try:
+            req = urllib.request.Request(self._THIM_URL, headers={"Metadata": "true"})
+            thim = json.loads(urllib.request.urlopen(req, timeout=10).read().decode())  # nosec B310
+            with tempfile.TemporaryDirectory(prefix="wcm-vtpm-") as tmp:
+                ak = os.path.join(tmp, "ak.pem")
+                msg = os.path.join(tmp, "quote.msg")
+                sig = os.path.join(tmp, "quote.sig")
+                subprocess.run(  # nosec B603 B607
+                    ["tpm2_readpublic", "-c", self._AK_HANDLE, "-f", "pem", "-o", ak],
+                    capture_output=True,
+                    timeout=30,
+                    check=True,
+                )
+                subprocess.run(  # nosec B603 B607
+                    [
+                        "tpm2_quote", "-c", self._AK_HANDLE, "-l", "sha256:23",
+                        "-q", binding.hex(), "-m", msg, "-s", sig, "-g", "sha256",
+                    ],
+                    capture_output=True,
+                    timeout=30,
+                    check=True,
+                )
+                ak_pem = open(ak, encoding="utf-8").read()
+                quote = open(msg, "rb").read()
+                signature = open(sig, "rb").read()
+        except (OSError, ValueError, subprocess.SubprocessError) as exc:
+            raise AttestationUnavailableError(f"Azure vTPM freshness capture failed: {exc}") from exc
+        chain = self._split_pems(thim.get("certificateChain", ""))
+        vcek = thim.get("vcekCert") or thim.get("vcek") or thim.get("vcekCertificate")
+        if not vcek or not chain:
+            raise AttestationUnavailableError("Azure THIM response lacks VCEK/AMD chain")
+        return {
+            "kind": "wcm-azure-snp-vtpm/v1",
+            "hcl_b64": base64.b64encode(hcl).decode(),
+            "ak_pem": ak_pem,
+            "tpm_quote_b64": base64.b64encode(quote).decode(),
+            "tpm_signature_b64": base64.b64encode(signature).decode(),
+            "vcek_pem": vcek,
+            "intermediates_pem": chain[:-1],
+        }
+
+    @staticmethod
+    def _split_pems(blob: str) -> list[str]:
+        marker = "-----END CERTIFICATE-----"
+        return [part + marker + "\n" for part in blob.split(marker) if "BEGIN CERTIFICATE" in part]
 
 
 class AzureTdxVtpmProvider(CpuQuoteProvider):

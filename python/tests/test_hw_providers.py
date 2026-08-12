@@ -8,7 +8,12 @@ hardware), and the full producer -> KBS gate path with faked device I/O.
 from __future__ import annotations
 
 import base64
+import builtins
+import ctypes
+import io
 import json
+import sys
+from types import SimpleNamespace
 
 import pytest
 
@@ -87,6 +92,22 @@ def test_sev_snp_parses_synthetic_report():
     assert base64.b64decode(quote.quote_b64) == raw
 
 
+def test_sev_snp_linux_uapi_layout(monkeypatch):
+    report = bytes((i % 251 for i in range(1184)))
+
+    def ioctl(_dev, code, arg):
+        assert code == 0xC0205300
+        assert ctypes.sizeof(arg) == 32
+        assert arg.msg_version == 1
+        ctypes.memmove(arg.resp_data, (0).to_bytes(4, "little"), 4)
+        ctypes.memmove(arg.resp_data + 4, (1184).to_bytes(4, "little"), 4)
+        ctypes.memmove(arg.resp_data + 32, report, len(report))
+
+    monkeypatch.setitem(sys.modules, "fcntl", SimpleNamespace(ioctl=ioctl))
+    monkeypatch.setattr(builtins, "open", lambda *_args, **_kwargs: io.BytesIO())
+    assert SevSnpProvider()._fetch_report(b"x" * 64) == report
+
+
 def test_sev_snp_unavailable_raises_real():
     # No monkeypatch: the real _fetch_report hits a missing /dev/sev-guest.
     p = SevSnpProvider()
@@ -102,7 +123,21 @@ def test_tdx_parses_synthetic_report():
     quote = p.cpu_quote(ch, serving_image_measurement="sha256:" + "5e2d" * 16)
     assert quote.platform == "intel-tdx"
     assert quote.nonce_echo == ch.nonce
-    assert quote.attestation_key_id.startswith("tdx-quote:")
+    assert quote.attestation_key_id.startswith("tdx-report:")
+
+
+def test_tdx_linux_uapi_layout(monkeypatch):
+    report = bytes((i % 251 for i in range(1024)))
+
+    def ioctl(_dev, code, buf):
+        assert code == 0xC4405401
+        assert len(buf) == 1088
+        assert bytes(buf[:64]) == b"x" * 64
+        buf[64:] = report
+
+    monkeypatch.setitem(sys.modules, "fcntl", SimpleNamespace(ioctl=ioctl))
+    monkeypatch.setattr(builtins, "open", lambda *_args, **_kwargs: io.BytesIO())
+    assert TdxProvider()._fetch_report(b"x" * 64) == report
 
 
 # -- NVIDIA GPU report via a faked tool ----------------------------------------

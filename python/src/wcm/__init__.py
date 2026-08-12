@@ -111,6 +111,7 @@ from ._quote_verify import (
     QuoteFormatError,
     verify_cert_chain,
 )
+from .azure_vtpm import AzureSnpVtpmVerifier
 from .custody import (
     EnclaveSession,
     SessionState,

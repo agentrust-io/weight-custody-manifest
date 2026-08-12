@@ -145,3 +145,38 @@ def test_app_from_env_loads_keystore(tmp_path, monkeypatch, example_manifest):
     kbs = build_kbs_from_env()
     # The key loaded for the example weights_hash decodes back to KEY.
     assert kbs._keystore[example_manifest.weights_hash] == KEY  # type: ignore[attr-defined]
+
+
+def test_env_server_fails_closed_without_cpu_trust_root(
+    tmp_path, monkeypatch, example_manifest
+):
+    import json
+    from datetime import datetime, timezone
+    from wcm._challenge import Challenge
+    from wcm.server import build_kbs_from_env
+
+    ks = tmp_path / "keystore.json"
+    ks.write_text(json.dumps({example_manifest.weights_hash: base64.b64encode(KEY).decode()}))
+    monkeypatch.setenv("WCM_KEYSTORE_FILE", str(ks))
+    monkeypatch.delenv("WCM_CPU_TRUST_ROOT_FILE", raising=False)
+    kbs = build_kbs_from_env()
+    current, rim = _measurements(example_manifest)
+    issued = kbs.issue_challenge()
+    _, pub = generate_transport_keypair()
+    challenge = Challenge(
+        nonce=issued.nonce,
+        issued_at=datetime.now(timezone.utc),
+        expires_at=datetime.now(timezone.utc),
+    )
+    evidence = SoftwareProvider().produce(
+        challenge,
+        serving_image_measurement=current,
+        gpu_measurement=rim,
+        transport_public_key=pub,
+    )
+    decision = kbs.verify_and_release(example_manifest, evidence)
+    assert not decision.released
+    assert any(
+        check.name == "cpu_quote_verified" and not check.passed
+        for check in decision.checks
+    )
