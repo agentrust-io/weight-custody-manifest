@@ -4,17 +4,25 @@ Use this after NVIDIA LaunchPad or Microsoft Azure Local access is assigned. It
 keeps discovery separate from security claims and makes teardown an explicit
 exit condition.
 
-Before hardware arrives, generate the two software-readiness receipts from the
-release-candidate checkout:
+Before hardware arrives, generate the complete software-readiness pack from the
+release-candidate checkout with one command:
 
 ```bash
-python python/tools/launch_readiness.py --mode happy --out validation/readiness
-python python/tools/launch_readiness.py --mode negative --out validation/readiness
+python python/tools/final_launch.py --mode software --out validation/final-software
 ```
 
 These commands emit machine-readable JSON and human-readable Markdown. They
 deliberately set `hardware_claim` to `false`; the partner-node run appends the
 genuine composite evidence rather than reinterpreting software evidence.
+
+On a partner node, run the same orchestrator with the applicable profile:
+
+```bash
+python python/tools/final_launch.py --mode partner --profile nvidia --out validation/final-partner
+```
+
+Use `--profile azure-local` for Microsoft hardware. Partner mode fails closed if
+the required CPU evidence path or NVIDIA device is absent.
 
 ## 1. Read-only preflight
 
