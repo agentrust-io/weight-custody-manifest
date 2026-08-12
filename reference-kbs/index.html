@@ -1119,17 +1119,26 @@ and independently reproduced. Full details:
 <div class="highlight"><pre><span></span><code>docker<span class="w"> </span>build<span class="w"> </span>-f<span class="w"> </span>python/docker/Dockerfile<span class="w"> </span>-t<span class="w"> </span>wcm-kbs<span class="w"> </span>.
 docker<span class="w"> </span>run<span class="w"> </span>--rm<span class="w"> </span>-p<span class="w"> </span><span class="m">8080</span>:8080<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>-v<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$PWD</span><span class="s2">/keystore.json:/run/secrets/keystore.json:ro&quot;</span><span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>-e<span class="w"> </span><span class="nv">WCM_KEYSTORE_FILE</span><span class="o">=</span>/run/secrets/keystore.json<span class="w"> </span>wcm-kbs
+<span class="w">  </span>-v<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$PWD</span><span class="s2">/cpu-root.pem:/run/trust/cpu-root.pem:ro&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-e<span class="w"> </span><span class="nv">WCM_KEYSTORE_FILE</span><span class="o">=</span>/run/secrets/keystore.json<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-e<span class="w"> </span><span class="nv">WCM_CPU_TRUST_ROOT_FILE</span><span class="o">=</span>/run/trust/cpu-root.pem<span class="w"> </span>wcm-kbs
 </code></pre></div>
 <p>Keys are supplied at runtime, never baked into the image. CI builds, runs, and
 health-checks the image on every change. Bit-for-bit reproducibility additionally
 requires pinning the base image by digest and hash-locking dependencies (the
 operator hardening steps, documented in the link above).</p>
 <div class="admonition note">
-<p class="admonition-title">Reference-only release path</p>
-<p>The reference server returns the key in the <code>/release</code> response body. A
-production KBS wraps it to the requesting enclave's attested transport
-instead. Do not expose the reference image as-is on an untrusted network.</p>
+<p class="admonition-title">Reference-only deployment</p>
+<p>The reference server requires channel binding and returns only
+<code>sealed_key_b64</code>, encrypted to the transport public key bound into the
+attestation evidence; it never returns the raw key. Production deployments
+must additionally isolate the KBS trust boundary, authenticate clients,
+source keys from a KMS/HSM-backed mounted secret, restrict network ingress,
+and attest/pin the KBS image itself. Do not expose the reference image
+directly on an untrusted network.</p>
+<p>The environment-built server fails closed when <code>WCM_CPU_TRUST_ROOT_FILE</code> is
+absent: health and challenge issuance remain available, but every release is
+denied rather than falling back to structural CPU evidence.</p>
 </div>
 
 
