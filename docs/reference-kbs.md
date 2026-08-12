@@ -25,7 +25,11 @@ health-checks the image on every change. Bit-for-bit reproducibility additionall
 requires pinning the base image by digest and hash-locking dependencies (the
 operator hardening steps, documented in the link above).
 
-!!! note "Reference-only release path"
-    The reference server returns the key in the `/release` response body. A
-    production KBS wraps it to the requesting enclave's attested transport
-    instead. Do not expose the reference image as-is on an untrusted network.
+!!! note "Reference-only deployment"
+    The reference server requires channel binding and returns only
+    `sealed_key_b64`, encrypted to the transport public key bound into the
+    attestation evidence; it never returns the raw key. Production deployments
+    must additionally isolate the KBS trust boundary, authenticate clients,
+    source keys from a KMS/HSM-backed mounted secret, restrict network ingress,
+    and attest/pin the KBS image itself. Do not expose the reference image
+    directly on an untrusted network.

@@ -4,6 +4,18 @@ Use this after NVIDIA LaunchPad or Microsoft Azure Local access is assigned. It
 keeps discovery separate from security claims and makes teardown an explicit
 exit condition.
 
+Before hardware arrives, generate the two software-readiness receipts from the
+release-candidate checkout:
+
+```bash
+python python/tools/launch_readiness.py --mode happy --out validation/readiness
+python python/tools/launch_readiness.py --mode negative --out validation/readiness
+```
+
+These commands emit machine-readable JSON and human-readable Markdown. They
+deliberately set `hardware_claim` to `false`; the partner-node run appends the
+genuine composite evidence rather than reinterpreting software evidence.
+
 ## 1. Read-only preflight
 
 Run from the release-candidate checkout:
