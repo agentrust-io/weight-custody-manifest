@@ -6,6 +6,24 @@ uses semantic-ish versioning while pre-1.0.
 
 ## Unreleased
 
+## 0.25.0 - 2026-08-12
+
+**[security/kbs]** The environment-built network KBS now fails closed when a
+cryptographic CPU quote verifier/trust root is not configured. Health and
+challenge issuance remain available, but release cannot silently downgrade to
+structural CPU evidence. A private GCP boundary validation caught the gap and
+confirmed replay, transport-key substitution, and unapproved-image refusal after
+the fix.
+
+**[hardware/sdk]** Added live-derived Linux SEV-SNP and TDX provider fixes,
+fail-closed NVIDIA NVAT evidence adaptation, and Azure SNP→HCL runtime→HCL
+attestation-key→fresh vTPM quote verification with nonce/transport binding.
+
+**[operations]** Added read-only partner-node preflight, unified happy/negative
+readiness receipts, and a single fail-closed final-launch command with evidence
+redaction, JSON validation, deterministic inventory hashing, and explicit
+hardware-claim boundaries.
+
 **[security/sdk]** Raised the runtime `cryptography` floor to `50.0`, excluding
 the vulnerable 49.x releases reported by `pip-audit` while retaining the
 existing upper bound for the current major-version compatibility contract.
