@@ -6,7 +6,7 @@
 |------|-------------|--------|------|
 | Imran Siddique | OPAQUE Systems | @agentrust-io | Project Lead, Spec Author |
 
-The Project Lead has final decision authority on specification changes, publication timing (the open-question 8.8 gate), and maintainer appointments.
+The Project Lead has final decision authority on specification changes, publication timing, and maintainer appointments. Publication is not gated on closing open question 8.8; its residual limitation remains mandatory disclosure.
 
 ## How to become a maintainer
 
