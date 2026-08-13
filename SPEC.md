@@ -320,7 +320,7 @@ What this deliberately does not solve is broad multi-party policy co-governance:
 
 ### 3.9 Provenance Interop: Composing with Model Signing
 
-WCM is the custody-and-release layer. It is not a model-signing scheme and it does not re-sign the model files. Where a builder already publishes a provenance signature over the weights, in particular an [OpenSSF model-signing](https://github.com/sigstore/model-transparency) signature, a WCM manifest references it rather than duplicating it.
+WCM is the custody-and-release layer. It is not a model-signing scheme and it does not re-sign the model files. Where a builder already publishes a provenance signature over the weights, in particular an [OpenSSF Model Signing (OMS)](https://github.com/ossf/model-signing-spec) signature produced by a compatible [implementation](https://github.com/sigstore/model-transparency), a WCM manifest references it rather than duplicating it.
 
 An optional `provenance` object carries that reference under the joint signature:
 

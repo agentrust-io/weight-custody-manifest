@@ -18,6 +18,11 @@ is the protocol for that direction - a signed manifest describing which weights
 are released and under what terms, attestation-gated key release into a verified
 enclave, wipe-on-lapse and revocation, and a chain of custody for derivatives.
 
+WCM composes with [OpenSSF Model Signing](oms-interoperability.md) rather than
+competing with it: OMS proves which model artifact a signer published; WCM
+governs whether the key for those exact bytes may be released to a freshly
+attested workload and how long that workload may retain it.
+
 ## Honest guarantee scope
 
 WCM names two guarantees and never blends them:
@@ -37,5 +42,6 @@ The honesty about what does and does not hold is the point. See
 - [Specification overview](spec-overview.md) and the full [`SPEC.md`](https://github.com/agentrust-io/weight-custody-manifest/blob/main/SPEC.md)
 - [Threat model](threat-model.md)
 - [Getting started with the SDK](getting-started.md)
+- [OpenSSF Model Signing interoperability](oms-interoperability.md)
 - [Reference KBS image](reference-kbs.md)
 - [Roadmap](roadmap.md) · [Governance](governance.md) · [Contributing](contributing.md)

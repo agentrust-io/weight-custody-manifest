@@ -43,6 +43,7 @@ nav:
       - Runnable examples: https://github.com/agentrust-io/examples/tree/main/weight-custody-manifest
   - Specification:
       - Overview: spec-overview.md
+      - OpenSSF Model Signing interop: oms-interoperability.md
       - Threat model: threat-model.md
       - Schema and conformance: conformance.md
   - SDK:
