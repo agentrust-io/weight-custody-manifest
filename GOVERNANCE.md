@@ -20,7 +20,7 @@ Full review and merge rights on designated areas; publish rights on the `weight-
 
 ### Project Lead
 
-Final decision authority on specification changes, publication timing (see below), conformance disputes, and Maintainer appointments. Currently: Imran Siddique (OPAQUE Systems).
+Final decision authority on specification changes, publication timing, conformance disputes, and Maintainer appointments. Currently: Imran Siddique (OPAQUE Systems).
 
 **Succession**: if the Project Lead is unavailable for 30+ days without notice, the active Maintainers vote to appoint an interim lead. A Technical Steering Committee will be formalized before any standards-body submission.
 
@@ -28,9 +28,9 @@ Final decision authority on specification changes, publication timing (see below
 
 Routine changes (bug fixes, non-breaking additions, docs) merge on one Maintainer approval. Breaking spec changes and guarantee-scope changes require an issue, a comment period, and Project Lead sign-off. The bar throughout is the project's honesty principle: no change may strengthen a security claim beyond what the hardware and protocol actually deliver (`SPEC.md` §3.6).
 
-## Publication gate
+## Publication posture
 
-This repository is **pre-1.0 and its public release is staged** behind the hostile-owner posture stabilizing - specifically the still-open key-extraction half of open question 8.8, which needs new silicon to close. The Project Lead decides when the gate is met. Readiness work (governance, community health, SDK, validation) proceeds independently of the visibility flip.
+This repository is **pre-1.0**. Public release is a deliberate Project Lead decision, but it is **not gated** on closing the key-extraction half of open question 8.8. That hardware-owner residual is disclosed and scoped out of WCM's cryptographic-custody claim (`SPEC.md` §3.6); physical hardening and accountability are the current controls for that posture. The project must not strengthen its claims to make publication easier.
 
 ## Relationship to the agentrust-io family
 
