@@ -42,6 +42,9 @@ This repository is the **open protocol layer**: the specification, the threat mo
 - `conformance/` - language-neutral test vectors and a scoring contract, run by `wcm conformance`. All four levels are vectored (91 vectors) and every reportable error code is exercised; L1 and L4 over documents, L2 and L3 as time-ordered scenarios. The runner prints its remaining limits (a synthetic PKI rather than vendor roots, and no GPU-side crypto vectors) on every run, so a pass is not read as more than it is. See `conformance/README.md`.
 - `python/` - the Python reference SDK (build, sign, verify; the KBS gate and reference server; quote verification; transparency log; threshold; PQ profile). See `python/README.md`.
 - `docs/` - documentation site sources (published to wcm.agentrust-io.com).
+- `docs/oms-interoperability.md` - how WCM composes with OpenSSF Model Signing:
+  OMS proves artifact authenticity and integrity; WCM governs attestation-gated
+  key release and runtime custody for those exact bytes.
 - `LIMITATIONS.md` - what WCM does **not** do; read alongside `SPEC.md` §3.6.
 
 ## Community & governance
