@@ -3,23 +3,10 @@ name: python
 on:
   push:
     branches: [main]
-    # schema/ and conformance/ live outside python/ but the suite validates them
-    # (tests/test_schema.py checks the committed schema against the generator and
-    # both against the vector corpus), so a change to either must run these tests.
-    paths:
-      - "python/**"
-      - "schema/**"
-      - "conformance/**"
-      - ".github/workflows/python.yml"
   pull_request:
-    # schema/ and conformance/ live outside python/ but the suite validates them
-    # (tests/test_schema.py checks the committed schema against the generator and
-    # both against the vector corpus), so a change to either must run these tests.
-    paths:
-      - "python/**"
-      - "schema/**"
-      - "conformance/**"
-      - ".github/workflows/python.yml"
+    # Run on every PR. The public-repository ruleset requires packaging and all
+    # three test jobs, so path filters would leave docs/governance PRs waiting
+    # forever for required checks that never start.
 
 permissions:
   contents: read
