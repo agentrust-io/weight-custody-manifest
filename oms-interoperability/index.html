@@ -10,13 +10,13 @@
       
       
       
-        <link rel="canonical" href="https://wcm.agentrust-io.com/getting-started/">
+        <link rel="canonical" href="https://wcm.agentrust-io.com/oms-interoperability/">
       
       
-        <link rel="prev" href="../conformance/">
+        <link rel="prev" href="../spec-overview/">
       
       
-        <link rel="next" href="../reference-kbs/">
+        <link rel="next" href="../threat-model/">
       
       
         
@@ -27,7 +27,7 @@
     
     
       
-        <title>Getting started - Weight Custody Manifest</title>
+        <title>OpenSSF Model Signing interop - Weight Custody Manifest</title>
       
     
     
@@ -78,7 +78,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#getting-started" class="md-skip">
+        <a href="#openssf-model-signing-wcm" class="md-skip">
           Skip to content
         </a>
       
@@ -112,7 +112,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Getting started
+              OpenSSF Model Signing interop
             
           </span>
         </div>
@@ -262,10 +262,12 @@
   
   
   
+    
+  
   
     
     
-      <li class="md-tabs__item">
+      <li class="md-tabs__item md-tabs__item--active">
         <a href="../spec-overview/" class="md-tabs__link">
           
   
@@ -282,13 +284,11 @@
   
   
   
-    
-  
   
     
     
-      <li class="md-tabs__item md-tabs__item--active">
-        <a href="./" class="md-tabs__link">
+      <li class="md-tabs__item">
+        <a href="../getting-started/" class="md-tabs__link">
           
   
   
@@ -511,26 +511,31 @@
       
   
   
+    
   
   
+  
     
     
     
     
+      
+        
+        
       
       
         
       
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
         
           
-          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
             
   
   
@@ -548,7 +553,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_3">
             <span class="md-nav__icon md-icon"></span>
             
@@ -591,10 +596,37 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../oms-interoperability/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    OpenSSF Model Signing interop
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -610,6 +642,81 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#where-the-boundary-sits" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Where the boundary sits
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#composition-flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Composition flow
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#verify-the-two-bindings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Verify the two bindings
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#digest-note" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Digest note
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#project-references" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Project references
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -682,31 +789,26 @@
       
   
   
-    
   
   
-  
     
     
     
     
-      
-        
-        
       
       
         
       
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
         
           
-          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
             
   
   
@@ -724,7 +826,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_4">
             <span class="md-nav__icon md-icon"></span>
             
@@ -739,37 +841,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Getting started
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../getting-started/" class="md-nav__link">
         
   
   
@@ -785,70 +860,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#install" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Install
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#build-sign-verify-a-manifest" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Build, sign, verify a manifest
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#gate-a-key-release" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Gate a key release
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#cli" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        CLI
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -1115,10 +1126,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#install" class="md-nav__link">
+  <a href="#where-the-boundary-sits" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Install
+        Where the boundary sits
       
     </span>
   </a>
@@ -1126,10 +1137,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#build-sign-verify-a-manifest" class="md-nav__link">
+  <a href="#composition-flow" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Build, sign, verify a manifest
+        Composition flow
       
     </span>
   </a>
@@ -1137,10 +1148,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#gate-a-key-release" class="md-nav__link">
+  <a href="#verify-the-two-bindings" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Gate a key release
+        Verify the two bindings
       
     </span>
   </a>
@@ -1148,10 +1159,21 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#cli" class="md-nav__link">
+  <a href="#digest-note" class="md-nav__link">
     <span class="md-ellipsis">
       
-        CLI
+        Digest note
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#project-references" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Project references
       
     </span>
   </a>
@@ -1178,60 +1200,142 @@
   
 
 
-<h1 id="getting-started">Getting started<a class="headerlink" href="#getting-started" title="Permanent link">&para;</a></h1>
-<p>The reference SDK lives in <a href="https://github.com/agentrust-io/weight-custody-manifest/tree/main/python"><code>python/</code></a>. It implements the full protocol on software / synthetic test doubles, with AMD SEV-SNP quote verification validated against real hardware.</p>
-<h2 id="install">Install<a class="headerlink" href="#install" title="Permanent link">&para;</a></h2>
-<div class="highlight"><pre><span></span><code>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/agentrust-io/weight-custody-manifest
-<span class="nb">cd</span><span class="w"> </span>weight-custody-manifest/python
-pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span><span class="s2">&quot;.[dev]&quot;</span><span class="w">      </span><span class="c1"># add &quot;.[server]&quot; for the reference KBS server</span>
+<h1 id="openssf-model-signing-wcm">OpenSSF Model Signing + WCM<a class="headerlink" href="#openssf-model-signing-wcm" title="Permanent link">&para;</a></h1>
+<p>OpenSSF Model Signing (OMS) and WCM answer different questions in one release
+pipeline:</p>
+<ul>
+<li><strong>OMS:</strong> Are these the authentic, untampered model files published by the
+  expected signer?</li>
+<li><strong>WCM:</strong> May the decryption key for those exact files be released to this
+  attested workload, under these custody terms, now?</li>
+</ul>
+<p>WCM does not replace or redefine OMS. OMS is the provenance layer; WCM binds
+that provenance to jointly approved release policy, fresh platform evidence,
+transport-sealed key delivery, runtime custody, revocation, and derivative
+lineage.</p>
+<h2 id="where-the-boundary-sits">Where the boundary sits<a class="headerlink" href="#where-the-boundary-sits" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Concern</th>
+<th style="text-align: right;">OMS</th>
+<th style="text-align: right;">WCM</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Multi-file model inventory and hashes</td>
+<td style="text-align: right;">Yes</td>
+<td style="text-align: right;">References and cross-checks it</td>
+</tr>
+<tr>
+<td>Artifact signature and signer identity</td>
+<td style="text-align: right;">Yes</td>
+<td style="text-align: right;">References and cross-checks it</td>
+</tr>
+<tr>
+<td>Builder and custodian jointly approve release policy</td>
+<td style="text-align: right;">No</td>
+<td style="text-align: right;">Yes</td>
+</tr>
+<tr>
+<td>Model confidentiality and decryption-key release</td>
+<td style="text-align: right;">No</td>
+<td style="text-align: right;">Yes</td>
+</tr>
+<tr>
+<td>Fresh CPU/GPU/workload attestation</td>
+<td style="text-align: right;">No</td>
+<td style="text-align: right;">Yes</td>
+</tr>
+<tr>
+<td>Key sealed to the attested workload's transport key</td>
+<td style="text-align: right;">No</td>
+<td style="text-align: right;">Yes</td>
+</tr>
+<tr>
+<td>Re-attestation, revocation, and wipe-on-lapse</td>
+<td style="text-align: right;">No</td>
+<td style="text-align: right;">Yes</td>
+</tr>
+<tr>
+<td>Derivative rights and custody lineage</td>
+<td style="text-align: right;">Metadata can be signed</td>
+<td style="text-align: right;">Enforced as custody policy</td>
+</tr>
+</tbody>
+</table>
+<p>This boundary follows OMS's own scope: signing establishes artifact integrity
+and authenticity, but is not confidentiality, access control, or comprehensive
+runtime security.</p>
+<h2 id="composition-flow">Composition flow<a class="headerlink" href="#composition-flow" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code>model files
+    │
+    ├── OMS inventory + detached signature
+    │       proves artifact integrity and signer identity
+    │
+    └── WCM manifest references the OMS-derived digest
+            │
+            ├── builder + custodian jointly sign the WCM policy
+            ├── KBS verifies fresh CPU/GPU/workload evidence
+            ├── KBS seals the DEK to the attested transport key
+            └── runtime re-attests or zeroizes the key on lapse/revocation
 </code></pre></div>
-<h2 id="build-sign-verify-a-manifest">Build, sign, verify a manifest<a class="headerlink" href="#build-sign-verify-a-manifest" title="Permanent link">&para;</a></h2>
-<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">wcm</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-    <span class="n">WeightCustodyManifest</span><span class="p">,</span> <span class="n">Ed25519Signer</span><span class="p">,</span> <span class="n">generate_ed25519</span><span class="p">,</span>
-    <span class="n">VerificationContext</span><span class="p">,</span> <span class="n">verify_manifest</span><span class="p">,</span>
-<span class="p">)</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
-
-<span class="n">manifest</span> <span class="o">=</span> <span class="n">WeightCustodyManifest</span><span class="o">.</span><span class="n">model_validate</span><span class="p">(</span>
-    <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="nb">open</span><span class="p">(</span><span class="s2">&quot;examples/manifest.example.json&quot;</span><span class="p">))</span>
-<span class="p">)</span>
-
-<span class="n">builder</span><span class="p">,</span> <span class="n">custodian</span> <span class="o">=</span> <span class="n">generate_ed25519</span><span class="p">(),</span> <span class="n">generate_ed25519</span><span class="p">()</span>
-<span class="n">signed</span> <span class="o">=</span> <span class="n">manifest</span><span class="o">.</span><span class="n">with_signatures</span><span class="p">([</span>
-    <span class="n">Ed25519Signer</span><span class="p">(</span><span class="n">builder</span><span class="p">)</span><span class="o">.</span><span class="n">sign</span><span class="p">(</span><span class="n">manifest</span><span class="o">.</span><span class="n">unsigned_dict</span><span class="p">(),</span> <span class="n">role</span><span class="o">=</span><span class="s2">&quot;builder&quot;</span><span class="p">,</span> <span class="n">signer</span><span class="o">=</span><span class="s2">&quot;example-builder&quot;</span><span class="p">),</span>
-    <span class="n">Ed25519Signer</span><span class="p">(</span><span class="n">custodian</span><span class="p">)</span><span class="o">.</span><span class="n">sign</span><span class="p">(</span><span class="n">manifest</span><span class="o">.</span><span class="n">unsigned_dict</span><span class="p">(),</span> <span class="n">role</span><span class="o">=</span><span class="s2">&quot;custodian&quot;</span><span class="p">,</span> <span class="n">signer</span><span class="o">=</span><span class="s2">&quot;opaque-systems&quot;</span><span class="p">),</span>
-<span class="p">])</span>
-
-<span class="n">ctx</span> <span class="o">=</span> <span class="n">VerificationContext</span><span class="p">()</span>
-<span class="n">ctx</span><span class="o">.</span><span class="n">add_key</span><span class="p">(</span><span class="n">builder</span><span class="o">.</span><span class="n">public_bytes</span><span class="p">)</span>
-<span class="n">ctx</span><span class="o">.</span><span class="n">add_key</span><span class="p">(</span><span class="n">custodian</span><span class="o">.</span><span class="n">public_bytes</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">verify_manifest</span><span class="p">(</span><span class="n">signed</span><span class="p">,</span> <span class="n">ctx</span><span class="p">)</span><span class="o">.</span><span class="n">ok</span><span class="p">)</span>   <span class="c1"># True</span>
+<p>The OMS reference lives inside WCM's jointly signed field set. It therefore
+cannot be substituted after builder and custodian approval.</p>
+<h2 id="verify-the-two-bindings">Verify the two bindings<a class="headerlink" href="#verify-the-two-bindings" title="Permanent link">&para;</a></h2>
+<p>Install WCM with the optional OMS implementation dependency:</p>
+<div class="highlight"><pre><span></span><code>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">&quot;weight-custody-manifest[model-signing]&quot;</span>
 </code></pre></div>
-<p>A manifest is valid only when <strong>both</strong> the builder and custodian have signed
-(and the declared sovereign signer, under the sovereign profile). Post-quantum
-(<code>add_ml_dsa65_key</code>) and hybrid (<code>add_hybrid_key</code>) profiles verify the same way.</p>
-<h2 id="gate-a-key-release">Gate a key release<a class="headerlink" href="#gate-a-key-release" title="Permanent link">&para;</a></h2>
-<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">wcm</span><span class="w"> </span><span class="kn">import</span> <span class="n">KeyBrokerService</span><span class="p">,</span> <span class="n">SoftwareProvider</span>
+<p>After producing an OMS signature for the model, derive WCM's stable digest of
+the OMS resource inventory:</p>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">wcm</span><span class="w"> </span><span class="kn">import</span> <span class="n">model_signing_digest</span>
 
-<span class="n">kbs</span> <span class="o">=</span> <span class="n">KeyBrokerService</span><span class="p">({</span><span class="n">manifest</span><span class="o">.</span><span class="n">weights_hash</span><span class="p">:</span> <span class="sa">b</span><span class="s2">&quot;the-decryption-key&quot;</span><span class="p">})</span>
-<span class="n">challenge</span> <span class="o">=</span> <span class="n">kbs</span><span class="o">.</span><span class="n">issue_challenge</span><span class="p">()</span>
-<span class="n">evidence</span> <span class="o">=</span> <span class="n">SoftwareProvider</span><span class="p">()</span><span class="o">.</span><span class="n">produce</span><span class="p">(</span>
-    <span class="n">challenge</span><span class="p">,</span>
-    <span class="n">serving_image_measurement</span><span class="o">=</span><span class="s2">&quot;sha256:&quot;</span> <span class="o">+</span> <span class="s2">&quot;5e2d&quot;</span> <span class="o">*</span> <span class="mi">16</span><span class="p">,</span>
-    <span class="n">gpu_measurement</span><span class="o">=</span><span class="s2">&quot;nvidia-rim:driver+vbios golden measurement id&quot;</span><span class="p">,</span>
-<span class="p">)</span>
-<span class="n">decision</span> <span class="o">=</span> <span class="n">kbs</span><span class="o">.</span><span class="n">verify_and_release</span><span class="p">(</span><span class="n">manifest</span><span class="p">,</span> <span class="n">evidence</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">decision</span><span class="o">.</span><span class="n">released</span><span class="p">)</span>   <span class="c1"># True on a passing gate</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">model_signing_digest</span><span class="p">(</span><span class="s2">&quot;./model&quot;</span><span class="p">))</span>
+<span class="c1"># sha256:...</span>
 </code></pre></div>
-<p><code>SoftwareProvider</code> is a mock with no hardware root of trust. For real evidence
-see <code>snp.py</code> (AMD SEV-SNP, hardware-validated) and the provider auto-selection in
-<code>_hw_providers.py</code>.</p>
-<h2 id="cli">CLI<a class="headerlink" href="#cli" title="Permanent link">&para;</a></h2>
-<div class="highlight"><pre><span></span><code>wcm<span class="w"> </span>keygen<span class="w"> </span>--out<span class="w"> </span>builder
-wcm<span class="w"> </span>sign<span class="w"> </span>examples/manifest.example.json<span class="w"> </span>--role<span class="w"> </span>builder<span class="w"> </span>--signer<span class="w"> </span>example-builder<span class="w"> </span>--key-file<span class="w"> </span>builder<span class="w"> </span>--out<span class="w"> </span>signed.json
-wcm<span class="w"> </span>verify<span class="w"> </span>signed.json<span class="w"> </span>--key-file<span class="w"> </span>builder.pub<span class="w"> </span>--key-file<span class="w"> </span>custodian.pub
+<p>Record that value in the WCM manifest before the builder and custodian sign it:</p>
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;provenance&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;model_signing&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">&quot;method&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;openssf-model-signing&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;signed_digest&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;sha256:&lt;derived digest&gt;&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;signer&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;release@example.com&quot;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
 </code></pre></div>
-<p>See the <a href="https://github.com/agentrust-io/weight-custody-manifest/blob/main/python/README.md"><code>python/</code> README</a> for the full module tour.</p>
+<p>Then verify both the detached OMS signature and its binding to the WCM
+manifest:</p>
+<div class="highlight"><pre><span></span><code>wcm<span class="w"> </span>verify-provenance<span class="w"> </span>signed-wcm-manifest.json<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--model<span class="w"> </span>./model<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--signature<span class="w"> </span>./model.sig<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--public-key<span class="w"> </span>./model-signing.pub
+</code></pre></div>
+<p>The command fails closed if:</p>
+<ul>
+<li>the OMS signature does not verify over the supplied model files;</li>
+<li>any signed model file changed after signing;</li>
+<li>the WCM manifest has no OMS provenance reference; or</li>
+<li>the digest derived from the supplied model differs from the digest jointly
+  approved in the WCM manifest.</li>
+</ul>
+<p>Run <code>wcm verify</code> separately to verify the builder/custodian signatures and the
+rest of the manifest. Successful provenance verification does not by itself
+authorize a key release; the WCM attestation and policy gate must also pass.</p>
+<h2 id="digest-note">Digest note<a class="headerlink" href="#digest-note" title="Permanent link">&para;</a></h2>
+<p><code>provenance.model_signing.signed_digest</code> and WCM's <code>weights_hash</code> are related to
+the same physical artifact but serve different formats and are not
+interchangeable. The former is WCM's stable fold of the OMS resource inventory;
+the latter is WCM's own artifact identity. An ingest pipeline must compute both
+from the same accepted bytes.</p>
+<h2 id="project-references">Project references<a class="headerlink" href="#project-references" title="Permanent link">&para;</a></h2>
+<ul>
+<li><a href="https://openssf.org/projects/model-signing/">OpenSSF Model Signing project</a></li>
+<li><a href="https://github.com/ossf/model-signing-spec">OpenSSF Model Signing specification</a></li>
+<li><a href="https://github.com/sigstore/model-transparency">Model Signing implementation</a></li>
+<li><a href="https://github.com/agentrust-io/weight-custody-manifest/blob/main/SPEC.md#39-provenance-interop-composing-with-model-signing">WCM specification §3.9</a></li>
+</ul>
 
 
 

@@ -672,6 +672,34 @@
   
   
     <li class="md-nav__item">
+      <a href="oms-interoperability/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    OpenSSF Model Signing interop
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="threat-model/" class="md-nav__link">
         
   
@@ -1138,6 +1166,10 @@ builder</strong> whose weights are exposed to the customer's hardware and operat
 is the protocol for that direction - a signed manifest describing which weights
 are released and under what terms, attestation-gated key release into a verified
 enclave, wipe-on-lapse and revocation, and a chain of custody for derivatives.</p>
+<p>WCM composes with <a href="oms-interoperability/">OpenSSF Model Signing</a> rather than
+competing with it: OMS proves which model artifact a signer published; WCM
+governs whether the key for those exact bytes may be released to a freshly
+attested workload and how long that workload may retain it.</p>
 <h2 id="honest-guarantee-scope">Honest guarantee scope<a class="headerlink" href="#honest-guarantee-scope" title="Permanent link">&para;</a></h2>
 <p>WCM names two guarantees and never blends them:</p>
 <ul>
@@ -1155,6 +1187,7 @@ enclave, wipe-on-lapse and revocation, and a chain of custody for derivatives.</
 <li><a href="spec-overview/">Specification overview</a> and the full <a href="https://github.com/agentrust-io/weight-custody-manifest/blob/main/SPEC.md"><code>SPEC.md</code></a></li>
 <li><a href="threat-model/">Threat model</a></li>
 <li><a href="getting-started/">Getting started with the SDK</a></li>
+<li><a href="oms-interoperability/">OpenSSF Model Signing interoperability</a></li>
 <li><a href="reference-kbs/">Reference KBS image</a></li>
 <li><a href="roadmap/">Roadmap</a> · <a href="governance/">Governance</a> · <a href="contributing/">Contributing</a></li>
 </ul>
