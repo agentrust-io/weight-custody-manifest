@@ -1,0 +1,65 @@
+name: Require maintainer approval
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened]
+    branches: [main]
+  pull_request_review:
+    types: [submitted, dismissed]
+
+permissions:
+  contents: read
+  pull-requests: read
+  statuses: write
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.base.ref == 'main'
+    steps:
+      - name: Check for maintainer approval
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          script: |
+            const MAINTAINERS = ['imran-siddique', 'pforest', 'podcastinator', 'Qiang-Xu'];
+
+            const author = context.payload.pull_request.user.login;
+            if (MAINTAINERS.includes(author)) {
+              core.info('Author ' + author + ' is a maintainer, skipping gate');
+              return;
+            }
+
+            const prNumber = context.payload.pull_request.number;
+            const { data: pr } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: prNumber,
+            });
+            const headSha = pr.head.sha;
+
+            const reviews = await github.paginate(github.rest.pulls.listReviews, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: prNumber,
+            });
+
+            const latestByMaintainer = new Map();
+            for (const review of reviews) {
+              if (
+                review.user &&
+                review.user.type === 'User' &&
+                MAINTAINERS.includes(review.user.login) &&
+                review.state !== 'COMMENTED'
+              ) {
+                latestByMaintainer.set(review.user.login, review);
+              }
+            }
+
+            const approved = [...latestByMaintainer.values()].some(
+              (r) => r.state === 'APPROVED' && r.commit_id === headSha
+            );
+
+            if (!approved) {
+              core.setFailed('Waiting for maintainer approval of the current head commit before merging.');
+            }
+
