@@ -66,7 +66,16 @@ Layer 2 (release gate):
 - **`attestation.py`** - evidence models: a CPU CVM quote and a separate GPU
   report echoing the same nonce, plus the v0.8 memory-fingerprint response.
 - **`providers.py`** - `AttestationProvider` interface + a `SoftwareProvider`
-  mock (no hardware root of trust; for tests and local dev only).
+  mock (no hardware root of trust; for tests and local dev only). Its
+  memory-fingerprint response is a real sweep over a real allocation.
+- **`memory_sweep.py`** - the protected-memory fingerprint challenge itself:
+  nonce-derived probe addresses, values, write order and read order over a
+  declared range, plus the commitment the enclave folds into `REPORT_DATA`. What
+  a clean sweep does and does not establish is
+  [`docs/memory-fingerprint.md`](docs/memory-fingerprint.md); the short version is
+  that it detects address aliasing in the granules it probed, counts as the
+  enclave's own evidence only when the commitment is bound into the quote, and is
+  not evidence that memory is protected.
 - **`_hw_providers.py`** - hardware producers: `SevSnpProvider` /
   `TdxProvider` (CPU quote via `/dev/sev-guest` / `/dev/tdx-guest`),
   `AzureSnpVtpmProvider` (SEV-SNP on an Azure CVM via the vTPM NV `0x01400001`
@@ -78,8 +87,11 @@ Layer 2 (release gate):
   the Azure vTPM extraction is validated.
 - **`kbs.py`** - `KeyBrokerService`: composite verification (nonce, platform,
   assurance tier, serving-image status + prefer-current, GPU measurement and
-  CPU↔GPU binding, memory-fingerprint, revocation freshness, optional
-  cryptographic quote verification) and gated release.
+  CPU↔GPU binding, memory-fingerprint re-derived from the challenge and the
+  declared range, revocation freshness, optional cryptographic quote
+  verification) and gated release. `min_memory_sweep_bytes` and
+  `require_memory_fingerprint_binding` are the two knobs that give the
+  memory-fingerprint challenge teeth in the hostile-owner posture.
 - **`_quote_verify.py`** - `QuoteVerifier`: X.509 cert-chain validation +
   report-signature check + nonce binding, with a pluggable `TrustStore` and
   `QuoteParser`. Wire it into the KBS via `cpu_quote_verifier=`; when unset, the

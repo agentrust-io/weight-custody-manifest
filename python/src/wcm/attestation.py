@@ -14,9 +14,10 @@ from __future__ import annotations
 
 from typing import Optional
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from ._types import HashValue
+from .memory_sweep import GRANULE_BYTES
 
 
 class _Strict(BaseModel):
@@ -54,18 +55,52 @@ class GpuReport(_Strict):
     quote_b64: Optional[str] = None
 
 
+class DeclaredMemoryRange(_Strict):
+    """The protected-memory range a fingerprint response says it swept.
+
+    Without it the readback hash is unverifiable and the sweep is unbounded: a
+    single page and the whole DRAM installation would present identically. The
+    gate re-derives the probe plan from this range and the challenge nonce, so
+    the range is part of what the evidence commits to, not a label on it.
+
+    Mirrors ``memory_sweep.ProtectedRange``; kept as its own model because this
+    is the wire shape the gate validates, and the sweep's own type carries
+    behaviour the wire does not.
+    """
+
+    base_address: int = Field(ge=0)
+    size_bytes: int = Field(gt=0)
+    granule_bytes: int = Field(default=GRANULE_BYTES, gt=0)
+    probe_count: int = Field(gt=0)
+
+
 class MemoryFingerprint(_Strict):
     """v0.8 memory-fingerprint challenge response (SPEC.md 3.1, 3.6).
 
-    The enclave writes KBS-supplied random values across its full declared DRAM
-    range and returns a hash of the readback. ``aliasing_detected`` is true when
-    the readback shows the address collisions a BadRAM-class aliasing attack
-    produces. Required in the hostile-owner posture.
+    The enclave writes nonce-derived values across its declared protected-memory
+    range, reads them back in a different nonce-derived order, and returns a hash
+    of the readback. ``aliasing_detected`` is true when the readback shows the
+    address collisions a BadRAM-class aliasing attack produces. Required in the
+    hostile-owner posture.
+
+    ``declared_range`` is what the gate needs to check the response rather than
+    file it: with the range and the nonce it re-derives the probe plan and the
+    readback an honest sweep must have produced. It is optional on the model only
+    so a pre-sweep evidence bundle still parses; the gate denies when the
+    challenge is required and the range is absent.
+
+    ``commitment`` is ``memory_sweep.fingerprint_commitment`` hex: the 32 bytes
+    the enclave folds into the quote's REPORT_DATA. It is what separates a result
+    the enclave produced from one the host wrote, and the gate can only enforce
+    that separation when a quote verifier is wired (see ``kbs`` and
+    ``docs/memory-fingerprint.md``).
     """
 
     challenge_nonce: str
     aliasing_detected: bool
     readback_hash: HashValue
+    declared_range: Optional[DeclaredMemoryRange] = None
+    commitment: Optional[str] = None
 
 
 class CompositeEvidence(_Strict):

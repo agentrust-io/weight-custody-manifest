@@ -596,6 +596,74 @@ def _build_cpu_quote_verifier(config: dict[str, Any]) -> Any:
     return QuoteVerifier(JsonQuoteParser(), trust)
 
 
+def _run_sweep_recipe(recipe: dict[str, Any], bindings: dict[str, str]) -> dict[str, Any]:
+    """Run a memory-fingerprint sweep from a vector's recipe.
+
+    Same reason quotes are recipes (``_mint_quote``): the probe addresses and the
+    values written to them are derived from the challenge nonce, which is
+    generated at scenario time, so a committed vector cannot carry a readback
+    hash. It carries the range and a description of how the sweep should go
+    wrong, and the runner runs it.
+
+    Each knob names exactly one lie, so a fixture composes the failure it wants:
+
+    - ``swept_under`` runs the sweep under a different nonce and presents the
+      result under ``nonce``: a captured readback replayed into this attempt.
+    - ``aliased_physical_bytes`` backs the range with less storage than it
+      declares, the BadRAM-class fold.
+    - ``commitment`` is ``bind`` (default), ``omit`` for a result nothing
+      attests, or ``forge`` for one whose commitment covers something else.
+
+    An implementation reproduces this with a hash function and a byte buffer;
+    nothing here is Python-specific.
+    """
+    from .memory_sweep import (
+        AliasedRegion,
+        BufferRegion,
+        MemoryRegion,
+        ProtectedRange,
+        fingerprint_commitment,
+        run_sweep,
+    )
+
+    nonce = _resolve(recipe["nonce"], bindings)
+    swept_under = _resolve(recipe.get("swept_under", recipe["nonce"]), bindings)
+    declared = ProtectedRange(**recipe["range"])
+
+    region: MemoryRegion
+    aliased = recipe.get("aliased_physical_bytes")
+    region = (
+        AliasedRegion(declared, int(aliased)) if aliased else BufferRegion(declared)
+    )
+    result = run_sweep(swept_under, declared, region)
+
+    response: dict[str, Any] = {
+        "challenge_nonce": nonce,
+        "aliasing_detected": result.aliasing_detected,
+        "readback_hash": result.readback_hash,
+    }
+    if recipe.get("declare_range", True):
+        response["declared_range"] = declared.as_dict()
+
+    commitment = recipe.get("commitment", "bind")
+    if commitment == "bind":
+        response["commitment"] = fingerprint_commitment(
+            swept_under, declared, result.readback_hash, result.aliasing_detected
+        ).hex()
+    elif commitment == "forge":
+        # A well-formed commitment over a readback that is not the one presented:
+        # the shape of a host that knows the field exists but cannot produce the
+        # enclave's value for it.
+        response["commitment"] = fingerprint_commitment(
+            swept_under, declared, "sha256:" + "00" * 32, False
+        ).hex()
+    elif commitment != "omit":
+        raise ValueError(
+            f"unknown commitment mode {commitment!r} (bind, omit or forge)"
+        )
+    return response
+
+
 def _eval_gate(vector: dict[str, Any]) -> Verdict:
     from .attestation import CompositeEvidence
     from .kbs import KeyBrokerService
@@ -616,6 +684,10 @@ def _eval_gate(vector: dict[str, Any]) -> Verdict:
             config.get("max_attestation_cache_age_seconds", 600)
         ),
         require_channel_binding=bool(config.get("require_channel_binding", False)),
+        min_memory_sweep_bytes=int(config.get("min_memory_sweep_bytes", 0)),
+        require_memory_fingerprint_binding=bool(
+            config.get("require_memory_fingerprint_binding", False)
+        ),
         cpu_quote_verifier=(
             _build_cpu_quote_verifier(config["cpu_quote_verifier"])
             if "cpu_quote_verifier" in config
@@ -637,6 +709,9 @@ def _eval_gate(vector: dict[str, Any]) -> Verdict:
             recipe = raw.get("cpu", {}).pop("quote", None)
             if recipe is not None:
                 raw["cpu"]["quote_b64"] = _mint_quote(recipe, bindings)
+            sweep = (raw.get("memory_fingerprint") or {}).pop("sweep", None)
+            if sweep is not None:
+                raw["memory_fingerprint"].update(_run_sweep_recipe(sweep, bindings))
             evidence = CompositeEvidence.model_validate(raw)
             decision = kbs.verify_and_release(manifest, evidence)
             want = step["expect"]

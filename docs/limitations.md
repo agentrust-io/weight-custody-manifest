@@ -7,8 +7,11 @@ The canonical, complete list is [`LIMITATIONS.md`](https://github.com/agentrust-
   and can forge attestation. WCM offers cost, detection, containment, legal
   recourse, and mandatory physical hardening there - not silicon-enforced custody.
 - **Attestation forgery, open half.** Measurement forgery is detectable
-  (`memory_fingerprint_challenge`); the key-extraction half is not, and is why
-  publication is staged (open question 8.8).
+  (`memory_fingerprint_challenge`, and the SDK runs the sweep); the
+  key-extraction half is not, and is why publication is staged (open question
+  8.8). The sweep detects address aliasing in the granules it probes, and only
+  counts as the enclave's own evidence when its commitment is bound into the
+  quote. It is not proof that memory is protected.
 - **Trusted time is an assumption.** Wipe-on-lapse bounds exposure only if the
   clock cannot be stalled; the SDK reports the floor (`time_floor`) but cannot
   make an untrusted clock trustworthy.

@@ -21,7 +21,7 @@ Legend for **Enforced by**:
 | T1.4 keep serving after partition | wipe-on-lapse | **SDK** | `custody.EnclaveSession` (zeroize on cadence lapse) |
 | T1.5 in-envelope distillation | rate ceilings (partial) | Residual | — (out of scope, acknowledged) |
 | T1.6 snapshot enclave memory | SEV-SNP at rest | Hardware/TCB | — |
-| T1.7 physical key extraction / forge attestation | none at silicon; compensating controls | SDK (partial) + Residual | `kbs._check_attestation_revocation` (revocation freshness), `kbs._check_memory_fingerprint` (BadRAM-class); key-extraction half open (8.8) |
+| T1.7 physical key extraction / forge attestation | none at silicon; compensating controls | SDK (partial) + Residual | `kbs._check_attestation_revocation` (revocation freshness), `memory_sweep` + `kbs._check_memory_fingerprint` (BadRAM-class, real sweep; scope in `memory-fingerprint.md`); key-extraction half open (8.8) |
 | T1.8 stall the clock | trusted monotonic time | SDK (reports) + Hardware/TCB | `custody.time_floor` surfaces `sound`/`weaker`/`none`; the bound itself needs `secure-tsc` |
 | T3.1 insider releases key wrongly | attestation gate + joint signature | **SDK** | `verify_manifest` (builder+custodian), `kbs.verify_and_release` |
 | T3.2 suppress/delay revocation | wipe-on-lapse + transparency log | **SDK** | `custody` + `transparency.TransparencyLog.find` (missing-entry detection) |
@@ -56,6 +56,16 @@ Legend for **Enforced by**:
    make an untrusted clock trustworthy. The bound requires `secure-tsc`.
 4. **A5 audit receipts are out of scope for this package** (WCM reuses TRACE); the
    extraction-detection story depends on that separate component.
+5. **The memory-fingerprint sweep is only evidence when it is bound.** The sweep
+   is real (`memory_sweep`: nonce-derived probe addresses and values, two
+   derived orderings, readback re-derived by the gate), and aliasing detection is
+   exercised against a region that really aliases. But the honest readback is
+   computable by anyone holding the nonce and the declared range, so a host can
+   author a clean result unless `require_memory_fingerprint_binding` is on and a
+   CPU quote verifier is wired; without both, the gate reports `structural trust
+   only`. An alias in unprobed granules is missed by construction, and none of
+   this has been run against a genuinely SPD-aliased DIMM. Scope statement:
+   `memory-fingerprint.md`.
 
 ## What CI verifies
 

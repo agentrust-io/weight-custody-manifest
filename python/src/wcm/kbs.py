@@ -22,6 +22,12 @@ from typing import Callable, Iterable, Mapping, Optional
 from ._challenge import Challenge, ChallengeError, ChallengeStore
 from ._quote_verify import QuoteVerifier
 from ._seal import seal_to_public_key
+from .memory_sweep import (
+    ProtectedRange,
+    SweepError,
+    expected_readback_hash,
+    fingerprint_commitment,
+)
 from .nvidia import NvidiaGpuVerifier
 from .attestation import CompositeEvidence
 from .models import (
@@ -95,6 +101,8 @@ class KeyBrokerService:
         gpu_report_verifier: Optional[NvidiaGpuVerifier] = None,
         require_channel_binding: bool = False,
         require_cpu_quote_verification: bool = False,
+        min_memory_sweep_bytes: int = 0,
+        require_memory_fingerprint_binding: bool = False,
     ) -> None:
         # keystore maps weights_hash -> the decryption key to release.
         self._keystore: dict[str, bytes] = dict(keystore)
@@ -118,6 +126,19 @@ class KeyBrokerService:
         # default: the pre-channel-binding release shape is unchanged.
         self._require_channel_binding = require_channel_binding
         self._require_cpu_quote_verification = require_cpu_quote_verification
+        # The smallest protected-memory range this KBS will accept a sweep over.
+        # The range is declared by the party being tested, so without a floor an
+        # enclave can satisfy the challenge by sweeping one page. Zero means no
+        # floor, and the check says so in its detail rather than implying a
+        # policy nobody set. A hostile-owner deployment should set it to the
+        # DRAM the enclave is supposed to have.
+        self._min_memory_sweep_bytes = min_memory_sweep_bytes
+        # When True, the sweep's commitment must be carried in the response and
+        # bound into the CPU quote's REPORT_DATA, so a result the host authored
+        # is rejected rather than trusted. Off by default because it needs a
+        # quote verifier and an enclave that folds the commitment in; on, it is
+        # the only setting under which the challenge means what SPEC 3.6 says.
+        self._require_memory_fingerprint_binding = require_memory_fingerprint_binding
 
     def issue_challenge(self) -> Challenge:
         return self._challenges.issue()
@@ -182,14 +203,21 @@ class KeyBrokerService:
         checks.append(self._check_gpu(manifest, evidence))
 
         # 6. Memory-fingerprint challenge (v0.8) when the posture requires it.
-        checks.append(self._check_memory_fingerprint(manifest, evidence, nonce))
+        #    Yields the commitment the quote must carry, so a fingerprint the
+        #    host authored cannot ride along on a quote that does not cover it.
+        mf_check, fingerprint_binding = self._check_memory_fingerprint(
+            manifest, evidence, nonce
+        )
+        checks.append(mf_check)
 
         # 7. Attestation-key revocation freshness (v0.8) when required.
         checks.append(self._check_attestation_revocation(manifest, evidence))
 
         # 7b. Cryptographic quote verification (signature + cert chain + nonce +
         #     transport-key binding) when a verifier is configured.
-        checks.append(self._check_cpu_quote(evidence, nonce, channel_binding))
+        checks.append(
+            self._check_cpu_quote(evidence, nonce, channel_binding, fingerprint_binding)
+        )
 
         # 7c. Cryptographic GPU-report verification (signature + cert chain to
         #     NVIDIA's device root + nonce binding) when a verifier is configured.
@@ -293,29 +321,151 @@ class KeyBrokerService:
         manifest: WeightCustodyManifest,
         evidence: CompositeEvidence,
         nonce: str,
-    ) -> CheckResult:
+    ) -> tuple[CheckResult, bytes]:
+        """Verify the sweep, and return the bytes the quote must bind.
+
+        Returns (check, fingerprint_binding). The binding is the sweep's
+        commitment when the response carries a correct one, else empty; it is
+        folded into the REPORT_DATA the CPU quote is checked against, which is
+        the only thing that makes the result the enclave's rather than the
+        host's. Everything above that is arithmetic the host can also do: the
+        probe plan and the honest readback are derived from the nonce and the
+        declared range by a public rule, so re-deriving them catches an aliased
+        or incoherent sweep, not a fabricated one. See
+        ``docs/memory-fingerprint.md``.
+        """
         required = (
             manifest.release_policy.memory_fingerprint_challenge
             is MemoryFingerprintChallenge.required_for_hostile_owner_posture
         )
         if not required:
-            return CheckResult("memory_fingerprint", True, "not required")
+            return CheckResult("memory_fingerprint", True, "not required"), b""
         mf = evidence.memory_fingerprint
         if mf is None:
-            return CheckResult(
-                "memory_fingerprint", False, "required but not present in evidence"
+            return (
+                CheckResult(
+                    "memory_fingerprint", False, "required but not present in evidence"
+                ),
+                b"",
             )
         if mf.challenge_nonce != nonce:
-            return CheckResult(
-                "memory_fingerprint", False, "fingerprint not bound to this challenge"
+            return (
+                CheckResult(
+                    "memory_fingerprint", False, "fingerprint not bound to this challenge"
+                ),
+                b"",
+            )
+        if mf.declared_range is None:
+            return (
+                CheckResult(
+                    "memory_fingerprint",
+                    False,
+                    "no declared protected-memory range, so the sweep is unbounded "
+                    "and its readback cannot be checked",
+                ),
+                b"",
+            )
+        try:
+            declared = ProtectedRange(
+                base_address=mf.declared_range.base_address,
+                size_bytes=mf.declared_range.size_bytes,
+                granule_bytes=mf.declared_range.granule_bytes,
+                probe_count=mf.declared_range.probe_count,
+            )
+        except SweepError as exc:
+            return (
+                CheckResult(
+                    "memory_fingerprint", False, f"declared range is not sweepable: {exc}"
+                ),
+                b"",
+            )
+        if declared.size_bytes < self._min_memory_sweep_bytes:
+            return (
+                CheckResult(
+                    "memory_fingerprint",
+                    False,
+                    f"declared range {declared.size_bytes} bytes is below the "
+                    f"{self._min_memory_sweep_bytes}-byte floor this KBS requires",
+                ),
+                b"",
             )
         if mf.aliasing_detected:
-            return CheckResult(
-                "memory_fingerprint",
-                False,
-                "DRAM aliasing detected (BadRAM-class measurement forgery)",
+            return (
+                CheckResult(
+                    "memory_fingerprint",
+                    False,
+                    "DRAM aliasing detected (BadRAM-class measurement forgery)",
+                ),
+                b"",
             )
-        return CheckResult("memory_fingerprint", True)
+        expected_hash = expected_readback_hash(nonce, declared)
+        if str(mf.readback_hash) != expected_hash:
+            # Either the sweep did not produce this pattern (an inconsistent
+            # mapping the enclave did not flag) or the response was assembled
+            # without running one. The gate cannot tell those apart and does not
+            # try: neither is a sweep it can accept.
+            return (
+                CheckResult(
+                    "memory_fingerprint",
+                    False,
+                    "readback does not match the sweep this challenge and range "
+                    "specify",
+                ),
+                b"",
+            )
+
+        commitment = fingerprint_commitment(nonce, declared, expected_hash, False)
+        if mf.commitment is None:
+            if self._require_memory_fingerprint_binding:
+                return (
+                    CheckResult(
+                        "memory_fingerprint",
+                        False,
+                        "attestation binding required but the response carries no "
+                        "commitment",
+                    ),
+                    b"",
+                )
+            return (
+                CheckResult(
+                    "memory_fingerprint",
+                    True,
+                    "readback verified, not bound into a hardware quote: structural "
+                    "trust only (a host could have authored this result)",
+                ),
+                b"",
+            )
+        try:
+            presented = bytes.fromhex(mf.commitment)
+        except ValueError:
+            return (
+                CheckResult("memory_fingerprint", False, "commitment is not valid hex"),
+                b"",
+            )
+        if presented != commitment:
+            return (
+                CheckResult(
+                    "memory_fingerprint",
+                    False,
+                    "commitment does not match the challenge, range and readback it "
+                    "claims to cover",
+                ),
+                b"",
+            )
+        if self._require_memory_fingerprint_binding and self._cpu_quote_verifier is None:
+            # The commitment is only worth anything once something checks it
+            # against a signed quote. Required-but-uncheckable fails closed
+            # rather than reporting a binding nobody verified.
+            return (
+                CheckResult(
+                    "memory_fingerprint",
+                    False,
+                    "attestation binding required but no CPU quote verifier is "
+                    "configured to check it",
+                ),
+                b"",
+            )
+        return CheckResult("memory_fingerprint", True), commitment
 
     def _check_channel_binding(
         self, evidence: CompositeEvidence
@@ -356,7 +506,11 @@ class KeyBrokerService:
         return CheckResult("channel_binding", True), raw
 
     def _check_cpu_quote(
-        self, evidence: CompositeEvidence, nonce: str, channel_binding: bytes
+        self,
+        evidence: CompositeEvidence,
+        nonce: str,
+        channel_binding: bytes,
+        fingerprint_binding: bytes = b"",
     ) -> CheckResult:
         if self._cpu_quote_verifier is None:
             if self._require_cpu_quote_verification:
@@ -376,7 +530,11 @@ class KeyBrokerService:
                 "cpu_quote_verified", False, "verifier configured but evidence has no raw quote"
             )
         result = self._cpu_quote_verifier.verify(
-            quote_b64, expected_nonce=nonce, channel_binding=channel_binding, now=self._now()
+            quote_b64,
+            expected_nonce=nonce,
+            channel_binding=channel_binding,
+            extra_binding=fingerprint_binding,
+            now=self._now(),
         )
         return CheckResult("cpu_quote_verified", result.verified, result.reason)
 

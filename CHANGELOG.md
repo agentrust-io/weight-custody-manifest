@@ -6,6 +6,57 @@ uses semantic-ish versioning while pre-1.0.
 
 ## Unreleased
 
+**[security/sdk]** The memory-fingerprint challenge now runs a sweep (#79).
+`memory_fingerprint_challenge` and the gate check existed since v0.8, but nothing
+in this repository swept memory: the software provider hashed the nonce and the
+gate accepted whatever `readback_hash` arrived, so the evidence demonstrated
+policy plumbing rather than the BadRAM-class detection it is named for.
+
+`wcm.memory_sweep` implements the mechanism inside the protected boundary. Probe
+addresses, the 32-byte value at each address, the write order and a different
+read order are all SHAKE256-derived from the challenge nonce and the declared
+range, so an operator cannot pre-position an alias into unprobed granules, a
+readback captured under an earlier nonce is wrong at every probe, and the value
+that survives an aliased pair is not the one a naive emulation would answer with.
+The sweep writes and reads a real allocation; `AliasedRegion` backs a declared
+range with less storage than it claims, which is how detection is now exercised
+rather than asserted.
+
+The gate re-derives the whole plan and compares (`kbs._check_memory_fingerprint`):
+a response must declare the range it swept, clear `min_memory_sweep_bytes`, and
+match the readback an honest sweep under this challenge must produce. Two knobs
+give the check teeth a deployment can set: `min_memory_sweep_bytes`, because the
+range is declared by the party being tested, and
+`require_memory_fingerprint_binding`, which requires the sweep's commitment to be
+folded into the quote's `REPORT_DATA` and fails closed when no quote verifier is
+configured to check it.
+
+That binding is the load-bearing part, and the documentation says so. The honest
+readback follows from the nonce and the range by a public rule, so a host can
+compute it without touching memory; only the quote signature separates a result
+the enclave produced from one the host wrote. Unbound, the check now reports
+`structural trust only` instead of passing silently.
+`python/docs/memory-fingerprint.md` is the scope statement: what a clean sweep
+establishes, that an alias in unprobed granules is missed by construction, that
+nothing here survives a lifted attestation key (the open half of 8.8), and that a
+clean sweep is not evidence that memory is protected. `LIMITATIONS.md` no longer
+says the measurement-forgery half is "closed" without qualification.
+
+Five conformance vectors cover aliasing, an omitted range, a replayed readback, a
+host-authored result and a forged commitment, driven by a `sweep` recipe the
+conformance README specifies down to the domain tags so another implementation
+can reproduce it. No manifest schema change: the range and commitment travel in
+the evidence, and the enforcement knobs are KBS configuration, as
+`require_channel_binding` already was.
+
+One deliberate deviation from the spec wording. SPEC.md 3.1 and 3.6 describe
+writing values across the *full* declared range; the sweep samples `probe_count`
+granules instead, because a full pass over 64 GiB is minutes of memory bandwidth
+on every release. Full coverage is expressible (`probe_count == granules`) and
+the documentation refuses to call a sample a full sweep. Whether the manifest
+should carry the density, so a verifier can tell a 0.4% sample from an exhaustive
+one, is a spec question left open here.
+
 ## 0.25.0 - 2026-08-12
 
 **[security/kbs]** The environment-built network KBS now fails closed when a

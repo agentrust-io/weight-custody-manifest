@@ -191,16 +191,25 @@ class QuoteVerifier:
         *,
         expected_nonce: str,
         channel_binding: bytes = b"",
+        extra_binding: bytes = b"",
         now: Optional[datetime] = None,
     ) -> QuoteVerification:
         """Verify a quote's chain, signature, and REPORT_DATA binding.
 
-        REPORT_DATA must equal ``sha256(nonce || channel_binding)``.
+        REPORT_DATA must equal ``sha256(nonce || channel_binding || extra_binding)``.
+
         ``channel_binding`` is the enclave's attested transport public key (raw
         bytes) when channel binding is in use, else empty. Folding it in is what
         stops quote *relay*: a relay cannot swap in its own transport key without
-        breaking this check. Empty binding reduces to sha256(nonce), the
-        replay-only value, so pre-channel-binding quotes still verify.
+        breaking this check.
+
+        ``extra_binding`` carries anything else the quote must vouch for, today
+        the memory-fingerprint commitment (``memory_sweep``). Same argument, a
+        different claim: a sweep result the enclave did not produce cannot be
+        folded into a quote the host cannot sign.
+
+        Both empty reduces to sha256(nonce), the replay-only value, so quotes
+        from before either binding existed still verify.
         """
         current = now if now is not None else _utcnow()
         try:
@@ -217,14 +226,24 @@ class QuoteVerifier:
         except InvalidSignature:
             return QuoteVerification(False, "report signature does not verify under the leaf key")
 
-        expected = hashlib.sha256(bytes.fromhex(expected_nonce) + channel_binding).digest()
+        expected = hashlib.sha256(
+            bytes.fromhex(expected_nonce) + channel_binding + extra_binding
+        ).digest()
         actual = q.report_body[q.report_data_offset : q.report_data_offset + 32]
         if actual != expected:
-            reason = (
-                "REPORT_DATA does not bind the challenge nonce and transport key (possible relay)"
-                if channel_binding
-                else "REPORT_DATA does not bind the challenge nonce (possible replay)"
-            )
+            if extra_binding:
+                reason = (
+                    "REPORT_DATA does not bind the challenge nonce and the "
+                    "memory-fingerprint commitment (the sweep result is not this "
+                    "quote's)"
+                )
+            elif channel_binding:
+                reason = (
+                    "REPORT_DATA does not bind the challenge nonce and transport key "
+                    "(possible relay)"
+                )
+            else:
+                reason = "REPORT_DATA does not bind the challenge nonce (possible replay)"
             return QuoteVerification(False, reason)
 
         return QuoteVerification(True, leaf_subject=q.leaf.subject.rfc4514_string())
