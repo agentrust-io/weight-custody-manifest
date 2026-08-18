@@ -2,7 +2,7 @@
   "id": "deny-memory-fingerprint-aliasing-detected",
   "level": "L2",
   "kind": "gate",
-  "description": "A fingerprint response reporting DRAM aliasing. This is the BadRAM-class measurement-forgery signal itself: the measurement reads clean while aliased memory hides the real state, and the readback is what catches it.",
+  "description": "A real sweep over a region whose physical storage is half what it declares, the BadRAM-class fold. Probe values are nonce-derived and written and read in two different nonce-derived orders, so a pair of declared addresses sharing one cell returns the wrong value and the readback says so. The measurement reads clean throughout; this is the evidence that does not.",
   "expect": "reject",
   "code": "WCM-L2-0009",
   "reject_reason": "DRAM aliasing detected (BadRAM-class measurement forgery)",
@@ -72,9 +72,16 @@
           "attestation_key_id": "vcek-mock-0001"
         },
         "memory_fingerprint": {
-          "challenge_nonce": "$n1",
-          "aliasing_detected": true,
-          "readback_hash": "sha256:7777777777777777777777777777777777777777777777777777777777777777"
+          "sweep": {
+            "nonce": "$n1",
+            "range": {
+              "base_address": 1073741824,
+              "size_bytes": 1048576,
+              "granule_bytes": 4096,
+              "probe_count": 64
+            },
+            "aliased_physical_bytes": 524288
+          }
         }
       }
     }

@@ -81,7 +81,8 @@ Verifying the joint signature means all of:
 Gate key release on composite evidence (§3.2): single-use KBS nonce; platform and
 assurance tier; serving-image measurement with prefer-current and a hard fail on
 `revoked`; CPU-to-GPU nonce binding; the memory-fingerprint challenge where the
-posture requires it; attestation-revocation freshness; quote signature and
+posture requires it, re-derived from the nonce and the declared range rather than
+taken on trust; attestation-revocation freshness; quote signature and
 certificate chain to a trusted root; and channel binding, so the released key is
 sealed to the attested transport key rather than returned on the channel.
 
@@ -191,6 +192,61 @@ implementation builds its own evidence objects from these fields rather than
 parsing bytes we chose. `key_form` is `clear` or `sealed`, and on a channel-bound
 release it must be `sealed`, since returning the key in the clear is the gap
 channel binding exists to close.
+
+#### Memory-fingerprint sweep recipes
+
+`memory_fingerprint.sweep` is a recipe for the same reason quotes are: the probe
+addresses and the values written to them are derived from the challenge nonce, so
+a committed vector cannot carry a readback hash.
+
+```jsonc
+"memory_fingerprint": {
+  "sweep": {
+    "nonce": "$n1",
+    "range": { "base_address": 1073741824, "size_bytes": 1048576,
+               "granule_bytes": 4096, "probe_count": 64 },
+    "swept_under": "$n0",
+    "aliased_physical_bytes": 524288,
+    "declare_range": true,
+    "commitment": "bind"
+  }
+}
+```
+
+The sweep an implementation runs, given the nonce `N` and the range `R`:
+
+1. Select `probe_count` distinct granule indices from
+   `SHAKE256("wcm/memory-fingerprint/address/v1" || len(N) || N || JCS(R) || ctr)`,
+   read as big-endian `uint64`s modulo the granule count, skipping repeats;
+   probe address = `base_address + index * granule_bytes`.
+2. `value(address) = SHAKE256("wcm/memory-fingerprint/value/v1" || len(N) || N || JCS(R) || uint64_be(address))`,
+   32 bytes.
+3. Write and read orders are Fisher-Yates permutations of the probe list, seeded
+   from the same construction under the `write-order/v1` and `read-order/v1`
+   domain tags, consuming 8 bytes per swap from the tail down.
+4. Write every value in the write order, read every probe back in the read order.
+5. `readback_hash = sha256(JCS({v, nonce, range, readback}))` with `readback` a
+   list of `{address, value-hex}` sorted by address, prefixed `sha256:`.
+6. `aliasing_detected` is true when any probe read back something other than what
+   was written there.
+7. `commitment = sha256(JCS({v, nonce, range, readback_hash, aliasing_detected}))`,
+   hex, which the enclave folds into `REPORT_DATA` after the nonce and the
+   transport key.
+
+`JCS(...)` is the RFC 8785 canonical form already used for signing. Each remaining
+knob names exactly one lie so a fixture composes the failure it wants:
+`swept_under` runs the sweep under a different nonce and presents it under
+`nonce` (a replayed readback), `aliased_physical_bytes` backs the range with less
+storage than it declares so addresses fold (the BadRAM shape),
+`declare_range: false` omits the range, and `commitment` is `bind`, `omit` for a
+result nothing attests, or `forge` for one that covers a different readback.
+
+Two `kbs` keys drive the gate side: `min_memory_sweep_bytes` is the smallest
+declared range the gate accepts, and `require_memory_fingerprint_binding` makes
+the commitment mandatory and checked against the quote. What the sweep does and
+does not establish is in `python/docs/memory-fingerprint.md`; it detects address
+aliasing in the granules it probes and is not evidence about physical memory
+protection.
 
 ### L3 steps (`kind: custody`)
 

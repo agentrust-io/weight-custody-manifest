@@ -13,10 +13,30 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import Optional
 
-from ._canonicalize import canonical_hash
 from ._challenge import Challenge
 from ._types import HashValue
-from .attestation import CompositeEvidence, CpuQuote, GpuReport, MemoryFingerprint
+from .attestation import (
+    CompositeEvidence,
+    CpuQuote,
+    DeclaredMemoryRange,
+    GpuReport,
+    MemoryFingerprint,
+)
+from .memory_sweep import (
+    AliasedRegion,
+    BufferRegion,
+    MemoryRegion,
+    ProtectedRange,
+    fingerprint_commitment,
+    run_sweep,
+)
+
+#: The mock's default protected range: 1 MiB of real allocation at a plausible
+#: guest-physical base. Small enough to sweep inside a unit test, large enough
+#: that the probe set spans 256 granules and an alias has somewhere to fold.
+_MOCK_RANGE_BASE = 0x4000_0000
+_MOCK_RANGE_BYTES = 1 << 20
+_MOCK_PROBE_COUNT = 64
 
 
 class AttestationUnavailableError(RuntimeError):
@@ -72,6 +92,8 @@ class SoftwareProvider(AttestationProvider):
         break_gpu_binding: bool = False,
         include_memory_fingerprint: bool = False,
         aliasing_detected: bool = False,
+        memory_range: Optional[ProtectedRange] = None,
+        region: Optional[MemoryRegion] = None,
         attestation_key_id: str = "vcek-mock-0001",
         cache_age_seconds: int = 0,
         transport_public_key: Optional[str] = None,
@@ -100,10 +122,30 @@ class SoftwareProvider(AttestationProvider):
 
         mf: Optional[MemoryFingerprint] = None
         if include_memory_fingerprint:
+            declared = memory_range or ProtectedRange(
+                base_address=_MOCK_RANGE_BASE,
+                size_bytes=_MOCK_RANGE_BYTES,
+                probe_count=_MOCK_PROBE_COUNT,
+            )
+            # An actual sweep, over an actual allocation. ``aliasing_detected``
+            # is not a field this sets: it selects the region and the sweep
+            # reports what it found, so a test asking for aliasing gets the
+            # detection exercised rather than the flag asserted.
+            if region is None:
+                region = (
+                    AliasedRegion(declared, declared.size_bytes // 2)
+                    if aliasing_detected
+                    else BufferRegion(declared)
+                )
+            result = run_sweep(nonce, declared, region)
             mf = MemoryFingerprint(
                 challenge_nonce=nonce,
-                aliasing_detected=aliasing_detected,
-                readback_hash=HashValue(canonical_hash({"nonce": nonce})),
+                aliasing_detected=result.aliasing_detected,
+                readback_hash=HashValue(result.readback_hash),
+                declared_range=DeclaredMemoryRange(**declared.as_dict()),
+                commitment=fingerprint_commitment(
+                    nonce, declared, result.readback_hash, result.aliasing_detected
+                ).hex(),
             )
 
         return CompositeEvidence(cpu=cpu, gpu=gpu, memory_fingerprint=mf)

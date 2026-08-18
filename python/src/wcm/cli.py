@@ -225,6 +225,15 @@ def cmd_gate(args: argparse.Namespace) -> int:
     print("release-policy diagnostic (MOCK software attestation, NOT a live hardware release)")
     print(f"  manifest        : {args.manifest}")
     print(f"  platform        : {platform}   serving-image: {serving[:23]}...")
+    mf = evidence.memory_fingerprint
+    if mf is not None and mf.declared_range is not None:
+        # The mock sweeps a real 1 MiB allocation. Printing the range keeps the
+        # diagnostic honest about how much memory this actually covered.
+        print(
+            f"  memory sweep    : {mf.declared_range.size_bytes} bytes from "
+            f"{mf.declared_range.base_address:#x}, "
+            f"{mf.declared_range.probe_count} probes"
+        )
     print("  checks:")
     for c in decision.checks:
         mark = "PASS" if c.passed else "FAIL"

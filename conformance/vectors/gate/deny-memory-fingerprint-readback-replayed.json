@@ -1,9 +1,11 @@
 {
-  "id": "accept-gate-hostile-owner-posture",
+  "id": "deny-memory-fingerprint-readback-replayed",
   "level": "L2",
   "kind": "gate",
-  "description": "The full hostile-owner posture: composite CPU+GPU attestation, the memory-fingerprint challenge bound to this nonce and reporting no aliasing, and a live attestation-revocation check within the allowed cache window.",
-  "expect": "accept",
+  "description": "A clean readback captured under an earlier challenge and re-presented under this one, with the nonce field updated to match. The probe values are derived from the nonce, so the readback is wrong at every probe: relabelling an old sweep is not answering a new challenge.",
+  "expect": "reject",
+  "code": "WCM-L2-0009",
+  "reject_reason": "the readback does not match the sweep this challenge specifies",
   "manifest": {
     "manifest_version": "1.0",
     "weights_hash": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
@@ -21,8 +23,7 @@
     "release_policy": {
       "required_assurance_tier": "hardware-attested",
       "required_hw_platform": [
-        "amd-sev-snp",
-        "nvidia-cc-gpu"
+        "amd-sev-snp"
       ],
       "required_serving_image": {
         "signer": "ed25519:builder-key",
@@ -34,11 +35,7 @@
           }
         ]
       },
-      "required_gpu_measurement": {
-        "rim_pin": "nvidia-rim:golden-measurement-0001"
-      },
-      "memory_fingerprint_challenge": "required-for-hostile-owner-posture",
-      "attestation_revocation_check": "live-per-release, max-cache-age: short-window"
+      "memory_fingerprint_challenge": "required-for-hostile-owner-posture"
     },
     "custody": {
       "custodian": "example-custodian",
@@ -55,35 +52,33 @@
     "clock": "2026-01-01T00:00:00+00:00",
     "keystore": {
       "sha256:1111111111111111111111111111111111111111111111111111111111111111": "a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1"
-    },
-    "min_memory_sweep_bytes": 1048576
+    }
   },
   "steps": [
+    {
+      "op": "challenge",
+      "as": "n0"
+    },
     {
       "op": "challenge",
       "as": "n1"
     },
     {
       "op": "release",
-      "expect": "allow",
+      "expect": "deny",
+      "code": "WCM-L2-0009",
       "evidence": {
         "cpu": {
           "platform": "amd-sev-snp",
           "assurance_tier": "hardware-attested",
           "serving_image_measurement": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
           "nonce_echo": "$n1",
-          "attestation_key_id": "vcek-mock-0001",
-          "attestation_key_cache_age_seconds": 60
-        },
-        "gpu": {
-          "platform": "nvidia-cc-gpu",
-          "measurement": "nvidia-rim:golden-measurement-0001",
-          "cc_mode": true,
-          "nonce_echo": "$n1"
+          "attestation_key_id": "vcek-mock-0001"
         },
         "memory_fingerprint": {
           "sweep": {
             "nonce": "$n1",
+            "swept_under": "$n0",
             "range": {
               "base_address": 1073741824,
               "size_bytes": 1048576,

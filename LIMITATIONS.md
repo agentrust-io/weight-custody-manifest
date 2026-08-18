@@ -13,7 +13,9 @@ Against the hardware owner, WCM offers **cost, detection and attribution, contai
 
 ## Attestation can be forged (the open half of 8.8)
 
-The measurement-forgery half of forged attestation (BadRAM-class) is detectable and closed by the `memory_fingerprint_challenge`. The **key-extraction half** (TEE.fail-class) is **not**: a physically-extracted attestation key produces a cryptographically valid quote that no gate-side verification can distinguish from a real one. Compensating controls (live revocation-freshness checks, vendor short-lived certs, mandatory hardening, fleet anomaly monitoring) narrow it; they do not close it. This is why publication is staged.
+The measurement-forgery half of forged attestation (BadRAM-class) is detectable by the `memory_fingerprint_challenge`, and the reference SDK now runs the sweep rather than only carrying the policy field. Read that detection narrowly. It shows that the granules it probed behave like distinct storage, and it is evidence the enclave produced rather than an assertion the host made **only** when the sweep's commitment is bound into the attestation quote (`require_memory_fingerprint_binding`, which needs a CPU quote verifier). An alias confined to unprobed granules is not caught, probe density is a deployment parameter, and a clean sweep says nothing about whether memory is encrypted, whether an interposer is attached, or whether an operator can read weights off the bus. It does not prove immunity to memory-extraction attacks; it detects one specific forgery. The full scope statement is [`python/docs/memory-fingerprint.md`](python/docs/memory-fingerprint.md).
+
+The **key-extraction half** (TEE.fail-class) is **not** detectable: a physically-extracted attestation key produces a cryptographically valid quote that no gate-side verification can distinguish from a real one, and such an adversary can fold any fingerprint commitment it likes into `REPORT_DATA`. Compensating controls (live revocation-freshness checks, vendor short-lived certs, mandatory hardening, fleet anomaly monitoring) narrow it; they do not close it. This is why publication is staged.
 
 ## Trusted time is an assumption
 

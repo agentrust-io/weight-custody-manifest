@@ -280,6 +280,160 @@ def test_memory_fingerprint_clean_releases(example_dict):
     assert decision.key == KEY
 
 
+# -- the sweep the gate is checking (issue #79) --------------------------------
+#
+# The mechanism itself is tested in test_memory_sweep.py and the attestation
+# binding end to end in test_quote_verify.py. These are the gate's decisions
+# about a response: what it re-derives, what it refuses, and what it says when
+# it is trusting structure rather than hardware.
+
+
+def _hostile_evidence(kbs, manifest, **kwargs):
+    current, _, _, rim = _measurements(manifest)
+    challenge = kbs.issue_challenge()
+    return SoftwareProvider().produce(
+        challenge,
+        serving_image_measurement=current,
+        gpu_measurement=rim,
+        include_memory_fingerprint=True,
+        **kwargs,
+    )
+
+
+def _mf_check(decision):
+    return [c for c in decision.checks if c.name == "memory_fingerprint"][0]
+
+
+def test_memory_fingerprint_is_checked_against_a_re_derived_sweep(example_dict):
+    """The clean path is not taken on trust: the gate recomputes the readback the
+    challenge and the declared range imply, and the provider's real sweep matches
+    it."""
+    manifest = _hostile_manifest(example_dict)
+    kbs = _kbs(manifest)
+    ev = _hostile_evidence(kbs, manifest)
+    from wcm.memory_sweep import ProtectedRange, expected_readback_hash
+
+    declared = ProtectedRange(**ev.memory_fingerprint.declared_range.model_dump())
+    assert str(ev.memory_fingerprint.readback_hash) == expected_readback_hash(
+        ev.cpu.nonce_echo, declared
+    )
+    assert kbs.verify_and_release(manifest, ev).released
+
+
+def test_memory_fingerprint_without_a_declared_range_denied(example_dict):
+    manifest = _hostile_manifest(example_dict)
+    kbs = _kbs(manifest)
+    ev = _hostile_evidence(kbs, manifest)
+    ev.memory_fingerprint.declared_range = None
+    decision = kbs.verify_and_release(manifest, ev)
+    assert not decision.released
+    assert "no declared protected-memory range" in (_mf_check(decision).detail or "")
+
+
+def test_memory_fingerprint_below_the_sweep_floor_denied(example_dict):
+    """A range the enclave declares is a range the enclave chose. Without a floor
+    a single granule satisfies the challenge."""
+    manifest = _hostile_manifest(example_dict)
+    kbs = KeyBrokerService(
+        {manifest.weights_hash: KEY},
+        now=_now_after_retire(),
+        min_memory_sweep_bytes=1 << 30,
+    )
+    decision = kbs.verify_and_release(manifest, _hostile_evidence(kbs, manifest))
+    assert not decision.released
+    assert "below the" in (_mf_check(decision).detail or "")
+
+
+def test_memory_fingerprint_readback_from_another_challenge_denied(example_dict):
+    """A clean sweep run under an earlier nonce, relabelled with this one. The
+    nonce field matches, so only re-deriving the readback catches it."""
+    manifest = _hostile_manifest(example_dict)
+    kbs = _kbs(manifest)
+    stale = _hostile_evidence(kbs, manifest)
+    ev = _hostile_evidence(kbs, manifest)
+    ev.memory_fingerprint.readback_hash = stale.memory_fingerprint.readback_hash
+    decision = kbs.verify_and_release(manifest, ev)
+    assert not decision.released
+    assert "readback does not match" in (_mf_check(decision).detail or "")
+
+
+def test_memory_fingerprint_commitment_over_another_result_denied(example_dict):
+    manifest = _hostile_manifest(example_dict)
+    kbs = _kbs(manifest)
+    other = _hostile_evidence(kbs, manifest)
+    ev = _hostile_evidence(kbs, manifest)
+    ev.memory_fingerprint.commitment = other.memory_fingerprint.commitment
+    decision = kbs.verify_and_release(manifest, ev)
+    assert not decision.released
+    assert "commitment does not match" in (_mf_check(decision).detail or "")
+
+
+def test_memory_fingerprint_malformed_commitment_denied(example_dict):
+    manifest = _hostile_manifest(example_dict)
+    kbs = _kbs(manifest)
+    ev = _hostile_evidence(kbs, manifest)
+    ev.memory_fingerprint.commitment = "not-hex"
+    decision = kbs.verify_and_release(manifest, ev)
+    assert not decision.released
+    assert "not valid hex" in (_mf_check(decision).detail or "")
+
+
+def test_unbound_fingerprint_passes_but_says_it_is_structural_only(example_dict):
+    """A correct readback with nothing attesting it. The gate accepts it in the
+    default posture and states the limit rather than reporting it as verified
+    hardware evidence."""
+    manifest = _hostile_manifest(example_dict)
+    kbs = _kbs(manifest)
+    ev = _hostile_evidence(kbs, manifest)
+    ev.memory_fingerprint.commitment = None
+    decision = kbs.verify_and_release(manifest, ev)
+    assert decision.released
+    assert "structural trust only" in (_mf_check(decision).detail or "")
+
+
+def test_binding_required_rejects_a_result_nothing_attests(example_dict):
+    """The host-authored case. The readback is arithmetic anyone can redo from
+    the nonce and the range, so a KBS that requires the binding refuses a
+    response that carries no commitment."""
+    manifest = _hostile_manifest(example_dict)
+    kbs = KeyBrokerService(
+        {manifest.weights_hash: KEY},
+        now=_now_after_retire(),
+        require_memory_fingerprint_binding=True,
+    )
+    ev = _hostile_evidence(kbs, manifest)
+    ev.memory_fingerprint.commitment = None
+    decision = kbs.verify_and_release(manifest, ev)
+    assert not decision.released
+    assert "carries no commitment" in (_mf_check(decision).detail or "")
+
+
+def test_binding_required_without_a_quote_verifier_fails_closed(example_dict):
+    """A commitment nobody checks against a signed quote is not a binding. The
+    gate refuses rather than reporting one it did not verify."""
+    manifest = _hostile_manifest(example_dict)
+    kbs = KeyBrokerService(
+        {manifest.weights_hash: KEY},
+        now=_now_after_retire(),
+        require_memory_fingerprint_binding=True,
+    )
+    decision = kbs.verify_and_release(manifest, _hostile_evidence(kbs, manifest))
+    assert not decision.released
+    assert "no CPU quote verifier" in (_mf_check(decision).detail or "")
+
+
+def test_a_real_aliased_sweep_is_what_trips_the_aliasing_denial(example_dict):
+    """The provider does not set the flag; it sweeps a region that aliases and
+    the sweep reports what it found."""
+    manifest = _hostile_manifest(example_dict)
+    kbs = _kbs(manifest)
+    ev = _hostile_evidence(kbs, manifest, aliasing_detected=True)
+    assert ev.memory_fingerprint.aliasing_detected is True
+    decision = kbs.verify_and_release(manifest, ev)
+    assert not decision.released
+    assert "aliasing" in (_mf_check(decision).detail or "")
+
+
 # -- channel binding (SPEC 3.2, CVE-2026-33697 relay defense) ------------------
 
 

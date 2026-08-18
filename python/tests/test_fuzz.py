@@ -26,6 +26,12 @@ from wcm import (
     parse_cadence,
 )
 from wcm._quote_verify import QuoteFormatError
+from wcm.memory_sweep import (
+    MAX_PROBE_COUNT,
+    ProtectedRange,
+    SweepError,
+    expected_readback_hash,
+)
 from wcm.threshold import Share
 
 SEED = 1337
@@ -155,3 +161,34 @@ def test_challenge_consume_fails_closed():
         nonce = _rand_bytes(rng, 32).hex()
         with pytest.raises(ChallengeError):
             store.consume(nonce)  # never issued
+
+
+def test_protected_range_fails_closed():
+    """The range arrives inside evidence, so every field is adversary-chosen. A
+    range that cannot be swept must raise SweepError, not blow up the verifier."""
+    rng = _rng()
+    for _ in range(ITERS):
+        try:
+            declared = ProtectedRange(
+                base_address=rng.choice([-1, 0, 1, 4095, 1 << 40, 1 << 70]),
+                size_bytes=rng.choice([-1, 0, 1, 4096, 4097, 1 << 20, 1 << 62]),
+                granule_bytes=rng.choice([0, 1, 31, 32, 4096, 1 << 30]),
+                probe_count=rng.choice([-1, 0, 1, 64, MAX_PROBE_COUNT, 1 << 40]),
+            )
+        except SweepError:
+            continue
+        # A range that validated must be plannable without further surprises, and
+        # cheaply: the ceiling is what keeps this from being a DoS.
+        assert declared.probe_count <= MAX_PROBE_COUNT
+        assert declared.probe_count <= declared.granules
+
+
+def test_expected_readback_fails_closed_on_a_bad_nonce():
+    rng = _rng()
+    declared = ProtectedRange(base_address=0, size_bytes=1 << 20, probe_count=8)
+    for _ in range(ITERS):
+        nonce = rng.choice([_rand_str(rng), "", "zz", "ab" * 31 + "z"])
+        try:
+            expected_readback_hash(nonce, declared)
+        except SweepError:
+            continue

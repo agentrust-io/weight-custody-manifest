@@ -27,6 +27,7 @@ from wcm import (
     QuoteVerifier,
     SealError,
     TrustStore,
+    WeightCustodyManifest,
     generate_transport_keypair,
     open_sealed,
     verify_cert_chain,
@@ -379,3 +380,103 @@ def test_relayed_release_is_denied_and_yields_only_ciphertext(example_manifest):
     d2 = kbs.verify_and_release(example_manifest, relayed)
     assert not d2.released
     assert any(c.name == "cpu_quote_verified" and not c.passed for c in d2.checks)
+
+
+# -- memory-fingerprint binding (SPEC 3.6, issue #79) -------------------------
+
+
+def _hostile(example_manifest):
+    """The example manifest in the posture that requires the sweep."""
+    data = example_manifest.model_dump(mode="json", exclude_none=True)
+    data["release_policy"]["memory_fingerprint_challenge"] = (
+        "required-for-hostile-owner-posture"
+    )
+    data["release_policy"]["physical_hardening"] = (
+        "tamper-evident-enclosure+access-control+chain-of-custody"
+    )
+    return WeightCustodyManifest.model_validate(data)
+
+
+def _swept_evidence(kbs, manifest, nonce, *, quote_b64):
+    """Evidence carrying a real sweep over a real 1 MiB region."""
+    from wcm.attestation import DeclaredMemoryRange, MemoryFingerprint
+    from wcm.memory_sweep import ProtectedRange, fingerprint_commitment, run_sweep
+
+    current, rim = _measurements(manifest)
+    declared = ProtectedRange(base_address=0x4000_0000, size_bytes=1 << 20, probe_count=64)
+    result = run_sweep(nonce, declared)
+    ev = _evidence(nonce, quote_b64=quote_b64, current=current, rim=rim)
+    ev.memory_fingerprint = MemoryFingerprint(
+        challenge_nonce=nonce,
+        aliasing_detected=result.aliasing_detected,
+        readback_hash=result.readback_hash,
+        declared_range=DeclaredMemoryRange(**declared.as_dict()),
+        commitment=fingerprint_commitment(
+            nonce, declared, result.readback_hash, result.aliasing_detected
+        ).hex(),
+    )
+    return ev, fingerprint_commitment(
+        nonce, declared, result.readback_hash, result.aliasing_detected
+    )
+
+
+def test_sweep_result_must_be_carried_by_the_quote(example_manifest):
+    """The whole weight of the challenge rests here.
+
+    The readback is derived from the nonce and the declared range by a public
+    rule, so a host that never touched protected memory computes the same value.
+    What separates the two is that the enclave folds the sweep's commitment into
+    REPORT_DATA, under a key the host does not have. A quote that covers the
+    commitment releases; the identical evidence on a quote that binds the nonce
+    alone, which is what a host-authored result rides on, does not.
+    """
+    pki = Pki()
+    manifest = _hostile(example_manifest)
+    kbs = KeyBrokerService(
+        {manifest.weights_hash: KEY32},
+        now=lambda: NOW,
+        cpu_quote_verifier=_verifier(pki),
+        require_memory_fingerprint_binding=True,
+    )
+
+    challenge = kbs.issue_challenge()
+    ev, commitment = _swept_evidence(kbs, manifest, challenge.nonce, quote_b64=None)
+    ev.cpu.quote_b64 = _container(pki, _report_body_cb(challenge.nonce, commitment))
+    decision = kbs.verify_and_release(manifest, ev)
+    assert decision.released, [c for c in decision.checks if not c.passed]
+
+    # Same sweep, same fields, on a quote that vouches for the nonce only.
+    challenge2 = kbs.issue_challenge()
+    ev2, _ = _swept_evidence(kbs, manifest, challenge2.nonce, quote_b64=None)
+    ev2.cpu.quote_b64 = _container(pki, _report_body(challenge2.nonce))
+    decision2 = kbs.verify_and_release(manifest, ev2)
+    assert not decision2.released
+    quote_check = [c for c in decision2.checks if c.name == "cpu_quote_verified"][0]
+    assert not quote_check.passed
+    assert "memory-fingerprint commitment" in (quote_check.detail or "")
+
+
+def test_a_commitment_from_another_attempt_does_not_transfer(example_manifest):
+    """A commitment is per-attempt: it binds the nonce, so one lifted from an
+    earlier release does not verify against this quote or this challenge."""
+    pki = Pki()
+    manifest = _hostile(example_manifest)
+    kbs = KeyBrokerService(
+        {manifest.weights_hash: KEY32},
+        now=lambda: NOW,
+        cpu_quote_verifier=_verifier(pki),
+        require_memory_fingerprint_binding=True,
+    )
+
+    first = kbs.issue_challenge()
+    _, stale_commitment = _swept_evidence(kbs, manifest, first.nonce, quote_b64=None)
+
+    second = kbs.issue_challenge()
+    ev, _ = _swept_evidence(kbs, manifest, second.nonce, quote_b64=None)
+    ev.memory_fingerprint.commitment = stale_commitment.hex()
+    ev.cpu.quote_b64 = _container(pki, _report_body_cb(second.nonce, stale_commitment))
+
+    decision = kbs.verify_and_release(manifest, ev)
+    assert not decision.released
+    mf = [c for c in decision.checks if c.name == "memory_fingerprint"][0]
+    assert not mf.passed and "commitment does not match" in (mf.detail or "")
