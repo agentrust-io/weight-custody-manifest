@@ -45,13 +45,9 @@
     
     
       
-        
-        
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
-        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
-      
     
+    
+      <link rel="stylesheet" href="https://agentrust-io.com/design-system.css">
     
     <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
@@ -1146,8 +1142,8 @@ and independently reproduced. Full details:
 <h2 id="image">Image<a class="headerlink" href="#image" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code>docker<span class="w"> </span>build<span class="w"> </span>-f<span class="w"> </span>python/docker/Dockerfile<span class="w"> </span>-t<span class="w"> </span>wcm-kbs<span class="w"> </span>.
 docker<span class="w"> </span>run<span class="w"> </span>--rm<span class="w"> </span>-p<span class="w"> </span><span class="m">8080</span>:8080<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>-v<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$PWD</span><span class="s2">/keystore.json:/run/secrets/keystore.json:ro&quot;</span><span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>-v<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$PWD</span><span class="s2">/cpu-root.pem:/run/trust/cpu-root.pem:ro&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-v<span class="w"> </span><span class="s2">"</span><span class="nv">$PWD</span><span class="s2">/keystore.json:/run/secrets/keystore.json:ro"</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-v<span class="w"> </span><span class="s2">"</span><span class="nv">$PWD</span><span class="s2">/cpu-root.pem:/run/trust/cpu-root.pem:ro"</span><span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>-e<span class="w"> </span><span class="nv">WCM_KEYSTORE_FILE</span><span class="o">=</span>/run/secrets/keystore.json<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>-e<span class="w"> </span><span class="nv">WCM_CPU_TRUST_ROOT_FILE</span><span class="o">=</span>/run/trust/cpu-root.pem<span class="w"> </span>wcm-kbs
 </code></pre></div>
@@ -1227,6 +1223,8 @@ denied rather than falling back to structural CPU evidence.</p>
     
     
       <script src="../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+        <script src="https://agentrust-io.com/supernav.js"></script>
       
     
   </body>

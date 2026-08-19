@@ -45,13 +45,9 @@
     
     
       
-        
-        
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
-        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
-      
     
+    
+      <link rel="stylesheet" href="https://agentrust-io.com/design-system.css">
     
     <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
@@ -1183,7 +1179,7 @@
 <h2 id="install">Install<a class="headerlink" href="#install" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/agentrust-io/weight-custody-manifest
 <span class="nb">cd</span><span class="w"> </span>weight-custody-manifest/python
-pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span><span class="s2">&quot;.[dev]&quot;</span><span class="w">      </span><span class="c1"># add &quot;.[server]&quot; for the reference KBS server</span>
+pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span><span class="s2">".[dev]"</span><span class="w">      </span><span class="c1"># add ".[server]" for the reference KBS server</span>
 </code></pre></div>
 <h2 id="build-sign-verify-a-manifest">Build, sign, verify a manifest<a class="headerlink" href="#build-sign-verify-a-manifest" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">wcm</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
@@ -1193,13 +1189,13 @@ pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </s
 <span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
 
 <span class="n">manifest</span> <span class="o">=</span> <span class="n">WeightCustodyManifest</span><span class="o">.</span><span class="n">model_validate</span><span class="p">(</span>
-    <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="nb">open</span><span class="p">(</span><span class="s2">&quot;examples/manifest.example.json&quot;</span><span class="p">))</span>
+    <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="nb">open</span><span class="p">(</span><span class="s2">"examples/manifest.example.json"</span><span class="p">))</span>
 <span class="p">)</span>
 
 <span class="n">builder</span><span class="p">,</span> <span class="n">custodian</span> <span class="o">=</span> <span class="n">generate_ed25519</span><span class="p">(),</span> <span class="n">generate_ed25519</span><span class="p">()</span>
 <span class="n">signed</span> <span class="o">=</span> <span class="n">manifest</span><span class="o">.</span><span class="n">with_signatures</span><span class="p">([</span>
-    <span class="n">Ed25519Signer</span><span class="p">(</span><span class="n">builder</span><span class="p">)</span><span class="o">.</span><span class="n">sign</span><span class="p">(</span><span class="n">manifest</span><span class="o">.</span><span class="n">unsigned_dict</span><span class="p">(),</span> <span class="n">role</span><span class="o">=</span><span class="s2">&quot;builder&quot;</span><span class="p">,</span> <span class="n">signer</span><span class="o">=</span><span class="s2">&quot;example-builder&quot;</span><span class="p">),</span>
-    <span class="n">Ed25519Signer</span><span class="p">(</span><span class="n">custodian</span><span class="p">)</span><span class="o">.</span><span class="n">sign</span><span class="p">(</span><span class="n">manifest</span><span class="o">.</span><span class="n">unsigned_dict</span><span class="p">(),</span> <span class="n">role</span><span class="o">=</span><span class="s2">&quot;custodian&quot;</span><span class="p">,</span> <span class="n">signer</span><span class="o">=</span><span class="s2">&quot;opaque-systems&quot;</span><span class="p">),</span>
+    <span class="n">Ed25519Signer</span><span class="p">(</span><span class="n">builder</span><span class="p">)</span><span class="o">.</span><span class="n">sign</span><span class="p">(</span><span class="n">manifest</span><span class="o">.</span><span class="n">unsigned_dict</span><span class="p">(),</span> <span class="n">role</span><span class="o">=</span><span class="s2">"builder"</span><span class="p">,</span> <span class="n">signer</span><span class="o">=</span><span class="s2">"example-builder"</span><span class="p">),</span>
+    <span class="n">Ed25519Signer</span><span class="p">(</span><span class="n">custodian</span><span class="p">)</span><span class="o">.</span><span class="n">sign</span><span class="p">(</span><span class="n">manifest</span><span class="o">.</span><span class="n">unsigned_dict</span><span class="p">(),</span> <span class="n">role</span><span class="o">=</span><span class="s2">"custodian"</span><span class="p">,</span> <span class="n">signer</span><span class="o">=</span><span class="s2">"opaque-systems"</span><span class="p">),</span>
 <span class="p">])</span>
 
 <span class="n">ctx</span> <span class="o">=</span> <span class="n">VerificationContext</span><span class="p">()</span>
@@ -1213,12 +1209,12 @@ pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </s
 <h2 id="gate-a-key-release">Gate a key release<a class="headerlink" href="#gate-a-key-release" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">wcm</span><span class="w"> </span><span class="kn">import</span> <span class="n">KeyBrokerService</span><span class="p">,</span> <span class="n">SoftwareProvider</span>
 
-<span class="n">kbs</span> <span class="o">=</span> <span class="n">KeyBrokerService</span><span class="p">({</span><span class="n">manifest</span><span class="o">.</span><span class="n">weights_hash</span><span class="p">:</span> <span class="sa">b</span><span class="s2">&quot;the-decryption-key&quot;</span><span class="p">})</span>
+<span class="n">kbs</span> <span class="o">=</span> <span class="n">KeyBrokerService</span><span class="p">({</span><span class="n">manifest</span><span class="o">.</span><span class="n">weights_hash</span><span class="p">:</span> <span class="sa">b</span><span class="s2">"the-decryption-key"</span><span class="p">})</span>
 <span class="n">challenge</span> <span class="o">=</span> <span class="n">kbs</span><span class="o">.</span><span class="n">issue_challenge</span><span class="p">()</span>
 <span class="n">evidence</span> <span class="o">=</span> <span class="n">SoftwareProvider</span><span class="p">()</span><span class="o">.</span><span class="n">produce</span><span class="p">(</span>
     <span class="n">challenge</span><span class="p">,</span>
-    <span class="n">serving_image_measurement</span><span class="o">=</span><span class="s2">&quot;sha256:&quot;</span> <span class="o">+</span> <span class="s2">&quot;5e2d&quot;</span> <span class="o">*</span> <span class="mi">16</span><span class="p">,</span>
-    <span class="n">gpu_measurement</span><span class="o">=</span><span class="s2">&quot;nvidia-rim:driver+vbios golden measurement id&quot;</span><span class="p">,</span>
+    <span class="n">serving_image_measurement</span><span class="o">=</span><span class="s2">"sha256:"</span> <span class="o">+</span> <span class="s2">"5e2d"</span> <span class="o">*</span> <span class="mi">16</span><span class="p">,</span>
+    <span class="n">gpu_measurement</span><span class="o">=</span><span class="s2">"nvidia-rim:driver+vbios golden measurement id"</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="n">decision</span> <span class="o">=</span> <span class="n">kbs</span><span class="o">.</span><span class="n">verify_and_release</span><span class="p">(</span><span class="n">manifest</span><span class="p">,</span> <span class="n">evidence</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="n">decision</span><span class="o">.</span><span class="n">released</span><span class="p">)</span>   <span class="c1"># True on a passing gate</span>
@@ -1291,6 +1287,8 @@ wcm<span class="w"> </span>verify<span class="w"> </span>signed.json<span class=
     
     
       <script src="../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+        <script src="https://agentrust-io.com/supernav.js"></script>
       
     
   </body>
