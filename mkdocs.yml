@@ -8,6 +8,7 @@ docs_dir: docs
 
 theme:
   name: material
+  font: false
   features:
     - navigation.instant
     - navigation.tabs
@@ -28,6 +29,12 @@ theme:
         name: Switch to light mode
   icon:
     repo: fontawesome/brands/github
+
+extra_css:
+  - https://agentrust-io.com/design-system.css
+
+extra_javascript:
+  - https://agentrust-io.com/supernav.js
 
 markdown_extensions:
   - admonition
