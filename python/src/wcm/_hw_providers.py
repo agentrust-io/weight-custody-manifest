@@ -494,7 +494,9 @@ class NvidiaCcProvider:
                 [*cmd.split(), "--nonce", nonce_hex],
                 capture_output=True,
                 text=True,
-                timeout=30,
+                # Local NVIDIA appraisal fetches RIM and OCSP material and can
+                # legitimately take several minutes on a fresh validation host.
+                timeout=360,
                 check=True,
             )
         except (OSError, subprocess.SubprocessError) as exc:

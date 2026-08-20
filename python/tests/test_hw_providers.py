@@ -181,6 +181,22 @@ def test_nvidia_run_tool_success(monkeypatch):
     assert report.measurement == "nvidia-rim:xyz"
 
 
+def test_nvidia_appraisal_allows_hardware_latency(monkeypatch):
+    monkeypatch.setenv("WCM_NVIDIA_ATTESTATION_CMD", "python")
+    seen = {}
+
+    class _Result:
+        stdout = json.dumps({"measurement": "nvidia-rim:xyz", "cc_mode": True})
+
+    def _run(*args, **kwargs):
+        seen["timeout"] = kwargs["timeout"]
+        return _Result()
+
+    monkeypatch.setattr("wcm._hw_providers.subprocess.run", _run)
+    NvidiaCcProvider().gpu_report(_challenge())
+    assert seen["timeout"] >= 300
+
+
 def test_nvidia_missing_measurement_raises(monkeypatch):
     monkeypatch.setenv("WCM_NVIDIA_ATTESTATION_CMD", "python")
 
