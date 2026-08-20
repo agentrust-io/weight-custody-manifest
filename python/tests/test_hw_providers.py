@@ -45,19 +45,29 @@ def _challenge():
 # -- availability / selection (real on CI) -------------------------------------
 
 
-def test_no_hardware_available_on_ci():
+def _force_no_hardware(monkeypatch):
+    monkeypatch.setattr(SevSnpProvider, "is_available", lambda: False)
+    monkeypatch.setattr(TdxProvider, "is_available", lambda: False)
+    monkeypatch.setattr("wcm._hw_providers.AzureTdxVtpmProvider.is_available", lambda: False)
+    monkeypatch.setattr("wcm._hw_providers.AzureSnpVtpmProvider.is_available", lambda: False)
+
+
+def test_no_hardware_available_on_ci(monkeypatch):
+    _force_no_hardware(monkeypatch)
     assert SevSnpProvider.is_available() is False
     assert TdxProvider.is_available() is False
     assert NvidiaCcProvider.is_available() is False
     assert select_cpu_provider() is None
 
 
-def test_select_provider_falls_back_to_software():
+def test_select_provider_falls_back_to_software(monkeypatch):
+    _force_no_hardware(monkeypatch)
     provider = select_provider(require_hardware=False)
     assert isinstance(provider, SoftwareProvider)
 
 
-def test_select_provider_require_hardware_raises():
+def test_select_provider_require_hardware_raises(monkeypatch):
+    _force_no_hardware(monkeypatch)
     with pytest.raises(AttestationUnavailableError):
         select_provider(require_hardware=True)
 

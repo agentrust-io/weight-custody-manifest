@@ -26,12 +26,13 @@ def _synth_hcl(chip: bytes = b"\x5a" * 8) -> bytes:
     return b"HCLA" + b"\x00" * 28 + bytes(report) + b"runtime-data-trailer"
 
 
-def test_unavailable_off_guest():
-    # No /dev/tpmrm0 on CI/Windows, so the Azure provider is not available.
+def test_unavailable_off_guest(monkeypatch):
+    monkeypatch.setattr(AzureSnpVtpmProvider, "_TPM_DEV", "/wcm-test/no-tpmrm0")
     assert AzureSnpVtpmProvider.is_available() is False
 
 
-def test_cpu_quote_raises_off_guest():
+def test_cpu_quote_raises_off_guest(monkeypatch):
+    monkeypatch.setattr("wcm._hw_providers.shutil.which", lambda _name: None)
     p = AzureSnpVtpmProvider()  # real _fetch_hcl -> no tpm2_nvread
     with pytest.raises(AttestationUnavailableError):
         p.cpu_quote(_challenge(), serving_image_measurement="sha256:" + "0" * 64)

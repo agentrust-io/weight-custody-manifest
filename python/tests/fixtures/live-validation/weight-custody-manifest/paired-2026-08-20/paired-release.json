@@ -1,0 +1,267 @@
+{
+  "kind": "wcm-paired-hardware-release/v1",
+  "captured_at": "2026-08-20T21:42:07.098569+00:00",
+  "classification": "OPAQUE internal validation evidence",
+  "release_candidate": "78839c751934c45f6f34988c878442ec2e8d827d",
+  "provider_topology": "Azure SNP/vTPM freshness quote + NVIDIA H100 NVAT local appraisal",
+  "environment": {
+    "kernel": "6.8.0-1063-azure-fde",
+    "nvidia": "NVIDIA H100 NVL, 595.71.05, 96.00.9F.00.04, 00000001:00:00.0",
+    "nvidia_cc": "CC status: ON",
+    "nvattest": "nvattest 1.2.2 (Linux/x86_64)"
+  },
+  "evidence": [
+    {
+      "label": "happy",
+      "challenge_nonce": "d0b6d8b66e0483eafb9075f569ca03af76f27eff6c273a6e575c49915376654d",
+      "transport_public_key": "d17f1697f2da1ab21de1d67f4ec7da318bc64f5d36f9dcca66b4f3ddf2004137",
+      "cpu": {
+        "platform": "amd-sev-snp",
+        "attestation_key_id": "vcek:df21ed689f8e6bb5",
+        "quote_sha256": "ac94852ef0b3232b1a0f9d9bc8b31a6d2babb1b8932a233c6ff6c749bf0cade0",
+        "verified": true,
+        "reason": null,
+        "leaf_subject": "CN=SEV-VCEK,O=Advanced Micro Devices,ST=CA,L=Santa Clara,C=US,OU=Engineering"
+      },
+      "gpu": {
+        "platform": "nvidia-cc-gpu",
+        "measurement": "nvidia-rim:arch=HOPPER;driver=595.71.05;vbios=96.00.9F.00.04",
+        "cc_mode": true,
+        "quote_sha256": "a5a754d8972e5171df4f95c0324f879e602bdbd072643bc792d7ec6ce31fb598",
+        "verified": true,
+        "reason": null,
+        "leaf_subject": "CN=GH100 A01 GSP FMC LF,O=NVIDIA Corporation,C=US,2.5.4.5=5FE9CBA7798671493D4832CFBC0356AB963E18D3"
+      }
+    },
+    {
+      "label": "substitution-b",
+      "challenge_nonce": "579428d3a6e1345311d02ce7c9b2ea873f1f7cfab8e6878eb8a50efaa267f0c1",
+      "transport_public_key": "e9ad2d8b72f35d4f817c35f7fa9277a6c7a711c65982f676935b5bea1e790e0c",
+      "cpu": {
+        "platform": "amd-sev-snp",
+        "attestation_key_id": "vcek:df21ed689f8e6bb5",
+        "quote_sha256": "d44cb33585ce72cff1398fb7bb14dbc8ad6a925d95755866260163feea7096ba",
+        "verified": true,
+        "reason": null,
+        "leaf_subject": "CN=SEV-VCEK,O=Advanced Micro Devices,ST=CA,L=Santa Clara,C=US,OU=Engineering"
+      },
+      "gpu": {
+        "platform": "nvidia-cc-gpu",
+        "measurement": "nvidia-rim:arch=HOPPER;driver=595.71.05;vbios=96.00.9F.00.04",
+        "cc_mode": true,
+        "quote_sha256": "cc0d9bb6f0507cb0e2ce03b5b1d557715cd3124d5870e8d0e5f0b8cb9eae04f2",
+        "verified": true,
+        "reason": null,
+        "leaf_subject": "CN=GH100 A01 GSP FMC LF,O=NVIDIA Corporation,C=US,2.5.4.5=5FE9CBA7798671493D4832CFBC0356AB963E18D3"
+      }
+    },
+    {
+      "label": "substitution-c",
+      "challenge_nonce": "75f9a0eeadfdee19ee04bf708cde9539e2a7159b6dcfea2488df456f8a093e41",
+      "transport_public_key": "e7fdd38d6e52cda6fac0516bd458251e625f81fbe4181b76ac9e3ded9ae55a69",
+      "cpu": {
+        "platform": "amd-sev-snp",
+        "attestation_key_id": "vcek:df21ed689f8e6bb5",
+        "quote_sha256": "a79233d9b2db057b9d17fc4987a32b11279db1d28f82015fd27b5e9ee42ea7ae",
+        "verified": true,
+        "reason": null,
+        "leaf_subject": "CN=SEV-VCEK,O=Advanced Micro Devices,ST=CA,L=Santa Clara,C=US,OU=Engineering"
+      },
+      "gpu": {
+        "platform": "nvidia-cc-gpu",
+        "measurement": "nvidia-rim:arch=HOPPER;driver=595.71.05;vbios=96.00.9F.00.04",
+        "cc_mode": true,
+        "quote_sha256": "47852e66d7d3dc6bdfd74891a1ca38acf7950a1c7b0eeeb6292a82480e540abc",
+        "verified": true,
+        "reason": null,
+        "leaf_subject": "CN=GH100 A01 GSP FMC LF,O=NVIDIA Corporation,C=US,2.5.4.5=5FE9CBA7798671493D4832CFBC0356AB963E18D3"
+      }
+    }
+  ],
+  "happy_release": {
+    "released": true,
+    "plaintext_key_returned": false,
+    "sealed_key_sha256": "579d7720991b15af339743943522738493ac4e2dffe8637d02b832e1ce428f89",
+    "released_key_sha256": "19496ffaa4bab3d9fd02bc6c38886bc1aee841d82b17a1a78a34838f0acd8819",
+    "correct_transport_recovered": true,
+    "wrong_transport_refused": true,
+    "checks": [
+      {
+        "name": "nonce_fresh",
+        "passed": true,
+        "detail": null
+      },
+      {
+        "name": "channel_binding",
+        "passed": true,
+        "detail": null
+      },
+      {
+        "name": "cpu_platform_allowed",
+        "passed": true,
+        "detail": null
+      },
+      {
+        "name": "assurance_tier",
+        "passed": true,
+        "detail": null
+      },
+      {
+        "name": "serving_image",
+        "passed": true,
+        "detail": null
+      },
+      {
+        "name": "gpu",
+        "passed": true,
+        "detail": null
+      },
+      {
+        "name": "memory_fingerprint",
+        "passed": true,
+        "detail": "not required"
+      },
+      {
+        "name": "attestation_revocation",
+        "passed": true,
+        "detail": null
+      },
+      {
+        "name": "cpu_quote_verified",
+        "passed": true,
+        "detail": null
+      },
+      {
+        "name": "gpu_report_verified",
+        "passed": true,
+        "detail": null
+      },
+      {
+        "name": "key_available",
+        "passed": true,
+        "detail": null
+      }
+    ]
+  },
+  "negative_cross_run_cpu_substitution": {
+    "released": false,
+    "checks": [
+      {
+        "name": "nonce_fresh",
+        "passed": true,
+        "detail": null
+      },
+      {
+        "name": "channel_binding",
+        "passed": true,
+        "detail": null
+      },
+      {
+        "name": "cpu_platform_allowed",
+        "passed": true,
+        "detail": null
+      },
+      {
+        "name": "assurance_tier",
+        "passed": true,
+        "detail": null
+      },
+      {
+        "name": "serving_image",
+        "passed": true,
+        "detail": null
+      },
+      {
+        "name": "gpu",
+        "passed": false,
+        "detail": "GPU report not bound to CPU quote (nonce echo mismatch)"
+      },
+      {
+        "name": "memory_fingerprint",
+        "passed": true,
+        "detail": "not required"
+      },
+      {
+        "name": "attestation_revocation",
+        "passed": true,
+        "detail": null
+      },
+      {
+        "name": "cpu_quote_verified",
+        "passed": true,
+        "detail": null
+      },
+      {
+        "name": "gpu_report_verified",
+        "passed": false,
+        "detail": "GPU report does not bind the challenge nonce (raw nonce mismatch)"
+      },
+      {
+        "name": "key_available",
+        "passed": true,
+        "detail": null
+      }
+    ]
+  },
+  "negative_cross_run_gpu_substitution": {
+    "released": false,
+    "checks": [
+      {
+        "name": "nonce_fresh",
+        "passed": true,
+        "detail": null
+      },
+      {
+        "name": "channel_binding",
+        "passed": true,
+        "detail": null
+      },
+      {
+        "name": "cpu_platform_allowed",
+        "passed": true,
+        "detail": null
+      },
+      {
+        "name": "assurance_tier",
+        "passed": true,
+        "detail": null
+      },
+      {
+        "name": "serving_image",
+        "passed": true,
+        "detail": null
+      },
+      {
+        "name": "gpu",
+        "passed": false,
+        "detail": "GPU report not bound to CPU quote (nonce echo mismatch)"
+      },
+      {
+        "name": "memory_fingerprint",
+        "passed": true,
+        "detail": "not required"
+      },
+      {
+        "name": "attestation_revocation",
+        "passed": true,
+        "detail": null
+      },
+      {
+        "name": "cpu_quote_verified",
+        "passed": true,
+        "detail": null
+      },
+      {
+        "name": "gpu_report_verified",
+        "passed": false,
+        "detail": "GPU report does not bind the challenge nonce (raw nonce mismatch)"
+      },
+      {
+        "name": "key_available",
+        "passed": true,
+        "detail": null
+      }
+    ]
+  },
+  "passed": true
+}
