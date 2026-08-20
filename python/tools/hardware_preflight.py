@@ -77,7 +77,7 @@ def collect(profile: str) -> dict[str, Any]:
                 ],
             ),
             "nvidia_cc": _tool("nvidia-smi", ["conf-compute", "-f"]),
-            "nvattest": _tool("nvattest", ["--version"]),
+            "nvattest": _tool("nvattest", ["version"]),
             "tpm2_tools": _tool("tpm2_getcap", ["properties-fixed"]),
             "lspci_gpu": _tool("lspci", ["-nn"]),
         },

@@ -1,0 +1,64 @@
+{
+  "kind": "wcm-hardware-preflight/v1",
+  "captured_at": "2026-08-20T21:40:00.383659+00:00",
+  "profile": "nvidia",
+  "system": {
+    "os": "Linux",
+    "release": "6.8.0-1063-azure-fde",
+    "machine": "x86_64",
+    "python": "3.12.14"
+  },
+  "devices": {
+    "/dev/sev-guest": false,
+    "/dev/tdx_guest": false,
+    "/dev/tdx-guest": false,
+    "/dev/tpm0": true,
+    "/dev/tpmrm0": true,
+    "/dev/nvidia0": true,
+    "/dev/nvidiactl": true
+  },
+  "tools": {
+    "nvidia_smi": {
+      "available": true,
+      "exit_code": 0,
+      "stdout": "NVIDIA H100 NVL, 595.71.05, 96.00.9F.00.04, 00000001:00:00.0",
+      "stderr": "",
+      "path": "/usr/bin/nvidia-smi"
+    },
+    "nvidia_cc": {
+      "available": true,
+      "exit_code": 0,
+      "stdout": "CC status: ON",
+      "stderr": "",
+      "path": "/usr/bin/nvidia-smi"
+    },
+    "nvattest": {
+      "available": true,
+      "exit_code": 109,
+      "stdout": "",
+      "stderr": "The following argument was not expected: --version\nRun with --help for more information.",
+      "path": "/usr/local/bin/nvattest"
+    },
+    "tpm2_tools": {
+      "available": true,
+      "exit_code": 0,
+      "stdout": "TPM2_PT_FAMILY_INDICATOR:\n  raw: 0x322E3000\n  value: \"2.0\"\nTPM2_PT_LEVEL:\n  raw: 0\nTPM2_PT_REVISION:\n  raw: 0x8A\n  value: 1.38\nTPM2_PT_DAY_OF_YEAR:\n  raw: 0x19\nTPM2_PT_YEAR:\n  raw: 0x7E1\nTPM2_PT_MANUFACTURER:\n  raw: 0x4D534654\n  value: \"MSFT\"\nTPM2_PT_VENDOR_STRING_1:\n  raw: 0x54504D20\n  value: \"TPM\"\nTPM2_PT_VENDOR_STRING_2:\n  raw: 0x53696D75\n  value: \"Simu\"\nTPM2_PT_VENDOR_STRING_3:\n  raw: 0x6C61746F\n  value: \"lato\"\nTPM2_PT_VENDOR_STRING_4:\n  raw: 0x72202020\n  value: \"r\"\nTPM2_PT_VENDOR_TPM_TYPE:\n  raw: 0x1\nTPM2_PT_FIRMWARE_VERSION_1:\n  raw: 0x20200312\nTPM2_PT_FIRMWARE_VERSION_2:\n  raw: 0x120003\nTPM2_PT_INPUT_BUFFER:\n  raw: 0x400\nTPM2_PT_HR_TRANSIENT_MIN:\n  raw: 0x3\nTPM2_PT_HR_PERSISTENT_MIN:\n  raw: 0x2\nTPM2_PT_HR_LOADED_MIN:\n  raw: 0x3\nTPM2_PT_ACTIVE_SESSIONS_MAX:\n  raw: 0x40\nTPM2_PT_PCR_COUNT:\n  raw: 0x18\nTPM2_PT_PCR_SELECT_MIN:\n  raw: 0x3\nTPM2_PT_CONTEXT_GAP_MAX:\n  raw: 0xFF\nTPM2_PT_NV_COUNTERS_MAX:\n  raw: 0x0\nTPM2_PT_NV_INDEX_MAX:\n  raw: 0x1000\nTPM2_PT_MEMORY:\n  raw: 0x6\nTPM2_PT_CLOCK_UPDATE:\n  raw: 0x1000\nTPM2_PT_CONTEXT_HASH:\n  raw: 0xC\nTPM2_PT_CONTEXT_SYM:\n  raw: 0x6\nTPM2_PT_CONTEXT_SYM_SIZE:\n  raw: 0x100\nTPM2_PT_ORDERLY_COUNT:\n  raw: 0xFF\nTPM2_PT_MAX_COMMAND_SIZE:\n  raw: 0x1000\nTPM2_PT_MAX_RESPONSE_SIZE:\n  raw: 0x1000\nTPM2_PT_MAX_DIGEST:\n  raw: 0x30\nTPM2_PT_MAX_OBJECT_CONTEXT:\n  raw: 0x764\nTPM2_PT_MAX_SESSION_CONTEXT:\n  raw: 0x14C\nTPM2_PT_PS_FAMILY_INDICATOR:\n  raw: 0x322E3000\nTPM2_PT_PS_LEVEL:\n  raw: 0x0\nTPM2_PT_PS_REVISION:\n  raw: 0x8A\nTPM2_PT_PS_DAY_OF_YEAR:\n  raw: 0x19\nTPM2_PT_PS_YEAR:\n  raw: 0x7E1\nTPM2_PT_SPLIT_MAX:\n  raw: 0x80\nTPM2_PT_TOTAL_COMMANDS:\n  raw: 0x6E\nTPM2_PT_LIBRARY_COMMANDS:\n  raw: 0x6D\nTPM2_PT_VENDOR_COMMANDS:\n  raw: 0x1\nTPM2_PT_NV_BUFFER_MAX:\n  raw: 0x400\nTPM2_PT_MODES:\n  raw: 0x1\n  value: TPMA_MODES_FIPS_140_2",
+      "stderr": "",
+      "path": "/usr/bin/tpm2_getcap"
+    },
+    "lspci_gpu": {
+      "available": true,
+      "exit_code": 0,
+      "stdout": "0001:00:00.0 3D controller [0302]: NVIDIA Corporation GA103 [10de:2321] (rev a1)",
+      "stderr": "",
+      "path": "/usr/bin/lspci"
+    }
+  },
+  "wcm": {
+    "nvat_adapter_env_set": false,
+    "cpu_provider_candidates": [
+      "tpm2-or-azure-vtpm"
+    ]
+  },
+  "record_sha256": "8ed350390fb75d868226b5d25ed3a8d48b09a7ef7d572ac9f5cb09271e991fa1"
+}
