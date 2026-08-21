@@ -121,6 +121,13 @@ from .custody import (
     ReattestationRequired,
     parse_cadence,
 )
+from .runtime_records import (
+    RuntimeEvent,
+    RuntimeRecord,
+    runtime_public_key,
+    sign_runtime_record,
+    verify_runtime_record_chain,
+)
 from .lineage import verify_lineage, LineageResult, is_root
 from .transparency import (
     TransparencyLog,
@@ -276,6 +283,11 @@ __all__ = [
     "KeyWipedError",
     "ReattestationRequired",
     "parse_cadence",
+    "RuntimeEvent",
+    "RuntimeRecord",
+    "runtime_public_key",
+    "sign_runtime_record",
+    "verify_runtime_record_chain",
     "verify_lineage",
     "LineageResult",
     "is_root",

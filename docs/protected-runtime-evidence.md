@@ -65,6 +65,18 @@ object is not proof of hardware-backed zeroization. The evidence must name the
 primitive that makes the key handle unusable and the mechanism that terminates
 in-flight and future inference.
 
+The SDK provides `RuntimeRecord`, `sign_runtime_record`, and
+`verify_runtime_record_chain` as the portable receipt contract. Records are
+Ed25519-signed and hash-chained across one weights hash, manifest hash, and lease
+identifier. A terminal proof must start with `lease_started`, may contain
+`renewal_succeeded` records, then contain exactly one `lapse_detected` or
+`revocation_detected` boundary followed—in order—by `wipe_requested`,
+`wipe_completed`, and `process_terminated`. The verifier rejects tampering,
+reordering, missing terminal events, signer substitution, and cross-lease
+splicing. The production controller must call this contract from inside its
+protected control path; signatures created by an external observer are not
+evidence of protected execution.
+
 ## Review gate
 
 For either issue, merge only when the sanitized receipt, verifier, negative
