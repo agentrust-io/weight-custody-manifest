@@ -6,6 +6,10 @@ uses semantic-ish versioning while pre-1.0.
 
 ## Unreleased
 
+_No changes yet._
+
+## 0.26.0 - 2026-08-21
+
 **[security/sdk]** Added `EnclaveSession.authorize_operation()` for long-lived
 confidential runtimes to enforce the existing lease and operation budget without
 exporting another key copy on every inference. `use_key()` now delegates to the
@@ -17,6 +21,19 @@ signed manifest, consumed challenge, complete evidence, gate results, and
 validity window without returning a model key. `EnclaveSession.apply_renewal()`
 verifies and consumes the decision once before resetting cadence and operation
 budgets.
+
+**[hardware/validation]** Added a sanitized paired CPU/GPU validation record and
+reproducible release runner covering Azure SEV-SNP/vTPM and NVIDIA H100 evidence.
+The record is portable and offline-verifiable; it does not include provider
+tokens or raw attestation secrets.
+
+**[security/verification]** Bound Azure vTPM provider selection and paired
+hardware receipts to the validated evidence path, with negative coverage for
+changed workload state, substituted transport, and missing GPU evidence.
+
+**[release]** Added the guarded public-release preflight, public launch checklist,
+reproducible release BOM tooling, current package metadata, and refreshed KBS
+dependency locks.
 
 ## 0.25.0 - 2026-08-12
 

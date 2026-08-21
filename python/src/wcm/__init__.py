@@ -174,7 +174,7 @@ from .conformance import (
     score_results,
 )
 
-__version__ = "0.25.0"
+__version__ = "0.26.0"
 
 __all__ = [
     "__version__",
