@@ -15,9 +15,11 @@ not in this module.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from dataclasses import asdict, dataclass, field
+from datetime import datetime, timedelta, timezone
 from typing import Callable, Iterable, Mapping, Optional
+
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
 from ._challenge import Challenge, ChallengeError, ChallengeStore
 from ._quote_verify import QuoteVerifier
@@ -28,6 +30,12 @@ from .models import (
     MemoryFingerprintChallenge,
     ServingImageStatus,
     WeightCustodyManifest,
+)
+from .renewal import (
+    RenewalDecision,
+    manifest_identity,
+    renewal_public_key,
+    sign_renewal_decision,
 )
 
 
@@ -74,6 +82,8 @@ class ReleaseDecision:
     # raw key ever crosses the channel, and only the enclave can open this
     # (SPEC 3.2 channel binding, relay defense). None on the default path.
     sealed_key: Optional[bytes] = None
+    manifest_hash: Optional[str] = None
+    renewal_public_key_b64url: Optional[str] = None
 
     @property
     def failures(self) -> list[CheckResult]:
@@ -95,7 +105,11 @@ class KeyBrokerService:
         gpu_report_verifier: Optional[NvidiaGpuVerifier] = None,
         require_channel_binding: bool = False,
         require_cpu_quote_verification: bool = False,
+        renewal_signing_key: Optional[Ed25519PrivateKey] = None,
+        renewal_decision_ttl_seconds: int = 60,
     ) -> None:
+        if renewal_decision_ttl_seconds <= 0:
+            raise ValueError("renewal_decision_ttl_seconds must be positive")
         # keystore maps weights_hash -> the decryption key to release.
         self._keystore: dict[str, bytes] = dict(keystore)
         self._now = now or _utcnow
@@ -118,6 +132,8 @@ class KeyBrokerService:
         # default: the pre-channel-binding release shape is unchanged.
         self._require_channel_binding = require_channel_binding
         self._require_cpu_quote_verification = require_cpu_quote_verification
+        self._renewal_signing_key = renewal_signing_key or Ed25519PrivateKey.generate()
+        self._renewal_ttl = renewal_decision_ttl_seconds
 
     def issue_challenge(self) -> Challenge:
         return self._challenges.issue()
@@ -142,6 +158,8 @@ class KeyBrokerService:
                 released=False,
                 key=None,
                 checks=[CheckResult("nonce_fresh", False, str(exc))],
+                manifest_hash=manifest_identity(manifest),
+                renewal_public_key_b64url=renewal_public_key(self._renewal_signing_key),
             )
 
         checks: list[CheckResult] = [CheckResult("nonce_fresh", True)]
@@ -222,7 +240,29 @@ class KeyBrokerService:
                 key = None
 
         return ReleaseDecision(
-            released=released, key=key, checks=checks, sealed_key=sealed_key
+            released=released,
+            key=key,
+            checks=checks,
+            sealed_key=sealed_key,
+            manifest_hash=manifest_identity(manifest),
+            renewal_public_key_b64url=renewal_public_key(self._renewal_signing_key),
+        )
+
+    def verify_for_renewal(
+        self, manifest: WeightCustodyManifest, evidence: CompositeEvidence
+    ) -> RenewalDecision:
+        """Re-run the release gate and return a short-lived signed keyless decision."""
+        decision = self.verify_and_release(manifest, evidence)
+        issued = self._now()
+        expires = issued + timedelta(seconds=self._renewal_ttl)
+        return sign_renewal_decision(
+            signing_key=self._renewal_signing_key,
+            renewed=decision.released,
+            manifest=manifest,
+            evidence=evidence,
+            issued_at=issued.isoformat().replace("+00:00", "Z"),
+            expires_at=expires.isoformat().replace("+00:00", "Z"),
+            checks=(asdict(check) for check in decision.checks),
         )
 
     # -- individual gate checks ------------------------------------------------

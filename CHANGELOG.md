@@ -11,6 +11,13 @@ confidential runtimes to enforce the existing lease and operation budget without
 exporting another key copy on every inference. `use_key()` now delegates to the
 same authorization path, preserving its existing operation-count semantics.
 
+**[security/renewal]** Added short-lived signed KBS renewal decisions. The
+initial release pins the renewal signer; a fresh decision binds the model,
+signed manifest, consumed challenge, complete evidence, gate results, and
+validity window without returning a model key. `EnclaveSession.apply_renewal()`
+verifies and consumes the decision once before resetting cadence and operation
+budgets.
+
 ## 0.25.0 - 2026-08-12
 
 **[security/kbs]** The environment-built network KBS now fails closed when a
