@@ -10,13 +10,13 @@
       
       
       
-        <link rel="canonical" href="https://wcm.agentrust-io.com/limitations/">
+        <link rel="canonical" href="https://wcm.agentrust-io.com/certificate-policy/">
       
       
-        <link rel="prev" href="../roadmap/">
+        <link rel="prev" href="../measured-launch/">
       
       
-        <link rel="next" href="../governance/">
+        <link rel="next" href="../oms-interoperability/">
       
       
         
@@ -27,7 +27,7 @@
     
     
       
-        <title>Limitations - Weight Custody Manifest</title>
+        <title>Provider certificate policy - Weight Custody Manifest</title>
       
     
     
@@ -74,7 +74,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#limitations" class="md-skip">
+        <a href="#provider-certificate-policy" class="md-skip">
           Skip to content
         </a>
       
@@ -108,7 +108,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Limitations
+              Provider certificate policy
             
           </span>
         </div>
@@ -258,10 +258,12 @@
   
   
   
+    
+  
   
     
     
-      <li class="md-tabs__item">
+      <li class="md-tabs__item md-tabs__item--active">
         <a href="../spec-overview/" class="md-tabs__link">
           
   
@@ -298,12 +300,10 @@
   
   
   
-    
-  
   
     
     
-      <li class="md-tabs__item md-tabs__item--active">
+      <li class="md-tabs__item">
         <a href="../roadmap/" class="md-tabs__link">
           
   
@@ -507,26 +507,31 @@
       
   
   
+    
   
   
+  
     
     
     
     
+      
+        
+        
       
       
         
       
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
         
           
-          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
             
   
   
@@ -544,7 +549,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_3">
             <span class="md-nav__icon md-icon"></span>
             
@@ -615,10 +620,19 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../certificate-policy/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -634,6 +648,7 @@
   
 
       </a>
+      
     </li>
   
 
@@ -877,31 +892,26 @@
       
   
   
-    
   
   
-  
     
     
     
     
-      
-        
-        
       
       
         
       
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" checked>
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
         
           
-          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
             
   
   
@@ -919,7 +929,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_5">
             <span class="md-nav__icon md-icon"></span>
             
@@ -962,19 +972,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../limitations/" class="md-nav__link">
         
   
   
@@ -990,7 +991,6 @@
   
 
       </a>
-      
     </li>
   
 
@@ -1125,26 +1125,20 @@
   
 
 
-<h1 id="limitations">Limitations<a class="headerlink" href="#limitations" title="Permanent link">&para;</a></h1>
-<p>The canonical, complete list is <a href="https://github.com/agentrust-io/weight-custody-manifest/blob/main/LIMITATIONS.md"><code>LIMITATIONS.md</code></a>. The load-bearing ones:</p>
-<ul>
-<li><strong>No custody against a hardware owner.</strong> Against a physical operator who owns
-  the box, cheap published memory-bus attacks (TEE.fail, BadRAM) extract the key
-  and can forge attestation. WCM offers cost, detection, containment, legal
-  recourse, and mandatory physical hardening there - not silicon-enforced custody.</li>
-<li><strong>Attestation forgery, open half.</strong> Measurement forgery is detectable
-  (<code>memory_fingerprint_challenge</code>); the key-extraction half is not, and is why
-  publication is staged (open question 8.8).</li>
-<li><strong>Trusted time is an assumption.</strong> Wipe-on-lapse bounds exposure only if the
-  clock cannot be stalled; the SDK reports the floor (<code>time_floor</code>) but cannot
-  make an untrusted clock trustworthy.</li>
-<li><strong>In-envelope distillation is not prevented.</strong></li>
-<li><strong>GPU-side quote verification is not yet implemented</strong> (pending hardware), so
-  the KBS gate verifies the CPU quote cryptographically but the GPU report only
-  structurally today.</li>
-<li><strong>Azure CVMs</strong> use a vTPM-rooted attestation path (<code>AzureSnpVtpmProvider</code>), not
-  <code>/dev/sev-guest</code>; <code>REPORT_DATA</code> is paravisor-bound there.</li>
-</ul>
+<h1 id="provider-certificate-policy">Provider certificate policy<a class="headerlink" href="#provider-certificate-policy" title="Permanent link">&para;</a></h1>
+<p>WCM rejects X.509 certificates whose serial number is zero or negative. RFC
+5280 requires positive serial numbers, and supporting non-conforming provider
+certificates would make behavior dependency-version-specific.</p>
+<p><code>cryptography</code> 50 warns while loading these certificates; its announced version
+51 behavior is to reject them. WCM isolates both behaviors behind one loader and
+returns the same non-sensitive, fail-closed policy error. It does not rewrite
+the certificate or skip any chain, signature, validity, or revocation check.</p>
+<p>Until version 51 is published, the runtime dependency remains capped below it.
+CI exercises the real version-50 warning path and an executable model of the
+documented version-51 load-time exception. The cap must not be lifted until CI
+can replace that model with the released dependency. Fixtures contain generated
+names and keys only—never raw provider tokens, tenant identifiers, or environment
+identifiers.</p>
 
 
 
