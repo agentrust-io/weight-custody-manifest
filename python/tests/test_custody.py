@@ -215,6 +215,34 @@ def test_op_budget_exhaustion_requires_reattest():
     assert s.state is SessionState.holding
 
 
+def test_authorize_operation_counts_without_exporting_key():
+    s = EnclaveSession(KEY, cadence_seconds=3600, max_operations=2, now=_clock())
+    assert s.authorize_operation() is None
+    assert s.operations_used == 1
+    assert s.operations_remaining() == 1
+    assert s.authorize_operation() is None
+    with pytest.raises(ReattestationRequired):
+        s.authorize_operation()
+    assert s.state is SessionState.holding
+
+
+def test_authorize_operation_lapse_zeroizes_key():
+    clock = _clock()
+    s = EnclaveSession(KEY, cadence_seconds=10, max_operations=100, now=clock)
+    clock.advance(11)
+    with pytest.raises(KeyWipedError):
+        s.authorize_operation()
+    assert s.is_wiped
+
+
+def test_use_key_and_authorize_operation_share_one_budget():
+    s = EnclaveSession(KEY, cadence_seconds=3600, max_operations=2, now=_clock())
+    assert s.use_key() == KEY
+    assert s.authorize_operation() is None
+    with pytest.raises(ReattestationRequired):
+        s.use_key()
+
+
 def test_reattest_resets_op_budget():
     s = EnclaveSession(KEY, cadence_seconds=3600, max_operations=2, now=_clock())
     s.use_key()

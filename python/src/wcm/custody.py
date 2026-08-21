@@ -235,6 +235,21 @@ class EnclaveSession:
             KeyWipedError: the wall-clock window lapsed; the key is gone.
             ReattestationRequired: the op-count budget is exhausted; re-attest.
         """
+        self.authorize_operation(now)
+        return bytes(self._key)
+
+    def authorize_operation(self, now: Optional[datetime] = None) -> None:
+        """Authorize one serving operation without returning another key copy.
+
+        This is the long-lived runtime path after the key has been opened inside
+        the admitted boundary. It enforces exactly the same wall-clock lease and
+        operation-count budget as :meth:`use_key`, including incrementing the
+        operation counter on success, but it does not export key bytes.
+
+        Raises:
+            KeyWipedError: the wall-clock window lapsed; the key is gone.
+            ReattestationRequired: the op-count budget is exhausted; re-attest.
+        """
         if self.tick(now) is SessionState.wiped:
             raise KeyWipedError("key has been zeroized (cadence lapsed)")
         if self._max_ops is not None and self._ops >= self._max_ops:
@@ -242,7 +257,6 @@ class EnclaveSession:
                 f"op-count budget of {self._max_ops} exhausted; re-attest to continue serving"
             )
         self._ops += 1
-        return bytes(self._key)
 
     def zeroize(self) -> None:
         """Overwrite the key in memory and mark the session wiped (idempotent).

@@ -3,3 +3,7 @@
 # in it. Nothing else is pinned here: the rest of the tree is read by tools that
 # do not care about endings, and forcing them repo-wide would churn every file.
 *.sh text eol=lf
+
+# These recorded JSON artifacts have documented raw SHA-256 checksums. Preserve
+# identical bytes on every checkout so portable verification means the same thing.
+python/tests/fixtures/live-validation/weight-custody-manifest/paired-2026-08-20/*.json text eol=lf
