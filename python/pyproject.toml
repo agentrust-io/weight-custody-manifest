@@ -8,7 +8,7 @@ description = "Reference SDK for the Weight Custody Manifest (WCM): manifest sig
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "Apache-2.0" }
-authors = [{ name = "Imran Siddique", email = "maintainers@agentrust-io.com" }]
+authors = [{ name = "AgenTrust Authors", email = "maintainers@agentrust-io.com" }]
 keywords = [
   "model-weights", "custody", "attestation", "confidential-computing",
   "tee", "sev-snp", "nvidia-cc", "trust", "hardware-attestation", "pydantic",
@@ -58,11 +58,8 @@ dev = [
 wcm = "wcm.cli:main"
 
 [project.urls]
-# The spec/SDK repo is private for now, and Pages (wcm.agentrust-io.com) is not
-# served while it is. Point these at public, live surfaces so the PyPI page has
-# no dead links. Restore to the repo + docs site when it goes public.
-Homepage = "https://github.com/agentrust-io/examples/tree/main/weight-custody-manifest"
-Documentation = "https://github.com/agentrust-io/examples/tree/main/weight-custody-manifest"
+Homepage = "https://github.com/agentrust-io/weight-custody-manifest"
+Documentation = "https://wcm.agentrust-io.com"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/wcm"]

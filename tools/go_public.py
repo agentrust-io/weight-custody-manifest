@@ -101,6 +101,7 @@ def local_preflight(root: Path) -> list[dict[str, Any]]:
         "LICENSE",
         "NOTICE",
         "SECURITY.md",
+        "PUBLIC-RELEASE.md",
         "GOVERNANCE.md",
         "MAINTAINERS.md",
         "CODE_OF_CONDUCT.md",
@@ -108,6 +109,7 @@ def local_preflight(root: Path) -> list[dict[str, Any]]:
         ".github/workflows/python.yml",
         ".github/workflows/docs.yml",
         "CNAME",
+        "python/pyproject.toml",
     )
     for relative in required:
         checks.append((f"file:{relative}", (root / relative).is_file(), "required"))
@@ -119,6 +121,21 @@ def local_preflight(root: Path) -> list[dict[str, Any]]:
             "required-checks-run-on-every-pr",
             "paths:" not in pull_request_block and "paths-ignore:" not in pull_request_block,
             "python workflow must not path-filter required PR checks",
+        )
+    )
+    pyproject = (root / "python/pyproject.toml").read_text(encoding="utf-8")
+    checks.append(
+        (
+            "package-homepage",
+            'Homepage = "https://github.com/agentrust-io/weight-custody-manifest"' in pyproject,
+            "package metadata must point at the public repository",
+        )
+    )
+    checks.append(
+        (
+            "package-documentation",
+            'Documentation = "https://wcm.agentrust-io.com"' in pyproject,
+            "package metadata must point at the documentation site",
         )
     )
     checks.append(
