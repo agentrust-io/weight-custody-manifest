@@ -23,6 +23,7 @@ import os
 from typing import Any
 
 from cryptography import x509
+from ._certificates import load_pem_certificate
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, ValidationError
 
@@ -97,7 +98,7 @@ def build_kbs_from_env() -> KeyBrokerService:
     root_path = os.environ.get("WCM_CPU_TRUST_ROOT_FILE")
     if root_path:
         with open(root_path, "rb") as fh:
-            root = x509.load_pem_x509_certificate(fh.read())
+            root = load_pem_certificate(fh.read())
         trust = TrustStore()
         trust.add_root(root)
         cpu_verifier = QuoteVerifier(JsonQuoteParser(), trust)

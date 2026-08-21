@@ -13,7 +13,27 @@ from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import padding, rsa
 
 from ._quote_verify import QuoteVerification, TrustStore, verify_cert_chain
+from ._certificates import load_pem_certificate
 from .snp import extract_snp_report_from_hcl, parse_snp_report, verify_snp_report_signature
+
+
+def expected_pcr23_digest(measurement: str) -> bytes:
+    """Return PCR 23 after measured launch extends an approved SHA-256 digest.
+
+    The launch agent resets the application-owned PCR 23 to zero and extends
+    the 32-byte digest from the manifest's ``sha256:<hex>`` measurement once.
+    TPM extend semantics are ``SHA256(old_pcr || event_digest)``.
+    """
+    algorithm, separator, digest = measurement.partition(":")
+    if separator != ":" or algorithm != "sha256" or len(digest) != 64:
+        raise ValueError("workload measurement must be sha256:<64 lowercase hex digits>")
+    if digest.lower() != digest:
+        raise ValueError("workload measurement hex must be lowercase")
+    try:
+        event_digest = bytes.fromhex(digest)
+    except ValueError as exc:
+        raise ValueError("workload measurement contains non-hex characters") from exc
+    return hashlib.sha256(bytes(32) + event_digest).digest()
 
 
 def _b64(value: str) -> bytes:
@@ -49,6 +69,7 @@ class AzureSnpVtpmVerifier:
         *,
         expected_nonce: str,
         channel_binding: bytes = b"",
+        expected_workload_measurement: Optional[str] = None,
         now: Optional[datetime] = None,
     ) -> QuoteVerification:
         try:
@@ -57,9 +78,9 @@ class AzureSnpVtpmVerifier:
             quote = _b64(doc["tpm_quote_b64"])
             signature_blob = _b64(doc["tpm_signature_b64"])
             ak = serialization.load_pem_public_key(doc["ak_pem"].encode())
-            vcek = x509.load_pem_x509_certificate(doc["vcek_pem"].encode())
+            vcek = load_pem_certificate(doc["vcek_pem"].encode())
             intermediates = [
-                x509.load_pem_x509_certificate(p.encode())
+                load_pem_certificate(p.encode())
                 for p in doc["intermediates_pem"]
             ]
         except (KeyError, ValueError, TypeError, json.JSONDecodeError) as exc:
@@ -113,6 +134,19 @@ class AzureSnpVtpmVerifier:
                 selected_pcr23 |= algorithm == 0x000B and size >= 3 and bool(selection[2] & 0x80)
             if not selected_pcr23:
                 return QuoteVerification(False, "TPM quote does not select SHA-256 PCR 23")
+            pcr_digest, offset = _take_u16(quote, offset)
+            if offset != len(quote):
+                raise ValueError("trailing TPM quote bytes")
+            if len(pcr_digest) != hashlib.sha256().digest_size:
+                raise ValueError("TPM PCR digest is not 32-byte SHA-256")
+            if expected_workload_measurement is None:
+                return QuoteVerification(
+                    False, "expected workload measurement is required by release policy"
+                )
+            if pcr_digest != expected_pcr23_digest(expected_workload_measurement):
+                return QuoteVerification(
+                    False, "TPM PCR digest does not match the approved workload measurement"
+                )
             if extra_data != hashlib.sha256(bytes.fromhex(expected_nonce) + channel_binding).digest():
                 return QuoteVerification(False, "TPM qualifying data does not bind nonce and transport key")
             if signature_blob[:4] != b"\x00\x14\x00\x0b":

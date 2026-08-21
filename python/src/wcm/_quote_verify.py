@@ -37,6 +37,8 @@ from cryptography import x509
 from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives.asymmetric import ec, ed25519, rsa
 
+from ._certificates import load_pem_certificate
+
 
 @dataclass(frozen=True)
 class ParsedQuote:
@@ -75,9 +77,9 @@ class JsonQuoteParser:
     def parse(self, quote_b64: str) -> ParsedQuote:
         try:
             doc = json.loads(base64.b64decode(quote_b64))
-            leaf = x509.load_pem_x509_certificate(doc["leaf_pem"].encode())
+            leaf = load_pem_certificate(doc["leaf_pem"].encode())
             inters = [
-                x509.load_pem_x509_certificate(p.encode())
+                load_pem_certificate(p.encode())
                 for p in doc.get("intermediates_pem", [])
             ]
             return ParsedQuote(
@@ -105,7 +107,7 @@ class TrustStore:
         self._roots.append(cert)
 
     def add_root_pem(self, pem: str) -> None:
-        self._roots.append(x509.load_pem_x509_certificate(pem.encode()))
+        self._roots.append(load_pem_certificate(pem.encode()))
 
     @property
     def roots(self) -> list[x509.Certificate]:
@@ -191,6 +193,7 @@ class QuoteVerifier:
         *,
         expected_nonce: str,
         channel_binding: bytes = b"",
+        expected_workload_measurement: Optional[str] = None,
         now: Optional[datetime] = None,
     ) -> QuoteVerification:
         """Verify a quote's chain, signature, and REPORT_DATA binding.
@@ -202,6 +205,11 @@ class QuoteVerifier:
         breaking this check. Empty binding reduces to sha256(nonce), the
         replay-only value, so pre-channel-binding quotes still verify.
         """
+        # Generic quote formats do not expose a TPM PCR digest. Platform
+        # verifiers (notably AzureSnpVtpmVerifier) consume this policy-derived
+        # value. Keeping it on the common call shape lets the KBS pass the
+        # manifest value without trusting an evidence-side assertion.
+        del expected_workload_measurement
         current = now if now is not None else _utcnow()
         try:
             q = self._parser.parse(quote_b64)

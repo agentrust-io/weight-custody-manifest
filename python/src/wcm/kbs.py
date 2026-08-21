@@ -416,7 +416,11 @@ class KeyBrokerService:
                 "cpu_quote_verified", False, "verifier configured but evidence has no raw quote"
             )
         result = self._cpu_quote_verifier.verify(
-            quote_b64, expected_nonce=nonce, channel_binding=channel_binding, now=self._now()
+            quote_b64,
+            expected_nonce=nonce,
+            channel_binding=channel_binding,
+            expected_workload_measurement=str(evidence.cpu.serving_image_measurement),
+            now=self._now(),
         )
         return CheckResult("cpu_quote_verified", result.verified, result.reason)
 

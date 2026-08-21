@@ -13,10 +13,12 @@ from cryptography.hazmat.primitives.asymmetric.utils import decode_dss_signature
 from cryptography.x509.oid import NameOID
 
 from wcm import AzureSnpVtpmVerifier, TrustStore
+from wcm.azure_vtpm import expected_pcr23_digest
 
 NOW = datetime(2026, 8, 12, tzinfo=timezone.utc)
 NONCE = "ab" * 32
 BINDING = b"\xcd" * 32
+MEASUREMENT = "sha256:" + "42" * 32
 
 
 def _cert(subject, issuer, key, issuer_key, *, ca=False):
@@ -38,7 +40,7 @@ def _tpm2b(value: bytes) -> bytes:
     return len(value).to_bytes(2, "big") + value
 
 
-def _bundle(*, wrong_binding=False, wrong_ak=False, no_pcr23=False):
+def _bundle(*, wrong_binding=False, wrong_ak=False, no_pcr23=False, pcr_digest=None):
     root_key, inter_key, vcek_key = (ec.generate_private_key(ec.SECP384R1()) for _ in range(3))
     root = _cert("root", "root", root_key, root_key, ca=True)
     inter = _cert("inter", "root", inter_key, root_key, ca=True)
@@ -62,7 +64,8 @@ def _bundle(*, wrong_binding=False, wrong_ak=False, no_pcr23=False):
 
     extra = hashlib.sha256(bytes.fromhex("ef" * 32) + BINDING).digest() if wrong_binding else hashlib.sha256(bytes.fromhex(NONCE) + BINDING).digest()
     selection = b"\x00\x0b\x03" + (b"\x00\x00\x80" if not no_pcr23 else b"\x01\x00\x00")
-    quote = b"\xffTCG\x80\x18" + _tpm2b(b"signer") + _tpm2b(extra) + bytes(25) + (1).to_bytes(4, "big") + selection + _tpm2b(bytes(32))
+    digest = expected_pcr23_digest(MEASUREMENT) if pcr_digest is None else pcr_digest
+    quote = b"\xffTCG\x80\x18" + _tpm2b(b"signer") + _tpm2b(extra) + bytes(25) + (1).to_bytes(4, "big") + selection + _tpm2b(digest)
     sig = ak_key.sign(quote, padding.PKCS1v15(), hashes.SHA256())
     signature_blob = b"\x00\x14\x00\x0b" + _tpm2b(sig)
     pem = lambda c: c.public_bytes(serialization.Encoding.PEM).decode()
@@ -81,23 +84,47 @@ def _bundle(*, wrong_binding=False, wrong_ak=False, no_pcr23=False):
 
 def test_azure_snp_vtpm_full_chain_verifies():
     bundle, trust = _bundle()
-    result = AzureSnpVtpmVerifier(trust).verify(bundle, expected_nonce=NONCE, channel_binding=BINDING, now=NOW)
+    result = AzureSnpVtpmVerifier(trust).verify(bundle, expected_nonce=NONCE, channel_binding=BINDING, expected_workload_measurement=MEASUREMENT, now=NOW)
     assert result.verified
 
 
 def test_azure_snp_vtpm_rejects_wrong_nonce_binding():
     bundle, trust = _bundle(wrong_binding=True)
-    result = AzureSnpVtpmVerifier(trust).verify(bundle, expected_nonce=NONCE, channel_binding=BINDING, now=NOW)
+    result = AzureSnpVtpmVerifier(trust).verify(bundle, expected_nonce=NONCE, channel_binding=BINDING, expected_workload_measurement=MEASUREMENT, now=NOW)
     assert not result.verified and "qualifying data" in (result.reason or "")
 
 
 def test_azure_snp_vtpm_rejects_unlinked_ak():
     bundle, trust = _bundle(wrong_ak=True)
-    result = AzureSnpVtpmVerifier(trust).verify(bundle, expected_nonce=NONCE, channel_binding=BINDING, now=NOW)
+    result = AzureSnpVtpmVerifier(trust).verify(bundle, expected_nonce=NONCE, channel_binding=BINDING, expected_workload_measurement=MEASUREMENT, now=NOW)
     assert not result.verified and "does not match" in (result.reason or "")
 
 
 def test_azure_snp_vtpm_requires_pcr23():
     bundle, trust = _bundle(no_pcr23=True)
-    result = AzureSnpVtpmVerifier(trust).verify(bundle, expected_nonce=NONCE, channel_binding=BINDING, now=NOW)
+    result = AzureSnpVtpmVerifier(trust).verify(bundle, expected_nonce=NONCE, channel_binding=BINDING, expected_workload_measurement=MEASUREMENT, now=NOW)
     assert not result.verified and "PCR 23" in (result.reason or "")
+
+
+def test_azure_snp_vtpm_rejects_changed_pcr_state():
+    bundle, trust = _bundle(pcr_digest=b"\xff" * 32)
+    result = AzureSnpVtpmVerifier(trust).verify(bundle, expected_nonce=NONCE, channel_binding=BINDING, expected_workload_measurement=MEASUREMENT, now=NOW)
+    assert not result.verified and "approved workload" in (result.reason or "")
+
+
+def test_azure_snp_vtpm_rejects_wrong_policy_measurement():
+    bundle, trust = _bundle()
+    result = AzureSnpVtpmVerifier(trust).verify(bundle, expected_nonce=NONCE, channel_binding=BINDING, expected_workload_measurement="sha256:" + "43" * 32, now=NOW)
+    assert not result.verified and "approved workload" in (result.reason or "")
+
+
+def test_azure_snp_vtpm_rejects_malformed_pcr_digest():
+    bundle, trust = _bundle(pcr_digest=b"short")
+    result = AzureSnpVtpmVerifier(trust).verify(bundle, expected_nonce=NONCE, channel_binding=BINDING, expected_workload_measurement=MEASUREMENT, now=NOW)
+    assert not result.verified and "32-byte SHA-256" in (result.reason or "")
+
+
+def test_azure_snp_vtpm_requires_policy_measurement():
+    bundle, trust = _bundle()
+    result = AzureSnpVtpmVerifier(trust).verify(bundle, expected_nonce=NONCE, channel_binding=BINDING, now=NOW)
+    assert not result.verified and "release policy" in (result.reason or "")

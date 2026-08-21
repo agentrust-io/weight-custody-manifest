@@ -40,6 +40,7 @@ from datetime import datetime, timezone
 from typing import Optional, Union
 
 from cryptography import x509
+from ._certificates import load_pem_certificates
 from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import ec, utils
@@ -132,7 +133,7 @@ class NvidiaGpuVerifier:
         try:
             doc = json.loads(base64.b64decode(evidence_b64))
             report = base64.b64decode(doc["report_b64"])
-            certs = x509.load_pem_x509_certificates(doc["cert_chain_pem"].encode())
+            certs = load_pem_certificates(doc["cert_chain_pem"].encode())
         except (KeyError, ValueError, TypeError, binascii.Error) as exc:
             return QuoteVerification(False, f"unparseable GPU evidence: {exc}")
         if not certs:
