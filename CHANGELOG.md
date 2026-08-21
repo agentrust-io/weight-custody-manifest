@@ -6,6 +6,11 @@ uses semantic-ish versioning while pre-1.0.
 
 ## Unreleased
 
+**[security/sdk]** Added `EnclaveSession.authorize_operation()` for long-lived
+confidential runtimes to enforce the existing lease and operation budget without
+exporting another key copy on every inference. `use_key()` now delegates to the
+same authorization path, preserving its existing operation-count semantics.
+
 ## 0.25.0 - 2026-08-12
 
 **[security/kbs]** The environment-built network KBS now fails closed when a

@@ -92,7 +92,10 @@ Wipe-on-lapse (runtime custody):
   past the deadline. `time_floor` reports how much the bound is worth given the
   manifest's `trusted_time_source`. For the hybrid, `max_operations` anchors the
   serving case: after N operations `use_key()` raises `ReattestationRequired`
-  (the key is not wiped) until the session re-attests.
+  (the key is not wiped) until the session re-attests. After an admitted runtime
+  opens the key once, `authorize_operation()` applies the same lease and budget
+  checks to later inference operations without returning another key copy. The
+  initial `use_key()` call and every authorization each count as one operation.
 
 Layer 4 (derivative lineage):
 
