@@ -2,7 +2,7 @@
 
 An open specification for protecting model weights when a builder deploys them into a customer's own or sovereign infrastructure.
 
-> **Status: pre-1.0, draft. Not ready to build against.**
+> **Status: pre-1.0 public review release.** The protocol and SDK are ready for independent review and interoperability work; production deployments still require the limits in `LIMITATIONS.md` and `THREAT-MODEL.md` to be accepted.
 > This is an open protocol specification under active design, published for review and comment. Several load-bearing questions are still open (see `SPEC.md` section 8), including a known limitation of confidential-computing hardware against an operator who physically owns the machine. Do not rely on it for production.
 
 ## What this is
@@ -32,7 +32,7 @@ _Reference: RAND, *Securing AI Model Weights: Preventing Theft and Misuse of Fro
 
 ## Open-core
 
-This repository is the **open protocol layer**: the specification, the threat model, and (forthcoming) a reproducibly-built reference key-release-service image. The operated custody service and the enclave implementation are separate and are not part of this repository.
+This repository is the **open protocol layer**: the specification, the threat model, and a reproducibly-built reference key-release-service image. The operated custody service and the enclave implementation are separate and are not part of this repository.
 
 ## Contents
 
@@ -46,6 +46,7 @@ This repository is the **open protocol layer**: the specification, the threat mo
   OMS proves artifact authenticity and integrity; WCM governs attestation-gated
   key release and runtime custody for those exact bytes.
 - `LIMITATIONS.md` - what WCM does **not** do; read alongside `SPEC.md` §3.6.
+- `PUBLIC-RELEASE.md` - the reproducible checklist for cutting a public release without treating a green build as a security certification.
 
 ## Community & governance
 
@@ -57,7 +58,7 @@ This repository is the **open protocol layer**: the specification, the threat mo
 
 ## Status
 
-Pre-1.0, published for review and comment, **not for production**. Public release is a deliberate Project Lead decision and is **not** gated on the key-extraction half of open question 8.8: that residual is disclosed and scoped out of the operator-trust model (`SPEC.md` §3.6) rather than treated as a reason to withhold the document.
+Pre-1.0, published for review and comment, **not a production certification**. Public release is a deliberate project decision and is **not** gated on the key-extraction half of open question 8.8: that residual is disclosed and scoped out of the operator-trust model (`SPEC.md` §3.6) rather than treated as a reason to withhold the document.
 
 ## License
 

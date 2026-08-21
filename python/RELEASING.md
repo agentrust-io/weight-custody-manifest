@@ -39,8 +39,8 @@ pip install -i https://test.pypi.org/simple/ weight-custody-manifest
 3. Commit via PR, merge to `main`.
 4. Tag and create a GitHub Release on that commit:
    ```bash
-   git tag v0.19.0 && git push origin v0.19.0
-   gh release create v0.19.0 --target main --title v0.19.0 --notes-from-tag
+   git tag v0.25.0 && git push origin v0.25.0
+   gh release create v0.25.0 --target main --title v0.25.0 --notes-from-tag
    ```
 5. The `publish` workflow builds and uploads to PyPI via the trusted publisher.
 
