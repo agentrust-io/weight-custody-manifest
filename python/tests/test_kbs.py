@@ -4,14 +4,18 @@ import copy
 from datetime import datetime, timezone
 
 import pytest
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
 from wcm import (
     KeyBrokerService,
+    BytearrayMemoryRange,
     SealError,
     SoftwareProvider,
     WeightCustodyManifest,
     generate_transport_keypair,
     open_sealed,
+    memory_sweep_public_key,
+    run_memory_sweep,
 )
 
 KEY = b"decryption-key-for-these-weights"
@@ -265,19 +269,60 @@ def test_memory_fingerprint_aliasing_denied(example_dict):
 
 def test_memory_fingerprint_clean_releases(example_dict):
     manifest = _hostile_manifest(example_dict)
-    kbs = _kbs(manifest)
+    signing_key = Ed25519PrivateKey.generate()
+    kbs = KeyBrokerService(
+        {manifest.weights_hash: KEY},
+        now=_now_after_retire(),
+        memory_fingerprint_public_key_b64url=memory_sweep_public_key(signing_key),
+    )
     current, _, _, rim = _measurements(manifest)
     challenge = kbs.issue_challenge()
     ev = SoftwareProvider().produce(
         challenge,
         serving_image_measurement=current,
         gpu_measurement=rim,
-        include_memory_fingerprint=True,
-        aliasing_detected=False,
     )
+    sweep = run_memory_sweep(
+        BytearrayMemoryRange(4 * 64, page_size=64),
+        challenge_nonce=challenge.nonce,
+        signing_key=signing_key,
+        sweep_secret=b"protected unpredictable sweep key",
+    )
+    ev = ev.model_copy(update={"memory_fingerprint": sweep})
     decision = kbs.verify_and_release(manifest, ev)
     assert decision.released
     assert decision.key == KEY
+
+
+def test_memory_fingerprint_host_authored_and_replayed_results_are_denied(example_dict):
+    manifest = _hostile_manifest(example_dict)
+    trusted = Ed25519PrivateKey.generate()
+    host = Ed25519PrivateKey.generate()
+    kbs = KeyBrokerService(
+        {manifest.weights_hash: KEY},
+        now=_now_after_retire(),
+        memory_fingerprint_public_key_b64url=memory_sweep_public_key(trusted),
+    )
+    current, _, _, rim = _measurements(manifest)
+    challenge = kbs.issue_challenge()
+    evidence = SoftwareProvider().produce(
+        challenge, serving_image_measurement=current, gpu_measurement=rim
+    )
+    forged = run_memory_sweep(
+        BytearrayMemoryRange(64, page_size=64),
+        challenge_nonce=challenge.nonce,
+        signing_key=host,
+        sweep_secret=b"host controlled but sufficiently long key",
+    )
+    evidence = evidence.model_copy(update={"memory_fingerprint": forged})
+    first = kbs.verify_and_release(manifest, evidence)
+    assert not first.released
+    assert "policy-pinned" in next(
+        c.detail or "" for c in first.checks if c.name == "memory_fingerprint"
+    )
+    replay = kbs.verify_and_release(manifest, evidence)
+    assert not replay.released
+    assert replay.checks[0].name == "nonce_fresh" and not replay.checks[0].passed
 
 
 # -- channel binding (SPEC 3.2, CVE-2026-33697 relay defense) ------------------

@@ -128,6 +128,13 @@ from .runtime_records import (
     sign_runtime_record,
     verify_runtime_record_chain,
 )
+from .memory_sweep import (
+    BytearrayMemoryRange,
+    ProtectedMemoryRange,
+    memory_sweep_public_key,
+    run_memory_sweep,
+    verify_memory_sweep,
+)
 from .lineage import verify_lineage, LineageResult, is_root
 from .transparency import (
     TransparencyLog,
@@ -288,6 +295,11 @@ __all__ = [
     "runtime_public_key",
     "sign_runtime_record",
     "verify_runtime_record_chain",
+    "BytearrayMemoryRange",
+    "ProtectedMemoryRange",
+    "memory_sweep_public_key",
+    "run_memory_sweep",
+    "verify_memory_sweep",
     "verify_lineage",
     "LineageResult",
     "is_root",

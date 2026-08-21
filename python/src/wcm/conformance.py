@@ -616,6 +616,11 @@ def _eval_gate(vector: dict[str, Any]) -> Verdict:
             config.get("max_attestation_cache_age_seconds", 600)
         ),
         require_channel_binding=bool(config.get("require_channel_binding", False)),
+        # The language-neutral v1 vectors predate the signed protected-runtime
+        # transcript and intentionally evaluate only declarative gate semantics.
+        # Production KBS construction defaults this compatibility escape hatch
+        # off and fails closed without a policy-pinned sweep key.
+        allow_legacy_memory_fingerprint=True,
         cpu_quote_verifier=(
             _build_cpu_quote_verifier(config["cpu_quote_verifier"])
             if "cpu_quote_verifier" in config

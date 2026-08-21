@@ -7,6 +7,22 @@ development but is not acceptable proof.
 
 ## Protected-memory fingerprint sweep (issue #79)
 
+The SDK supplies `BytearrayMemoryRange`, `run_memory_sweep`, and
+`verify_memory_sweep` as the executable reference contract. The runner derives
+different full-page values and write/read permutations from protected secret
+material plus the fresh KBS nonce, writes and reads every declared page, detects
+inconsistent mappings, and signs the complete transcript with Ed25519. The KBS
+fails closed unless a policy-pinned sweep public key verifies that transcript;
+its production default does not accept the earlier unsigned structural shape.
+Language-neutral conformance vectors retain an explicitly isolated declarative
+mode because the frozen v1 vectors cannot carry a signature over a runtime nonce.
+
+This implementation executes over a real allocated byte range and its controlled
+test adapter detects aliased logical pages. That is reference-algorithm evidence,
+not proof that a production enclave covered its physical memory. The remaining
+work is to provide a `ProtectedMemoryRange` adapter owned by the actual protected
+runtime and capture the receipt described below.
+
 Run the sweep in the same measured, protected execution boundary that receives
 the model key. For each fresh KBS release challenge, the runtime must:
 

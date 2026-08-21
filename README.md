@@ -71,7 +71,7 @@ provider-specific procedures linked from [the implementation README](python/READ
 | Attestation-gated, transport-key-sealed release | Implemented; provider paths have documented validation status | A configured verifier fails closed on the checks it performs |
 | Azure vTPM workload binding | PCR 23 digest is checked against the manifest-approved measurement | The signed quote matches the expected measured-launch PCR state |
 | Renewable lease and wipe-on-lapse semantics | Reference state machine implemented | The Python reference transitions to wiped and refuses later use |
-| Protected-memory fingerprint sweep | Policy plumbing exists; protected-boundary implementation evidence remains open | Do **not** claim the repository detects real memory aliasing yet |
+| Protected-memory fingerprint sweep | Full-range signed reference sweep implemented; protected-boundary hardware evidence remains open | The algorithm detects controlled alias mappings; do **not** claim production protection until the real runtime receipt exists |
 | Production zeroization and inference termination | Reference semantics exist; production controller evidence remains open | Do **not** claim language/runtime/hardware zeroization from unit tests |
 
 The last two rows are deliberately explicit: issues

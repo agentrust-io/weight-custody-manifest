@@ -96,6 +96,11 @@ Wipe-on-lapse (runtime custody):
   opens the key once, `authorize_operation()` applies the same lease and budget
   checks to later inference operations without returning another key copy. The
   initial `use_key()` call and every authorization each count as one operation.
+- **`memory_sweep.py`** - full-range write/readback with nonce-derived page
+  values and permutations, controlled alias detection, a signed transcript, and
+  fail-closed verification against a policy-pinned protected-runtime key.
+  `BytearrayMemoryRange` is the executable reference adapter; production must
+  supply an adapter over memory actually owned by the protected boundary.
 
 For verifiable renewal, use a fresh KBS challenge and evidence rather than calling
 the low-level `reattest()` compatibility method:
