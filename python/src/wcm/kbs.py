@@ -37,6 +37,7 @@ from .renewal import (
     renewal_public_key,
     sign_renewal_decision,
 )
+from .memory_sweep import verify_memory_sweep
 
 
 def _utcnow() -> datetime:
@@ -107,6 +108,8 @@ class KeyBrokerService:
         require_cpu_quote_verification: bool = False,
         renewal_signing_key: Optional[Ed25519PrivateKey] = None,
         renewal_decision_ttl_seconds: int = 60,
+        memory_fingerprint_public_key_b64url: Optional[str] = None,
+        allow_legacy_memory_fingerprint: bool = False,
     ) -> None:
         if renewal_decision_ttl_seconds <= 0:
             raise ValueError("renewal_decision_ttl_seconds must be positive")
@@ -134,6 +137,8 @@ class KeyBrokerService:
         self._require_cpu_quote_verification = require_cpu_quote_verification
         self._renewal_signing_key = renewal_signing_key or Ed25519PrivateKey.generate()
         self._renewal_ttl = renewal_decision_ttl_seconds
+        self._memory_fingerprint_public_key = memory_fingerprint_public_key_b64url
+        self._allow_legacy_memory_fingerprint = allow_legacy_memory_fingerprint
 
     def issue_challenge(self) -> Challenge:
         return self._challenges.issue()
@@ -355,7 +360,22 @@ class KeyBrokerService:
                 False,
                 "DRAM aliasing detected (BadRAM-class measurement forgery)",
             )
-        return CheckResult("memory_fingerprint", True)
+        if self._memory_fingerprint_public_key is None:
+            if self._allow_legacy_memory_fingerprint:
+                return CheckResult(
+                    "memory_fingerprint",
+                    True,
+                    "declarative conformance mode: signed sweep not evaluated",
+                )
+            return CheckResult(
+                "memory_fingerprint",
+                False,
+                "required memory sweep verifier key is not configured",
+            )
+        verified, detail = verify_memory_sweep(
+            mf, self._memory_fingerprint_public_key
+        )
+        return CheckResult("memory_fingerprint", verified, detail)
 
     def _check_channel_binding(
         self, evidence: CompositeEvidence

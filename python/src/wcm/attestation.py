@@ -12,7 +12,7 @@ provider fills these with well-formed but hardware-unrooted values for testing.
 """
 from __future__ import annotations
 
-from typing import Optional
+from typing import Any, Optional
 
 from pydantic import BaseModel, ConfigDict
 
@@ -64,8 +64,19 @@ class MemoryFingerprint(_Strict):
     """
 
     challenge_nonce: str
+    algorithm: str = "legacy-structural-v0"
+    range_start: int = 0
+    range_length: int = 0
+    page_size: int = 0
+    pages_written: int = 0
+    pages_read: int = 0
     aliasing_detected: bool
     readback_hash: HashValue
+    public_key_b64url: Optional[str] = None
+    signature_b64url: Optional[str] = None
+
+    def signing_payload(self) -> dict[str, Any]:
+        return self.model_dump(exclude={"signature_b64url"})
 
 
 class CompositeEvidence(_Strict):
