@@ -12,6 +12,27 @@ permissions:
   contents: read
 
 jobs:
+  cryptography-compatibility:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        cryptography: ["cryptography>=50,<51", "cryptography>=51,<52"]
+    defaults:
+      run:
+        working-directory: python
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+      - name: Install dependency line and SDK
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]" "${{ matrix.cryptography }}"
+      - name: Exercise provider certificate compatibility boundary
+        run: pytest -q tests/test_certificate_policy.py tests/test_quote_verify.py tests/test_azure_vtpm_verify.py
+
   packaging:
     # The release path, exercised on every PR. `python -m build` builds the sdist,
     # unpacks it, and builds the wheel FROM THAT, which is a different filesystem

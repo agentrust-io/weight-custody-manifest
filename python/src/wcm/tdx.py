@@ -30,6 +30,7 @@ from datetime import datetime
 from typing import Optional
 
 from cryptography import x509
+from ._certificates import load_pem_certificates
 from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import ec, utils
@@ -168,7 +169,7 @@ def parse_tdx_quote(quote: bytes) -> TdxQuote:
     if pck_type != _CERT_TYPE_PCK_CHAIN:
         raise QuoteFormatError(f"unexpected PCK cert-data type {pck_type} (want {_CERT_TYPE_PCK_CHAIN})")
     try:
-        certs = x509.load_pem_x509_certificates(pck_blob)
+        certs = load_pem_certificates(pck_blob)
     except ValueError as exc:
         raise QuoteFormatError(f"unparseable PCK cert chain: {exc}") from exc
     if not certs:

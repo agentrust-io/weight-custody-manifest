@@ -50,12 +50,15 @@ nav:
       - Runnable examples: https://github.com/agentrust-io/examples/tree/main/weight-custody-manifest
   - Specification:
       - Overview: spec-overview.md
+      - Azure measured launch: measured-launch.md
+      - Provider certificate policy: certificate-policy.md
       - OpenSSF Model Signing interop: oms-interoperability.md
       - Threat model: threat-model.md
       - Schema and conformance: conformance.md
   - SDK:
       - Getting started: getting-started.md
       - Reference KBS image: reference-kbs.md
+      - Protected-runtime evidence: protected-runtime-evidence.md
   - Project:
       - Roadmap: roadmap.md
       - Limitations: limitations.md

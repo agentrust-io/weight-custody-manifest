@@ -91,13 +91,14 @@ def test_vq_snp_untrusted_root(capsys, tmp_path):
     assert "trusted root" in capsys.readouterr().out.lower()
 
 
-@pytest.mark.filterwarnings("ignore::DeprecationWarning")
-def test_vq_snp_azure_vtpm_ok(capsys):
-    # Genuine Azure capture: REPORT_DATA is AK-bound, so there is no KBS nonce to
-    # bind; the CLI verifies chain + report signature and says so.
-    assert main(["verify-quote", "--kind", "snp", str(FIXTURES / "snp_quote_azure.json")]) == 0
+def test_vq_snp_azure_vtpm_rejects_nonconforming_certificate(capsys):
+    # This sanitized genuine capture has a non-positive provider-certificate
+    # serial. RFC 5280 disallows it and cryptography 51 refuses to parse it, so
+    # WCM gives the same fail-closed verdict on cryptography 50.
+    assert main(["verify-quote", "--kind", "snp", str(FIXTURES / "snp_quote_azure.json")]) == 1
     out = capsys.readouterr().out
-    assert "verified  : True" in out and "vTPM" in out
+    assert "verified  : False" in out
+    assert "serial number must be positive" in out
 
 
 # -- verify-quote: TDX ---------------------------------------------------------

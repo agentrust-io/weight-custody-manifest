@@ -34,6 +34,7 @@ from datetime import datetime, timezone
 from typing import Any, Optional
 
 from cryptography import x509
+from ._certificates import load_pem_certificate, load_pem_certificates
 from cryptography.hazmat.primitives import serialization
 
 from ._quote_verify import QuoteVerification, QuoteVerifier, TrustStore, verify_cert_chain
@@ -82,7 +83,7 @@ def _fp(cert: x509.Certificate) -> str:
 
 
 def _load_root_pem(path: str) -> x509.Certificate:
-    return x509.load_pem_x509_certificates(_read_text(path).encode())[0]
+    return load_pem_certificates(_read_text(path).encode())[0]
 
 
 def cmd_keygen(args: argparse.Namespace) -> int:
@@ -247,15 +248,15 @@ def _print_quote_result(kind: str, result: QuoteVerification) -> int:
 
 
 def _verify_snp(bundle: dict[str, Any], args: argparse.Namespace) -> QuoteVerification:
-    vcek = x509.load_pem_x509_certificate(bundle["vcek_pem"].encode())
+    vcek = load_pem_certificate(bundle["vcek_pem"].encode())
     inters = [
-        x509.load_pem_x509_certificate(p.encode())
+        load_pem_certificate(p.encode())
         for p in bundle.get("intermediates_pem", [])
     ]
     root = (
         _load_root_pem(args.root)
         if args.root
-        else x509.load_pem_x509_certificate(bundle["root_pem"].encode())
+        else load_pem_certificate(bundle["root_pem"].encode())
     )
     trust = TrustStore()
     trust.add_root(root)
@@ -308,7 +309,7 @@ def _verify_gpu(bundle: dict[str, Any], args: argparse.Namespace) -> QuoteVerifi
     if args.root:
         root_pem = _read_text(args.root)
     else:
-        certs = x509.load_pem_x509_certificates(bundle["cert_chain_pem"].encode())
+        certs = load_pem_certificates(bundle["cert_chain_pem"].encode())
         root = next((c for c in certs if c.subject == c.issuer), None)
         if root is None:
             return QuoteVerification(False, "no self-signed root in the GPU device cert chain")
