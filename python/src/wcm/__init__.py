@@ -95,6 +95,7 @@ from ._hw_providers import (
     select_cpu_provider,
 )
 from .kbs import KeyBrokerService, ReleaseDecision, CheckResult
+from .renewal import RenewalDecision, manifest_identity, evidence_identity
 from ._seal import (
     generate_transport_keypair,
     seal_to_public_key,
@@ -253,7 +254,10 @@ __all__ = [
     "select_cpu_provider",
     "KeyBrokerService",
     "ReleaseDecision",
+    "RenewalDecision",
     "CheckResult",
+    "manifest_identity",
+    "evidence_identity",
     "generate_transport_keypair",
     "seal_to_public_key",
     "open_sealed",

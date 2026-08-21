@@ -97,6 +97,26 @@ Wipe-on-lapse (runtime custody):
   checks to later inference operations without returning another key copy. The
   initial `use_key()` call and every authorization each count as one operation.
 
+For verifiable renewal, use a fresh KBS challenge and evidence rather than calling
+the low-level `reattest()` compatibility method:
+
+```python
+challenge = kbs.issue_challenge()
+evidence = provider.produce(
+    challenge,
+    serving_image_measurement=current_measurement,
+    gpu_measurement=required_gpu_measurement,
+)
+renewal = kbs.verify_for_renewal(manifest, evidence)
+session.apply_renewal(manifest, renewal)
+```
+
+The initial release pins the KBS renewal public key. The renewal decision is
+short-lived, signed, single-use at the session, and bound to hashes of the fresh
+challenge, complete evidence, signed manifest, and weights. It contains no model
+key. A KBS restart with an unpersisted renewal signer safely prevents renewal;
+production deployments should inject a protected persistent signing key.
+
 Layer 4 (derivative lineage):
 
 - **`lineage.py`** - `verify_lineage(manifests, leaf_hash)` walks `derived_from`

@@ -37,6 +37,7 @@ from enum import Enum
 from typing import Callable, Optional
 
 from .models import TrustedTimeSource, WeightCustodyManifest
+from .renewal import REQUIRED_RENEWAL_CHECKS, RenewalDecision, manifest_identity
 
 
 class SessionState(str, Enum):
@@ -111,6 +112,8 @@ class EnclaveSession:
         trusted_time_source: TrustedTimeSource = TrustedTimeSource.none_best_effort,
         max_operations: Optional[int] = None,
         weights_hash: Optional[str] = None,
+        manifest_hash: Optional[str] = None,
+        renewal_public_key_b64url: Optional[str] = None,
         now: Optional[Callable[[], datetime]] = None,
     ) -> None:
         if cadence_seconds <= 0:
@@ -125,6 +128,9 @@ class EnclaveSession:
         self._max_ops = max_operations
         self._ops = 0
         self.weights_hash = weights_hash
+        self._manifest_hash = manifest_hash
+        self._renewal_public_key = renewal_public_key_b64url
+        self._used_renewals: set[str] = set()
         self._now = now or _utcnow
         self._state = SessionState.holding
         self._deadline: datetime = self._now() + timedelta(seconds=cadence_seconds)
@@ -155,6 +161,10 @@ class EnclaveSession:
             trusted_time_source=manifest.release_policy.trusted_time_source,
             max_operations=max_operations,
             weights_hash=manifest.weights_hash,
+            manifest_hash=getattr(decision, "manifest_hash", None),
+            renewal_public_key_b64url=getattr(
+                decision, "renewal_public_key_b64url", None
+            ),
             now=now,
         )
 
@@ -223,6 +233,56 @@ class EnclaveSession:
             )
         self._deadline = current + timedelta(seconds=self._cadence)
         self._ops = 0  # the op-count budget resets on a fresh attestation
+
+    def apply_renewal(
+        self,
+        manifest: WeightCustodyManifest,
+        decision: RenewalDecision,
+        now: Optional[datetime] = None,
+    ) -> None:
+        """Apply one fresh signed KBS renewal decision to this custody session."""
+        current = now if now is not None else self._now()
+        if self.tick(current) is SessionState.wiped:
+            raise KeyWipedError("renewal too late: custody was already zeroized")
+        if self._manifest_hash is None or self._renewal_public_key is None:
+            raise ValueError("session was not created from a renewal-capable release")
+        if not decision.verify(self._renewal_public_key):
+            raise ValueError("renewal decision signature or signer is invalid")
+        check_names = [check.get("name") for check in decision.checks]
+        checks_complete = (
+            all(isinstance(name, str) for name in check_names)
+            and len(check_names) == len(set(check_names))
+            and REQUIRED_RENEWAL_CHECKS.issubset(check_names)
+        )
+        if (not decision.renewed or not checks_complete
+                or not all(check.get("passed") is True for check in decision.checks)):
+            raise ValueError("renewal decision contains a failed gate")
+        if decision.weights_hash != self.weights_hash:
+            raise ValueError("renewal decision is for different model weights")
+        expected_manifest = manifest_identity(manifest)
+        if expected_manifest != self._manifest_hash or decision.manifest_hash != self._manifest_hash:
+            raise ValueError("renewal decision or manifest policy does not match this session")
+        if parse_cadence(manifest.custody.attestation_cadence) != self._cadence:
+            raise ValueError("renewal cadence does not match this session")
+        if manifest.release_policy.trusted_time_source is not self._tts:
+            raise ValueError("renewal trusted-time source does not match this session")
+        try:
+            if not decision.issued_at.endswith("Z") or not decision.expires_at.endswith("Z"):
+                raise ValueError
+            issued = datetime.fromisoformat(decision.issued_at.replace("Z", "+00:00"))
+            expires = datetime.fromisoformat(decision.expires_at.replace("Z", "+00:00"))
+            if issued.tzinfo is None or expires.tzinfo is None:
+                raise ValueError
+        except (TypeError, ValueError) as exc:
+            raise ValueError("renewal decision timestamps are invalid") from exc
+        if issued > current or current > expires or expires <= issued:
+            raise ValueError("renewal decision is not currently valid")
+        renewal_id = decision.renewal_id
+        if renewal_id in self._used_renewals:
+            raise ValueError("renewal decision was already applied")
+        self._used_renewals.add(renewal_id)
+        self._deadline = current + timedelta(seconds=self._cadence)
+        self._ops = 0
 
     def use_key(self, now: Optional[datetime] = None) -> bytes:
         """Return the key for one serving operation, counting it against the budget.

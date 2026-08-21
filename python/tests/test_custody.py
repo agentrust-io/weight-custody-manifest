@@ -285,3 +285,189 @@ def test_from_release_passes_max_operations(example_manifest):
     session.use_key()
     with pytest.raises(ReattestationRequired):
         session.use_key()
+
+
+# -- signed evidence-bound renewal --------------------------------------------
+
+
+def _session_and_kbs(
+    manifest, clock, *, max_operations=1, renewal_ttl=60, renewal_signing_key=None,
+):
+    kbs = KeyBrokerService(
+        {manifest.weights_hash: KEY}, now=clock,
+        renewal_decision_ttl_seconds=renewal_ttl,
+        renewal_signing_key=renewal_signing_key,
+    )
+    current = next(
+        item.measurement
+        for item in manifest.release_policy.required_serving_image.accepted_measurements
+        if item.status.value == "current"
+    )
+    rim = manifest.release_policy.required_gpu_measurement.rim_pin
+    challenge = kbs.issue_challenge()
+    evidence = SoftwareProvider().produce(
+        challenge, serving_image_measurement=current, gpu_measurement=rim,
+    )
+    release = kbs.verify_and_release(manifest, evidence)
+    session = EnclaveSession.from_release(
+        manifest, release, max_operations=max_operations, now=clock,
+    )
+    return session, kbs, current, rim
+
+
+def _renew(kbs, manifest, current, rim):
+    challenge = kbs.issue_challenge()
+    evidence = SoftwareProvider().produce(
+        challenge, serving_image_measurement=current, gpu_measurement=rim,
+    )
+    return kbs.verify_for_renewal(manifest, evidence)
+
+
+def test_signed_renewal_resets_budget_without_exporting_key(example_manifest):
+    clock = _clock()
+    session, kbs, current, rim = _session_and_kbs(example_manifest, clock)
+    assert session.use_key() == KEY
+    with pytest.raises(ReattestationRequired):
+        session.authorize_operation()
+    decision = _renew(kbs, example_manifest, current, rim)
+    assert decision.renewed
+    assert not hasattr(decision, "key")
+    assert decision.verify(decision.public_key_b64url)
+    session.apply_renewal(example_manifest, decision)
+    assert session.operations_remaining() == 1
+    session.authorize_operation()
+
+
+def test_renewal_decision_is_single_use(example_manifest):
+    clock = _clock()
+    session, kbs, current, rim = _session_and_kbs(example_manifest, clock)
+    decision = _renew(kbs, example_manifest, current, rim)
+    session.apply_renewal(example_manifest, decision)
+    with pytest.raises(ValueError, match="already applied"):
+        session.apply_renewal(example_manifest, decision)
+
+
+def test_kbs_nonce_replay_produces_signed_failed_renewal(example_manifest):
+    clock = _clock()
+    session, kbs, current, rim = _session_and_kbs(example_manifest, clock)
+    challenge = kbs.issue_challenge()
+    evidence = SoftwareProvider().produce(
+        challenge, serving_image_measurement=current, gpu_measurement=rim,
+    )
+    first = kbs.verify_for_renewal(example_manifest, evidence)
+    replay = kbs.verify_for_renewal(example_manifest, evidence)
+    assert first.renewed
+    assert not replay.renewed
+    assert replay.verify(first.public_key_b64url)
+    assert replay.checks[0]["name"] == "nonce_fresh"
+    assert replay.checks[0]["passed"] is False
+    with pytest.raises(ValueError, match="failed gate"):
+        session.apply_renewal(example_manifest, replay)
+
+
+def test_renewal_refuses_wrong_signer_and_tampering(example_manifest):
+    from dataclasses import replace
+
+    clock = _clock()
+    session, kbs, current, rim = _session_and_kbs(example_manifest, clock)
+    valid = _renew(kbs, example_manifest, current, rim)
+    tampered = replace(
+        valid,
+        evidence_hash="sha256:" + "0" * 64,
+    )
+    with pytest.raises(ValueError, match="signature or signer"):
+        session.apply_renewal(example_manifest, tampered)
+    malformed = replace(valid, signature_b64url="***")
+    assert not malformed.verify(malformed.public_key_b64url)
+    wrong_kind = replace(valid, kind="another-protocol/v1")
+    assert not wrong_kind.verify(wrong_kind.public_key_b64url)
+
+    other = KeyBrokerService({example_manifest.weights_hash: KEY}, now=clock)
+    wrong_signer = _renew(other, example_manifest, current, rim)
+    with pytest.raises(ValueError, match="signature or signer"):
+        session.apply_renewal(example_manifest, wrong_signer)
+
+
+def test_renewal_refuses_signed_truncated_gate_list(example_manifest):
+    from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+    from wcm.renewal import sign_renewal_decision
+
+    clock = _clock()
+    signer = Ed25519PrivateKey.generate()
+    session, kbs, current, rim = _session_and_kbs(
+        example_manifest, clock, renewal_signing_key=signer,
+    )
+    valid = _renew(kbs, example_manifest, current, rim)
+    challenge = kbs.issue_challenge()
+    evidence = SoftwareProvider().produce(
+        challenge, serving_image_measurement=current, gpu_measurement=rim,
+    )
+    truncated = sign_renewal_decision(
+        signing_key=signer,
+        renewed=True,
+        manifest=example_manifest,
+        evidence=evidence,
+        issued_at=valid.issued_at,
+        expires_at=valid.expires_at,
+        checks=valid.checks[:-1],
+    )
+    assert truncated.verify(valid.public_key_b64url)
+    with pytest.raises(ValueError, match="failed gate"):
+        session.apply_renewal(example_manifest, truncated)
+
+
+def test_renewal_refuses_cross_model_and_policy_drift(example_manifest, example_dict):
+    from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+    from wcm import WeightCustodyManifest
+
+    clock = _clock()
+    signer = Ed25519PrivateKey.generate()
+    session, _, current, rim = _session_and_kbs(
+        example_manifest, clock, renewal_signing_key=signer,
+    )
+    other_dict = dict(example_dict)
+    other_dict["weights_hash"] = "sha256:" + "1" * 64
+    other_manifest = WeightCustodyManifest.model_validate(other_dict)
+    kbs = KeyBrokerService(
+        {example_manifest.weights_hash: KEY, other_manifest.weights_hash: KEY}, now=clock,
+        renewal_signing_key=signer,
+    )
+    other_decision = _renew(kbs, other_manifest, current, rim)
+    with pytest.raises(ValueError, match="different model"):
+        session.apply_renewal(example_manifest, other_decision)
+
+    drifted_dict = dict(example_dict)
+    drifted_dict["custody"] = dict(example_dict["custody"])
+    drifted_dict["custody"]["attestation_cadence"] = "12h"
+    drifted = WeightCustodyManifest.model_validate(drifted_dict)
+    drift_kbs = KeyBrokerService(
+        {drifted.weights_hash: KEY}, now=clock, renewal_signing_key=signer,
+    )
+    drift_decision = _renew(drift_kbs, drifted, current, rim)
+    with pytest.raises(ValueError, match="policy does not match"):
+        session.apply_renewal(drifted, drift_decision)
+
+
+def test_renewal_refuses_expired_failed_and_post_wipe_decisions(example_manifest):
+    clock = _clock()
+    session, kbs, current, rim = _session_and_kbs(
+        example_manifest, clock, renewal_ttl=10,
+    )
+    expired = _renew(kbs, example_manifest, current, rim)
+    clock.advance(11)
+    with pytest.raises(ValueError, match="not currently valid"):
+        session.apply_renewal(example_manifest, expired)
+
+    challenge = kbs.issue_challenge()
+    bad_evidence = SoftwareProvider().produce(
+        challenge, serving_image_measurement=current, gpu_measurement="wrong-rim",
+    )
+    failed = kbs.verify_for_renewal(example_manifest, bad_evidence)
+    assert not failed.renewed
+    with pytest.raises(ValueError, match="failed gate"):
+        session.apply_renewal(example_manifest, failed)
+
+    fresh = _renew(kbs, example_manifest, current, rim)
+    clock.advance(86401)
+    with pytest.raises(KeyWipedError, match="already zeroized"):
+        session.apply_renewal(example_manifest, fresh)
