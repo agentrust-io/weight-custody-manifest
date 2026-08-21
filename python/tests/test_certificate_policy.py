@@ -44,6 +44,20 @@ def test_non_positive_serial_has_stable_fail_closed_policy() -> None:
         load_pem_certificate(_non_positive_serial_pem())
 
 
+def test_future_parser_exception_has_same_non_sensitive_policy(monkeypatch) -> None:
+    """Model cryptography 51's documented load-time rejection until it ships."""
+    def reject_non_positive_serial(data: bytes) -> x509.Certificate:
+        del data
+        raise ValueError("future dependency-specific parser detail")
+
+    monkeypatch.setattr(x509, "load_pem_x509_certificate", reject_non_positive_serial)
+    with pytest.raises(
+        CertificatePolicyError, match="provider certificate is not accepted X.509"
+    ) as caught:
+        load_pem_certificate(b"sanitized certificate bytes")
+    assert "dependency-specific" not in str(caught.value)
+
+
 def test_positive_serial_is_supported() -> None:
     key = ec.generate_private_key(ec.SECP256R1())
     name = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, "sanitized.example")])
