@@ -292,6 +292,7 @@ class AzureSnpVtpmProvider(CpuQuoteProvider):
         binding = _report_data_for(
             challenge.nonce, _channel_binding(transport_public_key)
         )[:32]
+        self._measure_workload(serving_image_measurement)
         bundle = self._fetch_freshness_bundle(hcl, binding)
         return CpuQuote(
             platform=self.platform,
@@ -303,6 +304,53 @@ class AzureSnpVtpmProvider(CpuQuoteProvider):
             quote_b64=base64.b64encode(json.dumps(bundle).encode()).decode(),
             transport_public_key=transport_public_key,
         )
+
+    def _measure_workload(self, measurement: str) -> None:
+        """Reset and extend application PCR 23 with one approved event digest.
+
+        PCR 23 is reserved by WCM for this measured-launch event. Resetting
+        before the extend makes repeated release attempts deterministic and
+        ensures the verifier's independently calculated value is not derived
+        from evidence-side state.
+        """
+        algorithm, separator, digest = measurement.partition(":")
+        if (
+            separator != ":"
+            or algorithm != "sha256"
+            or len(digest) != 64
+            or digest.lower() != digest
+        ):
+            raise AttestationUnavailableError(
+                "Azure measured launch requires sha256:<64 lowercase hex digits>"
+            )
+        try:
+            bytes.fromhex(digest)
+        except ValueError as exc:
+            raise AttestationUnavailableError(
+                "Azure measured-launch digest contains non-hex characters"
+            ) from exc
+        for tool in ("tpm2_pcrreset", "tpm2_pcrextend"):
+            if shutil.which(tool) is None:
+                raise AttestationUnavailableError(
+                    f"{tool} not found (Azure measured-launch tooling)"
+                )
+        try:
+            subprocess.run(  # nosec B603 B607
+                ["tpm2_pcrreset", "23"],
+                capture_output=True,
+                timeout=30,
+                check=True,
+            )
+            subprocess.run(  # nosec B603 B607
+                ["tpm2_pcrextend", f"23:sha256={digest}"],
+                capture_output=True,
+                timeout=30,
+                check=True,
+            )
+        except (OSError, subprocess.SubprocessError) as exc:
+            raise AttestationUnavailableError(
+                f"Azure measured-launch PCR 23 reset/extend failed: {exc}"
+            ) from exc
 
     def _fetch_freshness_bundle(self, hcl: bytes, binding: bytes) -> dict[str, Any]:
         """Capture the HCL-authenticated AK's fresh PCR-23 quote."""

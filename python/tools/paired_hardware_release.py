@@ -155,6 +155,7 @@ def main() -> int:
             evidence.cpu.quote_b64,
             expected_nonce=evidence.cpu.nonce_echo,
             channel_binding=bytes.fromhex(public_key),
+            expected_workload_measurement=SERVING_IMAGE,
         )
         gpu_result = gpu_verifier.verify(
             evidence.gpu.quote_b64,
