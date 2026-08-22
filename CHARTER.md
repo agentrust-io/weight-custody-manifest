@@ -21,9 +21,11 @@ The mission includes an explicit honesty commitment: the specification states pl
 
 Out of scope: model identity/passport concerns (left to the agentrust-io Model-* space), and fixing the hardware layer itself (the structural silicon limitation belongs to the CPU/GPU vendors).
 
-## 3. Open-core
+## 3. Project and implementations
 
-The specification, threat model, and reproducible reference KBS image are open (Apache-2.0) and live here. The operated custody service, the cMCP integration, and the enclave engineering are separate and proprietary to OPAQUE Systems. The value is in operating a trustworthy attested custodian and in the enclave implementation, not in keeping the format secret - and an auditable spec is a trust requirement for the builders and sovereigns WCM serves.
+The specification, threat model, reference SDK, conformance assets, and reproducible reference KBS image are developed in the open under Apache-2.0 and live in this repository. Operated services and product integrations built on WCM are separate implementations outside the project's governance and may be offered independently by any organization. The project does not grant an implementation preferential status based on sponsorship or contributor affiliation.
+
+Organizations that support the project are recognized in [SPONSORS.md](SPONSORS.md). Sponsorship does not confer ownership of the project, specification control, conformance preference, or additional trademark rights.
 
 ## 4. Governance
 
