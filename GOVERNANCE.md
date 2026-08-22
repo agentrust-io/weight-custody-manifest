@@ -20,7 +20,7 @@ Full review and merge rights on designated areas; publish rights on the `weight-
 
 ### Project Lead
 
-Final decision authority on specification changes, publication timing, conformance disputes, and Maintainer appointments. Currently: Imran Siddique (OPAQUE Systems).
+Final decision authority on specification changes, publication timing, conformance disputes, and Maintainer appointments. Currently: Imran Siddique.
 
 **Succession**: if the Project Lead is unavailable for 30+ days without notice, the active Maintainers vote to appoint an interim lead. A Technical Steering Committee will be formalized before any standards-body submission.
 
@@ -35,3 +35,9 @@ This repository is **pre-1.0**. Public release is a deliberate Project Lead deci
 ## Relationship to the agentrust-io family
 
 WCM is part of the agentrust-io family (alongside TRACE, cMCP, Agent Manifest, cA2A): open spec, independent implementations, shared conventions. Cryptographic primitives are kept in sync across the family so an artifact produced by one tool verifies under another.
+
+## Sponsorship and independence
+
+The project may accept financial, engineering, infrastructure, or other support from sponsors listed in [SPONSORS.md](SPONSORS.md). Sponsorship and contributor affiliations are informational. They do not confer ownership of the project, additional decision rights, preferential treatment in specification or conformance decisions, or endorsement of a sponsor's implementation.
+
+Maintainers and the Project Lead participate in their project roles as individuals. They must disclose a material conflict of interest and recuse from a decision when their employer, sponsor, or commercial interest would prevent impartial project judgment.

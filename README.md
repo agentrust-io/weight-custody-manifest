@@ -125,7 +125,7 @@ This repository is the **open protocol layer**: the specification, the threat mo
 ## Community & governance
 
 - **Contributing**: `CONTRIBUTING.md` (DCO sign-off; the no-overclaiming rule)
-- **Governance & maintainers**: `GOVERNANCE.md`, `MAINTAINERS.md`, `CHARTER.md`
+- **Governance, maintainers & sponsors**: `GOVERNANCE.md`, `MAINTAINERS.md`, `CHARTER.md`, `SPONSORS.md`
 - **Conduct & policy**: `CODE_OF_CONDUCT.md`, `ANTITRUST.md`, `PRIVACY.md`
 - **Security**: `SECURITY.md` - report privately; the hardware-owner limitation is documented, not a vulnerability
 - **Roadmap & changes**: `ROADMAP.md`, `CHANGELOG.md`, `ADOPTERS.md`
