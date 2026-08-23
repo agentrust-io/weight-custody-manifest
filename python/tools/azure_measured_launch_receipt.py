@@ -9,7 +9,7 @@ import json
 import platform
 import subprocess
 import urllib.request
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from wcm import (
@@ -93,7 +93,7 @@ def main() -> int:
     passed = positive.verified and not wrong_measurement.verified
     report = {
         "kind": "wcm-azure-measured-launch/v1",
-        "captured_at": datetime.now(timezone.utc).isoformat(),
+        "captured_at": datetime.now(UTC).isoformat(),
         "classification": "sanitized public validation evidence",
         "release_candidate": args.release_candidate,
         "environment": {
