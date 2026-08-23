@@ -1319,9 +1319,12 @@ pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </s
 (and the declared sovereign signer, under the sovereign profile). Post-quantum
 (<code>add_ml_dsa65_key</code>) and hybrid (<code>add_hybrid_key</code>) profiles verify the same way.</p>
 <h2 id="gate-a-key-release">Gate a key release<a class="headerlink" href="#gate-a-key-release" title="Permanent link">&para;</a></h2>
-<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">wcm</span><span class="w"> </span><span class="kn">import</span> <span class="n">KeyBrokerService</span><span class="p">,</span> <span class="n">SoftwareProvider</span>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">wcm</span><span class="w"> </span><span class="kn">import</span> <span class="n">KeyBrokerService</span><span class="p">,</span> <span class="n">SoftwareProvider</span><span class="p">,</span> <span class="n">manifest_identity</span>
 
-<span class="n">kbs</span> <span class="o">=</span> <span class="n">KeyBrokerService</span><span class="p">({</span><span class="n">manifest</span><span class="o">.</span><span class="n">weights_hash</span><span class="p">:</span> <span class="sa">b</span><span class="s2">"the-decryption-key"</span><span class="p">})</span>
+<span class="n">kbs</span> <span class="o">=</span> <span class="n">KeyBrokerService</span><span class="p">(</span>
+    <span class="p">{</span><span class="n">manifest</span><span class="o">.</span><span class="n">weights_hash</span><span class="p">:</span> <span class="sa">b</span><span class="s2">"the-decryption-key"</span><span class="p">},</span>
+    <span class="n">trusted_manifest_identities</span><span class="o">=</span><span class="p">{</span><span class="n">manifest_identity</span><span class="p">(</span><span class="n">manifest</span><span class="p">)},</span>
+<span class="p">)</span>
 <span class="n">challenge</span> <span class="o">=</span> <span class="n">kbs</span><span class="o">.</span><span class="n">issue_challenge</span><span class="p">()</span>
 <span class="n">evidence</span> <span class="o">=</span> <span class="n">SoftwareProvider</span><span class="p">()</span><span class="o">.</span><span class="n">produce</span><span class="p">(</span>
     <span class="n">challenge</span><span class="p">,</span>

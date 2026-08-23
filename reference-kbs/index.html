@@ -1256,8 +1256,10 @@ and independently reproduced. Full details:
 docker<span class="w"> </span>run<span class="w"> </span>--rm<span class="w"> </span>-p<span class="w"> </span><span class="m">8080</span>:8080<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>-v<span class="w"> </span><span class="s2">"</span><span class="nv">$PWD</span><span class="s2">/keystore.json:/run/secrets/keystore.json:ro"</span><span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>-v<span class="w"> </span><span class="s2">"</span><span class="nv">$PWD</span><span class="s2">/cpu-root.pem:/run/trust/cpu-root.pem:ro"</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-v<span class="w"> </span><span class="s2">"</span><span class="nv">$PWD</span><span class="s2">/manifest-identities.json:/run/trust/manifest-identities.json:ro"</span><span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>-e<span class="w"> </span><span class="nv">WCM_KEYSTORE_FILE</span><span class="o">=</span>/run/secrets/keystore.json<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>-e<span class="w"> </span><span class="nv">WCM_CPU_TRUST_ROOT_FILE</span><span class="o">=</span>/run/trust/cpu-root.pem<span class="w"> </span>wcm-kbs
+<span class="w">  </span>-e<span class="w"> </span><span class="nv">WCM_CPU_TRUST_ROOT_FILE</span><span class="o">=</span>/run/trust/cpu-root.pem<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-e<span class="w"> </span><span class="nv">WCM_TRUSTED_MANIFEST_IDENTITIES_FILE</span><span class="o">=</span>/run/trust/manifest-identities.json<span class="w"> </span>wcm-kbs
 </code></pre></div>
 <p>Keys are supplied at runtime, never baked into the image. CI builds, runs, and
 health-checks the image on every change. Bit-for-bit reproducibility additionally
@@ -1274,7 +1276,11 @@ and attest/pin the KBS image itself. Do not expose the reference image
 directly on an untrusted network.</p>
 <p>The environment-built server fails closed when <code>WCM_CPU_TRUST_ROOT_FILE</code> is
 absent: health and challenge issuance remain available, but every release is
-denied rather than falling back to structural CPU evidence.</p>
+denied rather than falling back to structural CPU evidence.
+The server also fails closed unless the submitted manifest is authorized.
+<code>WCM_TRUSTED_MANIFEST_IDENTITIES_FILE</code> must contain a JSON array of exact
+<code>sha256:</code> manifest identities produced by <code>wcm.manifest_identity</code>. The manifest
+embedded in a release request is never accepted as its own trust anchor.</p>
 </div>
 
 
