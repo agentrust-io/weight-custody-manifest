@@ -13,6 +13,7 @@ import json
 from datetime import datetime, timedelta, timezone
 
 import pytest
+from wcm.renewal import manifest_identity
 from cryptography import x509
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import ec
@@ -252,6 +253,7 @@ def test_kbs_releases_with_verified_quote(example_manifest):
         {example_manifest.weights_hash: b"KEY"},
         now=lambda: NOW,
         cpu_quote_verifier=_verifier(pki),
+        trusted_manifest_identities={manifest_identity(example_manifest)},
     )
     challenge = kbs.issue_challenge()
     q = _container(pki, _report_body(challenge.nonce))
@@ -269,6 +271,7 @@ def test_kbs_denies_bad_quote(example_manifest):
         {example_manifest.weights_hash: b"KEY"},
         now=lambda: NOW,
         cpu_quote_verifier=_verifier(Pki()),  # trusts a different root
+        trusted_manifest_identities={manifest_identity(example_manifest)},
     )
     challenge = kbs.issue_challenge()
     q = _container(pki, _report_body(challenge.nonce))  # signed by an untrusted chain
@@ -286,6 +289,7 @@ def test_kbs_denies_when_verifier_set_but_no_quote(example_manifest):
         {example_manifest.weights_hash: b"KEY"},
         now=lambda: NOW,
         cpu_quote_verifier=_verifier(pki),
+        trusted_manifest_identities={manifest_identity(example_manifest)},
     )
     challenge = kbs.issue_challenge()
     ev = _evidence(challenge.nonce, quote_b64=None, current=current, rim=rim)
@@ -297,7 +301,11 @@ def test_kbs_denies_when_verifier_set_but_no_quote(example_manifest):
 
 def test_kbs_without_verifier_notes_structural_only(example_manifest):
     current, rim = _measurements(example_manifest)
-    kbs = KeyBrokerService({example_manifest.weights_hash: b"KEY"}, now=lambda: NOW)
+    kbs = KeyBrokerService(
+        {example_manifest.weights_hash: b"KEY"},
+        now=lambda: NOW,
+        trusted_manifest_identities={manifest_identity(example_manifest)},
+    )
     challenge = kbs.issue_challenge()
     ev = _evidence(challenge.nonce, quote_b64=None, current=current, rim=rim)
 
@@ -348,6 +356,7 @@ def test_relayed_release_is_denied_and_yields_only_ciphertext(example_manifest):
         now=lambda: NOW,
         cpu_quote_verifier=_verifier(pki),
         require_channel_binding=True,
+        trusted_manifest_identities={manifest_identity(example_manifest)},
     )
 
     # Legitimate enclave: transport key bound into REPORT_DATA under the nonce.

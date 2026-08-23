@@ -23,6 +23,7 @@ from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives.asymmetric.utils import decode_dss_signature
 from cryptography.x509.oid import NameOID
+from wcm.renewal import manifest_identity
 
 from wcm import (
     CompositeEvidence,
@@ -210,6 +211,7 @@ def test_kbs_releases_with_verified_gpu(example_manifest):
         {example_manifest.weights_hash: b"KEY"},
         now=lambda: NOW,
         gpu_report_verifier=build_gpu_verifier(_pem(pki.root)),
+        trusted_manifest_identities={manifest_identity(example_manifest)},
     )
     challenge = kbs.issue_challenge()
     ev = _evidence(challenge.nonce, gpu_quote_b64=_synth_evidence(pki, challenge.nonce), current=current, rim=rim)
@@ -225,6 +227,7 @@ def test_kbs_denies_untrusted_gpu(example_manifest):
         {example_manifest.weights_hash: b"KEY"},
         now=lambda: NOW,
         gpu_report_verifier=build_gpu_verifier(_pem(_Pki().root)),  # different root
+        trusted_manifest_identities={manifest_identity(example_manifest)},
     )
     challenge = kbs.issue_challenge()
     ev = _evidence(challenge.nonce, gpu_quote_b64=_synth_evidence(pki, challenge.nonce), current=current, rim=rim)
@@ -239,6 +242,7 @@ def test_kbs_denies_gpu_verifier_set_but_no_quote(example_manifest):
         {example_manifest.weights_hash: b"KEY"},
         now=lambda: NOW,
         gpu_report_verifier=build_gpu_verifier(_pem(_Pki().root)),
+        trusted_manifest_identities={manifest_identity(example_manifest)},
     )
     challenge = kbs.issue_challenge()
     ev = _evidence(challenge.nonce, gpu_quote_b64=None, current=current, rim=rim)
@@ -249,7 +253,11 @@ def test_kbs_denies_gpu_verifier_set_but_no_quote(example_manifest):
 
 def test_kbs_without_gpu_verifier_notes_structural_only(example_manifest):
     current, rim = _measurements(example_manifest)
-    kbs = KeyBrokerService({example_manifest.weights_hash: b"KEY"}, now=lambda: NOW)
+    kbs = KeyBrokerService(
+        {example_manifest.weights_hash: b"KEY"},
+        now=lambda: NOW,
+        trusted_manifest_identities={manifest_identity(example_manifest)},
+    )
     challenge = kbs.issue_challenge()
     ev = _evidence(challenge.nonce, gpu_quote_b64=None, current=current, rim=rim)
     decision = kbs.verify_and_release(example_manifest, ev)
@@ -267,6 +275,7 @@ def test_kbs_gpu_must_bind_this_nonce(example_manifest):
         {example_manifest.weights_hash: b"KEY"},
         now=lambda: NOW,
         gpu_report_verifier=build_gpu_verifier(_pem(pki.root)),
+        trusted_manifest_identities={manifest_identity(example_manifest)},
     )
     challenge = kbs.issue_challenge()
     # report bound to a stale nonce, though the structured nonce_echo is set to this challenge

@@ -42,9 +42,12 @@ A manifest is valid only when **both** the builder and custodian have signed
 ## Gate a key release
 
 ```python
-from wcm import KeyBrokerService, SoftwareProvider
+from wcm import KeyBrokerService, SoftwareProvider, manifest_identity
 
-kbs = KeyBrokerService({manifest.weights_hash: b"the-decryption-key"})
+kbs = KeyBrokerService(
+    {manifest.weights_hash: b"the-decryption-key"},
+    trusted_manifest_identities={manifest_identity(manifest)},
+)
 challenge = kbs.issue_challenge()
 evidence = SoftwareProvider().produce(
     challenge,

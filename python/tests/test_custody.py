@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 
 import pytest
+from wcm.renewal import manifest_identity
 
 from wcm import (
     EnclaveSession,
@@ -153,7 +154,11 @@ def test_time_floor_reflects_trusted_time_source(tts, floor):
 
 
 def _released_decision(manifest, clock):
-    kbs = KeyBrokerService({manifest.weights_hash: KEY}, now=clock)
+    kbs = KeyBrokerService(
+        {manifest.weights_hash: KEY},
+        now=clock,
+        trusted_manifest_identities={manifest_identity(manifest)},
+    )
     ams = manifest.release_policy.required_serving_image.accepted_measurements
     current = next(m.measurement for m in ams if m.status.value == "current")
     rim = manifest.release_policy.required_gpu_measurement.rim_pin
@@ -297,6 +302,7 @@ def _session_and_kbs(
         {manifest.weights_hash: KEY}, now=clock,
         renewal_decision_ttl_seconds=renewal_ttl,
         renewal_signing_key=renewal_signing_key,
+        trusted_manifest_identities={manifest_identity(manifest)},
     )
     current = next(
         item.measurement
@@ -382,7 +388,11 @@ def test_renewal_refuses_wrong_signer_and_tampering(example_manifest):
     wrong_kind = replace(valid, kind="another-protocol/v1")
     assert not wrong_kind.verify(wrong_kind.public_key_b64url)
 
-    other = KeyBrokerService({example_manifest.weights_hash: KEY}, now=clock)
+    other = KeyBrokerService(
+        {example_manifest.weights_hash: KEY},
+        now=clock,
+        trusted_manifest_identities={manifest_identity(example_manifest)},
+    )
     wrong_signer = _renew(other, example_manifest, current, rim)
     with pytest.raises(ValueError, match="signature or signer"):
         session.apply_renewal(example_manifest, wrong_signer)
@@ -431,6 +441,9 @@ def test_renewal_refuses_cross_model_and_policy_drift(example_manifest, example_
     kbs = KeyBrokerService(
         {example_manifest.weights_hash: KEY, other_manifest.weights_hash: KEY}, now=clock,
         renewal_signing_key=signer,
+        trusted_manifest_identities={
+            manifest_identity(example_manifest), manifest_identity(other_manifest)
+        },
     )
     other_decision = _renew(kbs, other_manifest, current, rim)
     with pytest.raises(ValueError, match="different model"):
@@ -442,6 +455,7 @@ def test_renewal_refuses_cross_model_and_policy_drift(example_manifest, example_
     drifted = WeightCustodyManifest.model_validate(drifted_dict)
     drift_kbs = KeyBrokerService(
         {drifted.weights_hash: KEY}, now=clock, renewal_signing_key=signer,
+        trusted_manifest_identities={manifest_identity(drifted)},
     )
     drift_decision = _renew(drift_kbs, drifted, current, rim)
     with pytest.raises(ValueError, match="policy does not match"):
