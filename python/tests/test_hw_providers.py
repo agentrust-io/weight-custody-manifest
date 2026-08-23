@@ -175,7 +175,8 @@ def test_nvidia_missing_command_raises():
         p.gpu_report(_challenge())
 
 
-def test_tdx_unavailable_raises_real():
+def test_tdx_missing_device_raises(monkeypatch):
+    monkeypatch.setattr(TdxProvider, "_DEV", "/wcm-test/no-tdx-guest")
     p = TdxProvider()
     with pytest.raises(AttestationUnavailableError):
         p.cpu_quote(_challenge(), serving_image_measurement="sha256:" + "0" * 64)
