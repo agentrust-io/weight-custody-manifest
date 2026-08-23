@@ -124,11 +124,19 @@ def local_preflight(root: Path) -> list[dict[str, Any]]:
         )
     )
     pyproject = (root / "python/pyproject.toml").read_text(encoding="utf-8")
+    # Accept either the served docs site or the repository URL. The repository
+    # URL 404s for an anonymous reader until the visibility flip, so requiring it
+    # here forced the tree to carry a dead link for the whole pre-flip period, and
+    # any release cut in that window shipped it. v0.26.0 did. Restoring the
+    # repository URL is the cutover's job, not a precondition of it: execute()
+    # already passes --homepage HOMEPAGE to gh repo edit in the same call that
+    # makes the repository public, so the two cannot drift apart.
     checks.append(
         (
             "package-homepage",
-            'Homepage = "https://github.com/agentrust-io/weight-custody-manifest"' in pyproject,
-            "package metadata must point at the public repository",
+            f'Homepage = "{HOMEPAGE}"' in pyproject
+            or f'Homepage = "https://github.com/{REPOSITORY}"' in pyproject,
+            "package metadata Homepage must be the docs site (pre-flip) or the repository (post-flip)",
         )
     )
     checks.append(
