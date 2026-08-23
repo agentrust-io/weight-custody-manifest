@@ -8,7 +8,7 @@ description = "Reference SDK for the Weight Custody Manifest (WCM): manifest sig
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "Apache-2.0" }
-authors = [{ name = "AgenTrust Authors", email = "maintainers@agentrust-io.com" }]
+authors = [{ name = "AgenTrust Authors", email = "imransiddique@live.com" }]
 keywords = [
   "model-weights", "custody", "attestation", "confidential-computing",
   "tee", "sev-snp", "nvidia-cc", "trust", "hardware-attestation", "pydantic",
