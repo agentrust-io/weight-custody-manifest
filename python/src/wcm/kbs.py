@@ -110,6 +110,7 @@ class KeyBrokerService:
         renewal_decision_ttl_seconds: int = 60,
         memory_fingerprint_public_key_b64url: Optional[str] = None,
         allow_legacy_memory_fingerprint: bool = False,
+        trusted_manifest_identities: Optional[Iterable[str]] = None,
     ) -> None:
         if renewal_decision_ttl_seconds <= 0:
             raise ValueError("renewal_decision_ttl_seconds must be positive")
@@ -139,6 +140,7 @@ class KeyBrokerService:
         self._renewal_ttl = renewal_decision_ttl_seconds
         self._memory_fingerprint_public_key = memory_fingerprint_public_key_b64url
         self._allow_legacy_memory_fingerprint = allow_legacy_memory_fingerprint
+        self._trusted_manifest_identities = set(trusted_manifest_identities or ())
 
     def issue_challenge(self) -> Challenge:
         return self._challenges.issue()
@@ -168,6 +170,22 @@ class KeyBrokerService:
             )
 
         checks: list[CheckResult] = [CheckResult("nonce_fresh", True)]
+
+        # 1a. Authority: the caller-provided manifest is not its own trust root.
+        #     Accept only an exact manifest identity pinned by the KBS operator.
+        #     The identity covers the complete authority-layer signing pre-image,
+        #     without mistaking caller-provided keys or self-declared roles for trust.
+        manifest_hash = manifest_identity(manifest)
+        pinned = manifest_hash in self._trusted_manifest_identities
+        checks.append(
+            CheckResult(
+                "manifest_authorized",
+                pinned,
+                "exact manifest identity is pinned"
+                if pinned
+                else "manifest identity is not pinned by this KBS",
+            )
+        )
 
         # 1b. Channel binding: the transport key the released key will be sealed
         #     to, and the bytes folded into REPORT_DATA for the quote check.
@@ -249,7 +267,7 @@ class KeyBrokerService:
             key=key,
             checks=checks,
             sealed_key=sealed_key,
-            manifest_hash=manifest_identity(manifest),
+            manifest_hash=manifest_hash,
             renewal_public_key_b64url=renewal_public_key(self._renewal_signing_key),
         )
 

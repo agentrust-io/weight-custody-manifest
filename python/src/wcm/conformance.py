@@ -599,6 +599,7 @@ def _build_cpu_quote_verifier(config: dict[str, Any]) -> Any:
 def _eval_gate(vector: dict[str, Any]) -> Verdict:
     from .attestation import CompositeEvidence
     from .kbs import KeyBrokerService
+    from .renewal import manifest_identity
 
     manifest = WeightCustodyManifest.model_validate(vector["manifest"])
     config = vector.get("kbs", {})
@@ -621,6 +622,7 @@ def _eval_gate(vector: dict[str, Any]) -> Verdict:
         # Production KBS construction defaults this compatibility escape hatch
         # off and fails closed without a policy-pinned sweep key.
         allow_legacy_memory_fingerprint=True,
+        trusted_manifest_identities={manifest_identity(manifest)},
         cpu_quote_verifier=(
             _build_cpu_quote_verifier(config["cpu_quote_verifier"])
             if "cpu_quote_verifier" in config

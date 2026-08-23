@@ -18,6 +18,7 @@ from .models import WeightCustodyManifest
 
 REQUIRED_RENEWAL_CHECKS = frozenset({
     "nonce_fresh",
+    "manifest_authorized",
     "channel_binding",
     "cpu_platform_allowed",
     "assurance_tier",

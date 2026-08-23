@@ -16,6 +16,7 @@ import sys
 from types import SimpleNamespace
 
 import pytest
+from wcm.renewal import manifest_identity
 
 from wcm import (
     AttestationUnavailableError,
@@ -240,7 +241,10 @@ def test_hardware_composite_releases_through_gate(example_manifest, monkeypatch)
     current = next(m.measurement for m in ams if m.status.value == "current")
     rim = example_manifest.release_policy.required_gpu_measurement.rim_pin
 
-    kbs = KeyBrokerService({example_manifest.weights_hash: KEY})
+    kbs = KeyBrokerService(
+        {example_manifest.weights_hash: KEY},
+        trusted_manifest_identities={manifest_identity(example_manifest)},
+    )
     challenge = kbs.issue_challenge()
 
     cpu = SevSnpProvider()

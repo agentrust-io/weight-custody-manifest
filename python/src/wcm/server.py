@@ -102,6 +102,18 @@ def build_kbs_from_env() -> KeyBrokerService:
         trust = TrustStore()
         trust.add_root(root)
         cpu_verifier = QuoteVerifier(JsonQuoteParser(), trust)
+    trusted_manifest_identities: set[str] = set()
+    manifest_identities_path = os.environ.get("WCM_TRUSTED_MANIFEST_IDENTITIES_FILE")
+    if manifest_identities_path:
+        with open(manifest_identities_path, "r", encoding="utf-8") as fh:
+            configured_identities = json.load(fh)
+        if not isinstance(configured_identities, list) or not all(
+            isinstance(value, str) for value in configured_identities
+        ):
+            raise ValueError(
+                "WCM_TRUSTED_MANIFEST_IDENTITIES_FILE must contain a JSON string array"
+            )
+        trusted_manifest_identities.update(configured_identities)
     # A network release surface must not silently downgrade to structural CPU
     # evidence. Without a trusted root it serves health/challenges but refuses
     # every release.
@@ -110,6 +122,7 @@ def build_kbs_from_env() -> KeyBrokerService:
         cpu_quote_verifier=cpu_verifier,
         require_channel_binding=True,
         require_cpu_quote_verification=True,
+        trusted_manifest_identities=trusted_manifest_identities,
     )
 
 

@@ -170,15 +170,17 @@ AMD SEV-SNP (vendor quote verification):
 the library `KeyBrokerService`. Install the extra: `pip install ".[server]"`.
 
 ```python
-from wcm import KeyBrokerService
+from wcm import KeyBrokerService, manifest_identity
 from wcm.server import create_app
-app = create_app(KeyBrokerService({weights_hash: key_bytes}))
+app = create_app(KeyBrokerService(
+    {manifest.weights_hash: key_bytes},
+    trusted_manifest_identities={manifest_identity(manifest)},
+))
 # uvicorn module:app
 ```
 
-Reference-only: `/release` returns the key in the response body. A production
-KBS wraps the key to the requesting enclave's attested transport instead - do
-not expose this as-is on an untrusted network.
+Reference-only: configure channel binding before exposing the app. The image-built
+server requires it and returns only a key sealed to the attested transport key.
 
 ## Install
 
@@ -237,7 +239,7 @@ print(verify_manifest(manifest, ctx).ok)  # True
 ## Quickstart (Layer 2 release gate)
 
 ```python
-from wcm import KeyBrokerService, SoftwareProvider, WeightCustodyManifest
+from wcm import KeyBrokerService, SoftwareProvider, WeightCustodyManifest, manifest_identity
 import json
 
 manifest = WeightCustodyManifest.model_validate(
@@ -245,7 +247,10 @@ manifest = WeightCustodyManifest.model_validate(
 )
 
 # The KBS holds the decryption key keyed by weights_hash.
-kbs = KeyBrokerService({manifest.weights_hash: b"the-decryption-key"})
+kbs = KeyBrokerService(
+    {manifest.weights_hash: b"the-decryption-key"},
+    trusted_manifest_identities={manifest_identity(manifest)},
+)
 
 # 1. KBS issues a fresh nonce. 2. Enclave attests over it (mock here).
 challenge = kbs.issue_challenge()

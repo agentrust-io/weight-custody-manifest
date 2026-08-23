@@ -15,6 +15,7 @@ from wcm import (
     generate_transport_keypair,
     open_sealed,
     memory_sweep_public_key,
+    manifest_identity,
     run_memory_sweep,
 )
 
@@ -36,6 +37,7 @@ def _kbs(example_manifest, *, now=None, revoked=None, require_channel_binding=Fa
         now=now or _now_after_retire(),
         revoked_attestation_keys=revoked,
         require_channel_binding=require_channel_binding,
+        trusted_manifest_identities={manifest_identity(example_manifest)},
     )
 
 
@@ -59,6 +61,39 @@ def test_happy_path_releases_key(example_manifest):
     assert decision.released
     assert decision.key == KEY
     assert not decision.failures
+
+
+def test_release_denies_when_manifest_has_no_out_of_band_authorization(example_manifest):
+    kbs = KeyBrokerService({example_manifest.weights_hash: KEY}, now=_now_after_retire())
+    current, _, _, rim = _measurements(example_manifest)
+    challenge = kbs.issue_challenge()
+    evidence = SoftwareProvider().produce(
+        challenge, serving_image_measurement=current, gpu_measurement=rim
+    )
+
+    decision = kbs.verify_and_release(example_manifest, evidence)
+
+    assert not decision.released
+    check = next(c for c in decision.checks if c.name == "manifest_authorized")
+    assert not check.passed
+
+
+def test_attacker_manifest_for_same_weights_is_rejected_by_exact_pin(example_manifest):
+    kbs = _kbs(example_manifest)
+    attacker_manifest = example_manifest.model_copy(
+        update={"builder": example_manifest.builder.model_copy(update={"identity": "attacker"})}
+    )
+    current, _, _, rim = _measurements(example_manifest)
+    challenge = kbs.issue_challenge()
+    evidence = SoftwareProvider().produce(
+        challenge, serving_image_measurement=current, gpu_measurement=rim
+    )
+
+    decision = kbs.verify_and_release(attacker_manifest, evidence)
+
+    assert not decision.released
+    check = next(c for c in decision.checks if c.name == "manifest_authorized")
+    assert not check.passed
 
 
 def test_replayed_nonce_denied(example_manifest):
@@ -211,7 +246,11 @@ def test_stale_revocation_cache_denied(example_manifest):
 
 
 def test_no_key_for_weights_hash_denied(example_manifest):
-    kbs = KeyBrokerService({}, now=_now_after_retire())  # empty keystore
+    kbs = KeyBrokerService(
+        {},
+        now=_now_after_retire(),
+        trusted_manifest_identities={manifest_identity(example_manifest)},
+    )  # empty keystore
     current, _, _, rim = _measurements(example_manifest)
     challenge = kbs.issue_challenge()
     ev = SoftwareProvider().produce(
@@ -274,6 +313,7 @@ def test_memory_fingerprint_clean_releases(example_dict):
         {manifest.weights_hash: KEY},
         now=_now_after_retire(),
         memory_fingerprint_public_key_b64url=memory_sweep_public_key(signing_key),
+        trusted_manifest_identities={manifest_identity(manifest)},
     )
     current, _, _, rim = _measurements(manifest)
     challenge = kbs.issue_challenge()
@@ -302,6 +342,7 @@ def test_memory_fingerprint_host_authored_and_replayed_results_are_denied(exampl
         {manifest.weights_hash: KEY},
         now=_now_after_retire(),
         memory_fingerprint_public_key_b64url=memory_sweep_public_key(trusted),
+        trusted_manifest_identities={manifest_identity(manifest)},
     )
     current, _, _, rim = _measurements(manifest)
     challenge = kbs.issue_challenge()
@@ -416,7 +457,11 @@ def _retiring_only_manifest(example_dict, retire_after):
 
 
 def _decide(manifest, measurement, *, now):
-    kbs = KeyBrokerService({str(manifest.weights_hash): b"k" * 32}, now=now)
+    kbs = KeyBrokerService(
+        {str(manifest.weights_hash): b"k" * 32},
+        now=now,
+        trusted_manifest_identities={manifest_identity(manifest)},
+    )
     challenge = kbs.issue_challenge()
     rim = manifest.release_policy.required_gpu_measurement
     ev = SoftwareProvider().produce(

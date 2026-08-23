@@ -4,6 +4,7 @@ from __future__ import annotations
 import base64
 
 import pytest
+from wcm.renewal import manifest_identity
 
 pytest.importorskip("fastapi")
 from fastapi.testclient import TestClient  # noqa: E402
@@ -24,7 +25,9 @@ def client_and_manifest(example_manifest):
     # The reference server requires channel binding (SPEC 3.2): the key leaves
     # only sealed to the enclave's attested transport key.
     kbs = KeyBrokerService(
-        {example_manifest.weights_hash: KEY}, require_channel_binding=True
+        {example_manifest.weights_hash: KEY},
+        require_channel_binding=True,
+        trusted_manifest_identities={manifest_identity(example_manifest)},
     )
     return TestClient(create_app(kbs)), kbs, example_manifest
 
@@ -140,11 +143,27 @@ def test_app_from_env_loads_keystore(tmp_path, monkeypatch, example_manifest):
     ks = tmp_path / "keystore.json"
     ks.write_text(json.dumps({example_manifest.weights_hash: base64.b64encode(KEY).decode()}))
     monkeypatch.setenv("WCM_KEYSTORE_FILE", str(ks))
+    identities = tmp_path / "manifest-identities.json"
+    identities.write_text(json.dumps([manifest_identity(example_manifest)]))
+    monkeypatch.setenv("WCM_TRUSTED_MANIFEST_IDENTITIES_FILE", str(identities))
     from wcm.server import build_kbs_from_env
 
     kbs = build_kbs_from_env()
     # The key loaded for the example weights_hash decodes back to KEY.
     assert kbs._keystore[example_manifest.weights_hash] == KEY  # type: ignore[attr-defined]
+    assert manifest_identity(example_manifest) in kbs._trusted_manifest_identities
+
+
+def test_env_server_rejects_malformed_manifest_identity_config(tmp_path, monkeypatch):
+    import json
+    from wcm.server import build_kbs_from_env
+
+    identities = tmp_path / "manifest-identities.json"
+    identities.write_text(json.dumps({"self_asserted": True}))
+    monkeypatch.setenv("WCM_TRUSTED_MANIFEST_IDENTITIES_FILE", str(identities))
+
+    with pytest.raises(ValueError, match="JSON string array"):
+        build_kbs_from_env()
 
 
 def test_env_server_fails_closed_without_cpu_trust_root(

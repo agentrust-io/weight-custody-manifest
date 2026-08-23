@@ -211,7 +211,12 @@ def cmd_gate(args: argparse.Namespace) -> int:
         is MemoryFingerprintChallenge.required_for_hostile_owner_posture
     ) or args.memory_fingerprint
 
-    kbs = KeyBrokerService({m.weights_hash: b"diagnostic-placeholder-key-0000"})
+    from .renewal import manifest_identity
+
+    kbs = KeyBrokerService(
+        {m.weights_hash: b"diagnostic-placeholder-key-0000"},
+        trusted_manifest_identities={manifest_identity(m)},
+    )
     challenge = kbs.issue_challenge()
     evidence = SoftwareProvider().produce(
         challenge,
