@@ -18,7 +18,15 @@ class CertificatePolicyError(ValueError):
     """Provider certificate encoding or WCM certificate policy was rejected."""
 
 
-def load_pem_certificate(data: bytes) -> x509.Certificate:
+def load_pem_certificate(
+    data: bytes, *, allow_non_positive_serial: bool = False
+) -> x509.Certificate:
+    """Load one certificate under WCM's provider-encoding policy.
+
+    ``allow_non_positive_serial`` is an explicit compatibility escape hatch for
+    a provider leaf whose trust path and signature are still verified. Callers
+    must not enable it for record-carried roots or general certificate input.
+    """
     try:
         with warnings.catch_warnings():
             # cryptography 50 warns and 51 raises. WCM has already chosen a
@@ -29,7 +37,7 @@ def load_pem_certificate(data: bytes) -> x509.Certificate:
             serial = certificate.serial_number
     except ValueError as exc:
         raise CertificatePolicyError("provider certificate is not accepted X.509") from exc
-    if serial <= 0:
+    if serial <= 0 and not allow_non_positive_serial:
         raise CertificatePolicyError("provider certificate serial number must be positive")
     return certificate
 

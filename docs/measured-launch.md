@@ -22,10 +22,17 @@ the AK-signed quote. Missing tools, an invalid measurement, or either TPM comman
 failing aborts evidence production; the provider never falls back to quoting an
 unmeasured PCR state.
 
-The expected quoted digest is:
+PCR 23 after the reset and extend is:
 
 ```text
 SHA256(00 × 32 || serving_image_digest)
+```
+
+The TPM quote's signed `pcrDigest` hashes the concatenated selected PCR values.
+WCM selects only PCR 23, so the verifier expects:
+
+```text
+SHA256(SHA256(00 × 32 || serving_image_digest))
 ```
 
 The KBS supplies the manifest-approved measurement to the verifier. It does not

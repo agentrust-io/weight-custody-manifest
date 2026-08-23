@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import base64
+import warnings
 from datetime import datetime, timedelta, timezone
 
 import pytest
 from cryptography import x509
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import ec
+from cryptography.utils import CryptographyDeprecationWarning
 from cryptography.x509.oid import NameOID
 
 from wcm._certificates import CertificatePolicyError, load_pem_certificate
@@ -42,6 +44,15 @@ def _non_positive_serial_pem() -> bytes:
 def test_non_positive_serial_has_stable_fail_closed_policy() -> None:
     with pytest.raises(CertificatePolicyError, match="certificate"):
         load_pem_certificate(_non_positive_serial_pem())
+
+
+def test_provider_specific_non_positive_serial_exception_is_explicit() -> None:
+    certificate = load_pem_certificate(
+        _non_positive_serial_pem(), allow_non_positive_serial=True
+    )
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", CryptographyDeprecationWarning)
+        assert certificate.serial_number == 0
 
 
 def test_future_parser_exception_has_same_non_sensitive_policy(monkeypatch) -> None:
