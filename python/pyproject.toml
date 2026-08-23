@@ -60,6 +60,9 @@ wcm = "wcm.cli:main"
 [project.urls]
 Homepage = "https://github.com/agentrust-io/weight-custody-manifest"
 Documentation = "https://wcm.agentrust-io.com"
+Source = "https://github.com/agentrust-io/weight-custody-manifest"
+Issues = "https://github.com/agentrust-io/weight-custody-manifest/issues"
+Changelog = "https://github.com/agentrust-io/weight-custody-manifest/blob/main/CHANGELOG.md"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/wcm"]
