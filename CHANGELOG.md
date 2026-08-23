@@ -6,7 +6,15 @@ uses semantic-ish versioning while pre-1.0.
 
 ## Unreleased
 
-_No changes yet._
+**[hardware/azure]** Corrected Azure vTPM measured-launch verification against
+real `Standard_DC2as_v5` hardware. TPM quote `pcrDigest` is the SHA-256 of the
+selected PCR values, so the single-PCR policy requires a second hash over PCR
+23's reset-and-extend value. Added a sanitized, reproducible capture tool.
+
+**[compatibility/azure]** Kept the positive-serial certificate policy as the
+default while allowing Azure's THIM-provided AMD VCEK leaf through an explicit,
+provider-local compatibility path. Other provider certificates still fail
+closed on non-positive serial numbers.
 
 ## 0.26.0 - 2026-08-21
 

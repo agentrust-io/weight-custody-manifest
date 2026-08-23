@@ -18,11 +18,13 @@ from .snp import extract_snp_report_from_hcl, parse_snp_report, verify_snp_repor
 
 
 def expected_pcr23_digest(measurement: str) -> bytes:
-    """Return PCR 23 after measured launch extends an approved SHA-256 digest.
+    """Return a quote's pcrDigest for measured-launch SHA-256 PCR 23.
 
     The launch agent resets the application-owned PCR 23 to zero and extends
-    the 32-byte digest from the manifest's ``sha256:<hex>`` measurement once.
-    TPM extend semantics are ``SHA256(old_pcr || event_digest)``.
+    the manifest's 32-byte event digest once. TPM extend semantics produce the
+    PCR value as ``SHA256(old_pcr || event_digest)``. ``TPMS_QUOTE_INFO`` then
+    carries the SHA-256 digest of the concatenated selected PCR values. Because
+    WCM selects only PCR 23, the signed value is ``SHA256(pcr23_value)``.
     """
     algorithm, separator, digest = measurement.partition(":")
     if separator != ":" or algorithm != "sha256" or len(digest) != 64:
@@ -33,7 +35,8 @@ def expected_pcr23_digest(measurement: str) -> bytes:
         event_digest = bytes.fromhex(digest)
     except ValueError as exc:
         raise ValueError("workload measurement contains non-hex characters") from exc
-    return hashlib.sha256(bytes(32) + event_digest).digest()
+    pcr23_value = hashlib.sha256(bytes(32) + event_digest).digest()
+    return hashlib.sha256(pcr23_value).digest()
 
 
 def _b64(value: str) -> bytes:
@@ -78,7 +81,13 @@ class AzureSnpVtpmVerifier:
             quote = _b64(doc["tpm_quote_b64"])
             signature_blob = _b64(doc["tpm_signature_b64"])
             ak = serialization.load_pem_public_key(doc["ak_pem"].encode())
-            vcek = load_pem_certificate(doc["vcek_pem"].encode())
+            # Azure's THIM currently serves an otherwise verifiable AMD VCEK with
+            # a non-positive serial. Keep the compatibility exception local to
+            # this authenticated provider leaf; every other provider certificate
+            # continues to use WCM's positive-serial policy.
+            vcek = load_pem_certificate(
+                doc["vcek_pem"].encode(), allow_non_positive_serial=True
+            )
             intermediates = [
                 load_pem_certificate(p.encode())
                 for p in doc["intermediates_pem"]

@@ -21,6 +21,13 @@ BINDING = b"\xcd" * 32
 MEASUREMENT = "sha256:" + "42" * 32
 
 
+def test_expected_pcr23_quote_digest_has_both_tpm_hash_stages() -> None:
+    event = bytes.fromhex(MEASUREMENT.removeprefix("sha256:"))
+    pcr_value = hashlib.sha256(bytes(32) + event).digest()
+    assert expected_pcr23_digest(MEASUREMENT) == hashlib.sha256(pcr_value).digest()
+    assert expected_pcr23_digest(MEASUREMENT) != pcr_value
+
+
 def _cert(subject, issuer, key, issuer_key, *, ca=False):
     b = (
         x509.CertificateBuilder()

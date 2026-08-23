@@ -22,10 +22,17 @@ the AK-signed quote. Missing tools, an invalid measurement, or either TPM comman
 failing aborts evidence production; the provider never falls back to quoting an
 unmeasured PCR state.
 
-The expected quoted digest is:
+PCR 23 after the reset and extend is:
 
 ```text
 SHA256(00 × 32 || serving_image_digest)
+```
+
+The TPM quote's signed `pcrDigest` hashes the concatenated selected PCR values.
+WCM selects only PCR 23, so the verifier expects:
+
+```text
+SHA256(SHA256(00 × 32 || serving_image_digest))
 ```
 
 The KBS supplies the manifest-approved measurement to the verifier. It does not
@@ -44,12 +51,15 @@ override a PCR mismatch.
 
 The repository's isolated tests build a sanitized quote and cover valid launch,
 wrong PCR digest, wrong policy measurement, malformed digest, and missing PCR.
-A real Azure confidential-VM capture is still required before claiming the
-measured-launch procedure was validated on that platform. A publishable receipt
-must contain only hashes, tool versions, generic VM/SKU information, boolean
-verdicts, and timestamps. It must not contain raw HCL, certificates tied to a
-tenant, provider tokens, subscription/resource identifiers, hostnames, IPs,
-customer names, or event-specific material.
+The procedure was also exercised on an Azure `Standard_DC2as_v5` confidential
+VM with AMD SEV-SNP and a vTPM. The sanitized, commit-pinned receipt and its
+reproduction notes are in the
+[Azure PCR 23 validation pack](../python/tests/fixtures/live-validation/weight-custody-manifest/azure-pcr23-2026-08-23/README.md).
+
+A publishable receipt contains only hashes, tool versions, generic VM/SKU
+information, boolean verdicts, and timestamps. It must not contain raw HCL,
+certificates tied to a tenant, provider tokens, subscription/resource
+identifiers, hostnames, IPs, customer names, or event-specific material.
 
 ## What this proves
 

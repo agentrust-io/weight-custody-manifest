@@ -1,0 +1,37 @@
+{
+  "kind": "wcm-azure-measured-launch/v1",
+  "captured_at": "2026-08-23T19:35:47.470162+00:00",
+  "classification": "sanitized public validation evidence",
+  "release_candidate": "4b2bf79397eb1dd27c9dce9cfd467a0ef2f5739a",
+  "environment": {
+    "provider": "Microsoft Azure",
+    "confidential_vm_sku": "Standard_DC2as_v5",
+    "cpu_tee": "AMD SEV-SNP",
+    "guest_kernel": "6.8.0-1064-azure-fde",
+    "tpm2_tools": "tool=\"tpm2_getcap\" version=\"5.2\" tctis=\"libtss2-tctildr\" tcti-default=tcti-device"
+  },
+  "measurement": {
+    "algorithm": "sha256",
+    "pcr": 23,
+    "serving_image_sha256": "5e2d5e2d5e2d5e2d5e2d5e2d5e2d5e2d5e2d5e2d5e2d5e2d5e2d5e2d5e2d5e2d",
+    "expected_pcr23_sha256": "f57e9892dbaa637dd264bd73cd0e906b97c892493885e8905eee6111b3fd9529"
+  },
+  "evidence": {
+    "quote_sha256": "88c87bc14a58af9248f82972ada6789e1e4cc00586705c7c355f09beb21521b2",
+    "challenge_sha256": "f794e93ac0e7712aec242b52978fab1a03ada75f955375ca2fae08f54bebb68f",
+    "transport_public_key_sha256": "d6e59cd4dc0b49718e3ee7752d9e651ee6061478aa2a6bdcaae40a4d4cd3709a"
+  },
+  "positive": {
+    "verified": true,
+    "reason": null
+  },
+  "negative_wrong_measurement": {
+    "verified": false,
+    "reason": "TPM PCR digest does not match the approved workload measurement"
+  },
+  "passed": true,
+  "limits": [
+    "Proves one fresh AK-signed quote selected SHA-256 PCR 23 after the WCM reset-and-extend procedure.",
+    "Does not prove immunity to physical extraction, memory-bus attacks, or later remapping."
+  ]
+}
