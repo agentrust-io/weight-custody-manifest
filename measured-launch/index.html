@@ -1306,8 +1306,12 @@ by <code>tpm2_pcrextend 23:sha256=&lt;serving-image-digest&gt;</code>, then imme
 the AK-signed quote. Missing tools, an invalid measurement, or either TPM command
 failing aborts evidence production; the provider never falls back to quoting an
 unmeasured PCR state.</p>
-<p>The expected quoted digest is:</p>
+<p>PCR 23 after the reset and extend is:</p>
 <div class="highlight"><pre><span></span><code>SHA256(00 × 32 || serving_image_digest)
+</code></pre></div>
+<p>The TPM quote's signed <code>pcrDigest</code> hashes the concatenated selected PCR values.
+WCM selects only PCR 23, so the verifier expects:</p>
+<div class="highlight"><pre><span></span><code>SHA256(SHA256(00 × 32 || serving_image_digest))
 </code></pre></div>
 <p>The KBS supplies the manifest-approved measurement to the verifier. It does not
 use <code>cpu.serving_image_measurement</code> as proof by itself. The verifier parses the
@@ -1321,12 +1325,14 @@ override a PCR mismatch.</p>
 <h2 id="reproducible-azure-validation">Reproducible Azure validation<a class="headerlink" href="#reproducible-azure-validation" title="Permanent link">&para;</a></h2>
 <p>The repository's isolated tests build a sanitized quote and cover valid launch,
 wrong PCR digest, wrong policy measurement, malformed digest, and missing PCR.
-A real Azure confidential-VM capture is still required before claiming the
-measured-launch procedure was validated on that platform. A publishable receipt
-must contain only hashes, tool versions, generic VM/SKU information, boolean
-verdicts, and timestamps. It must not contain raw HCL, certificates tied to a
-tenant, provider tokens, subscription/resource identifiers, hostnames, IPs,
-customer names, or event-specific material.</p>
+The procedure was also exercised on an Azure <code>Standard_DC2as_v5</code> confidential
+VM with AMD SEV-SNP and a vTPM. The sanitized, commit-pinned receipt and its
+reproduction notes are in the
+<a href="../python/tests/fixtures/live-validation/weight-custody-manifest/azure-pcr23-2026-08-23/README.md">Azure PCR 23 validation pack</a>.</p>
+<p>A publishable receipt contains only hashes, tool versions, generic VM/SKU
+information, boolean verdicts, and timestamps. It must not contain raw HCL,
+certificates tied to a tenant, provider tokens, subscription/resource
+identifiers, hostnames, IPs, customer names, or event-specific material.</p>
 <h2 id="what-this-proves">What this proves<a class="headerlink" href="#what-this-proves" title="Permanent link">&para;</a></h2>
 <p>It proves that the authenticated AK signed the expected PCR state for this fresh
 release attempt. It does not prove immunity to physical extraction, forged
