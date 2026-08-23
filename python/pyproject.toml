@@ -57,12 +57,16 @@ dev = [
 [project.scripts]
 wcm = "wcm.cli:main"
 
+# Every URL here must resolve for an ANONYMOUS reader. The repository is still
+# private (#40, "Flip visibility to public"), so any github.com/agentrust-io/
+# weight-custody-manifest link 404s for everyone who is not a member, and PyPI
+# renders it as a live link regardless. Restore Source, Issues and Changelog in
+# the same change that flips the repo, not before: #40 warned that a release cut
+# ahead of the flip ships dead links, and v0.26.0 did exactly that.
 [project.urls]
-Homepage = "https://github.com/agentrust-io/weight-custody-manifest"
+Homepage = "https://wcm.agentrust-io.com"
 Documentation = "https://wcm.agentrust-io.com"
-Source = "https://github.com/agentrust-io/weight-custody-manifest"
-Issues = "https://github.com/agentrust-io/weight-custody-manifest/issues"
-Changelog = "https://github.com/agentrust-io/weight-custody-manifest/blob/main/CHANGELOG.md"
+Examples = "https://github.com/agentrust-io/examples/tree/main/weight-custody-manifest"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/wcm"]
