@@ -135,6 +135,12 @@ from .memory_sweep import (
     run_memory_sweep,
     verify_memory_sweep,
 )
+from .artifact_digest import (
+    RECIPE_ID as ARTIFACT_DIGEST_RECIPE,
+    ArtifactDigestError,
+    artifact_digest,
+    artifact_files,
+)
 from .lineage import verify_lineage, LineageResult, is_root
 from .transparency import (
     TransparencyLog,
@@ -195,6 +201,10 @@ __all__ = [
     "HashValue",
     "canonicalize",
     "canonical_hash",
+    "ARTIFACT_DIGEST_RECIPE",
+    "ArtifactDigestError",
+    "artifact_digest",
+    "artifact_files",
     "WCM_SIGNED_FIELDS",
     "signing_pre_image",
     "generate_ed25519",
