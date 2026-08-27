@@ -35,8 +35,15 @@ pip install -i https://test.pypi.org/simple/ weight-custody-manifest
 ## Cut a real release
 
 1. Bump `__version__` in `python/src/wcm/__init__.py`.
-2. Update `CHANGELOG.md`.
-3. Commit via PR, merge to `main`.
+2. Update `CHANGELOG.md`. **Diff it against `git log v<last>..HEAD` first.** 0.27.0
+   found seven merged PRs with no entry at all, one of them a security change, and
+   a notes section covering two of nine changes is worse than none because it
+   reads as complete.
+3. Commit via PR, merge to `main`. The `downstream-examples` job has already run
+   the public demos in `agentrust-io/examples` against a wheel built from the
+   branch, so a change that breaks them fails on the PR rather than after upload.
+   If it did fail, that is not automatically a reason to revert: a security fix
+   *should* break a demo relying on the hole. Land the demo fix alongside.
 4. Tag and create a GitHub Release on that commit:
    ```bash
    git tag v0.25.0 && git push origin v0.25.0

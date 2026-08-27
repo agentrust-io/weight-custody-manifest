@@ -67,6 +67,62 @@ jobs:
           PY
           /tmp/sdist-venv/bin/wcm conformance
 
+  downstream-examples:
+    # The public demos in agentrust-io/examples, run against a wheel built from
+    # THIS branch rather than against whatever is on PyPI.
+    #
+    # 0.27.0 is why. It shipped two correct security changes, and both broke
+    # demos there: release began refusing manifests whose identity was not
+    # pinned out of band (#98), and the memory-fingerprint challenge began
+    # requiring a signed sweep (#95). Six demos that passed on 0.26.0 failed on
+    # 0.27.0. Nothing caught it, because that repository only ever tests against
+    # a version already published, so the earliest possible detection was after
+    # the upload, which is after a version number can be taken back.
+    #
+    # A change here that breaks them now fails on the pull request that causes
+    # it. That is not automatically a reason to revert: a security fix SHOULD
+    # break a demo that was relying on the hole. It is a reason to know, and to
+    # land the demo fix alongside rather than discover it afterwards.
+    #
+    # The list of what to run lives in that repository, next to the demos, as
+    # run_demos.py. Duplicating it here is what created the gap in the first
+    # place.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+
+      - name: Build the wheel this branch would ship
+        working-directory: python
+        run: |
+          python -m pip install --upgrade pip build
+          python -m build --wheel
+
+      - name: Check out the public examples
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: agentrust-io/examples
+          path: examples
+          persist-credentials: false
+
+      - name: Install the branch wheel over the pinned release
+        # The examples pin a published floor in requirements.txt. Installing
+        # those first and the local wheel second is deliberate: it brings in the
+        # extras the demos need, then replaces the SDK with the one under
+        # review. --force-reinstall because the pinned floor is often already
+        # satisfied by the version being replaced.
+        run: |
+          python -m pip install -r examples/weight-custody-manifest/requirements.txt
+          python -m pip install "model-signing>=1.1,<2" pytest
+          python -m pip install --force-reinstall --no-deps python/dist/*.whl
+          python -c "import wcm; print('testing against', wcm.__version__)"
+
+      - name: Run every offline demo and the unit tests
+        working-directory: examples/weight-custody-manifest
+        run: python run_demos.py
+
   test:
     runs-on: ubuntu-latest
     strategy:
