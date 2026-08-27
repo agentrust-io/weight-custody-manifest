@@ -1,0 +1,133 @@
+{
+  "attestation": {
+    "hcl_report_available": true,
+    "hcl_report_bytes": 2600,
+    "hcl_report_sha256": "84ef2a6a9960bbd526f151aafe5e080791bc2af751245cfda9f08e4bc8fbe13c",
+    "nonce_derivation": "sha256(HCL report)",
+    "note": "The raw report is deliberately not included. It carries platform identifiers, and what these receipts need is that the challenge was bound to a live attestation, which the digest shows."
+  },
+  "captured_at": "2026-08-27T18:01:50Z",
+  "custody_chain": {
+    "chain_events": [
+      "lease_started",
+      "lapse_detected",
+      "wipe_requested",
+      "wipe_completed",
+      "process_terminated"
+    ],
+    "chain_length": 5,
+    "chain_reason": "valid terminal runtime record chain",
+    "chain_verified_as_terminal": true,
+    "issue": 78,
+    "lapsed_on_its_own": true,
+    "limits": "This demonstrates the reference state machine refusing to serve after a real elapsed lapse, and a signed chain that verifies as terminal. It does not demonstrate language-level or hardware zeroization: EnclaveSession.zeroize overwrites its own buffer, and Python may have copied those bytes elsewhere. Production zeroization belongs to the enclave runtime below Python.",
+    "negative_gapped_chain_rejected": true,
+    "negative_truncated_chain_rejected": true,
+    "operation_after_wipe_refused_with": "KeyWipedError",
+    "operations_served_before_lapse": 1,
+    "records": [
+      {
+        "algorithm": "Ed25519",
+        "detail": {
+          "cadence_seconds": 2
+        },
+        "event": "lease_started",
+        "kind": "wcm-runtime-record/v1",
+        "lease_id": "25e92bb29f538ee9788c1442afee1dee",
+        "manifest_hash": "sha256:05b3abf2579a5eb66403cd78be557fd860633a1fe2103c7642030defe32c657f",
+        "occurred_at": "2026-08-27T18:01:52Z",
+        "previous_record_hash": null,
+        "public_key_b64url": "rrIaeYM8KtoWzjfZdCBZ5kDLshZARv6_69v4QjDHMLU",
+        "sequence": 0,
+        "signature_b64url": "kFOqvnBj_eieflY2KYF8Jdqh6pClZjacFcJosbRggqV-JMKJHvoXQnQKZO6lMuSVKT8t4yAmGwq_N0NAfrv6CA",
+        "weights_hash": "sha256:36be3570960f495ce06f465c93674298ecbe1b21748ff8b210ff25b35e37b26d"
+      },
+      {
+        "algorithm": "Ed25519",
+        "detail": {
+          "reason": "attestation cadence elapsed"
+        },
+        "event": "lapse_detected",
+        "kind": "wcm-runtime-record/v1",
+        "lease_id": "25e92bb29f538ee9788c1442afee1dee",
+        "manifest_hash": "sha256:05b3abf2579a5eb66403cd78be557fd860633a1fe2103c7642030defe32c657f",
+        "occurred_at": "2026-08-27T18:01:57Z",
+        "previous_record_hash": "sha256:a1ebdaac5f679cc5e0bf653d3cebf574d8d736e090b63e7b998a7184ab8eec17",
+        "public_key_b64url": "rrIaeYM8KtoWzjfZdCBZ5kDLshZARv6_69v4QjDHMLU",
+        "sequence": 1,
+        "signature_b64url": "W8hvFzfXRBoLg8HDD-HpyFCeZ0sa8yX0EZhbr8x_UVorzlkZRJDqQNuQ8su7Gegi3spyMAERJA8-Ie8MjE9NAg",
+        "weights_hash": "sha256:36be3570960f495ce06f465c93674298ecbe1b21748ff8b210ff25b35e37b26d"
+      },
+      {
+        "algorithm": "Ed25519",
+        "detail": {},
+        "event": "wipe_requested",
+        "kind": "wcm-runtime-record/v1",
+        "lease_id": "25e92bb29f538ee9788c1442afee1dee",
+        "manifest_hash": "sha256:05b3abf2579a5eb66403cd78be557fd860633a1fe2103c7642030defe32c657f",
+        "occurred_at": "2026-08-27T18:01:57Z",
+        "previous_record_hash": "sha256:b31279e8b8e4ed336b2279a71b428375134ed48ba89e705ed70fd7c028926f35",
+        "public_key_b64url": "rrIaeYM8KtoWzjfZdCBZ5kDLshZARv6_69v4QjDHMLU",
+        "sequence": 2,
+        "signature_b64url": "8YRelp0iJMSp954TIslw91HP0-4WhXN9YMEwOlpGxDxOLjqFb09-akwhOHfVxYgsaK6qZfPwgKDFX8gx0y7DCA",
+        "weights_hash": "sha256:36be3570960f495ce06f465c93674298ecbe1b21748ff8b210ff25b35e37b26d"
+      },
+      {
+        "algorithm": "Ed25519",
+        "detail": {},
+        "event": "wipe_completed",
+        "kind": "wcm-runtime-record/v1",
+        "lease_id": "25e92bb29f538ee9788c1442afee1dee",
+        "manifest_hash": "sha256:05b3abf2579a5eb66403cd78be557fd860633a1fe2103c7642030defe32c657f",
+        "occurred_at": "2026-08-27T18:01:57Z",
+        "previous_record_hash": "sha256:b34c9c4aa0b5803cc748d11c22a9f9eda58c920077608e006d45e586f7ecbe44",
+        "public_key_b64url": "rrIaeYM8KtoWzjfZdCBZ5kDLshZARv6_69v4QjDHMLU",
+        "sequence": 3,
+        "signature_b64url": "3ZZHD08ec7deFaOAkzX1TXBWoCRV7q2GzuHTXcZPPnRYcBf_On35aDGmN8ezM86NWBWNep0J6S-j9FjljuHRCw",
+        "weights_hash": "sha256:36be3570960f495ce06f465c93674298ecbe1b21748ff8b210ff25b35e37b26d"
+      },
+      {
+        "algorithm": "Ed25519",
+        "detail": {},
+        "event": "process_terminated",
+        "kind": "wcm-runtime-record/v1",
+        "lease_id": "25e92bb29f538ee9788c1442afee1dee",
+        "manifest_hash": "sha256:05b3abf2579a5eb66403cd78be557fd860633a1fe2103c7642030defe32c657f",
+        "occurred_at": "2026-08-27T18:01:57Z",
+        "previous_record_hash": "sha256:491934be983ee914a8abf97222cdf79cb5bd6778472d2be4b26aae7b5a9c2c10",
+        "public_key_b64url": "rrIaeYM8KtoWzjfZdCBZ5kDLshZARv6_69v4QjDHMLU",
+        "sequence": 4,
+        "signature_b64url": "gYTi3iw-EYujkVKhVE8u9sksaBDMnkXnxhGVxnGRBtn6l8OsJ_7-uaPhelIG3GEskhvRaQ2DLii7VDI8_HviCQ",
+        "weights_hash": "sha256:36be3570960f495ce06f465c93674298ecbe1b21748ff8b210ff25b35e37b26d"
+      }
+    ],
+    "runtime_public_key_b64url": "rrIaeYM8KtoWzjfZdCBZ5kDLshZARv6_69v4QjDHMLU",
+    "state_after_lapse": "wiped",
+    "what_ran": "a real lease taken to lapse by elapsed time, wiped, and terminated"
+  },
+  "guest": {
+    "cpu_model": "AMD EPYC 7763 64-Core Processor",
+    "kernel": "6.17.0-1018-azure-fde",
+    "machine": "x86_64",
+    "python": "3.12.3",
+    "sev_snp_in_cpuinfo": false
+  },
+  "memory_sweep": {
+    "aliasing_detected": false,
+    "bytes": 268435456,
+    "elapsed_seconds": 2.178,
+    "issue": 79,
+    "limits": "The pages swept are SEV-SNP-encrypted guest DRAM, so this runs over real protected memory rather than a bytearray on an ordinary host. It establishes nothing about physical memory extraction: a sweep running inside the guest cannot observe a DDR interposer outside it, and TEE.fail and BadRAM are unaffected. See SPEC.md section 3.6.",
+    "locked_in_ram": true,
+    "negative_tampered_readback_rejected": true,
+    "negative_tampered_reason": "memory sweep signature is invalid",
+    "negative_wrong_key_rejected": true,
+    "nonce_source": "vtpm-attestation",
+    "page_size": 4096,
+    "pages": 65536,
+    "sweep_public_key_b64url": "A0tMsSsLusO_sgFI2zz-3d9RwIznnoEtrPwvQ5h8Bf4",
+    "verified": true,
+    "verify_reason": "memory sweep transcript is complete and signed",
+    "what_ran": "memory-fingerprint sweep over a real mmap region inside the guest"
+  }
+}

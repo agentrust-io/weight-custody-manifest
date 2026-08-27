@@ -6,7 +6,32 @@ uses semantic-ish versioning while pre-1.0.
 
 ## Unreleased
 
-Nothing yet.
+**[evidence/hardware]** Captured protected-runtime evidence on a real Azure
+SEV-SNP confidential VM (`Standard_DC2ads_v5`, AMD EPYC 7763), closing the two
+things issues #78 and #79 said a unit test could not settle.
+
+The memory-fingerprint sweep ran over 256 MB of SEV-SNP-encrypted guest DRAM,
+mlock'd so the region could not page out under the write pressure the sweep
+creates, at 65536 pages rather than the 64 a unit test uses. The challenge nonce
+was derived from a live vTPM attestation report read from NV index
+`0x01400001`, so the sweep is bound to that guest rather than to an invented
+string. Both negatives were exercised on the same hardware: a tampered readback
+and a wrong verifying key are rejected.
+
+The custody lease lapsed because time passed, not because a test called
+`zeroize`, and the runtime then refused the next operation with `KeyWipedError`
+on its own. The result is a five-record signed chain that verifies as terminal.
+
+`tests/test_protected_runtime_receipt.py` re-runs the signature and chain
+verification offline from the committed records rather than reading a boolean
+the capture wrote, and re-checks the truncated, gapped and wrong-key negatives
+here. The raw attestation report is deliberately not committed: it carries
+platform identifiers, and only its digest is needed to show the binding.
+
+None of this touches the guarantee scope. A sweep running inside the guest
+cannot observe a DDR interposer outside it; TEE.fail and BadRAM are unaffected
+and `SPEC.md` section 3.6 is unchanged. The receipt carries that caveat in its
+own text.
 
 ## 0.27.0 - 2026-08-27
 
