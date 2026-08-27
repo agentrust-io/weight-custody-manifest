@@ -6,6 +6,23 @@ uses semantic-ish versioning while pre-1.0.
 
 ## Unreleased
 
+**[sdk]** Added `wcm.artifact_digest`, the deterministic content digest for a
+model artifact on disk, named `wcm-artifact-digest/v1`. `SPEC.md` takes
+`weights_hash` as given and says nothing about how a directory of shards,
+indexes and tokenizer assets collapses into one value, so every consumer
+invented it: the same construction already existed in three places outside this
+repository with nothing keeping them in step. A recipe that exists several times
+does not stay one recipe, and when the copies drift the mismatch presents as
+`weights_hash` not matching, which reads as tampered weights.
+
+This is a convention rather than specification, and `RECIPE_ID` says so: a
+deployment computing `weights_hash` another way is not non-conforming, it simply
+must not expect this function to agree. Symlinks are refused by default, which
+the prior copies did not do, because following one lets a digest cover bytes
+outside the artifact and lets those bytes change without anything in the
+artifact changing.
+
+
 **[hardware/azure]** Corrected Azure vTPM measured-launch verification against
 real `Standard_DC2as_v5` hardware. TPM quote `pcrDigest` is the SHA-256 of the
 selected PCR values, so the single-PCR policy requires a second hash over PCR
