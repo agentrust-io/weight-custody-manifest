@@ -71,13 +71,21 @@ provider-specific procedures linked from [the implementation README](python/READ
 | Attestation-gated, transport-key-sealed release | Implemented; provider paths have documented validation status | A configured verifier fails closed on the checks it performs |
 | Azure vTPM workload binding | PCR 23 digest is checked against the manifest-approved measurement | The signed quote matches the expected measured-launch PCR state |
 | Renewable lease and wipe-on-lapse semantics | Reference state machine implemented | The Python reference transitions to wiped and refuses later use |
-| Protected-memory fingerprint sweep | Full-range signed reference sweep implemented; protected-boundary hardware evidence remains open | The algorithm detects controlled alias mappings; do **not** claim production protection until the real runtime receipt exists |
-| Production zeroization and inference termination | Reference semantics exist; production controller evidence remains open | Do **not** claim language/runtime/hardware zeroization from unit tests |
+| Protected-memory fingerprint sweep | Signed full-range sweep implemented, and captured on a real SEV-SNP guest over 256 MB of encrypted DRAM with the challenge bound to a live vTPM attestation | The algorithm detects controlled alias mappings and runs over genuinely protected memory; this says **nothing** about physical extraction, and a sweep inside the guest cannot see an interposer outside it |
+| Production zeroization and inference termination | A real lease taken to lapse inside a SEV-SNP guest, wiped, and recorded as a signed terminal runtime-record chain that reverifies offline | The runtime stops serving on its own and the account of it is tamper-evident; still do **not** claim language, runtime or hardware zeroization, which belongs below Python |
 
-The last two rows are deliberately explicit: issues
-[#79](https://github.com/agentrust-io/weight-custody-manifest/issues/79) and
-[#78](https://github.com/agentrust-io/weight-custody-manifest/issues/78) require
-evidence from the actual protected runtime, not a more persuasive simulation.
+The last two rows were open for one reason: both needed evidence from an actual
+protected runtime rather than a more persuasive simulation. That evidence now
+exists. `tools/capture_protected_runtime.py` produced it on an Azure
+`Standard_DC2ads_v5` SEV-SNP confidential VM, and
+`tests/test_protected_runtime_receipt.py` re-verifies the signed records offline
+rather than trusting the capture's own report of what it saw.
+
+What the capture does not establish is stated in the receipt itself, so a reader
+who finds the JSON without this file still gets it: nothing here bears on
+physical memory extraction. A sweep running inside the guest cannot observe a
+DDR interposer outside it, TEE.fail and BadRAM are unaffected, and `SPEC.md`
+section 3.6 is unchanged.
 
 ## What this is
 
