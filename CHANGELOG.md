@@ -6,6 +6,10 @@ uses semantic-ish versioning while pre-1.0.
 
 ## Unreleased
 
+Nothing yet.
+
+## 0.27.0 - 2026-08-27
+
 **[sdk]** Added `wcm.artifact_digest`, the deterministic content digest for a
 model artifact on disk, named `wcm-artifact-digest/v1`. `SPEC.md` takes
 `weights_hash` as given and says nothing about how a directory of shards,
@@ -32,6 +36,48 @@ selected PCR values, so the single-PCR policy requires a second hash over PCR
 default while allowing Azure's THIM-provided AMD VCEK leaf through an explicit,
 provider-local compatibility path. Other provider certificates still fail
 closed on non-positive serial numbers.
+
+**[security/kbs]** Key release now requires the complete authority-layer manifest
+identity to be pinned out of band. Without it a caller could present an
+attacker-authored policy that reused a weights hash the broker already held, and
+be released against terms nobody agreed. Servers built from the environment must
+load explicit trusted manifest identities, and the gate is carried into signed
+renewal decisions rather than being a release-time check a renewal could route
+around. (#98)
+
+**[sdk/runtime]** Added `wcm.runtime_records`: Ed25519-signed, hash-chained
+custody records with contiguous sequence enforcement, so a protected runtime can
+produce a portable receipt for its own lease lifecycle rather than a log line
+anybody could write. `RuntimeEvent` covers lease start, renewal, lapse,
+revocation, wipe request, wipe completion and process termination. (#94)
+
+**[sdk/runtime]** Added `wcm.memory_sweep`: a signed protected-memory sweep that
+writes unpredictable nonce-derived data across every page of a declared range and
+reads them back in a distinct nonce-derived order, so a controlled alias mapping
+of the kind a BadRAM-class attack produces is detectable. The algorithm is
+implemented and tested; protected-boundary hardware evidence remains open
+(issue #79), and `LIMITATIONS.md` is unchanged on that point. (#95)
+
+**[hardware/azure]** The Azure provider now resets application-owned PCR 23 and
+extends it exactly once with the canonical manifest-approved SHA-256
+serving-image digest before each release attempt, closing the repository-side
+half of measured launch. (#93)
+
+**[security/attestation]** Bound the Azure vTPM SHA-256 PCR 23 value to the
+manifest-approved workload measurement, with coverage for wrong state, wrong
+measurement, malformed digest and absent policy. Defined a deterministic
+fail-closed RFC 5280 policy for non-positive certificate serial numbers; CI
+exercises both cryptography 50's real warning path and a simulated cryptography
+51 load-time exception, and the runtime dependency stays capped below the
+unreleased 51. (#92)
+
+**[packaging]** Every project URL on PyPI now resolves for an anonymous reader.
+0.26.0 shipped four links that 404 while this repository is private, which PyPI
+renders as live regardless. (#100)
+
+**[tests]** TDX missing-device coverage no longer depends on the host running the
+suite, so the fail-closed assertion still holds on a machine with real Intel TDX
+hardware. (#102)
 
 ## 0.26.0 - 2026-08-21
 
