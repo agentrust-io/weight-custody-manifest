@@ -106,14 +106,17 @@ ALLOWLIST = {
     "python/tools/paired_hardware_release.py": {
         "internal-classification-label": "emits the label by design"},
 
-    # OPEN DEBT, not a decision. This fixture is SHA-256 pinned by
-    # tests/test_paired_hardware_receipt.py, so redacting it breaks the
+    # OPEN in the tree, closed at the package boundary. This fixture is SHA-256
+    # pinned by tests/test_paired_hardware_receipt.py, so redacting it breaks the
     # integrity pin that proves the receipt is the one the hardware produced.
-    # Resolving it means deciding whether evidentiary pinning or publishability
-    # wins -- a judgement call, not a cleanup. Owner: Imran. See RCA-0008.
+    # Rather than trade the pin against publishability, it is EXCLUDED FROM THE
+    # SDIST (python/pyproject.toml, [tool.hatch.build.targets.sdist] exclude), so
+    # the pin keeps working here and the identifier is not published. The OPEN
+    # marker is load-bearing: test_leak_scan.py asserts every OPEN entry is in
+    # that exclude list. Owner: Imran. See RCA-0008.
     "python/tests/fixtures/live-validation/weight-custody-manifest/paired-2026-08-20/paired-release.json": {
-        "device-certificate-serial": "OPEN: SHA-256 pinned evidence; redaction breaks the pin (RCA-0008)",
-        "internal-classification-label": "OPEN: same pinned record (RCA-0008)"},
+        "device-certificate-serial": "OPEN in-tree, excluded from the sdist (RCA-0008)",
+        "internal-classification-label": "OPEN in-tree, excluded from the sdist (RCA-0008)"},
 }
 
 
