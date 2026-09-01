@@ -4,7 +4,38 @@ Notable changes to the Weight Custody Manifest specification and Python SDK.
 Format loosely follows [Keep a Changelog](https://keepachangelog.com/); the SDK
 uses semantic-ish versioning while pre-1.0.
 
-## Unreleased
+## 0.28.0 - 2026-09-01
+
+**[security/packaging]** Removed internal infrastructure identifiers from two
+test-fixture documents under `python/tests/fixtures/live-validation/`, and added
+`tools/leak_scan.py` plus a `leak-scan` workflow that runs on every push, pull
+request and published release.
+
+The scan matches identifier *shapes* rather than a list of known-bad strings:
+bare GUIDs, cloud resource names, X.509 `serialNumber` attributes, private-key
+blocks and cloud access-key IDs. The control it replaces was a manual denylist of
+named entities, which by construction could not match an identifier it had never
+been told about, and which only ran when someone remembered to run it. Running in
+CI also closes the gap that every previous control guarded the repository's
+visibility, while a package index is reached by `twine upload` regardless of what
+that visibility says.
+
+The allowlist carries six documented exceptions, each with a reason. One is open
+debt rather than a decision: `paired-2026-08-20/paired-release.json` is SHA-256
+pinned by `tests/test_paired_hardware_receipt.py`, so editing it would break the
+integrity pin that shows the receipt is the one the hardware produced. It carries
+a classification label and no identifiers.
+
+**[ci]** The public demos now run against the wheel the branch would actually
+ship rather than an editable checkout, so a packaging regression fails before a
+release instead of after one.
+
+**[ci]** The leak scan matched its `ALLOWLIST` keys against native path strings,
+so on Windows every exemption missed and a clean tree failed with eleven false
+findings. CI is Linux and stayed green throughout. It now compares POSIX paths,
+and `tests/test_leak_scan.py` pins the separator contract, the exemption
+behaviour, and that no allowlist key has gone stale against the tree.
+
 
 **[evidence/hardware]** Captured protected-runtime evidence on a real Azure
 SEV-SNP confidential VM (`Standard_DC2ads_v5`, AMD EPYC 7763), closing the two
