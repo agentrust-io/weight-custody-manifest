@@ -33,7 +33,7 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parent.parent
 
 # Directories that never ship and never need scanning.
-SKIP_DIRS = {".git", ".github/workflows/cache", "node_modules", "__pycache__",
+SKIP_DIRS = {".git", "node_modules", "__pycache__",
              ".pytest_cache", ".venv", "venv", "dist", "build", ".mypy_cache",
              ".ruff_cache", "htmlcov"}
 
@@ -126,7 +126,12 @@ def iter_files():
             continue
         if p.suffix.lower() in SKIP_EXT:
             continue
-        yield p, str(rel)
+        # as_posix(), not str(): ALLOWLIST keys are written with forward
+        # slashes, and str() on Windows yields backslashes, so every exemption
+        # silently missed and the scan failed on a clean tree. CI is Linux, so
+        # only a maintainer running this locally before a manual publish would
+        # have hit it -- which is exactly the case this scanner exists to cover.
+        yield p, rel.as_posix()
 
 
 def main() -> int:
