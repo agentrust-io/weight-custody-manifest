@@ -20,11 +20,21 @@ CI also closes the gap that every previous control guarded the repository's
 visibility, while a package index is reached by `twine upload` regardless of what
 that visibility says.
 
-The allowlist carries six documented exceptions, each with a reason. One is open
-debt rather than a decision: `paired-2026-08-20/paired-release.json` is SHA-256
-pinned by `tests/test_paired_hardware_receipt.py`, so editing it would break the
-integrity pin that shows the receipt is the one the hardware produced. It carries
-a classification label and no identifiers.
+`paired-2026-08-20/paired-release.json` is the one fixture still carrying a
+hardware identifier, an Azure SNP/vTPM device serial alongside the H100 model,
+driver, VBIOS and PCI address. It is SHA-256 pinned by
+`tests/test_paired_hardware_receipt.py`, so editing it would break the integrity
+pin that shows the receipt is the one the hardware produced. Rather than trade
+the pin against publishability, it is now excluded from the sdist: the pin keeps
+working in this repository, where the test runs, and the identifier is not
+published. The test skips when the file is absent, which is the honest behaviour
+for a source distribution that does not ship internal evidence, and
+`test_leak_scan.py` asserts that every allowlist entry still marked open is in
+that exclude list, so the two cannot drift apart.
+
+This is the same boundary the incident turned on. An allowlist records what is
+accepted *in the repository* and says nothing about what is published; treating
+those as one thing is what let a private repo ship identifiers to a public index.
 
 **[ci]** The public demos now run against the wheel the branch would actually
 ship rather than an editable checkout, so a packaging regression fails before a

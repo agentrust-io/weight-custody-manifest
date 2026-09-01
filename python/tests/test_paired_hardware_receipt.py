@@ -4,9 +4,26 @@ import hashlib
 import json
 from pathlib import Path
 
+import pytest
+
 PACK = (
     Path(__file__).parent
     / "fixtures/live-validation/weight-custody-manifest/paired-2026-08-20"
+)
+
+RECEIPT = PACK / "paired-release.json"
+
+# paired-release.json is deliberately excluded from the sdist: it carries an
+# Azure SNP/vTPM device serial and the H100 model, driver, VBIOS and PCI address,
+# and the sdist reaches a public index whatever this repository's visibility says
+# (RCA-0008). It cannot be redacted in place because the SHA-256 below is what
+# shows the receipt is the one the hardware produced, so the fixture stays whole
+# in the repository and does not ship. This test therefore runs in CI, where the
+# checkout has it, and skips for anyone running the suite out of an sdist.
+requires_receipt = pytest.mark.skipif(
+    not RECEIPT.exists(),
+    reason="paired-release.json is excluded from the sdist by design; see "
+    "python/pyproject.toml [tool.hatch.build.targets.sdist] exclude",
 )
 
 
@@ -14,8 +31,9 @@ def _sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+@requires_receipt
 def test_paired_hardware_receipt_is_pinned_and_fail_closed():
-    receipt = PACK / "paired-release.json"
+    receipt = RECEIPT
     assert (
         _sha256(receipt)
         == "16b9b39d381a1342491234b8024a3390894bdbe13a0fccee282f6f9a69b3d654"

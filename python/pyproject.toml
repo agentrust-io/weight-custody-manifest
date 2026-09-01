@@ -87,6 +87,22 @@ path = "hatch_build.py"
 [tool.hatch.build.targets.sdist]
 include = ["src/", "tests/", "examples/", "tools/", "README.md"]
 
+# The sdist reaches a PUBLIC index regardless of this repository's visibility,
+# which is the boundary RCA-0008 is about. This receipt is the one live-validation
+# fixture still carrying a hardware identifier: an Azure SNP/vTPM device serial,
+# plus the H100 model, driver, VBIOS and PCI address. It cannot be redacted in
+# place because tests/test_paired_hardware_receipt.py pins its SHA-256, and that
+# pin is what shows the receipt is the one the hardware actually produced.
+#
+# Excluding it from the sdist resolves that as a packaging question rather than an
+# evidentiary one: the pin keeps working in the repository, where the test runs in
+# CI, and the identifier stops being published. The test skips when the file is
+# absent, which is the honest behaviour for a source distribution that does not
+# ship internal evidence.
+exclude = [
+  "tests/fixtures/live-validation/weight-custody-manifest/paired-2026-08-20/paired-release.json",
+]
+
 # The sdist is built from python/, so the repo-root schema and the vector corpus
 # that tests/test_schema.py reads have to be pulled in explicitly, or an sdist
 # build cannot run its own test suite.

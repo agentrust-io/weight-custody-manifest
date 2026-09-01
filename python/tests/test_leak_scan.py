@@ -70,3 +70,32 @@ def test_scanner_reports_the_tree_clean() -> None:
     """Includes this file, which is allowlisted precisely because it must
     carry pattern-shaped strings to test the patterns at all."""
     assert leak_scan.main() == 0
+
+
+def test_open_allowlist_entries_are_excluded_from_the_sdist() -> None:
+    """An entry the allowlist calls OPEN must not reach a public index.
+
+    The allowlist says a match is known and accepted *in the repository*. It says
+    nothing about publication, and RCA-0008 is precisely the case where those two
+    came apart: the repository was private and the sdist was not. Anything still
+    marked OPEN therefore has to be excluded from the sdist as well, and this
+    keeps the two lists from drifting.
+    """
+    import tomllib
+
+    pyproject = Path(__file__).parents[1] / "pyproject.toml"
+    with pyproject.open("rb") as fh:
+        cfg = tomllib.load(fh)
+    excluded = set(
+        cfg["tool"]["hatch"]["build"]["targets"]["sdist"].get("exclude", [])
+    )
+
+    for key, reasons in leak_scan.ALLOWLIST.items():
+        if not any("OPEN" in reason for reason in reasons.values()):
+            continue
+        assert key.startswith("python/"), key
+        rel = key[len("python/"):]
+        assert rel in excluded, (
+            f"{key} is allowlisted as OPEN but still ships in the sdist; "
+            f"add {rel!r} to [tool.hatch.build.targets.sdist] exclude"
+        )
