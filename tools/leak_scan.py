@@ -86,6 +86,15 @@ ALLOWLIST = {
     # real-silicon fixtures." These keys protect nothing.
     "conformance/vectors/": {
         "private-key-block": "synthetic conformance PKI (PUBLIC-RELEASE.md:45)"},
+    # Tests the identifier patterns, so it must contain pattern-shaped strings
+    # or it tests nothing. The values there are synthetic placeholders, not the
+    # published ones; test_patterns_catch_the_identifier_classes_that_were_published
+    # says why. Reviewed 2026-09-01.
+    "python/tests/test_leak_scan.py": {
+        "azure-subscription-or-tenant-guid": "synthetic all-zero GUID under test",
+        "cloud-resource-name": "synthetic rg-/vm-example-placeholder under test",
+        "device-certificate-serial": "synthetic all-zero serial under test"},
+
     "python/tests/test_final_launch.py": {
         "private-key-block": "synthetic test key",
         "internal-classification-label": "asserts on the label value"},

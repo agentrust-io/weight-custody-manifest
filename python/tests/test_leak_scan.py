@@ -44,17 +44,29 @@ def test_exempt_honours_prefix_and_exact_keys() -> None:
     assert not leak_scan.exempt("python/src/wcm/__init__.py", "private-key-block")
 
 
-def test_patterns_catch_the_identifiers_that_were_published() -> None:
-    """The four classes that reached PyPI in 0.26.0 and 0.27.0 (RCA-0008)."""
-    sample = (
-        "- Azure subscription: `Test` (`a5980719-95dc-405d-a853-a29e6946f1a6`)\n"
-        "- Resource group: `rg-wcm-h100-eus2`\n"
-        "- VM: `vm-wcm-h100-eus2`\n"
-        "- Leaf subject: `CN=X,2.5.4.5=6536B34085535E72F1AB025E163C4661AE279CD9`\n"
-    )
-    fired = {name for name, rx, _ in leak_scan.BLOCKING if rx.search(sample)}
+# Deliberately synthetic. Asserting on the real values would recommit the exact
+# strings #107 removed, and the first draft of this test did precisely that --
+# the scanner caught it in CI, which is the control working. What is under test
+# is the identifier SHAPE, so the shape is what belongs here.
+SYNTHETIC_PACK = """
+- Azure subscription: `Example` (`00000000-0000-4000-8000-000000000000`)
+- Resource group: `rg-example-placeholder`
+- VM: `vm-example-placeholder`
+- Leaf subject: `CN=Example,2.5.4.5=00000000000000000000000000000000000000AB`
+"""
+
+
+def test_patterns_catch_the_identifier_classes_that_were_published() -> None:
+    """The three classes that reached PyPI in 0.26.0 and 0.27.0 (RCA-0008)."""
+    fired = {name for name, rx, _ in leak_scan.BLOCKING if rx.search(SYNTHETIC_PACK)}
     assert fired == {
         "azure-subscription-or-tenant-guid",
         "cloud-resource-name",
         "device-certificate-serial",
     }
+
+
+def test_scanner_reports_the_tree_clean() -> None:
+    """Includes this file, which is allowlisted precisely because it must
+    carry pattern-shaped strings to test the patterns at all."""
+    assert leak_scan.main() == 0
