@@ -1,7 +1,7 @@
 # WCM NVAT live composition validation — 2026-08-11
 
 **Result:** PASS  
-**Classification:** OPAQUE internal validation evidence  
+**Classification:** sanitized public validation evidence  
 **Environment:** Azure confidential H100, East US 2
 
 ## What passed
@@ -22,9 +22,9 @@ WCM challenge
 
 ## Environment
 
-- Azure subscription: `Test Customer Subscription` (`a5980719-95dc-405d-a853-a29e6946f1a6`)
-- Resource group: `rg-wcm-h100-eus2`
-- VM: `vm-wcm-h100-eus2`
+- Azure subscription: redacted (dedicated validation subscription)
+- Resource group: redacted
+- VM: redacted
 - Size: `Standard_NCC40ads_H100_v5`
 - Security: ConfidentialVM, Secure Boot, vTPM, `VMGuestStateOnly`
 - Network: private VM NIC; outbound-only NAT; no VM public IP
@@ -53,7 +53,7 @@ WCM challenge
 - VBIOS RIM: fetched, signed, measurements available, version matched
 - Measurement mismatches: none
 - WCM independent raw verifier: PASS
-- Leaf subject: `CN=GH100 A01 GSP FMC LF,O=NVIDIA Corporation,C=US,2.5.4.5=6536B34085535E72F1AB025E163C4661AE279CD9`
+- Leaf subject: `CN=GH100 A01 GSP FMC LF,O=NVIDIA Corporation,C=US` (device serial redacted)
 
 ## Evidence
 

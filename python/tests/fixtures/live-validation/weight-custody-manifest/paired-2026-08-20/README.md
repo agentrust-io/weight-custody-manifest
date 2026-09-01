@@ -1,7 +1,7 @@
 # WCM paired CPU and GPU release validation, 2026-08-20
 
 **Result:** PASS  
-**Classification:** OPAQUE internal validation evidence
+**Classification:** sanitized public validation evidence
 
 This pack closes the paired-hardware acceptance criteria in issue #77. It was
 captured from WCM commit `78839c751934c45f6f34988c878442ec2e8d827d` on an
