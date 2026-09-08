@@ -9,11 +9,18 @@ This policy covers:
 - Weaknesses in the manifest signing / verification, quote-verification, or KBS-gate logic
 - Issues with the reference KBS image or server that would release a key against manifest policy
 
-Out of scope: general Python dependency vulnerabilities (run `pip-audit`), GitHub Actions supply-chain issues, and issues in third-party TEE platforms (AMD SEV-SNP, Intel TDX, NVIDIA CC) themselves - those belong to the hardware vendors' threat models.
+- Dependency vulnerabilities that affect WCM's supported installation
+- Build, GitHub Actions, and package-publication weaknesses that could compromise a WCM release
+
+Platform vulnerabilities in AMD SEV-SNP, Intel TDX, or NVIDIA CC should also be reported to the hardware vendor. Report their impact on WCM's verification or documented security claims here.
+
+## Supported versions
+
+Security fixes target the latest published pre-1.0 SDK release. Update to the latest patch release before reproducing an issue; include the affected version in your report.
 
 ## The honest baseline (read before reporting)
 
-WCM does **not** claim silicon-enforced custody against an operator who physically owns the hardware. Cheap published memory-bus attacks (TEE.fail, BadRAM) extract keys and, on some platforms, forge attestation; WCM's response there is cost, detection, containment, legal recourse, and mandatory physical hardening, **not** cryptographic custody. This is stated throughout `SPEC.md` §3.6 and `THREAT-MODEL.md`, and the key-extraction half of open question 8.8 is deliberately open. A report that "a hardware owner can extract the key" is a known, documented limitation, not a vulnerability. A report that the SDK's authority-layer logic can be bypassed *within* its stated model is in scope.
+WCM does **not** claim silicon-enforced custody against an operator who physically owns the hardware. Cheap published memory-bus attacks (TEE.fail, BadRAM) extract keys and, on some platforms, forge attestation; WCM's response there is cost, detection, containment, legal recourse, and mandatory physical hardening, **not** cryptographic custody. This is stated throughout `SPEC.md` Â§3.6 and `THREAT-MODEL.md`, and the key-extraction half of open question 8.8 is deliberately open. A report that "a hardware owner can extract the key" is a known, documented limitation, not a vulnerability. A report that the SDK's authority-layer logic can be bypassed *within* its stated model is in scope.
 
 ## Reporting a vulnerability
 

@@ -44,10 +44,7 @@ def test_exempt_honours_prefix_and_exact_keys() -> None:
     assert not leak_scan.exempt("python/src/wcm/__init__.py", "private-key-block")
 
 
-# Deliberately synthetic. Asserting on the real values would recommit the exact
-# strings #107 removed, and the first draft of this test did precisely that --
-# the scanner caught it in CI, which is the control working. What is under test
-# is the identifier SHAPE, so the shape is what belongs here.
+# Synthetic identifiers exercise disclosure detection without exposing real values.
 SYNTHETIC_PACK = """
 - Azure subscription: `Example` (`00000000-0000-4000-8000-000000000000`)
 - Resource group: `rg-example-placeholder`
@@ -56,8 +53,8 @@ SYNTHETIC_PACK = """
 """
 
 
-def test_patterns_catch_the_identifier_classes_that_were_published() -> None:
-    """The three classes that reached PyPI in 0.26.0 and 0.27.0 (RCA-0008)."""
+def test_patterns_catch_infrastructure_identifiers() -> None:
+    """Infrastructure identifiers must block publication."""
     fired = {name for name, rx, _ in leak_scan.BLOCKING if rx.search(SYNTHETIC_PACK)}
     assert fired == {
         "azure-subscription-or-tenant-guid",
@@ -72,30 +69,55 @@ def test_scanner_reports_the_tree_clean() -> None:
     assert leak_scan.main() == 0
 
 
-def test_open_allowlist_entries_are_excluded_from_the_sdist() -> None:
-    """An entry the allowlist calls OPEN must not reach a public index.
+def test_exceptions_never_allow_known_open_findings() -> None:
+    assert not any("OPEN" in reason for patterns in leak_scan.ALLOWLIST.values()
+                   for reason in patterns.values())
 
-    The allowlist says a match is known and accepted *in the repository*. It says
-    nothing about publication, and RCA-0008 is precisely the case where those two
-    came apart: the repository was private and the sdist was not. Anything still
-    marked OPEN therefore has to be excluded from the sdist as well, and this
-    keeps the two lists from drifting.
-    """
-    import tomllib
 
-    pyproject = Path(__file__).parents[1] / "pyproject.toml"
-    with pyproject.open("rb") as fh:
-        cfg = tomllib.load(fh)
-    excluded = set(
-        cfg["tool"]["hatch"]["build"]["targets"]["sdist"].get("exclude", [])
-    )
+def test_findings_do_not_print_matched_values(tmp_path, monkeypatch, capsys) -> None:
+    source = tmp_path / "example.txt"
+    source.write_text("OPAQUE internal")
+    monkeypatch.setattr(leak_scan, "iter_files", lambda: iter([(source, "example.txt")]))
+    assert leak_scan.main() == 1
+    output = capsys.readouterr().out
+    assert "internal-classification-label" in output
+    assert "OPAQUE internal" not in output
 
-    for key, reasons in leak_scan.ALLOWLIST.items():
-        if not any("OPEN" in reason for reason in reasons.values()):
-            continue
-        assert key.startswith("python/"), key
-        rel = key[len("python/"):]
-        assert rel in excluded, (
-            f"{key} is allowlisted as OPEN but still ships in the sdist; "
-            f"add {rel!r} to [tool.hatch.build.targets.sdist] exclude"
-        )
+
+def test_unreadable_input_fails_closed(tmp_path, monkeypatch) -> None:
+    monkeypatch.setattr(leak_scan, "iter_files", lambda: iter([(tmp_path / "missing", "missing")]))
+    assert leak_scan.main() == 1
+
+
+def test_wheel_scans_content_and_limits_synthetic_exceptions(tmp_path) -> None:
+    import zipfile
+    archive = tmp_path / "example.whl"
+    key = "-----BEGIN " + "PRIVATE KEY-----"
+    with zipfile.ZipFile(archive, "w") as z:
+        z.writestr("wcm/_conformance/vectors/example.json", key)
+    assert leak_scan.main(["--archives", str(archive)]) == 0
+    with zipfile.ZipFile(archive, "a") as z:
+        z.writestr("wcm/credentials.txt", key)
+    assert leak_scan.main(["--archives", str(archive)]) == 1
+
+
+def test_sdist_blocks_internal_content(tmp_path) -> None:
+    import io
+    import tarfile
+    archive = tmp_path / "example.tar.gz"
+    data = b"OPAQUE internal"
+    with tarfile.open(archive, "w:gz") as t:
+        member = tarfile.TarInfo("weight_custody_manifest-0.0.0/README.md")
+        member.size = len(data)
+        t.addfile(member, io.BytesIO(data))
+    assert leak_scan.main(["--archives", str(archive)]) == 1
+
+
+def test_corrupt_archive_fails_closed(tmp_path) -> None:
+    archive = tmp_path / "broken.whl"
+    archive.write_bytes(b"not a zip file")
+    assert leak_scan.main(["--archives", str(archive)]) == 1
+
+
+def test_workspace_path_is_blocked() -> None:
+    assert leak_scan.findings("README.md", "C:/Users/example/private/file.txt")

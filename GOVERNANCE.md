@@ -26,11 +26,25 @@ Final decision authority on specification changes, publication timing, conforman
 
 ## Decision making
 
-Routine changes (bug fixes, non-breaking additions, docs) merge on one Maintainer approval. Breaking spec changes and guarantee-scope changes require an issue, a comment period, and Project Lead sign-off. The bar throughout is the project's honesty principle: no change may strengthen a security claim beyond what the hardware and protocol actually deliver (`SPEC.md` §3.6).
+Routine changes (bug fixes, non-breaking additions, docs) merge on one Maintainer approval. Breaking spec changes and guarantee-scope changes require an issue, a comment period, and Project Lead sign-off. The bar throughout is the project's honesty principle: no change may strengthen a security claim beyond what the hardware and protocol actually deliver (`SPEC.md` Â§3.6).
+
+## Repository controls
+
+The default branch requires current checks, a code-owner review, resolution of
+review threads, and approval after the latest push. Stale approvals are dismissed.
+The maintainer gate also checks current-head approval for outside contributors.
+The Project Lead retains an explicit branch-rule bypass for exceptional changes;
+its use should be explained on the pull request. Branch deletion and force pushes
+remain blocked by a separate rule without a bypass.
+
+GitHub Actions use commit-pinned actions and read-only default permissions.
+Release uploads require environment approval after validation; version tags
+cannot be rewritten or deleted. See [the release procedure](python/RELEASING.md).
+Security reports belong in the private channel described in [SECURITY.md](SECURITY.md).
 
 ## Publication posture
 
-This repository is **pre-1.0**. Public release is a deliberate Project Lead decision, but it is **not gated** on closing the key-extraction half of open question 8.8. That hardware-owner residual is disclosed and scoped out of WCM's cryptographic-custody claim (`SPEC.md` §3.6); physical hardening and accountability are the current controls for that posture. The project must not strengthen its claims to make publication easier.
+This repository is **pre-1.0**. Public release is a deliberate Project Lead decision, but it is **not gated** on closing the key-extraction half of open question 8.8. That hardware-owner residual is disclosed and scoped out of WCM's cryptographic-custody claim (`SPEC.md` Â§3.6); physical hardening and accountability are the current controls for that posture. The project must not strengthen its claims to make publication easier.
 
 ## Relationship to the agentrust-io family
 
