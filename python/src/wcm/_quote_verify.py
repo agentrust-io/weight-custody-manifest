@@ -14,15 +14,10 @@ PKI:
   - report-body signature verification by the leaf key (ECDSA / RSA / Ed25519);
   - cryptographic nonce binding: REPORT_DATA must equal sha256(challenge nonce).
 
-What it does NOT do, deliberately: it ships no AMD or NVIDIA root certificates
-and no vendor binary-report parser. Those are the parts that cannot be validated
-without real captured quotes, and shipping them unvalidated would be exactly the
-false confidence WCM refuses. A vendor plugs in a ``QuoteParser`` (real binary
-offsets) and a ``TrustStore`` (real roots); the verification machinery below is
-what is tested and reused. And none of this closes the key-extraction hole
-(open question 8.8): a physically-extracted key produces a signature that is
-genuinely valid, so it passes every check here. This raises the bar to a real
-hardware signature; it does not defeat a hardware owner who lifted the key.
+Vendor-specific binary parsing lives in the platform modules. This verifier
+checks certificate signatures, report signatures and nonce binding under the
+supplied trust policy. It does not establish resistance to physical key extraction
+or extend the assurance supplied by the underlying hardware.
 """
 from __future__ import annotations
 
@@ -34,8 +29,9 @@ from datetime import datetime, timezone
 from typing import Optional, Protocol
 
 from cryptography import x509
-from cryptography.exceptions import InvalidSignature
-from cryptography.hazmat.primitives.asymmetric import ec, ed25519, rsa
+from cryptography.exceptions import InvalidSignature, UnsupportedAlgorithm
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.asymmetric import ec, ed25519, padding, rsa
 
 from ._certificates import load_pem_certificate
 
@@ -49,6 +45,7 @@ class ParsedQuote:
     leaf: x509.Certificate  # the attestation-key cert (e.g. VCEK)
     intermediates: list[x509.Certificate] = field(default_factory=list)
     report_data_offset: int = 0  # where the 32-byte nonce digest sits in report_body
+    report_signature_algorithm: str = "ecdsa-sha256"  # selected by the format parser
 
 
 class QuoteParser(Protocol):
@@ -70,9 +67,16 @@ class JsonQuoteParser:
          "leaf_pem": ..., "intermediates_pem": [...],
          "report_data_offset": 0}
 
-    This is what the framework is tested against; a vendor parser produces the
-    same ``ParsedQuote`` from real binary bytes.
+    The default report profile is ECDSA/SHA-256. Configure
+    ``report_signature_algorithm`` for another supported profile:
+    ``ecdsa-p384-sha384``, ``rsa-pss-sha256`` (32-byte salt),
+    ``rsa-pkcs1-sha256``, or ``ed25519``. The input container cannot override it.
+    Vendor parsers select the algorithm required by their report format.
     """
+
+    def __init__(self, *, report_signature_algorithm: str = "ecdsa-sha256") -> None:
+        # Configuration belongs to the verifier's parser, not the input JSON.
+        self._report_signature_algorithm = report_signature_algorithm
 
     def parse(self, quote_b64: str) -> ParsedQuote:
         try:
@@ -88,6 +92,7 @@ class JsonQuoteParser:
                 leaf=leaf,
                 intermediates=inters,
                 report_data_offset=int(doc.get("report_data_offset", 0)),
+                report_signature_algorithm=self._report_signature_algorithm,
             )
         except (KeyError, ValueError, TypeError) as exc:
             raise QuoteFormatError(f"unparseable quote container: {exc}") from exc
@@ -126,12 +131,10 @@ def _utcnow() -> datetime:
 
 
 def _pubkey_verify(pub: object, signature: bytes, message: bytes, cert: x509.Certificate) -> None:
-    """Verify *signature* over *message* with *pub*; raises InvalidSignature.
+    """Verify an X.509 certificate signature using its issuer parameters.
 
-    Uses the certificate's own signature-algorithm parameters, so RSASSA-PSS is
-    handled as well as PKCS#1 v1.5 and ECDSA. This matters for real vendor chains:
-    AMD's VCEK/ASK/ARK certs are RSA-PSS (validated against a live SEV-SNP host),
-    which a PKCS#1-v1.5-only verifier wrongly rejects.
+    These parameters describe the certificate signature only. Attestation report
+    signatures use the independently selected report-format profile below.
     """
     params = cert.signature_algorithm_parameters
     if isinstance(pub, ec.EllipticCurvePublicKey):
@@ -144,11 +147,32 @@ def _pubkey_verify(pub: object, signature: bytes, message: bytes, cert: x509.Cer
         raise InvalidSignature(f"unsupported issuer key type {type(pub).__name__}")
 
 
+def _verify_report_signature(q: ParsedQuote) -> None:
+    """Verify the report using format-defined parameters, never issuer metadata."""
+    pub = q.leaf.public_key()
+    algorithm = q.report_signature_algorithm
+    if algorithm == "ecdsa-sha256" and isinstance(pub, ec.EllipticCurvePublicKey):
+        pub.verify(q.signature, q.report_body, ec.ECDSA(hashes.SHA256()))
+    elif algorithm == "ecdsa-p384-sha384" and isinstance(pub, ec.EllipticCurvePublicKey):
+        if not isinstance(pub.curve, ec.SECP384R1):
+            raise InvalidSignature("SNP report requires a P-384 key")
+        pub.verify(q.signature, q.report_body, ec.ECDSA(hashes.SHA384()))
+    elif algorithm == "rsa-pss-sha256" and isinstance(pub, rsa.RSAPublicKey):
+        pub.verify(q.signature, q.report_body,
+                   padding.PSS(mgf=padding.MGF1(hashes.SHA256()), salt_length=32), hashes.SHA256())
+    elif algorithm == "rsa-pkcs1-sha256" and isinstance(pub, rsa.RSAPublicKey):
+        pub.verify(q.signature, q.report_body, padding.PKCS1v15(), hashes.SHA256())
+    elif algorithm == "ed25519" and isinstance(pub, ed25519.Ed25519PublicKey):
+        pub.verify(q.signature, q.report_body)
+    else:
+        raise InvalidSignature("unsupported report signature profile or key type")
+
+
 def _signed_by(cert: x509.Certificate, issuer: x509.Certificate) -> bool:
     try:
         _pubkey_verify(issuer.public_key(), cert.signature, cert.tbs_certificate_bytes, cert)
         return True
-    except InvalidSignature:
+    except (InvalidSignature, UnsupportedAlgorithm, TypeError, ValueError):
         return False
 
 
@@ -221,8 +245,8 @@ class QuoteVerifier:
             return QuoteVerification(False, chain_error)
 
         try:
-            _pubkey_verify(q.leaf.public_key(), q.signature, q.report_body, q.leaf)
-        except InvalidSignature:
+            _verify_report_signature(q)
+        except (InvalidSignature, UnsupportedAlgorithm, TypeError, ValueError):
             return QuoteVerification(False, "report signature does not verify under the leaf key")
 
         expected = hashlib.sha256(bytes.fromhex(expected_nonce) + channel_binding).digest()

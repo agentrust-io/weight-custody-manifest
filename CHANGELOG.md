@@ -4,6 +4,22 @@ Notable changes to the Weight Custody Manifest specification and Python SDK.
 Format loosely follows [Keep a Changelog](https://keepachangelog.com/); the SDK
 uses semantic-ish versioning while pre-1.0.
 
+## Unreleased
+
+**[fix]** SNP report verification now uses the report format's ECDSA P-384 /
+SHA-384 parameters independently of the VCEK certificate's issuer signature.
+RSA-PSS-signed VCEKs no longer pass RSA parameters to an elliptic-curve report
+key. Unsupported signature combinations return a failed verification result.
+Certificate-chain checks remain separate, including RSA-PSS support.
+
+The reference JSON parser defaults to ECDSA/SHA-256; other report profiles must
+be selected in parser configuration rather than inferred from certificate issuer
+metadata. Synthetic regressions cover mixed issuer/report algorithms, altered
+reports and signatures, untrusted roots, nonce and transport-key mismatches.
+
+Thanks to **Zoheb Shaik** for reporting the defect and supplying the SEV-SNP
+hardware reproduction used to confirm it.
+
 ## 0.28.0 - 2026-09-01
 
 **[security/packaging]** Removed internal infrastructure identifiers from two

@@ -152,4 +152,5 @@ class SnpQuoteParser:
             leaf=self._vcek,
             intermediates=self._intermediates,
             report_data_offset=_OFF_REPORT_DATA,
+            report_signature_algorithm="ecdsa-p384-sha384",
         )

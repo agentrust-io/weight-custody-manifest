@@ -388,3 +388,51 @@ def test_relayed_release_is_denied_and_yields_only_ciphertext(example_manifest):
     d2 = kbs.verify_and_release(example_manifest, relayed)
     assert not d2.released
     assert any(c.name == "cpu_quote_verified" and not c.passed for c in d2.checks)
+
+
+@pytest.mark.parametrize("profile", ["ecdsa-sha256", "ecdsa-p384-sha384",
+                                     "rsa-pss-sha256", "rsa-pkcs1-sha256", "ed25519"])
+def test_report_profiles_are_parser_configuration(profile):
+    from cryptography.hazmat.primitives.asymmetric import rsa, padding, ed25519
+    pki = Pki()
+    if profile.startswith("rsa"):
+        key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    elif profile == "ed25519":
+        key = ed25519.Ed25519PrivateKey.generate()
+    else:
+        key = ec.generate_private_key(ec.SECP384R1() if "p384" in profile else ec.SECP256R1())
+    pki.leaf = _cert("report-key", "wcm-test-inter", key, pki.inter_key)
+    body = _report_body(NONCE)
+    if profile == "rsa-pss-sha256":
+        signature = key.sign(body, padding.PSS(mgf=padding.MGF1(hashes.SHA256()), salt_length=32), hashes.SHA256())
+    elif profile == "rsa-pkcs1-sha256":
+        signature = key.sign(body, padding.PKCS1v15(), hashes.SHA256())
+    elif profile == "ed25519":
+        signature = key.sign(body)
+    else:
+        signature = key.sign(body, ec.ECDSA(hashes.SHA384() if "p384" in profile else hashes.SHA256()))
+    doc = {"report_b64": base64.b64encode(body).decode(),
+           "signature_b64": base64.b64encode(signature).decode(),
+           "leaf_pem": _pem(pki.leaf), "intermediates_pem": [_pem(pki.inter)],
+           "report_signature_algorithm": "attacker-selected-profile"}
+    parser = JsonQuoteParser(report_signature_algorithm=profile)
+    verifier = QuoteVerifier(parser, _trust(pki))
+    encode = lambda: base64.b64encode(json.dumps(doc).encode()).decode()
+    assert verifier.verify(encode(), expected_nonce=NONCE, now=NOW).verified
+    doc["signature_b64"] = base64.b64encode(bytes(len(signature))).decode()
+    result = verifier.verify(encode(), expected_nonce=NONCE, now=NOW)
+    assert not result.verified and "signature" in result.reason
+
+
+def test_unsupported_report_profile_returns_denial():
+    pki = Pki()
+    verifier = QuoteVerifier(JsonQuoteParser(report_signature_algorithm="unsupported"), _trust(pki))
+    result = verifier.verify(_container(pki, _report_body(NONCE)), expected_nonce=NONCE, now=NOW)
+    assert not result.verified and "signature" in result.reason
+
+
+def test_snp_profile_rejects_non_p384_key():
+    pki = Pki()
+    verifier = QuoteVerifier(JsonQuoteParser(report_signature_algorithm="ecdsa-p384-sha384"), _trust(pki))
+    result = verifier.verify(_container(pki, _report_body(NONCE)), expected_nonce=NONCE, now=NOW)
+    assert not result.verified and "signature" in result.reason
