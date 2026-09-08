@@ -57,15 +57,13 @@ dev = [
 [project.scripts]
 wcm = "wcm.cli:main"
 
-# Every URL here must resolve for an ANONYMOUS reader. The repository is still
-# private (#40, "Flip visibility to public"), so any github.com/agentrust-io/
-# weight-custody-manifest link 404s for everyone who is not a member, and PyPI
-# renders it as a live link regardless. Restore Source, Issues and Changelog in
-# the same change that flips the repo, not before: #40 warned that a release cut
-# ahead of the flip ships dead links, and v0.26.0 did exactly that.
+# Package links must resolve for anonymous readers.
 [project.urls]
 Homepage = "https://wcm.agentrust-io.com"
 Documentation = "https://wcm.agentrust-io.com"
+Source = "https://github.com/agentrust-io/weight-custody-manifest"
+Issues = "https://github.com/agentrust-io/weight-custody-manifest/issues"
+Changelog = "https://github.com/agentrust-io/weight-custody-manifest/blob/main/CHANGELOG.md"
 Examples = "https://github.com/agentrust-io/examples/tree/main/weight-custody-manifest"
 
 [tool.hatch.build.targets.wheel]
@@ -87,18 +85,7 @@ path = "hatch_build.py"
 [tool.hatch.build.targets.sdist]
 include = ["src/", "tests/", "examples/", "tools/", "README.md"]
 
-# The sdist reaches a PUBLIC index regardless of this repository's visibility,
-# which is the boundary RCA-0008 is about. This receipt is the one live-validation
-# fixture still carrying a hardware identifier: an Azure SNP/vTPM device serial,
-# plus the H100 model, driver, VBIOS and PCI address. It cannot be redacted in
-# place because tests/test_paired_hardware_receipt.py pins its SHA-256, and that
-# pin is what shows the receipt is the one the hardware actually produced.
-#
-# Excluding it from the sdist resolves that as a packaging question rather than an
-# evidentiary one: the pin keeps working in the repository, where the test runs in
-# CI, and the identifier stops being published. The test skips when the file is
-# absent, which is the honest behaviour for a source distribution that does not
-# ship internal evidence.
+# Keep locally restored device-identifying captures out of release archives.
 exclude = [
   "tests/fixtures/live-validation/weight-custody-manifest/paired-2026-08-20/paired-release.json",
 ]
