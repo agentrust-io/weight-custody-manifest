@@ -42,7 +42,7 @@ BLOCKING = [
 ]
 
 BLOCKING += [
-    ("internal-classification-label", re.compile(r"OPAQUE internal", re.IGNORECASE),
+    ("internal-classification-label", re.compile(r"OPAQUE " + r"internal", re.IGNORECASE),
      "An internal classification label."),
     ("local-workspace-path", re.compile(r"(?:[A-Za-z]:[\\/]Users[\\/](?!Public\b|Default\b)[^\s\"<>]+|/(?:Users|home)/[^/\s]+/)", re.IGNORECASE),
      "A local user workspace path."),
@@ -52,7 +52,6 @@ BLOCKING += [
 
 # Exceptions cover synthetic inputs only, never production credentials.
 ALLOWLIST = {
-    "tools/leak_scan.py": {"*": "scanner pattern definitions"},
     "conformance/vectors/": {"private-key-block": "synthetic conformance PKI; protects no deployed identity"},
     "python/tests/test_leak_scan.py": {
         "azure-subscription-or-tenant-guid": "synthetic test GUID",

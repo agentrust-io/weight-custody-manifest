@@ -4,6 +4,17 @@ Notable changes to the Weight Custody Manifest specification and Python SDK.
 Format loosely follows [Keep a Changelog](https://keepachangelog.com/); the SDK
 uses semantic-ish versioning while pre-1.0.
 
+## 0.28.2 - Unreleased
+
+**[security/packaging]** Package publication waits for validation and checks the
+release tag, SDK version and main-branch ancestry. Source and distribution scans
+block configured disclosure patterns, withhold matched values from logs and fail
+on unreadable inputs. Internal-label output is removed from the paired hardware
+tool. Public release instructions describe the enforced approval requirements.
+
+**[security]** Add Python and GitHub Actions CodeQL analysis. Security reporting
+explicitly covers dependency, build and publication vulnerabilities affecting WCM.
+
 ## 0.28.1 - 2026-09-08
 
 **[fix]** SNP report verification now uses the report format's ECDSA P-384 /
@@ -209,8 +220,8 @@ confirmed replay, transport-key substitution, and unapproved-image refusal after
 the fix.
 
 **[hardware/sdk]** Added live-derived Linux SEV-SNP and TDX provider fixes,
-fail-closed NVIDIA NVAT evidence adaptation, and Azure SNP→HCL runtime→HCL
-attestation-key→fresh vTPM quote verification with nonce/transport binding.
+fail-closed NVIDIA NVAT evidence adaptation, and Azure SNPâ†’HCL runtimeâ†’HCL
+attestation-keyâ†’fresh vTPM quote verification with nonce/transport binding.
 
 **[operations]** Added read-only partner-node preflight, unified happy/negative
 readiness receipts, and a single fail-closed final-launch command with evidence
@@ -229,7 +240,7 @@ workflow without a reviewable repository change.
 **[spec/sdk]** Normative manifest **JSON Schema, frozen at v1**
 (`schema/wcm-manifest-v1.schema.json`, `$id`
 `https://wcm.agentrust-io.com/schema/manifest/v1.json`). Until now the manifest
-existed only as prose in SPEC.md §3.1 plus the Pydantic reference model, so a
+existed only as prose in SPEC.md Â§3.1 plus the Pydantic reference model, so a
 third-party implementer had nothing machine-readable to validate against. The
 structural half is generated from the model (`python/tools/gen_schema.py`, with a
 `--check` mode CI runs, so the committed file cannot drift); the four cross-field
@@ -399,7 +410,7 @@ to the current v0.15.
 
 **[docs]** Synced the README `Status` section to the v0.12 publication posture. It
 still said publication was gated on the key-extraction half of open question 8.8,
-which v0.12 explicitly reversed and which `SPEC.md` §3.6, `ROADMAP.md`, `CHARTER.md`,
+which v0.12 explicitly reversed and which `SPEC.md` Â§3.6, `ROADMAP.md`, `CHARTER.md`,
 `CONTRIBUTING.md`, `SECURITY.md`, `ADOPTERS.md` and the `docs/` site had all already
 corrected. The README was the only file left claiming the document was being withheld.
 No change to the spec or to any security claim.
@@ -628,19 +639,19 @@ new library API. Adds a "Sovereign self-custody (threshold)" tutorial.
   Validated against a live Azure SEV-SNP report and the real AMD Milan chain.
 - **RSA-PSS cert-chain fix** (`_quote_verify`): honor each cert's own signature
   parameters - found by validating against real AMD VCEK/ASK/ARK certificates.
-- Parser fuzzing and a threat-model → implementation audit.
+- Parser fuzzing and a threat-model â†’ implementation audit.
 
 ### 0.10.0
 - **Post-quantum profile**: ML-DSA-65 (FIPS 204, via cryptography's native
   support) and an Ed25519 + ML-DSA-65 hybrid; `verify_manifest` dispatches per
   signature by algorithm.
 
-### 0.7.0 – 0.9.0
+### 0.7.0 â€“ 0.9.0
 - **Layer 4 derivative lineage** (`derived_from` / `rights_holder`, structured
   `derivatives` policy); **transparency log** (RFC 9162 Merkle, signed tree
   heads, inclusion/consistency proofs); **threshold split-key** (Shamir/GF(256)).
 
-### 0.2.0 – 0.6.0
+### 0.2.0 â€“ 0.6.0
 - **Layer 2 attestation-gated release gate** (composite CPU+GPU verification,
   single-use nonces); **wipe-on-lapse custody** with trusted-time honesty and
   operation-count renewal; hardware provider scaffolding; quote-verification
@@ -693,12 +704,12 @@ new library API. Adds a "Sovereign self-custody (threshold)" tutorial.
 - **v0.9** - Layer 4 fields (`derived_from`, `rights_holder`, structured
   `derivatives`) synced into the manifest examples.
 - **v0.8** - resolved trusted time (`trusted_time_source`, three tiers) and split
-  forged attestation into a closed half (measurement forgery →
+  forged attestation into a closed half (measurement forgery â†’
   `memory_fingerprint_challenge`) and the honestly-open key-extraction half.
 - **v0.7** - resolved standards home (SCITT + CoSAI), the profile-list `required_hw_platform`, and sovereign dual-protection framing.
 - **v0.6** - external-panel corrections: hypervisor ciphertext side channel,
   trusted-time requirement, transparency log, cryptographic-custody vs
   accountability-grade distinction.
-- **v0.1 – v0.5** - initial four-layer design, wipe-on-lapse, sovereign
+- **v0.1 â€“ v0.5** - initial four-layer design, wipe-on-lapse, sovereign
   revocation profile, attested-KBS self-custody, confidential-GPU and CPU-CVM
   assessments, open-core model.

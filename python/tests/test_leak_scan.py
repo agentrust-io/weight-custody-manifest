@@ -38,7 +38,7 @@ def test_every_allowlist_key_matches_something() -> None:
 
 
 def test_exempt_honours_prefix_and_exact_keys() -> None:
-    assert leak_scan.exempt("tools/leak_scan.py", "azure-subscription-or-tenant-guid")
+    assert not leak_scan.exempt("tools/leak_scan.py", "cloud-access-key")
     assert leak_scan.exempt("conformance/vectors/gate/x.json", "private-key-block")
     assert not leak_scan.exempt("conformance/vectors/gate/x.json", "cloud-access-key")
     assert not leak_scan.exempt("python/src/wcm/__init__.py", "private-key-block")
