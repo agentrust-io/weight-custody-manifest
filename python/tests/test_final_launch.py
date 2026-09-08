@@ -12,7 +12,7 @@ SPEC.loader.exec_module(final_launch)
 
 def test_validate_pack_accepts_sanitized_json(tmp_path: Path) -> None:
     (tmp_path / "receipt.json").write_text(
-        json.dumps({"hardware_claim": False, "classification": "OPAQUE internal"}),
+        json.dumps({"hardware_claim": False, "kind": "validation-result"}),
         encoding="utf-8",
     )
     result = final_launch.validate_pack(tmp_path)

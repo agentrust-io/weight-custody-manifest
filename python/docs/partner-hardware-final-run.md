@@ -1,28 +1,28 @@
-# Partner hardware final-run checklist
+# Hardware validation procedure
 
-Use this after NVIDIA LaunchPad or Microsoft Azure Local access is assigned. It
-keeps discovery separate from security claims and makes teardown an explicit
-exit condition.
+Use this procedure on a supported confidential-computing host. Device discovery
+and test execution are separate from cryptographic attestation verification.
 
-Before hardware arrives, generate the complete software-readiness pack from the
-release-candidate checkout with one command:
+Generate a software-only validation report from a pinned checkout:
 
 ```bash
 python python/tools/final_launch.py --mode software --out validation/final-software
 ```
 
 These commands emit machine-readable JSON and human-readable Markdown. They
-deliberately set `hardware_claim` to `false`; the partner-node run appends the
-genuine composite evidence rather than reinterpreting software evidence.
+deliberately set `hardware_claim` to `false`; hardware verification requires
+separate evidence and verification results. A device preflight alone does not
+establish composite attestation.
 
-On a partner node, run the same orchestrator with the applicable profile:
+On the hardware host, select the applicable discovery profile:
 
 ```bash
 python python/tools/final_launch.py --mode partner --profile nvidia --out validation/final-partner
 ```
 
-Use `--profile azure-local` for Microsoft hardware. Partner mode fails closed if
-the required CPU evidence path or NVIDIA device is absent.
+Use `--profile azure-local` for the Azure Local profile. The command checks
+required device and evidence-path availability. A successful discovery result
+must not be interpreted as verified CPU/GPU evidence or workload binding.
 
 ## 1. Read-only preflight
 
@@ -49,9 +49,9 @@ Do not advertise a composite hardware result if any of these applies:
 - required RIM, OCSP, NRAS, or certificate endpoints are unreachable;
 - the target exposes only Trusted Launch but the profile requires confidential
   CPU and GPU evidence;
-- the host owner cannot confirm the teardown window and evidence-redaction rule.
+- the validation environment cannot isolate test material or support cleanup.
 
-## 3. NVIDIA final run
+## 3. NVIDIA verification sequence
 
 1. Pin the host inventory from preflight.
 2. Configure the reviewed `wcm-nvat-adapter` and device trust root.
@@ -64,7 +64,7 @@ Do not advertise a composite hardware result if any of these applies:
    substituted transport key, artifact tamper, and custody-lapse negatives.
 8. Save sanitized machine-readable results and a human-readable summary.
 
-## 4. Azure Local final run
+## 4. Azure Local verification sequence
 
 1. Record OEM, Azure Local release, CPU, GPU, driver/firmware, DDA or GPU-P,
    guest OS, Arc state, Trusted Launch, vTPM, and guest-attestation capability.
@@ -75,7 +75,8 @@ Do not advertise a composite hardware result if any of these applies:
 
 ## 5. Exit and cleanup
 
-- Stop or delete billable cloud resources immediately after evidence capture.
+- Stop test workloads and release temporary resources after evidence capture.
 - Remove plaintext adapter staging bytes and ephemeral DEKs.
-- Retain only sanitized evidence under the internal launch pack.
-- Confirm no WCM-tagged resources remain before closing the session.
+- Review reports for sensitive material before sharing; retain only the evidence
+  needed to reproduce the verification results.
+- Verify that temporary resources and plaintext test material have been removed.
