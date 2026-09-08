@@ -13,17 +13,12 @@ PACK = (
 
 RECEIPT = PACK / "paired-release.json"
 
-# paired-release.json is deliberately excluded from the sdist: it carries an
-# Azure SNP/vTPM device serial and the H100 model, driver, VBIOS and PCI address,
-# and the sdist reaches a public index whatever this repository's visibility says
-# (RCA-0008). It cannot be redacted in place because the SHA-256 below is what
-# shows the receipt is the one the hardware produced, so the fixture stays whole
-# in the repository and does not ship. This test therefore runs in CI, where the
-# checkout has it, and skips for anyone running the suite out of an sdist.
+# The original receipt is retained outside the public repository because it
+# identifies a specific device. An operator with the original capture can run
+# this pinned-evidence check; its absence must not be reported as a pass.
 requires_receipt = pytest.mark.skipif(
     not RECEIPT.exists(),
-    reason="paired-release.json is excluded from the sdist by design; see "
-    "python/pyproject.toml [tool.hatch.build.targets.sdist] exclude",
+    reason="original device-identifying receipt is not distributed publicly",
 )
 
 

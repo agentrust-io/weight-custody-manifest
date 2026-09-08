@@ -4,7 +4,7 @@ Notable changes to the Weight Custody Manifest specification and Python SDK.
 Format loosely follows [Keep a Changelog](https://keepachangelog.com/); the SDK
 uses semantic-ish versioning while pre-1.0.
 
-## Unreleased
+## 0.28.1 - 2026-09-08
 
 **[fix]** SNP report verification now uses the report format's ECDSA P-384 /
 SHA-384 parameters independently of the VCEK certificate's issuer signature.
@@ -19,6 +19,17 @@ reports and signatures, untrusted roots, nonce and transport-key mismatches.
 
 Thanks to **Zoheb Shaik** for reporting the defect and supplying the SEV-SNP
 hardware reproduction used to confirm it.
+
+**[docs/packaging]** Restore public source, issues and changelog links in package
+metadata. Documentation publishing uses the `gh-pages` branch and preserves the
+custom domain on each build. Release verification and hardware validation guides
+now describe reproducible checks without internal coordination details.
+
+**[privacy]** Remove the device-identifying paired hardware receipt from the
+current repository tree and remove its scanner exception. The original remains
+outside the public distribution; its pinned test skips when it is unavailable.
+The fixture is also excluded if restored locally before a package build. Earlier
+Git history is unchanged.
 
 ## 0.28.0 - 2026-09-01
 
