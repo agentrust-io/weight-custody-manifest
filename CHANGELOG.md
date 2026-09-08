@@ -4,6 +4,28 @@ Notable changes to the Weight Custody Manifest specification and Python SDK.
 Format loosely follows [Keep a Changelog](https://keepachangelog.com/); the SDK
 uses semantic-ish versioning while pre-1.0.
 
+## Unreleased
+
+**[docs]** The NVIDIA GPU path is recorded as validated rather than pending.
+`NvidiaGpuVerifier` has verified a live H100 capture since it shipped, and
+`NvidiaCcProvider` has now been exercised end to end on a live H200 in CC mode
+inside an Intel TDX guest, with a wrong nonce, a tampered body and a stripped
+chain each refused. `LIMITATIONS.md`, `docs/limitations.md` and the provider
+docstrings said the path was unimplemented or unvalidated; they now say what is
+true, and `NvidiaCcProvider` stays PROVISIONAL because its integration surface is
+a contract with an external attestation command. The bare-metal SNP and TDX
+validation records in `LIMITATIONS.md` are brought in line with the provider
+module for the same reason.
+
+**[docs]** `nvidia.py` documents the report-stability trap: three ranges of an
+H200 attestation report move between calls, one of them invisible unless two
+reports are fetched under an identical nonce. WCM verifies chain, signature and
+nonce rather than a report digest, so nothing here changes; an implementer
+pinning a measurement needs to know.
+
+Thanks to **Zoheb Shaik** for the H200 session and the report-stability
+measurements.
+
 ## 0.28.1 - 2026-09-08
 
 **[fix]** SNP report verification now uses the report format's ECDSA P-384 /

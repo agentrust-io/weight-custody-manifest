@@ -13,8 +13,10 @@ The canonical, complete list is [`LIMITATIONS.md`](https://github.com/agentrust-
   clock cannot be stalled; the SDK reports the floor (`time_floor`) but cannot
   make an untrusted clock trustworthy.
 - **In-envelope distillation is not prevented.**
-- **GPU-side quote verification is not yet implemented** (pending hardware), so
-  the KBS gate verifies the CPU quote cryptographically but the GPU report only
-  structurally today.
+- **GPU-side quote verification is cryptographic only when a device root is
+  configured.** `NvidiaGpuVerifier` verifies the device chain, the ECDSA P-384
+  report signature and the raw nonce at offset 4, and is validated on a live
+  H100 capture and an H200. A gate built without `build_gpu_verifier` falls back
+  to structural trust, and `gpu_report_verified` says so.
 - **Azure CVMs** use a vTPM-rooted attestation path (`AzureSnpVtpmProvider`), not
   `/dev/sev-guest`; `REPORT_DATA` is paravisor-bound there.
