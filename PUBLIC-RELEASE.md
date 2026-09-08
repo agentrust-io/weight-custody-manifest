@@ -43,7 +43,8 @@ Run the guarded tool only after reviewing the preflight and public-release scope
 It changes repository visibility and About/website, applies repository controls,
 and configures Pages with `build_type: legacy`, source `gh-pages` at `/`, and
 custom domain `wcm.agentrust-io.com`. This matches the existing `mkdocs gh-deploy`
-workflow. The API's `workflow` mode requires a Pages deployment workflow and is
+workflow. `docs/CNAME` ensures every MkDocs build carries the custom domain;
+the repository-root CNAME alone is not copied into the generated site. The API's `workflow` mode requires a Pages deployment workflow and is
 not the branch-publication mode used here. See the
 [GitHub Pages API](https://docs.github.com/en/rest/pages/pages).
 

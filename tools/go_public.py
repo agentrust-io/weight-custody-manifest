@@ -154,6 +154,13 @@ def local_preflight(root: Path) -> list[dict[str, Any]]:
             "expected docs domain",
         )
     )
+    docs_cname = root / "docs/CNAME"
+    checks.append((
+        "docs-cname",
+        docs_cname.is_file()
+        and docs_cname.read_text(encoding="utf-8").strip() == "wcm.agentrust-io.com",
+        "MkDocs must copy the custom domain into every gh-pages deployment",
+    ))
     return [{"name": n, "ok": ok, "detail": detail} for n, ok, detail in checks]
 
 

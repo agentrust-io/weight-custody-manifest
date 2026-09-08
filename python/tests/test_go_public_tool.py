@@ -142,3 +142,19 @@ def test_execute_configures_pages(monkeypatch):
     monkeypatch.setattr(go_public, "configure_pages", lambda **_: calls.append("pages"))
     go_public.execute(runner=lambda *a, **k: SimpleNamespace(returncode=0, stdout="", stderr=""))
     assert calls == ["pages"]
+
+
+@pytest.mark.parametrize("domain, expected", [(None, False), ("wrong.example", False),
+                                               ("wcm.agentrust-io.com", True)])
+def test_preflight_checks_mkdocs_domain_file(tmp_path, domain, expected):
+    import shutil
+    for relative in (".github/workflows/python.yml", "python/pyproject.toml", "CNAME"):
+        dest = tmp_path / relative
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(ROOT / relative, dest)
+    if domain is not None:
+        (tmp_path / "docs").mkdir()
+        (tmp_path / "docs/CNAME").write_text(domain, encoding="utf-8")
+    result = next(item for item in go_public.local_preflight(tmp_path)
+                  if item["name"] == "docs-cname")
+    assert result["ok"] is expected
