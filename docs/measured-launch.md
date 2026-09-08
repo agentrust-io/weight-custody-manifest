@@ -54,7 +54,7 @@ wrong PCR digest, wrong policy measurement, malformed digest, and missing PCR.
 The procedure was also exercised on an Azure `Standard_DC2as_v5` confidential
 VM with AMD SEV-SNP and a vTPM. The sanitized, commit-pinned receipt and its
 reproduction notes are in the
-[Azure PCR 23 validation pack](../python/tests/fixtures/live-validation/weight-custody-manifest/azure-pcr23-2026-08-23/README.md).
+[Azure PCR 23 validation pack](https://github.com/agentrust-io/weight-custody-manifest/blob/main/python/tests/fixtures/live-validation/weight-custody-manifest/azure-pcr23-2026-08-23/README.md).
 
 A publishable receipt contains only hashes, tool versions, generic VM/SKU
 information, boolean verdicts, and timestamps. It must not contain raw HCL,

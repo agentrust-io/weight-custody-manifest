@@ -154,6 +154,13 @@ def local_preflight(root: Path) -> list[dict[str, Any]]:
             "expected docs domain",
         )
     )
+    docs_cname = root / "docs/CNAME"
+    checks.append((
+        "docs-cname",
+        docs_cname.is_file()
+        and docs_cname.read_text(encoding="utf-8").strip() == "wcm.agentrust-io.com",
+        "MkDocs must copy the custom domain into every gh-pages deployment",
+    ))
     return [{"name": n, "ok": ok, "detail": detail} for n, ok, detail in checks]
 
 
@@ -245,18 +252,23 @@ def execute(*, runner: Callable[..., Any] = command) -> None:
             runner=runner,
         )
 
-    # Pages may already exist because docs deploy to gh-pages. POST returns 422
-    # when it exists, so only create it after a read reports 404.
-    pages = runner(
-        ["gh", "api", f"repos/{REPOSITORY}/pages"], check=False
-    )
-    if pages.returncode == 1 and "404" in pages.stderr:
-        api(
-            "POST",
-            f"repos/{REPOSITORY}/pages",
-            {"build_type": "workflow"},
-            runner=runner,
-        )
+    configure_pages(runner=runner)
+
+
+def configure_pages(*, runner: Callable[..., Any] = command) -> None:
+    """Serve mkdocs gh-deploy output and explicitly bind the docs domain."""
+    endpoint = f"repos/{REPOSITORY}/pages"
+    pages = runner(["gh", "api", endpoint], check=False)
+    source = {"branch": "gh-pages", "path": "/"}
+    if pages.returncode:
+        if pages.returncode != 1 or "HTTP 404" not in pages.stderr:
+            raise CutoverError("Pages lookup failed: " + pages.stderr.strip())
+        api("POST", endpoint, {"build_type": "legacy", "source": source}, runner=runner)
+    # CNAME is an update parameter. Apply it for both newly created and
+    # existing sites; an existing workflow-mode site must be corrected too.
+    api("PUT", endpoint,
+        {"build_type": "legacy", "source": source, "cname": "wcm.agentrust-io.com"},
+        runner=runner)
 
 
 def main(argv: list[str] | None = None) -> int:

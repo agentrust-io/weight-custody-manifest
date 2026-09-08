@@ -114,7 +114,6 @@ def main() -> int:
             ["git", "rev-parse", "HEAD"], cwd=root, text=True
         ).strip(),
         "hardware_claim": hardware_claim,
-        "classification": "OPAQUE internal",
         "gates": gates,
         "evidence_inventory": inventory,
         "passed": all(gate["passed"] for gate in gates),
