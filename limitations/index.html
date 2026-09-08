@@ -1167,9 +1167,11 @@
   clock cannot be stalled; the SDK reports the floor (<code>time_floor</code>) but cannot
   make an untrusted clock trustworthy.</li>
 <li><strong>In-envelope distillation is not prevented.</strong></li>
-<li><strong>GPU-side quote verification is not yet implemented</strong> (pending hardware), so
-  the KBS gate verifies the CPU quote cryptographically but the GPU report only
-  structurally today.</li>
+<li><strong>GPU-side quote verification is cryptographic only when a device root is
+  configured.</strong> <code>NvidiaGpuVerifier</code> verifies the device chain, the ECDSA P-384
+  report signature and the raw nonce at offset 4, and is validated on a live
+  H100 capture and an H200. A gate built without <code>build_gpu_verifier</code> falls back
+  to structural trust, and <code>gpu_report_verified</code> says so.</li>
 <li><strong>Azure CVMs</strong> use a vTPM-rooted attestation path (<code>AzureSnpVtpmProvider</code>), not
   <code>/dev/sev-guest</code>; <code>REPORT_DATA</code> is paravisor-bound there.</li>
 </ul>
