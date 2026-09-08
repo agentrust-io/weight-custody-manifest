@@ -31,6 +31,29 @@ Confirm these independently:
 - no fixture, log, or example contains credentials, provider tokens, private
   endpoints, or customer material.
 
+## September 8 cutover order
+
+The temporary Cloudflare 307 redirect from `wcm.agentrust-io.com` to the
+`/wcm/` landing page must be removed first at the scheduled cutover. DNS is
+already configured; the local CNAME check does not validate DNS or the edge rule.
+Capture the redirect rule before removing it so the landing page can be restored
+if documentation delivery fails.
+
+Run the guarded tool only after reviewing the preflight and public-release scope.
+It changes repository visibility and About/website, applies repository controls,
+and configures Pages with `build_type: legacy`, source `gh-pages` at `/`, and
+custom domain `wcm.agentrust-io.com`. This matches the existing `mkdocs gh-deploy`
+workflow. The API's `workflow` mode requires a Pages deployment workflow and is
+not the branch-publication mode used here. See the
+[GitHub Pages API](https://docs.github.com/en/rest/pages/pages).
+
+Afterward, inspect the Pages certificate state and enable HTTPS enforcement once
+the certificate is ready. Verify the docs at the custom domain, including a deep
+link, rather than treating a successful API update as proof of delivery. Retain
+`agentrust-io.com/wcm/` as the marketing page pointing to the docs. A Pages failure
+can be mitigated by restoring the temporary redirect; changing repository visibility
+back cannot retract copies of already-public source.
+
 ## What the announcement may claim
 
 WCM is an open protocol and reference SDK for signed model-weight custody,
