@@ -155,3 +155,56 @@ def test_real_amd_milan_chain_verifies():
     ts = TrustStore(); ts.add_root(ark)
     now = datetime.datetime.now(datetime.timezone.utc)
     assert verify_cert_chain(ask, [], ts, now) is None  # ASK is signed by ARK (RSA-PSS)
+
+
+@pytest.fixture(params=["rsa-pss", "ecdsa-sha256"])
+def mixed_issuer_snp(request):
+    """Synthetic cert/report algorithm separation; no host identifiers."""
+    from cryptography.hazmat.primitives.asymmetric import rsa, padding
+    issuer = (rsa.generate_private_key(public_exponent=65537, key_size=2048)
+              if request.param == "rsa-pss" else _p384())
+    leaf_key = _p384()
+
+    def certificate(name, subject_key, ca):
+        builder = (x509.CertificateBuilder()
+                   .subject_name(x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, name)]))
+                   .issuer_name(x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, "test-root")]))
+                   .public_key(subject_key.public_key()).serial_number(x509.random_serial_number())
+                   .not_valid_before(NOW-datetime.timedelta(days=1))
+                   .not_valid_after(NOW+datetime.timedelta(days=365))
+                   .add_extension(x509.BasicConstraints(ca=ca, path_length=None), critical=True))
+        kwargs = ({"rsa_padding": padding.PSS(mgf=padding.MGF1(hashes.SHA256()), salt_length=32)}
+                  if request.param == "rsa-pss" else {})
+        return builder.sign(issuer, hashes.SHA256(), **kwargs)
+
+    root = certificate("test-root", issuer, True)
+    leaf = certificate("test-vcek", leaf_key, False)
+    trust = TrustStore(); trust.add_root(root)
+    return leaf, trust, _synth_report(leaf_key, NONCE)
+
+
+def test_snp_report_algorithm_independent_of_certificate(mixed_issuer_snp):
+    leaf, trust, report = mixed_issuer_snp
+    assert verify_snp_report_signature(report, leaf)
+    result = QuoteVerifier(SnpQuoteParser(leaf, []), trust).verify(
+        base64.b64encode(report).decode(), expected_nonce=NONCE, now=NOW)
+    assert result.verified, result.reason
+
+
+@pytest.mark.parametrize("fault", ["body", "signature", "nonce", "channel", "untrusted"])
+def test_mixed_issuer_snp_rejects_invalid_evidence(mixed_issuer_snp, fault):
+    leaf, trust, report = mixed_issuer_snp
+    data = bytearray(report)
+    if fault == "body": data[0x90] ^= 1
+    if fault == "signature": data[0x2A0] ^= 1
+    if fault == "untrusted":
+        trust = TrustStore()
+        other = _p384()
+        trust.add_root(_cert("untrusted", "untrusted", other, other, ca=True))
+    result = QuoteVerifier(SnpQuoteParser(leaf, []), trust).verify(
+        base64.b64encode(data).decode(), expected_nonce="cd"*32 if fault == "nonce" else NONCE,
+        channel_binding=b"substituted-key" if fault == "channel" else b"", now=NOW)
+    assert not result.verified
+    expected = "signature" if fault in ("body", "signature") else (
+        "trusted root" if fault == "untrusted" else "REPORT_DATA")
+    assert expected in result.reason
