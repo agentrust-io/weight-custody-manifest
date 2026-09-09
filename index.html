@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="An open protocol for protecting model weights deployed into customer-controlled infrastructure">
+        <meta name="description" content="An open, pre-1.0 specification for releasing model weights only to an approved, attested runtime, with the guarantee boundary stated plainly.">
       
       
       
@@ -25,7 +25,7 @@
     
     
       
-        <title>Weight Custody Manifest</title>
+        <title>Weight Custody Manifest - Weight Custody Manifest</title>
       
     
     
@@ -53,6 +53,32 @@
 
     
     
+  
+  
+  
+  
+    
+  
+  
+  
+  
+
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="AgenTrust">
+  <meta property="og:title" content="Weight Custody Manifest">
+  <meta property="og:description" content="An open, pre-1.0 specification for releasing model weights only to an approved, attested runtime, with the guarantee boundary stated plainly.">
+  <meta property="og:url" content="https://wcm.agentrust-io.com/">
+  <meta property="og:locale" content="en_US">
+  <meta property="og:image" content="https://wcm.agentrust-io.com/assets/og-launch.png">
+  <meta property="og:image:width" content="1731">
+  <meta property="og:image:height" content="909">
+  <meta property="og:image:alt" content="Weight Custody Manifest: Release, Attest, Revoke">
+
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Weight Custody Manifest">
+  <meta name="twitter:description" content="An open, pre-1.0 specification for releasing model weights only to an approved, attested runtime, with the guarantee boundary stated plainly.">
+  <meta name="twitter:image" content="https://wcm.agentrust-io.com/assets/og-launch.png">
+
   </head>
   
   
@@ -106,7 +132,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Home
+              Weight Custody Manifest
             
           </span>
         </div>
@@ -448,10 +474,54 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#what-is-checked-today" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What is checked today
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#try-it" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Try it
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#where-it-fits" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Where it fits
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#where-to-go-next" class="md-nav__link">
     <span class="md-ellipsis">
       
         Where to go next
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#get-involved" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Get involved
       
     </span>
   </a>
@@ -1227,10 +1297,54 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#what-is-checked-today" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What is checked today
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#try-it" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Try it
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#where-it-fits" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Where it fits
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#where-to-go-next" class="md-nav__link">
     <span class="md-ellipsis">
       
         Where to go next
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#get-involved" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Get involved
       
     </span>
   </a>
@@ -1267,6 +1381,16 @@ deliberate decision by the Project Lead and is not gated on open question 8.8;
 the hostile-owner residual is documented, not a release blocker. Do not rely
 on it for production.</p>
 </div>
+<div class="admonition tip">
+<p class="admonition-title">TL;DR</p>
+<p>WCM binds encrypted weights to a signed release policy. A key broker releases
+the decryption key only to a workload whose attestation evidence matches the
+manifest, keeps that authorization short-lived, and leaves portable evidence
+of the decision. The reference SDK, its 91 conformance vectors, the schema and
+the threat model are public under Apache-2.0. Against an adversary who
+physically owns the hardware, WCM offers accountability, not cryptographic
+custody, and says so in <a href="limitations/">Limitations</a>.</p>
+</div>
 <h2 id="the-trust-direction">The trust direction<a class="headerlink" href="#the-trust-direction" title="Permanent link">&para;</a></h2>
 <p>When a frontier model is deployed into a customer's own infrastructure (on-prem,
 sovereign cloud, air-gapped), the party at risk flips: it is now the <strong>model
@@ -1274,6 +1398,10 @@ builder</strong> whose weights are exposed to the customer's hardware and operat
 is the protocol for that direction - a signed manifest describing which weights
 are released and under what terms, attestation-gated key release into a verified
 enclave, wipe-on-lapse and revocation, and a chain of custody for derivatives.</p>
+<p>WCM answers one question: can a model builder release encrypted weights only to
+an approved workload, keep that approval short-lived, and retain evidence of what
+happened? The answer is yes for the reference protocol and its software checks,
+with one boundary stated plainly rather than buried, in the next section.</p>
 <p>WCM composes with <a href="oms-interoperability/">OpenSSF Model Signing</a> rather than
 competing with it: OMS proves which model artifact a signer published; WCM
 governs whether the key for those exact bytes may be released to a freshly
@@ -1284,27 +1412,112 @@ attested workload and how long that workload may retain it.</p>
 <li><strong>Cryptographic custody</strong> against software and remote adversaries.</li>
 <li><strong>Accountability-grade</strong> protection against an operator who physically owns the
   hardware - <em>not</em> cryptographic custody. Cheap published memory-bus attacks
-  (TEE.fail, BadRAM) defeat current confidential-computing silicon; there WCM
-  offers cost, detection, containment, legal recourse, and a mandatory
-  physical-hardening tier.</li>
+  (<a href="https://tee.fail/">TEE.fail</a>, <a href="https://badram.eu/">BadRAM</a>) defeat current
+  confidential-computing silicon; there WCM offers cost, detection, containment,
+  legal recourse, and a mandatory physical-hardening tier.</li>
 </ul>
 <p>The honesty about what does and does not hold is the point. See
 <a href="limitations/">Limitations</a> and the specification's §3.6.</p>
+<table>
+<thead>
+<tr>
+<th>Against</th>
+<th>What you get</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Local software demo</strong></td>
+<td>Checks the reference protocol in an ordinary process. The operator can inspect its memory. Mock attestation provides no hardware-rooted confidentiality.</td>
+</tr>
+<tr>
+<td><strong>Protected runtime</strong></td>
+<td>Requires verified platform evidence, trusted keys, channel binding, workload isolation, and enforced renewal. Platform configuration, firmware, side channels, and the serving application's export paths affect the result.</td>
+</tr>
+<tr>
+<td><strong>Physical hardware owner</strong></td>
+<td>Do not assume weight extraction is impossible. Published physical attacks motivate additional hardening and operator assumptions. A valid signature alone cannot distinguish an authorized key from an extracted one.</td>
+</tr>
+</tbody>
+</table>
+<p>The <a href="https://www.rand.org/pubs/research_reports/RRA2849-1.html">RAND weight-security report</a>
+provides threat-model context; it is not a certification of WCM. Passing the
+reference suite does not assign a deployment an attacker-resistance tier.</p>
+<h2 id="what-is-checked-today">What is checked today<a class="headerlink" href="#what-is-checked-today" title="Permanent link">&para;</a></h2>
+<p>The reference implementation ships <strong>91 portable conformance vectors</strong>: 32 at L1,
+37 at L2, 12 at L3, and 10 at L4. Run them yourself with <code>wcm conformance</code>.</p>
+<p>This is the reference implementation's self-test, not independent certification
+and not a hardware deployment test. CPU quote vectors use synthetic certificate
+roots, GPU cryptographic verification is not covered by them, and the runner
+prints its uncovered cases. See <a href="conformance/">Schema and conformance</a>.</p>
+<h2 id="try-it">Try it<a class="headerlink" href="#try-it" title="Permanent link">&para;</a></h2>
+<p>Python 3.11+ and Git. No cloud account, GPU, model download, or API key. Keep WCM
+in its own environment, because other AgenTrust packages may require a different
+<code>cryptography</code> version.</p>
+<div class="highlight"><pre><span></span><code>python<span class="w"> </span>-m<span class="w"> </span>venv<span class="w"> </span>.venv-wcm
+<span class="c1"># bash: source .venv-wcm/bin/activate</span>
+<span class="c1"># PowerShell: .venv-wcm\Scripts\Activate.ps1</span>
+python<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>weight-custody-manifest
+wcm<span class="w"> </span>conformance
+</code></pre></div>
+<p>Then run the closed-weight allow/deny example, which supplies an approved serving
+measurement and then changes it:</p>
+<div class="highlight"><pre><span></span><code>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/agentrust-io/demos
+<span class="nb">cd</span><span class="w"> </span>demos
+python<span class="w"> </span>demo-07-closed-weight/run.py
+</code></pre></div>
+<p>Expected: joint signature <code>True</code>, approved release <code>True</code>, then unapproved release
+<code>False</code>, because the measurement is not in <code>accepted_measurements</code>. Both cases use
+synthetic attestation and a placeholder key; labels such as "enclave" in the output
+do not mean hardware was used. <a href="getting-started/">Getting started</a> covers the SDK
+in full.</p>
+<h2 id="where-it-fits">Where it fits<a class="headerlink" href="#where-it-fits" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Sovereign deployment.</strong> Run a closed model inside nationally controlled
+  infrastructure while making weight release conditional on an approved, attested
+  workload.</li>
+<li><strong>Enterprise and air-gapped.</strong> Deliver encrypted weights to customer-operated
+  environments without turning a one-time handoff into permanent authorization.</li>
+<li><strong>Regulated model delivery.</strong> Carry signed policy, release decisions, renewal
+  state, revocation, and derivative lineage as portable evidence.</li>
+</ul>
 <h2 id="where-to-go-next">Where to go next<a class="headerlink" href="#where-to-go-next" title="Permanent link">&para;</a></h2>
 <ul>
+<li><a href="tutorials/how-it-works/">How WCM works</a>, the six steps end to end</li>
 <li><a href="spec-overview/">Specification overview</a> and the full <a href="https://github.com/agentrust-io/weight-custody-manifest/blob/main/SPEC.md"><code>SPEC.md</code></a></li>
-<li><a href="threat-model/">Threat model</a></li>
-<li><a href="getting-started/">Getting started with the SDK</a></li>
+<li><a href="threat-model/">Threat model</a> and <a href="limitations/">Limitations</a></li>
+<li><a href="getting-started/">Getting started with the SDK</a> and the <a href="reference-kbs/">reference KBS image</a></li>
 <li><a href="oms-interoperability/">OpenSSF Model Signing interoperability</a></li>
-<li><a href="reference-kbs/">Reference KBS image</a></li>
 <li><a href="roadmap/">Roadmap</a> · <a href="governance/">Governance</a> · <a href="contributing/">Contributing</a></li>
 </ul>
+<h2 id="get-involved">Get involved<a class="headerlink" href="#get-involved" title="Permanent link">&para;</a></h2>
+<p>WCM is pre-1.0 and the review is open. Four routes in:</p>
+<ul>
+<li><strong>Model owners.</strong> Pressure-test the release policy against your actual threat model.</li>
+<li><strong>Runtime and cloud teams.</strong> Add or review an attestation profile and prove what
+  your protected boundary can support. Start with
+  <a href="https://github.com/agentrust-io/weight-custody-manifest/blob/main/CONTRIBUTING.md">CONTRIBUTING.md</a>.</li>
+<li><strong>Security researchers.</strong> Challenge the threat model, fixtures, hardware
+  assumptions, and explicit non-goals. Reporting process in
+  <a href="https://github.com/agentrust-io/weight-custody-manifest/blob/main/SECURITY.md">SECURITY.md</a>.</li>
+<li><strong>Standards contributors.</strong> Review the manifest, portable evidence, conformance
+  levels, and interoperability boundaries.</li>
+</ul>
+<p>Open an issue or a discussion on
+<a href="https://github.com/agentrust-io/weight-custody-manifest">github.com/agentrust-io/weight-custody-manifest</a>.</p>
+<p>The specification, schema, conformance suite, reference SDK, threat model, and
+reference key-release service are available under Apache-2.0. Vendors may build
+interoperable hosted services and protected-runtime implementations. Public
+availability does not establish production readiness.</p>
 
 
 
 
 
 
+
+  
+  
 
 
 
