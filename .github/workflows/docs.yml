@@ -6,12 +6,14 @@ on:
     # pull_request trigger does not run on the PR that introduces it).
     paths:
       - "docs/**"
+      - "overrides/**"
       - "mkdocs.yml"
       - "requirements-docs.txt"
       - ".github/workflows/docs.yml"
   pull_request:
     paths:
       - "docs/**"
+      - "overrides/**"
       - "mkdocs.yml"
       - "requirements-docs.txt"
       - ".github/workflows/docs.yml"

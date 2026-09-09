@@ -8,6 +8,7 @@ docs_dir: docs
 
 theme:
   name: material
+  custom_dir: overrides
   font: false
   features:
     - navigation.instant
@@ -38,6 +39,8 @@ extra_javascript:
 
 markdown_extensions:
   - admonition
+  - attr_list
+  - tables
   - pymdownx.superfences
   - pymdownx.highlight
   - toc:
