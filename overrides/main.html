@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{#
+  Social-card and canonical metadata for wcm.agentrust-io.com.
+
+  agentrust-io.com/wcm/ redirects here, so this site owns the Open Graph tags
+  that the old launch page used to carry. Crawlers follow the redirect and read
+  these. Keep og:image absolute: relative paths break when a card is scraped.
+#}
+{% block extrahead %}
+  {% set page_title = config.site_name %}
+  {% if page and page.title and not page.is_homepage %}
+    {% set page_title = page.title | striptags ~ " | " ~ config.site_name %}
+  {% endif %}
+  {% set page_desc = config.site_description %}
+  {% if page and page.meta and page.meta.description %}
+    {% set page_desc = page.meta.description %}
+  {% endif %}
+  {% set page_url = page.canonical_url if page and page.canonical_url else config.site_url %}
+  {# Absolute and literal: the site is CNAME-pinned, and Jinja has no rtrim filter. #}
+  {% set og_image = 'https://wcm.agentrust-io.com/assets/og-launch.png' %}
+
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="AgenTrust">
+  <meta property="og:title" content="{{ page_title }}">
+  <meta property="og:description" content="{{ page_desc }}">
+  <meta property="og:url" content="{{ page_url }}">
+  <meta property="og:locale" content="en_US">
+  <meta property="og:image" content="{{ og_image }}">
+  <meta property="og:image:width" content="1731">
+  <meta property="og:image:height" content="909">
+  <meta property="og:image:alt" content="Weight Custody Manifest: Release, Attest, Revoke">
+
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="{{ page_title }}">
+  <meta name="twitter:description" content="{{ page_desc }}">
+  <meta name="twitter:image" content="{{ og_image }}">
+{% endblock %}
