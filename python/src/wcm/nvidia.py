@@ -23,6 +23,15 @@ rejected. Plug ``build_gpu_verifier`` into ``KeyBrokerService(gpu_report_verifie
 to cryptographically verify the GPU chain instead of trusting the structured
 fields alone.
 
+Do not fingerprint a whole report to pin a measurement. On an H200 (driver
+595.71.05) three ranges of a 4,129-byte report move between calls: the nonce at
+[4, 36), the signature at [4033, 4129), and 32 bytes at [3565, 3597) that change
+on every call even under an identical nonce. Varying the nonce hides the middle
+one, so a pin built by diffing two reports with different nonces looks stable and
+is not. 3,969 bytes were stable there. This verifier checks chain, signature and
+nonce rather than a report digest, so it is unaffected; an implementer pinning a
+measurement is not.
+
 Honesty, matching ``_quote_verify``: WCM ships only NVIDIA's public device root
 (the caller supplies it to ``build_gpu_verifier``; the pinned fixture is the root
 only, not any per-GPU cert). And as everywhere in WCM, a physically-extracted

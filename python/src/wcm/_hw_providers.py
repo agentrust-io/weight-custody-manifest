@@ -17,7 +17,12 @@ verify through snp.py / tdx.py against the real AMD and Intel roots). The
 bare-metal SEV-SNP ioctl path is validated on a live GCP N2D SEV-SNP guest. The
 bare-metal TDX report ioctl path is also validated on a live GCP C3 guest;
 conversion of that TDREPORT into a remotely verifiable TDX quote remains
-provisional. NvidiaCcProvider is also still PROVISIONAL. What CI exercises
+provisional. NvidiaCcProvider is PROVISIONAL but no longer unvalidated: it was
+exercised end to end on a live NVIDIA H200 in CC mode inside an Intel TDX guest,
+where NvidiaGpuVerifier accepted the real report and refused a wrong nonce, a
+tampered body and a stripped chain. Provisional stands because that is one host
+and the provider is a contract with an external attestation command rather than
+a device ioctl. What CI exercises
 everywhere is availability detection, the
 software fallback, and report *parsing* against synthetic fixtures.
 
@@ -517,7 +522,9 @@ class NvidiaCcProvider:
     and is not a simple device ioctl, so this shells out to a command that emits
     a JSON object ``{"measurement": "...", "cc_mode": true, "report_b64": "..."}``.
     Configure it with ``WCM_NVIDIA_ATTESTATION_CMD``; absent that, this provider
-    reports unavailable. The integration is PROVISIONAL and unvalidated.
+    reports unavailable. PROVISIONAL: validated end to end on one live H200 in CC
+    mode inside an Intel TDX guest, but the command contract itself is the
+    integration surface, so treat a new tool as unvalidated until it is run.
     """
 
     platform = "nvidia-cc-gpu"
