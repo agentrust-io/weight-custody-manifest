@@ -32,6 +32,11 @@ Review the workflow results for the exact release commit. Check the release
 inventory for unexpected files and verify the published package hashes before
 installation.
 
+The disclosure scanner checks the source tree and release archives. It reports
+locations and pattern categories without printing matched values. Its exceptions
+cover synthetic test inputs; a passing scan does not replace human review or
+an audit of earlier commits and previously published packages.
+
 ## Evidence and scope
 
 Release notes should identify the tag and commit, package hashes, conformance

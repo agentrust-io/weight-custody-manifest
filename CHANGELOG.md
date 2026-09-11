@@ -4,7 +4,16 @@ Notable changes to the Weight Custody Manifest specification and Python SDK.
 Format loosely follows [Keep a Changelog](https://keepachangelog.com/); the SDK
 uses semantic-ish versioning while pre-1.0.
 
-## Unreleased
+## 0.28.2 - Unreleased
+
+**[security/packaging]** Package publication waits for validation and checks the
+release tag, SDK version and main-branch ancestry. Source and distribution scans
+block configured disclosure patterns, withhold matched values from logs and fail
+on unreadable inputs. Internal-label output is removed from the paired hardware
+tool. Public release instructions describe the enforced approval requirements.
+
+**[security]** Add Python and GitHub Actions CodeQL analysis. Security reporting
+explicitly covers dependency, build and publication vulnerabilities affecting WCM.
 
 **[docs]** The NVIDIA GPU path is recorded as validated rather than pending.
 `NvidiaGpuVerifier` has verified a live H100 capture since it shipped, and
@@ -25,7 +34,6 @@ pinning a measurement needs to know.
 
 Thanks to **Zoheb Shaik** for the H200 session and the report-stability
 measurements.
-
 ## 0.28.1 - 2026-09-08
 
 **[fix]** SNP report verification now uses the report format's ECDSA P-384 /

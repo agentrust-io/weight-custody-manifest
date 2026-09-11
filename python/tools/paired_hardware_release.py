@@ -196,7 +196,6 @@ def main() -> int:
     report = {
         "kind": "wcm-paired-hardware-release/v1",
         "captured_at": datetime.now(timezone.utc).isoformat(),
-        "classification": "OPAQUE internal validation evidence",
         "release_candidate": args.release_candidate,
         "provider_topology": "Azure SNP/vTPM freshness quote + NVIDIA H100 NVAT local appraisal",
         "environment": {
