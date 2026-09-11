@@ -15,7 +15,9 @@ Against the hardware owner, WCM offers **cost, detection and attribution, contai
 
 `SPEC.md` §3.6 makes the cryptographic-custody claim against a hypervisor-privileged operator conditional on AMD SEV-SNP **ciphertext hiding** being enabled, because without it a malicious hypervisor extracts keys through ciphertext side channels (CipherLeaks, Heracles) with no physical access.
 
-Measured: the live Azure SEV-SNP confidential VM this SDK is validated against reports `PLATFORM_INFO = 0x25`, which is `ALIAS_CHECK_COMPLETE` **set** and `CIPHERTEXT_HIDING_EN` **clear**. So on that platform the precondition is not met and the claim does not hold against a hypervisor-privileged operator. Until this release nothing in the SDK read the field that would have told us.
+Measured on both SEV-SNP platforms we have captured, each reporting `PLATFORM_INFO = 0x25` (`ALIAS_CHECK_COMPLETE` **set**, `CIPHERTEXT_HIDING_EN` **clear**): the Azure CVM this SDK is validated against (report version 3), and a live GCP `n2d-standard-4`, AMD EPYC 7B13, captured 2026-09-11 (report version 5). On neither is the precondition met, so the claim does not hold there against a hypervisor-privileged operator. Until this release nothing in the SDK read the field that would have told us.
+
+On GCP this is structural: Google documents SEV-SNP as N2D/Milan only (C3D Genoa and C4D Turin offer plain SEV, and the API rejects `SEV_SNP` on both), while ciphertext hiding requires EPYC 9005 Turin. No GCP SEV-SNP platform can set bit 4 today.
 
 What to do about it: require it. `release_policy.platform_integrity.ciphertext_hiding: required` denies release on a platform that does not report bit 4, which turns an assumption into a gate. Requiring it today will deny on the Azure platform above; that is the correct outcome, and the honest way to run the semi-trusted posture is to verify a platform that sets the bit rather than to assume every platform does.
 

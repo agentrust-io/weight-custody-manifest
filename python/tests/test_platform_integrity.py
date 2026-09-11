@@ -28,6 +28,11 @@ def _azure_report_bytes() -> bytes:
     return base64.b64decode(doc["report_b64"])
 
 
+def _gcp_milan_report_bytes() -> bytes:
+    doc = json.loads((FIXTURES / "snp_platform_info_gcp_milan.json").read_text())
+    return base64.b64decode(doc["report_b64"])
+
+
 def _with_version(report: bytes, version: int) -> bytes:
     """Return *report* with its VERSION field rewritten.
 
@@ -71,6 +76,35 @@ def test_live_azure_platform_has_alias_check_but_not_ciphertext_hiding():
 
     assert pi.alias_check_complete is True
     assert pi.ciphertext_hiding_en is False
+
+
+def test_live_gcp_milan_matches_azure_on_platform_info():
+    """A second cloud, a second report version, the same answer.
+
+    GCP N2D (AMD EPYC 7B13, report version 5) and the Azure CVM (version 3)
+    both report PLATFORM_INFO = 0x25. Neither enables ciphertext hiding, and on
+    GCP that is structural rather than a configuration choice: Google documents
+    SEV-SNP as N2D/Milan only, and ciphertext hiding requires EPYC 9005 (Turin),
+    so no GCP SEV-SNP platform can currently set bit 4. Recorded so a future
+    platform that does set it shows up as a test failure.
+    """
+    gcp = parse_snp_report(_gcp_milan_report_bytes())
+    azure = parse_snp_report(_azure_report_bytes())
+
+    assert gcp.platform_info.raw == azure.platform_info.raw == 0x25
+    assert gcp.platform_info.ciphertext_hiding_en is False
+    assert gcp.platform_info.alias_check_complete is True
+
+
+def test_sev_tio_is_defined_on_v5_and_undefined_on_v3():
+    """Version gating, exercised by two real captures rather than a synthetic one."""
+    gcp = parse_snp_report(_gcp_milan_report_bytes())  # version 5
+    azure = parse_snp_report(_azure_report_bytes())  # version 3
+
+    assert gcp.version == 5
+    assert azure.version == 3
+    assert gcp.platform_info.sev_tio_en is False
+    assert azure.platform_info.sev_tio_en is None
 
 
 def test_bits_below_their_report_version_are_unknown_not_false():
