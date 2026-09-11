@@ -1189,6 +1189,17 @@
 <li><strong>Attestation forgery, open half.</strong> Measurement forgery is detectable
   (<code>memory_fingerprint_challenge</code>); the key-extraction half is not, and is why
   publication is staged (open question 8.8).</li>
+<li><strong>The platform we validate against does not meet our own ciphertext-hiding
+  precondition.</strong> SPEC §3.6 conditions the semi-trusted-operator custody claim
+  on SEV-SNP ciphertext hiding being enabled. The live Azure CVM this SDK is
+  validated against reports <code>PLATFORM_INFO = 0x25</code>: alias check set, ciphertext
+  hiding <strong>clear</strong>. Require it with
+  <code>release_policy.platform_integrity.ciphertext_hiding</code> rather than assuming it.</li>
+<li><strong>Attestation-key revocation is weaker than the compensating control implies.</strong>
+  Verified 2026-09-11: every certificate in our captured H100 chain carries
+  <code>notAfter = 9999-12-31</code>, both NVIDIA CRLs are empty with a two-year
+  next-update, AMD VCEKs carry serial number zero so a CRL entry cannot name a
+  chip, and on no vendor can the operator invoke revocation.</li>
 <li><strong>Trusted time is an assumption.</strong> Wipe-on-lapse bounds exposure only if the
   clock cannot be stalled; the SDK reports the floor (<code>time_floor</code>) but cannot
   make an untrusted clock trustworthy.</li>
