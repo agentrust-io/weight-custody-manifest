@@ -311,6 +311,7 @@ class PlatformIntegrity(_Strict):
     ciphertext_hiding: PlatformIntegrityRequirement = (
         PlatformIntegrityRequirement.not_required
     )
+    note: Optional[str] = None
 
 
 class ReleasePolicy(_Strict):

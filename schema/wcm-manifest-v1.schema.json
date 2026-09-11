@@ -533,6 +533,18 @@
         "ciphertext_hiding": {
           "$ref": "#/$defs/PlatformIntegrityRequirement",
           "default": "not-required"
+        },
+        "note": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Note"
         }
       },
       "title": "PlatformIntegrity",
