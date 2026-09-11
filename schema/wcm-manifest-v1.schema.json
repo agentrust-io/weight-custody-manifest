@@ -522,6 +522,42 @@
       "title": "PhysicalHardening",
       "type": "string"
     },
+    "PlatformIntegrity": {
+      "additionalProperties": false,
+      "description": "Requirements on hardware-reported platform state (SPEC.md section 3.6).\n\nThese are the only two statements about *physical* platform state that a\nproduction attestation report carries today, so the manifest can require\nthem rather than leaving them unread.\n\n``alias_check_complete`` requires SEV-SNP PLATFORM_INFO bit 5: AMD's\nboot-time DRAM alias scan (the BadRAM mitigation, CVE-2024-21944 /\nAMD-SB-3015) completed and found no aliasing addresses. Requiring it lifts\nthe floor from a ~$10 SPD spoof to an interposer. It does not close the\nclass: a boot-time scan is time-of-check/time-of-use, and Battering RAM\n(IEEE S&P 2026) passes the command/address lines through untouched during\nPOST and enables aliasing afterwards.\n\n``ciphertext_hiding`` requires PLATFORM_INFO bit 4. This is the precondition\nsection 3.6 attaches to the semi-trusted-operator custody claim: without it\na malicious *hypervisor* extracts keys through ciphertext side channels\n(CipherLeaks, Heracles) with no physical access. It says nothing about a\nphysical adversary.\n\nBoth default to ``not-required`` *within* this object, but the object itself\nis optional on ``ReleasePolicy`` and absent by default, so adding it does not\nperturb the signing pre-image of manifests written before it existed.",
+      "properties": {
+        "alias_check_complete": {
+          "$ref": "#/$defs/PlatformIntegrityRequirement",
+          "default": "not-required"
+        },
+        "ciphertext_hiding": {
+          "$ref": "#/$defs/PlatformIntegrityRequirement",
+          "default": "not-required"
+        },
+        "note": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Note"
+        }
+      },
+      "title": "PlatformIntegrity",
+      "type": "object"
+    },
+    "PlatformIntegrityRequirement": {
+      "enum": [
+        "required",
+        "not-required"
+      ],
+      "title": "PlatformIntegrityRequirement",
+      "type": "string"
+    },
     "Provenance": {
       "additionalProperties": false,
       "description": "Where the base weights came from, referenced not re-derived (SPEC.md 3.9).\n\nOptional and extensible: today it carries an OpenSSF model-signing reference;\nother provenance systems can be added as sibling fields without changing the\ncustody or release semantics.",
@@ -581,6 +617,17 @@
         "tenancy": {
           "$ref": "#/$defs/Tenancy",
           "default": "shared"
+        },
+        "platform_integrity": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PlatformIntegrity"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         },
         "required_serving_image": {
           "$ref": "#/$defs/RequiredServingImage"

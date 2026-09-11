@@ -11,6 +11,26 @@ WCM protects a builder's weights when they run in a customer's own or sovereign 
 
 Against the hardware owner, WCM offers **cost, detection and attribution, containment (wipe-on-lapse, revocation), legal recourse, and a mandatory physical-hardening tier** - not silicon-enforced custody. The `physical_hardening` tier is required, not optional, in the hostile-owner posture. See `SPEC.md` §3.6.
 
+## The platform we validate against does not meet our own ciphertext-hiding precondition
+
+`SPEC.md` §3.6 makes the cryptographic-custody claim against a hypervisor-privileged operator conditional on AMD SEV-SNP **ciphertext hiding** being enabled, because without it a malicious hypervisor extracts keys through ciphertext side channels (CipherLeaks, Heracles) with no physical access.
+
+Measured on both SEV-SNP platforms we have captured, each reporting `PLATFORM_INFO = 0x25` (`ALIAS_CHECK_COMPLETE` **set**, `CIPHERTEXT_HIDING_EN` **clear**): the Azure CVM this SDK is validated against (report version 3), and a live GCP `n2d-standard-4`, AMD EPYC 7B13, captured 2026-09-11 (report version 5). On neither is the precondition met, so the claim does not hold there against a hypervisor-privileged operator. Until this release nothing in the SDK read the field that would have told us.
+
+On GCP this is structural: Google documents SEV-SNP as N2D/Milan only (C3D Genoa and C4D Turin offer plain SEV, and the API rejects `SEV_SNP` on both), while ciphertext hiding requires EPYC 9005 Turin. No GCP SEV-SNP platform can set bit 4 today.
+
+What to do about it: require it. `release_policy.platform_integrity.ciphertext_hiding: required` denies release on a platform that does not report bit 4, which turns an assumption into a gate. Requiring it today will deny on the Azure platform above; that is the correct outcome, and the honest way to run the semi-trusted posture is to verify a platform that sets the bit rather than to assume every platform does.
+
+## Attestation-key revocation is weaker than the spec's compensating control implies
+
+`attestation_revocation_check` is specified as though revocation were a working per-device lifecycle mechanism. Verified on 2026-09-11, it is not:
+
+- **NVIDIA**: every certificate in our own captured H100 device chain carries `notAfter = 9999-12-31 23:59:59 GMT`, root included, and both published CRLs are empty with a **two-year** next-update (`l1-root.crl` to 2028-02-06, `l2-gh100.crl` to 2028-01-16). A CRL fallback learns nothing. Nonce-bound OCSP is the only live control, so OCSP unreachability must fail rather than fall back.
+- **AMD**: VCEK certs are minted per request with serial number zero, so a CRL entry has nothing to name. De-facto revocation is fleet-wide TCB versioning.
+- **On every vendor the operator cannot invoke revocation.** A customer who knows a host was physically opened has no documented path to get that device's attestation key stopped.
+
+Treat a passing revocation check as evidence that the vendor has not published a revocation, not as evidence that a compromised device would have been caught.
+
 ## Attestation can be forged (the open half of 8.8)
 
 The measurement-forgery half of forged attestation (BadRAM-class) is detectable and closed by the `memory_fingerprint_challenge`. The **key-extraction half** (TEE.fail-class) is **not**: a physically-extracted attestation key produces a cryptographically valid quote that no gate-side verification can distinguish from a real one. Compensating controls (live revocation-freshness checks, vendor short-lived certs, mandatory hardening, fleet anomaly monitoring) narrow it; they do not close it. This is why publication is staged.

@@ -6,6 +6,42 @@ uses semantic-ish versioning while pre-1.0.
 
 ## 0.28.2 - Unreleased
 
+**[spec/sdk]** Read and gate hardware-reported platform state. SEV-SNP
+attestation reports carry two bits that are the only statements about *physical*
+platform state any production attestation report makes, and the SDK read
+neither. `snp.py` now parses `PLATFORM_INFO` (offset 0x40), version-gated so
+`ALIAS_CHECK_COMPLETE` (report v3+) and SEV-TIO (v5+) report `None` rather than
+`False` on a report that predates them. A new optional
+`release_policy.platform_integrity` lets a manifest require
+`alias_check_complete` (bit 5, AMD's BadRAM mitigation per AMD-SB-3015) and
+`ciphertext_hiding` (bit 4), and the KBS denies with a reason naming the bit,
+including when a required bit is indeterminate. The field is optional and absent
+by default so the signing pre-image of existing manifests is byte-identical; a
+regression test pins that.
+
+**[docs/correction]** Three claims in `SPEC.md` §3.6 were wrong or overstated,
+corrected against measurement rather than against the literature:
+
+- The live Azure SEV-SNP CVM this SDK validates against reports
+  `PLATFORM_INFO = 0x25`: `ALIAS_CHECK_COMPLETE` set, `CIPHERTEXT_HIDING_EN`
+  **clear**. §3.6 conditions the semi-trusted-operator custody claim on
+  ciphertext hiding being enabled, so that platform does not meet WCM's own
+  stated precondition. Recorded in `LIMITATIONS.md` and TCB item 1.
+- The GPU residual was priced at decapsulation or on-package probing. The
+  cheaper path does not touch the GPU: NVIDIA attestation does not identify the
+  guest it serves, so a broken CPU TEE can relay to a genuine confidential GPU
+  elsewhere (TEE.fail, local RTX 3060 forwarding to an external H100). WCM's
+  composite nonce binding already defends that shape, which the spec now says
+  explicitly; it does not survive T1.7.
+- `attestation_revocation_check` was described as though revocation worked
+  per-device. Verified 2026-09-11: every certificate in our own captured H100
+  chain carries `notAfter = 9999-12-31`, both NVIDIA CRLs are empty with a
+  two-year next-update, AMD VCEKs carry serial number zero so a CRL entry cannot
+  name a chip, and on no vendor can the operator invoke revocation.
+
+New threat `T1.9` records the alias-check control and its time-of-check limit
+(Battering RAM defeats the boot scan by enabling aliasing after POST).
+
 **[security/packaging]** Package publication waits for validation and checks the
 release tag, SDK version and main-branch ancestry. Source and distribution scans
 block configured disclosure patterns, withhold matched values from logs and fail

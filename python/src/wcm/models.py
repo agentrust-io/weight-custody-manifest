@@ -62,6 +62,11 @@ class Tenancy(str, Enum):
     dedicated = "dedicated"
 
 
+class PlatformIntegrityRequirement(str, Enum):
+    required = "required"
+    not_required = "not-required"
+
+
 class KeyReleaseMode(str, Enum):
     attestation_gated = "attestation-gated"
 
@@ -274,6 +279,41 @@ class SovereignProfile(_Strict):
         return self
 
 
+class PlatformIntegrity(_Strict):
+    """Requirements on hardware-reported platform state (SPEC.md section 3.6).
+
+    These are the only two statements about *physical* platform state that a
+    production attestation report carries today, so the manifest can require
+    them rather than leaving them unread.
+
+    ``alias_check_complete`` requires SEV-SNP PLATFORM_INFO bit 5: AMD's
+    boot-time DRAM alias scan (the BadRAM mitigation, CVE-2024-21944 /
+    AMD-SB-3015) completed and found no aliasing addresses. Requiring it lifts
+    the floor from a ~$10 SPD spoof to an interposer. It does not close the
+    class: a boot-time scan is time-of-check/time-of-use, and Battering RAM
+    (IEEE S&P 2026) passes the command/address lines through untouched during
+    POST and enables aliasing afterwards.
+
+    ``ciphertext_hiding`` requires PLATFORM_INFO bit 4. This is the precondition
+    section 3.6 attaches to the semi-trusted-operator custody claim: without it
+    a malicious *hypervisor* extracts keys through ciphertext side channels
+    (CipherLeaks, Heracles) with no physical access. It says nothing about a
+    physical adversary.
+
+    Both default to ``not-required`` *within* this object, but the object itself
+    is optional on ``ReleasePolicy`` and absent by default, so adding it does not
+    perturb the signing pre-image of manifests written before it existed.
+    """
+
+    alias_check_complete: PlatformIntegrityRequirement = (
+        PlatformIntegrityRequirement.not_required
+    )
+    ciphertext_hiding: PlatformIntegrityRequirement = (
+        PlatformIntegrityRequirement.not_required
+    )
+    note: Optional[str] = None
+
+
 class ReleasePolicy(_Strict):
     required_assurance_tier: AssuranceTier
     physical_hardening: PhysicalHardening = PhysicalHardening.not_required
@@ -284,6 +324,7 @@ class ReleasePolicy(_Strict):
     required_hw_platform: list[str] = Field(min_length=1)
     required_gpu_measurement: Optional[RequiredGpuMeasurement] = None
     tenancy: Tenancy = Tenancy.shared
+    platform_integrity: Optional[PlatformIntegrity] = None
     required_serving_image: RequiredServingImage
     key_release_mode: KeyReleaseMode = KeyReleaseMode.attestation_gated
     replay_protection: ReplayProtection = ReplayProtection.kbs_nonce_required

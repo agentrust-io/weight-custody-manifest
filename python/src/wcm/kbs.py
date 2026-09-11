@@ -15,6 +15,8 @@ not in this module.
 """
 from __future__ import annotations
 
+import base64
+
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timedelta, timezone
 from typing import Callable, Iterable, Mapping, Optional
@@ -22,15 +24,17 @@ from typing import Callable, Iterable, Mapping, Optional
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
 from ._challenge import Challenge, ChallengeError, ChallengeStore
-from ._quote_verify import QuoteVerifier
+from ._quote_verify import QuoteFormatError, QuoteVerifier
 from ._seal import seal_to_public_key
 from .nvidia import NvidiaGpuVerifier
 from .attestation import CompositeEvidence
 from .models import (
     MemoryFingerprintChallenge,
+    PlatformIntegrityRequirement,
     ServingImageStatus,
     WeightCustodyManifest,
 )
+from .snp import extract_snp_report_from_hcl, parse_snp_report
 from .renewal import (
     RenewalDecision,
     manifest_identity,
@@ -224,6 +228,9 @@ class KeyBrokerService:
 
         # 6. Memory-fingerprint challenge (v0.8) when the posture requires it.
         checks.append(self._check_memory_fingerprint(manifest, evidence, nonce))
+
+        # 6b. Hardware-reported platform integrity (PLATFORM_INFO) when required.
+        checks.append(self._check_platform_integrity(manifest, evidence))
 
         # 7. Attestation-key revocation freshness (v0.8) when required.
         checks.append(self._check_attestation_revocation(manifest, evidence))
@@ -488,6 +495,70 @@ class KeyBrokerService:
             gpu.quote_b64, expected_nonce=nonce, now=self._now()
         )
         return CheckResult("gpu_report_verified", result.verified, result.reason)
+
+    def _check_platform_integrity(
+        self, manifest: WeightCustodyManifest, evidence: CompositeEvidence
+    ) -> CheckResult:
+        """Enforce ``release_policy.platform_integrity`` against PLATFORM_INFO.
+
+        An unset requirement passes. A required bit that the evidence cannot
+        speak to fails: for ``alias_check_complete`` the report version matters,
+        because the bit only carries meaning from SNP report version 3 and reads
+        as a reserved zero below it. Treating that zero as "check failed" would
+        be wrong, and treating it as "satisfied" would be worse, so an
+        indeterminate bit is a denial with a reason that names why.
+        """
+        want = manifest.release_policy.platform_integrity
+        if want is None:
+            return CheckResult("platform_integrity", True, "not required")
+        need_alias = want.alias_check_complete is PlatformIntegrityRequirement.required
+        need_ch = want.ciphertext_hiding is PlatformIntegrityRequirement.required
+        if not (need_alias or need_ch):
+            return CheckResult("platform_integrity", True, "not required")
+
+        if evidence.cpu.platform != "amd-sev-snp":
+            return CheckResult(
+                "platform_integrity",
+                False,
+                f"platform_integrity is SEV-SNP-only; evidence platform is "
+                f"'{evidence.cpu.platform}'",
+            )
+        if not evidence.cpu.quote_b64:
+            return CheckResult(
+                "platform_integrity", False, "required but evidence carries no SNP report"
+            )
+        try:
+            raw = base64.b64decode(evidence.cpu.quote_b64)
+            if raw[:4] == b"HCLA":
+                raw = extract_snp_report_from_hcl(raw)
+            report = parse_snp_report(raw)
+        except (ValueError, TypeError, QuoteFormatError) as exc:
+            return CheckResult(
+                "platform_integrity", False, f"unparseable SNP report: {exc}"
+            )
+
+        pi = report.platform_info
+        failures: list[str] = []
+        if need_alias:
+            if pi.alias_check_complete is None:
+                failures.append(
+                    f"alias_check_complete required but SNP report version "
+                    f"{report.version} predates the field (needs version >= 3)"
+                )
+            elif not pi.alias_check_complete:
+                failures.append(
+                    "alias_check_complete required but PLATFORM_INFO bit 5 is clear "
+                    "(DRAM alias scan did not complete cleanly, or firmware predates "
+                    "the BadRAM mitigation)"
+                )
+        if need_ch and not pi.ciphertext_hiding_en:
+            failures.append(
+                "ciphertext_hiding required but PLATFORM_INFO bit 4 is clear "
+                "(a hypervisor-privileged operator can read guest ciphertext)"
+            )
+        if failures:
+            return CheckResult("platform_integrity", False, "; ".join(failures))
+        return CheckResult("platform_integrity", True)
 
     def _check_attestation_revocation(
         self, manifest: WeightCustodyManifest, evidence: CompositeEvidence
