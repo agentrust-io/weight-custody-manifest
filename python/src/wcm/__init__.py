@@ -161,10 +161,19 @@ from .snp import (
     SnpQuoteParser,
 )
 from .tdx import (
+    TD_ATTR_DEBUG,
     TdxQuote,
     TdxReport,
     parse_tdx_quote,
     verify_tdx_quote,
+)
+from .platform_floor import (
+    FloorAppraisal,
+    FloorCheck,
+    FloorState,
+    PlatformFloor,
+    appraise_tdx,
+    appraise_tdx_quote,
 )
 from .nvidia import (
     NvidiaGpuVerifier,
@@ -333,6 +342,13 @@ __all__ = [
     "TdxReport",
     "parse_tdx_quote",
     "verify_tdx_quote",
+    "TD_ATTR_DEBUG",
+    "FloorAppraisal",
+    "FloorCheck",
+    "FloorState",
+    "PlatformFloor",
+    "appraise_tdx",
+    "appraise_tdx_quote",
     "NvidiaGpuVerifier",
     "GpuAttestationReport",
     "GpuReportFormatError",

@@ -52,6 +52,8 @@ _OFF_TEE_TYPE = 0x04          # u32 (0x81 = TDX)
 _TD_REPORT_LEN = 584          # TD10 report body
 _OFF_TD_REPORT_DATA = 520     # 64 bytes, within the TD report body
 _OFF_TD_MRTD = 136            # 48 bytes, within the TD report body
+_OFF_TD_TEE_TCB_SVN = 0       # 16 bytes; byte 0 is the SEAM module SVN
+_OFF_TD_ATTRIBUTES = 120      # 8 bytes, little-endian; DEBUG is bit 0
 
 _SIGNED_LEN = _HEADER_LEN + _TD_REPORT_LEN  # bytes the attestation key signs
 
@@ -62,6 +64,10 @@ _OFF_QE_REPORT_DATA = 320     # 64 bytes, within the QE report
 _ECDSA_SIG_LEN = 64           # r(32) || s(32)
 _ECDSA_PUBKEY_LEN = 64        # x(32) || y(32)
 
+#: TDATTRIBUTES bit 0. Named here because the appraisal and the report both
+#: need it, and a second literal is how the two drift apart.
+TD_ATTR_DEBUG = 1 << 0
+
 _TEE_TYPE_TDX = 0x81
 _ATT_KEY_TYPE_ECDSA_P256 = 2
 _CERT_TYPE_PCK_CHAIN = 5      # QE cert-data inner type: PEM PCK chain
@@ -69,11 +75,40 @@ _CERT_TYPE_PCK_CHAIN = 5      # QE cert-data inner type: PEM PCK chain
 
 @dataclass(frozen=True)
 class TdxReport:
-    """The parsed TD report body fields verification and policy care about."""
+    """The parsed TD report body fields verification and policy care about.
+
+    ``tee_tcb_svn`` is exposed whole, and **the carried bytes are carried and
+    not judged**: only byte 0, the SEAM module SVN, has an established meaning
+    here, and an appraisal reads that byte alone. Two captures in this
+    repository make the reason concrete. ``tdx_quote_gcp.json`` reports
+    ``0d 01 08`` and ``tdx_quote_azure.json`` reports ``0d 01 04``: the same
+    SEAM SVN 13 with a different byte 2. Whatever byte 2 tracks, it is not the
+    SEAM module version, so anything that compared the array whole, or read it
+    as one integer, would order those two captures on a byte nobody can name.
+
+    ``td_attributes`` is the same restraint. Bit 0 is DEBUG and has a direct
+    SEV-SNP analogue in the guest-policy debug bit. Every capture here reads
+    ``0x0000000010000000``, so bit 28 is set on all of them, and **those carried
+    bits are carried and not judged** because a bit whose meaning has not been
+    established is not a bit to make release decisions on.
+    """
 
     report_data: bytes   # 64 bytes (guest-set to sha256(nonce) on configfs-tsm)
     mrtd: bytes          # 48 bytes, the TD measurement
+    tee_tcb_svn: bytes   # 16 bytes; byte 0 is the SEAM module SVN, rest carried
+    td_attributes: int   # 8 bytes little-endian; bit 0 is DEBUG, rest carried
     raw: bytes           # the full 584-byte report body
+
+    @property
+    def seam_svn(self) -> int:
+        """The SEAM module security version: byte 0, and only byte 0."""
+        return self.tee_tcb_svn[0]
+
+    @property
+    def debug(self) -> bool:
+        """TDATTRIBUTES bit 0. Set means the TD's memory is readable from
+        outside it, which is the property the floor exists to refuse."""
+        return bool(self.td_attributes & TD_ATTR_DEBUG)
 
 
 @dataclass(frozen=True)
@@ -134,6 +169,10 @@ def parse_tdx_quote(quote: bytes) -> TdxQuote:
     report = TdxReport(
         report_data=td_body[_OFF_TD_REPORT_DATA:_OFF_TD_REPORT_DATA + 64],
         mrtd=td_body[_OFF_TD_MRTD:_OFF_TD_MRTD + 48],
+        tee_tcb_svn=td_body[_OFF_TD_TEE_TCB_SVN:_OFF_TD_TEE_TCB_SVN + 16],
+        td_attributes=int.from_bytes(
+            td_body[_OFF_TD_ATTRIBUTES:_OFF_TD_ATTRIBUTES + 8], "little"
+        ),
         raw=td_body,
     )
 
