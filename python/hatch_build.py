@@ -30,7 +30,12 @@ from hatchling.builders.hooks.plugin.interface import BuildHookInterface
 #: (source path relative to whichever base holds it) -> (destination in the wheel)
 _ARTIFACTS = {
     "schema/wcm-manifest-v1.schema.json": "wcm/_schema/wcm-manifest-v1.schema.json",
+    "schema/wcm-vendor-vector-v1.schema.json": "wcm/_schema/wcm-vendor-vector-v1.schema.json",
     "conformance/vectors": "wcm/_conformance/vectors",
+    # The root store travels with the vectors. A vendor vector names its root
+    # and the runner resolves it, so an installed package without the suite's
+    # own out-of-chain root cannot run the untrusted-root case at all.
+    "conformance/roots": "wcm/_conformance/roots",
 }
 
 

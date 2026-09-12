@@ -35,8 +35,13 @@ SCHEMA_ID = "https://wcm.agentrust-io.com/schema/manifest/v1.json"
 
 _FILENAME = "wcm-manifest-v1.schema.json"
 
+#: Identifier of the vendor-evidence conformance vector schema.
+VENDOR_VECTOR_SCHEMA_ID = "https://wcm.agentrust-io.com/schema/vendor-vector/v1.json"
 
-def _candidates() -> list[Path]:
+_VENDOR_VECTOR_FILENAME = "wcm-vendor-vector-v1.schema.json"
+
+
+def _candidates(filename: str = _FILENAME) -> list[Path]:
     """Where the schema can be, in preference order.
 
     First the installed layout, where the build copies it next to this module.
@@ -44,33 +49,33 @@ def _candidates() -> list[Path]:
     covers both a git checkout (``python/src/wcm`` -> repo root) and an unpacked
     sdist (whose root holds ``schema/`` and ``src/`` as siblings).
     """
-    found = [Path(__file__).parent / "_schema" / _FILENAME]
+    found = [Path(__file__).parent / "_schema" / filename]
     here = Path(__file__).resolve()
-    found.extend(parent / "schema" / _FILENAME for parent in here.parents)
+    found.extend(parent / "schema" / filename for parent in here.parents)
     return found
 
 
-def schema_path() -> Path:
-    """Filesystem path to the manifest schema.
+def schema_path(filename: str = _FILENAME) -> Path:
+    """Filesystem path to a shipped schema.
 
     Raises:
         FileNotFoundError: if the schema is missing from both the installed
             package and any enclosing checkout, which means a broken build
             rather than a recoverable condition.
     """
-    for candidate in _candidates():
+    for candidate in _candidates(filename):
         if candidate.is_file():
             return candidate
     raise FileNotFoundError(
-        f"{_FILENAME} not found in the installed package or any enclosing "
+        f"{filename} not found in the installed package or any enclosing "
         f"checkout (looked next to {Path(__file__).parent} and in every parent's "
         "schema/ directory)"
     )
 
 
-@lru_cache(maxsize=1)
-def _load() -> dict[str, Any]:
-    data: dict[str, Any] = json.loads(schema_path().read_text(encoding="utf-8"))
+@lru_cache(maxsize=2)
+def _load(filename: str = _FILENAME) -> dict[str, Any]:
+    data: dict[str, Any] = json.loads(schema_path(filename).read_text(encoding="utf-8"))
     return data
 
 
@@ -83,3 +88,17 @@ def manifest_schema() -> dict[str, Any]:
     import copy
 
     return copy.deepcopy(_load())
+
+
+def vendor_vector_schema() -> dict[str, Any]:
+    """The vendor-evidence conformance vector schema as a dict.
+
+    Several rules of that format exist only here: the provenance a capture must
+    record, the chain fields it must carry, and the absence of anywhere to put a
+    digest of the report. A schema nothing validates against states those rules
+    without enforcing any of them, so the conformance runner validates every
+    vendor vector with this before it does anything else.
+    """
+    import copy
+
+    return copy.deepcopy(_load(_VENDOR_VECTOR_FILENAME))
