@@ -6,6 +6,19 @@ uses semantic-ish versioning while pre-1.0.
 
 ## 0.28.2 - Unreleased
 
+**[fixtures]** A third Intel TDX capture (issue #117), contributed externally
+and labelled as such. `tdx_quote_gcp_seam15.json` is a genuine DCAP v4 quote from
+a GCP c3-standard-4 confidential VM, taken through configfs TSM directly rather
+than through a provider, with its kernel, instance type, zone, date and method
+recorded in the fixture and the run log beside it.
+
+It reports `TEE_TCB_SVN` `0f 01 0a`: SEAM SVN 15 against 13 on both existing
+captures, with byte 1 unchanged at 1 and byte 2 at 10 against their 8 and 4. Two
+captures cannot separate firmware movement from platform difference and three
+can, which is the only reason it is here. No appraisal threshold is taken from
+it, and a test asserts nothing else in the suite references it.
+
+
 **[spec/sdk]** Read and gate hardware-reported platform state. SEV-SNP
 attestation reports carry two bits that are the only statements about *physical*
 platform state any production attestation report makes, and the SDK read
