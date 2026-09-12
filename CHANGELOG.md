@@ -6,6 +6,28 @@ uses semantic-ish versioning while pre-1.0.
 
 ## 0.28.2 - Unreleased
 
+**[conformance]** A vector format for captures taken from real vendor silicon
+(`kind: vendor`, issue #116). The existing quote vectors use a synthetic PKI, so
+an implementation can satisfy `accept-cryptographically-verified-quote` without
+ever having seen an AMD, Intel or NVIDIA quote. A vendor vector names its root
+by the SHA-256 of the root's DER and carries leaf and intermediates inline; the
+runner resolves the root from a store (`conformance/roots`, plus
+`WCM_CONFORMANCE_ROOTS`) and fails with `root not staged` rather than fetching.
+Each capture declares which of four bindings its `REPORT_DATA` asserts, and an
+unrecognised kind is a hard failure rather than a skip. The scored tier
+evaluates at the vector's own clock so a score does not drift as certificates
+age; a live tier evaluates at wall time and is reported without being scored.
+Six refusal mutations are derived by the runner from every accepting capture, so
+a capture cannot be contributed with only a happy path, and the untrusted anchor
+is one certificate shipped with the suite rather than invented per vector. A
+vector may not pin a digest of the report nor the full report bytes, which the
+format guarantees by leaving nowhere to put one. The conformance runner is the
+reference validator, `schema/wcm-vendor-vector-v1.schema.json` is the same rules
+published for implementations in other languages, and a test asserts the two
+accept and reject the same vectors. No captures are committed under the kind
+yet.
+
+
 **[spec/sdk]** Read and gate hardware-reported platform state. SEV-SNP
 attestation reports carry two bits that are the only statements about *physical*
 platform state any production attestation report makes, and the SDK read

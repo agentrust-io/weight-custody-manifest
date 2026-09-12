@@ -215,6 +215,184 @@ The cadence and the trusted-time source come from the manifest, because that is
 where the protocol puts them. `max_operations` is passed separately: it is a
 deployment parameter, not a manifest field (SPEC open question 8.9 residual).
 
+## Vendor-evidence vectors (`kind: vendor`)
+
+Every certificate in `vectors/gate/` is one this project minted. Those vectors
+prove an implementation verifies a chain, a report signature and a `REPORT_DATA`
+binding; they cannot prove it parses a real AMD, Intel or NVIDIA quote, because
+they contain none. A `vendor` vector carries a capture taken from real silicon.
+
+### Vector shape: named root
+
+The vector **names its root** by the SHA-256 of the root's DER and **carries
+leaf and intermediates inline**. The runner resolves the root from the root
+store (see [`roots/README.md`](roots/README.md)) and fails with `root not
+staged` rather than fetching.
+
+A chain carrying its own anchor proves internal consistency, which the synthetic
+PKI already proves, and the point of a vendor capture is to be about the vendor.
+
+Where a vendor does not publish a root in a form a runner can stage, the vector
+says so in `chain.root_limit`, as a stated limit, rather than letting the chain
+anchor itself quietly.
+
+One rule, for every vendor, with no exception. A TDX quote carries a copy of its
+PCK chain inside the signed bytes and would verify without these fields ever
+being read, so the runner checks the carried chain against the named root before
+the format's own verifier runs. Otherwise the fields would be decorative on that
+one vendor, and `stripped-chain` would report a refusal nobody performed.
+
+### Binding kinds
+
+Real captures do not uniformly echo a caller nonce, so each capture declares
+what its `REPORT_DATA` is bound to:
+
+| `binding.kind` | Meaning |
+| --- | --- |
+| `nonce-digest` | `REPORT_DATA` equals `sha256(nonce)` |
+| `nonce-and-transport` | `sha256(nonce \|\| transport key)`, which is what stops relay |
+| `attestation-key` | bound to a platform key, as on the Azure SEV-SNP vTPM path; no caller freshness |
+| `none` | signature and chain only, and nothing about freshness |
+
+An unrecognised kind is a **hard failure, never a skip**. The silent skip is the
+failure mode that matters, because a runner that skips what it does not
+understand reports a pass it never performed.
+
+`none` earns its place: some real captures prove only that a chip signed
+something, and a format that cannot say so will have a nonce invented for it.
+
+### Expiry
+
+| Tier | Clock | Scored |
+| --- | --- | --- |
+| conformance | `validity.now`, from the vector | yes |
+| live | wall clock | no, reported separately |
+
+The live tier runs on every vendor capture and prints under the level table on
+every full run, as its own block, touching no score:
+
+```
+live  3/4 vendor captures verify against the wall clock (reported, not scored)
+        accept-some-capture: certificate outside validity window: ...
+```
+
+That is where a capture ageing out becomes visible. It only works if somebody
+reads it, and who that is has not been settled.
+
+`validity.not_after` records the shortest-lived certificate in the vector and is
+**required, not optional**. The horizon is 2032, and a refresh process built now
+would be six years of maintenance for a problem the recorded `not_after` will
+surface on its own. Recording it is what makes that a decision rather than an
+oversight.
+
+### Refusals
+
+Six mutations, applied by the runner to every capture, so a new capture cannot
+arrive with only a happy path:
+
+| Case | Expected |
+| --- | --- |
+| `wrong-binding` | `REPORT_DATA` mismatch |
+| `tampered-report` | signature fails |
+| `tampered-signature` | signature fails |
+| `stripped-chain` | no path to a trusted root |
+| `out-of-chain-root` | no path to a trusted root |
+| `expired-at-now` | outside the validity window |
+
+The expiry mutation steps the smallest representable amount past `not_after`
+rather than a whole second. Every NVIDIA certificate in this repository is valid
+until 9999-12-31T23:59:59, where a one-second step overflows; validity is an
+inclusive comparison, so a one-microsecond step is outside the window and the
+case applies to that capture like any other.
+
+The **out-of-chain untrusted root is one root shipped with the suite**, not
+invented per vector. Both obvious ways to invent it look like passes: an anchor
+taken from the capture's own chain verifies correctly, and a VCEK is rejected on
+certificate policy for a non-positive serial before any chain logic runs. Every
+runner should fail that case for the same reason, which only happens if they are
+all given the same root.
+
+Each case declares `reason_contains`, a **substring** of the refusal reason and
+never an exact message, or the vectors become a change detector for wording.
+
+Both tamper mutations are told where to land by the evidence format rather than
+guessing at "the last byte" or "the middle". An SEV-SNP report carries reserved
+bytes after its signature field, and a TDX quote is mostly certification data
+that no signature covers, so a mutation placed by eye can change nothing at all
+and the case then reports a refusal it never performed.
+
+### The GPU rule
+
+**A vector must not pin a digest of the report, nor the full report bytes.** It
+may pin the verification outcome, the chain identity, and the binding check.
+
+The reason belongs next to the rule, because the rule without the reason will be
+relaxed by whoever finds it inconvenient. Three ranges of a 4,129-byte H200
+report move between calls: the nonce at `[4, 36)`, the signature at
+`[4033, 4129)`, and 32 bytes at `[3565, 3597)` that change **even under an
+identical nonce**. Those 32 bytes only appear if you fetch one report twice
+under the same nonce and once under a different one. Varying the nonce hides
+them, so a pin built by diffing two reports taken under *different* nonces looks
+stable and is not.
+
+That is a method note, not a numbers note, and it is the part that stops the
+next person repeating it.
+
+A vendor vector is always an `accept`. Its negatives are the matrix above,
+derived by the runner rather than written by hand, which is what stops a capture
+arriving with only a happy path. A contributed reject vector would compete with
+the derived ones and could not be scored honestly either, since this kind has no
+`WCM-*` code vocabulary to declare.
+
+### The shape
+
+```jsonc
+{
+  "id": "accept-snp-azure-attestation-key",
+  "level": "L2",
+  "kind": "vendor",
+  "description": "why this capture exists and what it establishes",
+  "expect": "accept",
+
+  "capture": {
+    "vendor": "amd", "technology": "sev-snp",
+    "part": "EPYC Milan", "tcb": "...",
+    "captured_at": "2026-09-08", "source": "Azure DCasv5 confidential VM"
+  },
+
+  "evidence": { "format": "sev-snp-report", "report_b64": "..." },
+
+  "chain": {
+    "leaf_pem": "...", "intermediates_pem": ["..."],
+    "root": { "id": "amd-ark-milan", "der_sha256": "sha256:..." },
+    "root_source": "AMD KDS, staged by the runner"
+  },
+
+  "binding": {
+    "kind": "attestation-key",
+    "note": "the paravisor binds REPORT_DATA to the vTPM AK, not a guest nonce"
+  },
+
+  "validity": { "now": "...", "not_after": "..." },
+
+  "refusals": {
+    "wrong-binding":      { "reason_contains": "does not bind" },
+    "tampered-report":    { "reason_contains": "signature does not verify" },
+    "tampered-signature": { "reason_contains": "signature does not verify" },
+    "stripped-chain":     { "reason_contains": "trusted root" },
+    "out-of-chain-root":  { "reason_contains": "trusted root" },
+    "expired-at-now":     { "reason_contains": "validity window" }
+  }
+}
+```
+
+The machine-readable form is
+[`schema/wcm-vendor-vector-v1.schema.json`](../schema/wcm-vendor-vector-v1.schema.json).
+
+No captures are committed under this kind yet. The format lands first so that
+captures fit the format rather than the format bending around whichever capture
+arrives first.
+
 ## Vector format
 
 One JSON file per vector, under `vectors/<kind>/<id>.json`:
@@ -241,6 +419,7 @@ is the kind-specific input:
 | `gate` | L2 | `manifest`, `kbs` config, `steps` (see [Scenario vectors](#scenario-vectors)) |
 | `custody` | L3 | `manifest`, `custody` config, `steps` |
 | `lineage` | L4 | `manifests` (array), `leaf`, and optionally `logged` and `revoked` |
+| `vendor` | L2 | `capture`, `evidence`, `chain`, `binding`, `validity`, `refusals` (see [Vendor-evidence vectors](#vendor-evidence-vectors-kind-vendor)) |
 
 A vector `id` must be unique across **every** kind, not just within its own
 directory, because the results-file contract keys on `id` alone and two vectors
