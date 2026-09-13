@@ -1,0 +1,313 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://wcm.agentrust-io.com/schema/vendor-vector/v1.json",
+  "title": "WCM conformance vendor-evidence vector v1",
+  "description": "A conformance vector carrying a capture taken from real vendor silicon. The shape exists so a vector is about the vendor rather than about the file: the anchor is named and staged rather than carried, the binding it asserts is declared rather than assumed, and the refusal matrix is mandatory so a capture cannot arrive with only a happy path.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "level",
+    "kind",
+    "description",
+    "expect",
+    "capture",
+    "evidence",
+    "chain",
+    "binding",
+    "validity",
+    "refusals"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+      "description": "Unique across every kind, not only this one. The results contract keys on id alone, so two vectors sharing a name collapse into one scored entry."
+    },
+    "level": {
+      "const": "L2"
+    },
+    "kind": {
+      "const": "vendor"
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1
+    },
+    "expect": {
+      "const": "accept",
+      "description": "A vendor vector is a capture, and a capture is an accept. Its negatives are the refusal matrix, derived by the runner rather than contributed, which is what stops a capture arriving with only a happy path."
+    },
+    "capture": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "vendor",
+        "technology",
+        "part",
+        "captured_at",
+        "source"
+      ],
+      "description": "Provenance. Without it a vector that starts failing is unattributable, and nobody can tell whether the implementation regressed or the platform moved.",
+      "properties": {
+        "vendor": {
+          "enum": [
+            "amd",
+            "intel",
+            "nvidia"
+          ]
+        },
+        "technology": {
+          "enum": [
+            "sev-snp",
+            "tdx",
+            "nvidia-cc"
+          ]
+        },
+        "part": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The silicon, named as specifically as the platform allows."
+        },
+        "tcb": {
+          "type": "string",
+          "description": "Firmware or TCB level at capture time, where the platform reports one."
+        },
+        "captured_at": {
+          "type": "string",
+          "format": "date"
+        },
+        "source": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Where the capture was taken: the host, cloud, or machine."
+        }
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "format",
+        "report_b64"
+      ],
+      "description": "The captured bytes, and nothing derived from them. There is nowhere here to record a digest of the report, and that absence is the pinning rule expressed in the schema rather than only in prose.",
+      "properties": {
+        "format": {
+          "enum": [
+            "sev-snp-report",
+            "tdx-quote",
+            "nvidia-attestation-report"
+          ],
+          "description": "Selects the parser. An unrecognised format is a hard failure, never a skip."
+        },
+        "report_b64": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "chain": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "leaf_pem",
+        "intermediates_pem",
+        "root",
+        "root_source"
+      ],
+      "description": "The anchor is named, never carried. A chain that supplies its own root proves only that the vector is internally consistent, which the synthetic PKI already proves.",
+      "properties": {
+        "root": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "id",
+            "der_sha256"
+          ],
+          "properties": {
+            "id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "der_sha256": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            }
+          }
+        },
+        "root_source": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Where a runner obtains this root. Documentation for a person, never a URL the runner fetches."
+        },
+        "leaf_pem": {
+          "type": "string"
+        },
+        "intermediates_pem": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "root_limit": {
+          "type": "string",
+          "minLength": 1,
+          "description": "A stated limit on this root, for the case where the vendor does not publish one in a form a runner can stage. Said here rather than left to the chain anchoring itself quietly."
+        }
+      }
+    },
+    "binding": {
+      "type": "object",
+      "required": [
+        "kind"
+      ],
+      "description": "What REPORT_DATA is bound to, declared rather than assumed. Real captures do not uniformly echo a caller nonce, and a format with a bare nonce field invites an implementer to check the wrong thing and pass.",
+      "properties": {
+        "kind": {
+          "enum": [
+            "nonce-digest",
+            "nonce-and-transport",
+            "attestation-key",
+            "none"
+          ],
+          "description": "nonce-digest: REPORT_DATA equals sha256(nonce). nonce-and-transport: sha256(nonce || transport key). attestation-key: bound to a platform key, no caller freshness. none: signature and chain only, and nothing about freshness. An unrecognised kind is a hard failure, never a skip."
+        },
+        "nonce_hex": {
+          "type": "string",
+          "pattern": "^[0-9a-f]+$"
+        },
+        "transport_public_key_b64url": {
+          "type": "string"
+        },
+        "note": {
+          "type": "string"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "nonce-digest"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "required": [
+              "nonce_hex"
+            ],
+            "not": {
+              "required": [
+                "transport_public_key_b64url"
+              ]
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "nonce-and-transport"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "required": [
+              "nonce_hex",
+              "transport_public_key_b64url"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "enum": [
+                  "attestation-key",
+                  "none"
+                ]
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "required": [
+              "note"
+            ],
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "nonce_hex"
+                  ]
+                },
+                {
+                  "required": [
+                    "transport_public_key_b64url"
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "validity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "now",
+        "not_after"
+      ],
+      "description": "The scored tier evaluates at now, so a score does not change as certificates age. not_after is the shortest-lived certificate the chain depends on, recorded so the horizon is visible without parsing chains and so the live tier has something to compare against.",
+      "properties": {
+        "now": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "not_after": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "refusals": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "The matrix, applied to every capture so a new capture cannot arrive with only a happy path. Each case names a substring the refusal reason must contain, never an exact message, or the vectors become a change detector for wording.",
+      "required": [
+        "wrong-binding",
+        "tampered-report",
+        "tampered-signature",
+        "stripped-chain",
+        "out-of-chain-root",
+        "expired-at-now"
+      ],
+      "patternProperties": {
+        "^(wrong-binding|tampered-report|tampered-signature|stripped-chain|out-of-chain-root|expired-at-now)$": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "reason_contains"
+          ],
+          "properties": {
+            "reason_contains": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      }
+    }
+  }
+}
