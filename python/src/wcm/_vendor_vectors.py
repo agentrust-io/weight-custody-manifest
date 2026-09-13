@@ -24,7 +24,7 @@ root before handing the evidence to the format's own verifier. Otherwise the
 fields would be decorative on that one vendor and the strip case would report a
 refusal nobody performed.
 
-**The binding is declared.** Real captures do not uniformly echo a caller nonce:
+**The binding is declared.** Real captures do not uniformly bind a caller nonce:
 Azure's SEV-SNP path binds ``REPORT_DATA`` to the vTPM attestation key, so there
 is no caller freshness in it at all. Each capture states which of four bindings
 it asserts, and an unrecognised kind is a hard failure rather than a skip,
@@ -81,7 +81,7 @@ from ._quote_verify import (
 # chain and report signature with no REPORT_DATA check at all. See
 # _verify_unbound for why an empty nonce is not the same thing.
 from ._quote_verify import _verify_report_signature
-from .nvidia import NvidiaGpuVerifier
+from .nvidia import NVIDIA_NONCE_OFFSET, NvidiaGpuVerifier
 from .snp import SnpQuoteParser
 from .tdx import verify_tdx_quote
 
@@ -118,6 +118,12 @@ BINDING_KINDS = frozenset(
         # REPORT_DATA equals sha256(nonce || transport key), which is what stops
         # a relay swapping in its own transport key.
         "nonce-and-transport",
+        # The nonce appears verbatim in the report rather than as a digest of
+        # it, at an offset the vector declares. NVIDIA device reports echo it
+        # at offset 4. Named for what the bytes do rather than for the vendor,
+        # because any platform echoing a nonce verbatim belongs here, and the
+        # offset is a field rather than a branch for the same reason.
+        "nonce-echo",
         # Bound to a platform key, as on the Azure SEV-SNP vTPM path. No caller
         # freshness at all.
         "attestation-key",
@@ -129,7 +135,12 @@ BINDING_KINDS = frozenset(
 )
 
 #: The kinds that assert the caller chose the freshness.
-_NONCE_KINDS = frozenset({"nonce-digest", "nonce-and-transport"})
+_NONCE_KINDS = frozenset({"nonce-digest", "nonce-and-transport", "nonce-echo"})
+
+#: Where a nonce-echo capture says its nonce sits, if it does not say.
+#: NVIDIA's offset, and a default rather than a constant because the point of
+#: the kind is that the offset belongs to the capture.
+_DEFAULT_ECHO_OFFSET = 4
 
 EVIDENCE_FORMATS = frozenset(
     {"sev-snp-report", "tdx-quote", "nvidia-attestation-report"}
@@ -417,6 +428,10 @@ def _build_verifier(
             ).encode()
         ).decode()
 
+        declared_offset = int(
+            vector["binding"].get("nonce_offset", _DEFAULT_ECHO_OFFSET)
+        )
+
         def verify_gpu(
             nonce: Optional[str], binding_bytes: bytes, now: datetime
         ) -> QuoteVerification:
@@ -424,8 +439,19 @@ def _build_verifier(
             if nonce is None:
                 return QuoteVerification(
                     False,
-                    "a GPU report binds a caller nonce; a capture asserting no "
+                    "a GPU report echoes a caller nonce; a capture asserting no "
                     "freshness cannot be verified through this path",
+                )
+            # The vector says where the nonce sits. Checked against the bytes
+            # before the verifier runs, because a capture declaring an offset
+            # its report does not use is describing a mechanism it does not
+            # have, which is the whole reason this kind is separate.
+            if declared_offset != NVIDIA_NONCE_OFFSET:
+                return QuoteVerification(
+                    False,
+                    "binding declares the nonce at offset %d, and this report "
+                    "format echoes it at %d"
+                    % (declared_offset, NVIDIA_NONCE_OFFSET),
                 )
             return gpu.verify(container, expected_nonce=nonce, now=now)
 
@@ -465,7 +491,9 @@ _ALLOWED: dict[str, frozenset[str]] = {
     "evidence": frozenset({"format", "report_b64"}),
     "chain": frozenset({"leaf_pem", "intermediates_pem", "root", "root_source", "root_limit"}),
     "chain.root": frozenset({"id", "der_sha256"}),
-    "binding": frozenset({"kind", "nonce_hex", "transport_public_key_b64url", "note"}),
+    "binding": frozenset(
+        {"kind", "nonce_hex", "nonce_offset", "transport_public_key_b64url", "note"}
+    ),
     "validity": frozenset({"now", "not_after"}),
 }
 
@@ -531,6 +559,12 @@ def _validate_shape(vector: dict[str, Any]) -> None:
         )
     if kind in _NONCE_KINDS and not binding.get("nonce_hex"):
         raise VendorVectorError(f"binding kind {kind!r} requires nonce_hex")
+    if kind != "nonce-echo" and "nonce_offset" in binding:
+        raise VendorVectorError(
+            "nonce_offset belongs to 'nonce-echo'; kind " + repr(kind) + " binds a "
+            "digest rather than the nonce itself, so an offset would describe "
+            "nothing"
+        )
     if kind == "nonce-and-transport" and not binding.get("transport_public_key_b64url"):
         raise VendorVectorError(
             "binding kind 'nonce-and-transport' requires transport_public_key_b64url"
