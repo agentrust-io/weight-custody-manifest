@@ -168,10 +168,11 @@
           "enum": [
             "nonce-digest",
             "nonce-and-transport",
+            "nonce-echo",
             "attestation-key",
             "none"
           ],
-          "description": "nonce-digest: REPORT_DATA equals sha256(nonce). nonce-and-transport: sha256(nonce || transport key). attestation-key: bound to a platform key, no caller freshness. none: signature and chain only, and nothing about freshness. An unrecognised kind is a hard failure, never a skip."
+          "description": "nonce-digest: REPORT_DATA equals sha256(nonce). nonce-and-transport: sha256(nonce || transport key). nonce-echo: the nonce appears verbatim in the report at nonce_offset, rather than as a digest of it. attestation-key: bound to a platform key, no caller freshness. none: signature and chain only. An unrecognised kind is a hard failure, never a skip."
         },
         "nonce_hex": {
           "type": "string",
@@ -182,6 +183,11 @@
         },
         "note": {
           "type": "string"
+        },
+        "nonce_offset": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Byte offset at which the report echoes the nonce verbatim. Belongs to nonce-echo alone: a kind that binds a digest has no offset to declare. A field rather than a constant, because a second platform echoing at a different offset should need a value and not a branch."
         }
       },
       "allOf": [
@@ -255,6 +261,50 @@
                     "transport_public_key_b64url"
                   ]
                 }
+              ]
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "nonce-echo"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "required": [
+              "nonce_hex",
+              "nonce_offset"
+            ],
+            "not": {
+              "required": [
+                "transport_public_key_b64url"
+              ]
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "not": {
+                  "const": "nonce-echo"
+                }
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "not": {
+              "required": [
+                "nonce_offset"
               ]
             }
           }
