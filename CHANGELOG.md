@@ -4,7 +4,7 @@ Notable changes to the Weight Custody Manifest specification and Python SDK.
 Format loosely follows [Keep a Changelog](https://keepachangelog.com/); the SDK
 uses semantic-ish versioning while pre-1.0.
 
-## 0.28.2 - Unreleased
+## 0.28.2 - 2026-09-14
 
 **[conformance]** `validity.not_after` on a vendor vector is derived from the
 certificate chain and a mismatch is refused (issue #127). The field was required
