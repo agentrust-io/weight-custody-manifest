@@ -24,10 +24,8 @@
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
     
     
-      
-        <title>Weight Custody Manifest: key release only to attested runtimes - Weight Custody Manifest</title>
-      
-    
+  <title>Weight Custody Manifest: key release only to attested runtimes</title>
+
     
       <link rel="stylesheet" href="assets/stylesheets/main.ec1eaa64.min.css">
       
@@ -58,15 +56,13 @@
   
   
   
-    
-  
   
   
   
 
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="AgenTrust">
-  <meta property="og:title" content="Weight Custody Manifest">
+  <meta property="og:title" content="Weight Custody Manifest: key release only to attested runtimes">
   <meta property="og:description" content="An open, pre-1.0 specification for releasing model weights only to an approved, attested runtime, with the guarantee boundary stated plainly.">
   <meta property="og:url" content="https://wcm.agentrust-io.com/">
   <meta property="og:locale" content="en_US">
@@ -76,7 +72,7 @@
   <meta property="og:image:alt" content="Weight Custody Manifest: release model weights only to an attested runtime">
 
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Weight Custody Manifest">
+  <meta name="twitter:title" content="Weight Custody Manifest: key release only to attested runtimes">
   <meta name="twitter:description" content="An open, pre-1.0 specification for releasing model weights only to an approved, attested runtime, with the guarantee boundary stated plainly.">
   <meta name="twitter:image" content="https://wcm.agentrust-io.com/assets/og.png">
 
@@ -84,23 +80,6 @@
   {
     "@context": "https://schema.org",
     "@graph": [
-      {
-        "@type": "TechArticle",
-        "name": "Weight Custody Manifest (WCM)",
-        "description": "An open, pre-1.0 specification for releasing model weights only to an approved, attested runtime. Against an operator who physically owns the hardware it offers accountability, not cryptographic custody.",
-        "url": "https://wcm.agentrust-io.com/",
-        "license": "https://www.apache.org/licenses/LICENSE-2.0",
-        "publisher": { "@id": "https://agentrust-io.com/#organization" }
-      },
-      {
-        "@type": "SoftwareSourceCode",
-        "name": "weight-custody-manifest",
-        "description": "Reference Python SDK for WCM. Runs the portable conformance vectors offline; they are a self-test, not certification or a hardware deployment test.",
-        "codeRepository": "https://github.com/agentrust-io/weight-custody-manifest",
-        "programmingLanguage": "Python",
-        "license": "https://www.apache.org/licenses/LICENSE-2.0",
-        "author": { "@id": "https://agentrust-io.com/#organization" }
-      },
       {
         "@type": "Organization",
         "@id": "https://agentrust-io.com/#organization",
@@ -113,13 +92,48 @@
           "https://cmcp.agentrust-io.com",
           "https://ca2a.agentrust-io.com",
           "https://wcm.agentrust-io.com",
-          "https://github.com/agentrust-io/agentrust-telemetry"
+          "https://tests.agentrust-io.com",
+          "https://governance.agentrust-io.com"
         ]
       },
       {
         "@type": "WebSite",
+        "@id": "https://wcm.agentrust-io.com/#website",
         "name": "Weight Custody Manifest",
-        "url": "https://wcm.agentrust-io.com/"
+        "url": "https://wcm.agentrust-io.com/",
+        "publisher": { "@id": "https://agentrust-io.com/#organization" }
+      },
+      {
+        "@type": "WebPage",
+        "@id": "https://wcm.agentrust-io.com/#page",
+        "url": "https://wcm.agentrust-io.com/",
+        "name": "Weight Custody Manifest: key release only to attested runtimes",
+        "headline": "Weight Custody Manifest: key release only to attested runtimes",
+        "description": "An open, pre-1.0 specification for releasing model weights only to an approved, attested runtime, with the guarantee boundary stated plainly.",
+        "inLanguage": "en",
+        "isPartOf": { "@id": "https://wcm.agentrust-io.com/#website" },
+        "publisher": { "@id": "https://agentrust-io.com/#organization" }
+      },
+      {
+        "@type": "TechArticle",
+        "@id": "https://wcm.agentrust-io.com/#specification",
+        "name": "Weight Custody Manifest (WCM)",
+        "headline": "Weight Custody Manifest (WCM)",
+        "description": "An open, pre-1.0 specification for releasing model weights only to an approved, attested runtime. Against an operator who physically owns the hardware it offers accountability, not cryptographic custody.",
+        "url": "https://wcm.agentrust-io.com/",
+        "license": "https://www.apache.org/licenses/LICENSE-2.0",
+        "publisher": { "@id": "https://agentrust-io.com/#organization" }
+      },
+      {
+        "@type": "SoftwareSourceCode",
+        "@id": "https://wcm.agentrust-io.com/#sdk",
+        "name": "weight-custody-manifest",
+        "description": "Reference Python SDK for WCM. Runs the portable conformance vectors offline; they are a self-test, not certification or a hardware deployment test.",
+        "url": "https://pypi.org/project/weight-custody-manifest/",
+        "codeRepository": "https://github.com/agentrust-io/weight-custody-manifest",
+        "programmingLanguage": "Python",
+        "license": "https://www.apache.org/licenses/LICENSE-2.0",
+        "author": { "@id": "https://agentrust-io.com/#organization" }
       }
     ]
   }
