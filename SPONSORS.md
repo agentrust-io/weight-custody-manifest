@@ -2,7 +2,7 @@
 
 The Weight Custody Manifest project recognizes organizations that provide financial, engineering, infrastructure, or other material support.
 
-Sponsorship does not confer ownership of the project, additional governance or specification authority, preferential conformance treatment, endorsement of a sponsor's implementation, or rights to project names and marks. Project decisions follow [GOVERNANCE.md](GOVERNANCE.md), regardless of sponsorship.
+Weight Custody Manifest is sponsored by OPAQUE Systems, which funds the engineering, infrastructure and confidential-computing work behind it. Organisations that want to support the project are welcome to join as sponsors.
 
 ## Current sponsors
 
