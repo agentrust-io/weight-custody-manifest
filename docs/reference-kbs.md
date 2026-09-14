@@ -13,6 +13,11 @@ and independently reproduced. Full details:
 
 ## Image
 
+This example trusts the host administrator with the mounted keys, trust roots,
+and manifest allowlist. It is not a deployment for protecting weights from that
+administrator. Read the [deployment trust checklist](deployment-trust.md) before
+provisioning model keys.
+
 ```bash
 docker build -f python/docker/Dockerfile -t wcm-kbs .
 docker run --rm -p 8080:8080 \
@@ -34,9 +39,13 @@ operator hardening steps, documented in the link above).
     `sealed_key_b64`, encrypted to the transport public key bound into the
     attestation evidence; it never returns the raw key. Production deployments
     must additionally isolate the KBS trust boundary, authenticate clients,
-    source keys from a KMS/HSM-backed mounted secret, restrict network ingress,
+    protect key provisioning from host administrators, restrict network ingress,
     and attest/pin the KBS image itself. Do not expose the reference image
     directly on an untrusted network.
+
+    A KMS/HSM-backed secret mounted as plaintext remains readable by an
+    administrator controlling that host. Image pinning alone does not protect
+    mounted policy or keys; the owner must verify the provisioning boundary.
 
     The environment-built server fails closed when `WCM_CPU_TRUST_ROOT_FILE` is
     absent: health and challenge issuance remain available, but every release is

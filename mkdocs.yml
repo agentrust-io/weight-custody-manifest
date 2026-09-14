@@ -58,6 +58,7 @@ nav:
       - Provider certificate policy: certificate-policy.md
       - OpenSSF Model Signing interop: oms-interoperability.md
       - Threat model: threat-model.md
+      - Key-release trust boundary: deployment-trust.md
       - Schema and conformance: conformance.md
   - SDK:
       - Getting started: getting-started.md
