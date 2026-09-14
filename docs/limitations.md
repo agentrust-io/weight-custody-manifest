@@ -1,3 +1,7 @@
+---
+description: "Where WCM stops: no custody against a hardware owner, an open attestation forgery question, weak vendor key revocation, and trusted time as an assumption."
+---
+
 # Limitations
 
 The canonical, complete list is [`LIMITATIONS.md`](https://github.com/agentrust-io/weight-custody-manifest/blob/main/LIMITATIONS.md). The load-bearing ones:
