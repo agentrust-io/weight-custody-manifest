@@ -31,6 +31,42 @@ theme:
   icon:
     repo: fontawesome/brands/github
 
+plugins:
+  - search
+  - llmstxt:
+      full_output: llms-full.txt
+      markdown_description: >-
+        Weight Custody Manifest (WCM) is an open, pre-1.0 specification for
+        releasing model weights only to an approved, attested runtime. A signed
+        manifest binds encrypted weights to a release policy, and a key broker
+        releases the decryption key only to a workload whose attestation matches
+        it. The reference SDK is Apache-2.0 and runs 91 portable conformance
+        vectors offline, which are a self-test and not certification. Against
+        an operator who physically owns the hardware, WCM offers accountability,
+        not cryptographic custody.
+      sections:
+        Start here:
+          - index.md
+          - tutorials/how-it-works.md
+          - getting-started.md
+        Specification:
+          - spec-overview.md
+          - measured-launch.md
+          - certificate-policy.md
+          - oms-interoperability.md
+          - threat-model.md
+          - conformance.md
+        SDK:
+          - reference-kbs.md
+          - protected-runtime-evidence.md
+        Project:
+          - limitations.md
+          - roadmap.md
+          - governance.md
+          - sponsors.md
+          - contributing.md
+          - changelog.md
+
 extra_css:
   - https://agentrust-io.com/design-system.css
 
