@@ -6,6 +6,8 @@
   agentrust-io.com/wcm/ redirects here, so this site owns the Open Graph tags
   that the old launch page used to carry. Crawlers follow the redirect and read
   these. Keep og:image absolute: relative paths break when a card is scraped.
+  The card is docs/assets/og.png, rendered by tools/render-og-card.py in
+  agentrust-io.github.io. og-launch.png stays for shares cached against it.
 
   The JSON-LD lets search and answer engines model what WCM is. Its descriptions
   keep the same guarantee boundary as the home page; do not let them round up.
@@ -22,7 +24,7 @@
   {% endif %}
   {% set page_url = page.canonical_url if page and page.canonical_url else config.site_url %}
   {# Absolute and literal: the site is CNAME-pinned, and Jinja has no rtrim filter. #}
-  {% set og_image = 'https://wcm.agentrust-io.com/assets/og-launch.png' %}
+  {% set og_image = 'https://wcm.agentrust-io.com/assets/og.png' %}
 
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="AgenTrust">
@@ -31,9 +33,9 @@
   <meta property="og:url" content="{{ page_url }}">
   <meta property="og:locale" content="en_US">
   <meta property="og:image" content="{{ og_image }}">
-  <meta property="og:image:width" content="1731">
-  <meta property="og:image:height" content="909">
-  <meta property="og:image:alt" content="Weight Custody Manifest: Release, Attest, Revoke">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Weight Custody Manifest: release model weights only to an attested runtime">
 
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="{{ page_title }}">

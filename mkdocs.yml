@@ -12,12 +12,16 @@ theme:
   font: false
   features:
     - navigation.instant
+    - navigation.tracking
     - navigation.tabs
+    - navigation.tabs.sticky
     - navigation.sections
     - navigation.top
+    - navigation.path
     - search.suggest
     - search.highlight
     - content.code.copy
+    - content.tabs.link
     - toc.follow
   palette:
     - scheme: default
@@ -45,10 +49,10 @@ plugins:
         an operator who physically owns the hardware, WCM offers accountability,
         not cryptographic custody.
       sections:
-        Start here:
+        Get started:
           - index.md
-          - tutorials/how-it-works.md
           - getting-started.md
+          - tutorials/how-it-works.md
         Specification:
           - spec-overview.md
           - measured-launch.md
@@ -56,7 +60,7 @@ plugins:
           - oms-interoperability.md
           - threat-model.md
           - conformance.md
-        SDK:
+        Guides:
           - reference-kbs.md
           - protected-runtime-evidence.md
         Project:
@@ -85,9 +89,9 @@ markdown_extensions:
 
 nav:
   - Home: index.md
-  - Tutorials:
+  - Get started:
+      - Getting started: getting-started.md
       - How WCM works: tutorials/how-it-works.md
-      - Runnable examples: https://github.com/agentrust-io/examples/tree/main/weight-custody-manifest
   - Specification:
       - Overview: spec-overview.md
       - Azure measured launch: measured-launch.md
@@ -95,10 +99,10 @@ nav:
       - OpenSSF Model Signing interop: oms-interoperability.md
       - Threat model: threat-model.md
       - Schema and conformance: conformance.md
-  - SDK:
-      - Getting started: getting-started.md
+  - Guides:
       - Reference KBS image: reference-kbs.md
       - Protected-runtime evidence: protected-runtime-evidence.md
+      - Runnable examples: https://github.com/agentrust-io/examples/tree/main/weight-custody-manifest
   - Project:
       - Roadmap: roadmap.md
       - Limitations: limitations.md
