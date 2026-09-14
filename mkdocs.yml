@@ -1,5 +1,5 @@
 site_name: Weight Custody Manifest
-site_description: An open protocol for protecting model weights deployed into customer-controlled infrastructure
+site_description: An open, pre-1.0 specification for releasing model weights only to an attested runtime, with the guarantee boundary stated plainly
 site_url: https://wcm.agentrust-io.com
 repo_url: https://github.com/agentrust-io/weight-custody-manifest
 repo_name: agentrust-io/weight-custody-manifest
@@ -40,6 +40,7 @@ extra_javascript:
 markdown_extensions:
   - admonition
   - attr_list
+  - md_in_html
   - tables
   - pymdownx.superfences
   - pymdownx.highlight
