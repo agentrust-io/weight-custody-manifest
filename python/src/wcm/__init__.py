@@ -115,6 +115,7 @@ from ._quote_verify import (
 from .azure_vtpm import AzureSnpVtpmVerifier
 from .custody import (
     EnclaveSession,
+    ServingShutdown,
     SessionState,
     TimeFloor,
     KeyWipedError,
@@ -295,6 +296,7 @@ __all__ = [
     "QuoteFormatError",
     "verify_cert_chain",
     "EnclaveSession",
+    "ServingShutdown",
     "SessionState",
     "TimeFloor",
     "KeyWipedError",

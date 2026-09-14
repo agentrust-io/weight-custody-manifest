@@ -93,6 +93,68 @@ splicing. The production controller must call this contract from inside its
 protected control path; signatures created by an external observer are not
 evidence of protected execution.
 
+### Serving shutdown integration
+
+The reference SDK provides `EnclaveSession(on_stop=...)` and `ServingShutdown`
+as integration points, not an inference engine or a hardware erasure driver.
+Pass a `ServingShutdown` instance as `on_stop` when constructing the session
+(also supported by `from_release`). Supply these measured-runtime callbacks:
+
+1. `stop_admission`: close the request queue and reject new inference.
+2. `cancel_inflight`: stop active inference and quiesce device work. Return only
+   when buffers are no longer in use; raise if this cannot be established.
+3. `unload_weights`: overwrite/release supported model and temporary buffers,
+   destroy model/allocator objects and GPU contexts, and invoke available
+   hardware sanitization. This step is skipped if cancellation fails.
+4. `terminate`: enforce serving-worker termination, including a forced fallback
+   when earlier cleanup failed. This is attempted even if previous callbacks
+   raise. It must not merely log a request to stop.
+
+The session marks itself wiped and overwrites its held key before invoking the
+hook. Authorization and renewal then fail permanently. Teardown runs once;
+ordinary callback failures are collected in an `ExceptionGroup` after the
+termination attempt. Callback return values are not signed proof of physical
+erasure or process exit. An independent protected supervisor must confirm worker
+exit; a process cannot truthfully attest its own completed termination before
+exiting. Do not emit `wipe_completed` or `process_terminated` on a failed attempt.
+
+Start `session.monitor()` in a supervised asyncio task before admitting work,
+and keep it running alongside bounded renewal I/O. It checks idle leases and
+wipes at `now >= deadline`. Once running, cancellation, clock errors, and monitor
+failure also trigger the stop hook. Retain and await the task so teardown errors
+are observed. All authorization, renewal, explicit zeroization, and monitor
+calls must be serialized on the same event loop; the session is not thread-safe.
+Do not cancel the monitor just because an individual renewal attempt failed.
+
+No unsuccessful renewal extends the original deadline, but an unreachable or
+unverifiable response and an authenticated denial are different signals. Treat an
+unreachable or unverifiable response as inconclusive and retry with fresh
+challenges within the existing lease and operation budget. Treat a verified signed
+decision that refused renewal as a verdict, not a transport error: stop admitting
+new work, and call `session.zeroize()` immediately when its reasons are
+revocation-class, such as a revoked serving image, a revoked attestation key, or a
+manifest no longer in force. Apply only verified successful signed renewals. Call
+`session.zeroize()` immediately for an independently verified revocation under the
+manifest's profile. The SDK reports gate results and does not classify them for
+you; until a signed disposition field exists, the controller owns the mapping from
+denial reasons to immediate termination.
+
+Check `authorize_operation()` on every inference dispatch, including requests
+already queued. Admission checks alone do not stop a long-running operation:
+the cancellation/termination callbacks must enforce that boundary as well.
+For graceful draining, close admission sufficiently early and finish work before
+expiry. At expiry there is no additional drain grace period and no partial result
+should escape from cancelled work. Restart from a fresh release, never from the
+wiped session or previously loaded model objects.
+
+The asyncio monitor is cooperative, not a trusted timer. Blocking the event loop
+or a synchronous cleanup callback can delay it. Callbacks must use bounded native
+runtime primitives, with an independent protected watchdog to force execution
+stop if renewal, cleanup, or the serving worker hangs. Neither these SDK hooks
+nor their unit tests close issue #78: the hardware-specific callbacks, trusted
+time source, enforced stop latency, memory cleanup limits, and receipt capture
+still require the production evidence described above.
+
 ## Review gate
 
 For either issue, merge only when the sanitized receipt, verifier, negative

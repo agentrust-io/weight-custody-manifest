@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from datetime import datetime, timedelta, timezone
 
 import pytest
@@ -11,6 +12,7 @@ from wcm import (
     KeyWipedError,
     ReattestationRequired,
     SessionState,
+    ServingShutdown,
     SoftwareProvider,
     TimeFloor,
     TrustedTimeSource,
@@ -125,6 +127,164 @@ def test_tick_on_wiped_is_noop():
     s = EnclaveSession(KEY, cadence_seconds=3600, now=_clock())
     s.zeroize()
     assert s.tick() is SessionState.wiped
+
+
+def test_deadline_stops_serving_once_after_wiping():
+    clock = _clock()
+    stopped = []
+
+    def stop():
+        assert session.is_wiped
+        assert session._key == bytearray()
+        with pytest.raises(KeyWipedError):
+            session.authorize_operation()
+        stopped.append(True)
+
+    session = EnclaveSession(KEY, cadence_seconds=10, now=clock, on_stop=stop)
+    clock.advance(10)
+    assert session.tick() is SessionState.wiped
+    session.zeroize()
+    assert stopped == [True]
+
+
+def test_stop_error_cannot_restore_custody():
+    def stop():
+        raise RuntimeError("runtime cleanup failed")
+
+    session = EnclaveSession(KEY, cadence_seconds=10, now=_clock(), on_stop=stop)
+    with pytest.raises(RuntimeError, match="runtime cleanup failed"):
+        session.zeroize()
+    assert session.is_wiped
+    assert session._key == bytearray()
+    with pytest.raises(KeyWipedError):
+        session.reattest()
+    session.zeroize()
+
+
+def test_from_release_passes_stop_hook(example_manifest):
+    clock = _clock()
+    stopped = []
+    session = EnclaveSession.from_release(
+        example_manifest, _released_decision(example_manifest, clock),
+        now=clock, on_stop=lambda: stopped.append(True),
+    )
+    session.zeroize()
+    assert stopped == [True]
+
+
+@pytest.mark.parametrize("failed_step", [None, "admission", "cancel", "unload", "terminate"])
+def test_shutdown_order_and_failure_fallback(failed_step):
+    steps = []
+
+    def callback(name):
+        def run():
+            steps.append(name)
+            if name == failed_step:
+                raise RuntimeError(name)
+        return run
+
+    shutdown = ServingShutdown(
+        stop_admission=callback("admission"),
+        cancel_inflight=callback("cancel"),
+        unload_weights=callback("unload"),
+        terminate=callback("terminate"),
+    )
+    if failed_step is None:
+        shutdown()
+    else:
+        with pytest.raises(ExceptionGroup) as caught:
+            shutdown()
+        assert str(caught.value.exceptions[0]) == failed_step
+    shutdown()
+    expected = ["admission", "cancel", "terminate"] if failed_step == "cancel" else [
+        "admission", "cancel", "unload", "terminate",
+    ]
+    assert steps == expected
+
+
+def test_monitor_stops_idle_session(monkeypatch):
+    clock = _clock()
+    stopped = []
+    session = EnclaveSession(
+        KEY, cadence_seconds=10, now=clock, on_stop=lambda: stopped.append(True),
+    )
+
+    async def advance(delay):
+        clock.advance(delay)
+
+    monkeypatch.setattr("wcm.custody.asyncio.sleep", advance)
+    asyncio.run(session.monitor(poll_interval=3))
+    assert clock() == session.deadline
+    assert session.is_wiped
+    assert stopped == [True]
+
+
+def test_monitor_cancellation_stops_serving():
+    stopped = []
+    session = EnclaveSession(
+        KEY, cadence_seconds=10, now=_clock(), on_stop=lambda: stopped.append(True),
+    )
+
+    async def run():
+        task = asyncio.create_task(session.monitor())
+        await asyncio.sleep(0)
+        task.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await task
+
+    asyncio.run(run())
+    assert session.is_wiped
+    assert stopped == [True]
+
+
+def test_monitor_honors_successful_signed_renewal(example_manifest, monkeypatch):
+    clock = _clock()
+    stopped = []
+    session, kbs, current, rim = _session_and_kbs(
+        example_manifest, clock, on_stop=lambda: stopped.append(True),
+    )
+    original_deadline = session.deadline
+    renewed = False
+
+    async def advance(delay):
+        nonlocal renewed
+        clock.advance(delay)
+        if not renewed:
+            session.apply_renewal(example_manifest, _renew(kbs, example_manifest, current, rim))
+            renewed = True
+
+    monkeypatch.setattr("wcm.custody.asyncio.sleep", advance)
+    asyncio.run(session.monitor(poll_interval=3600))
+    assert session.deadline == original_deadline + timedelta(seconds=3600)
+    assert clock() == session.deadline
+    assert stopped == [True]
+
+
+def test_monitor_clock_failure_stops_serving():
+    stopped = []
+    clock = _clock()
+    fail = False
+
+    def now():
+        if fail:
+            raise RuntimeError("clock unavailable")
+        return clock()
+
+    session = EnclaveSession(
+        KEY, cadence_seconds=10, now=now, on_stop=lambda: stopped.append(True),
+    )
+    fail = True
+    with pytest.raises(RuntimeError, match="clock unavailable"):
+        asyncio.run(session.monitor())
+    assert session.is_wiped
+    assert stopped == [True]
+
+
+@pytest.mark.parametrize("interval", [0, -1, float("nan"), float("inf")])
+def test_monitor_rejects_invalid_interval(interval):
+    session = EnclaveSession(KEY, cadence_seconds=10, now=_clock())
+    with pytest.raises(ValueError, match="poll_interval"):
+        asyncio.run(session.monitor(poll_interval=interval))
 
 
 # -- trusted-time honesty ------------------------------------------------------
@@ -297,6 +457,7 @@ def test_from_release_passes_max_operations(example_manifest):
 
 def _session_and_kbs(
     manifest, clock, *, max_operations=1, renewal_ttl=60, renewal_signing_key=None,
+    on_stop=None,
 ):
     kbs = KeyBrokerService(
         {manifest.weights_hash: KEY}, now=clock,
@@ -317,6 +478,7 @@ def _session_and_kbs(
     release = kbs.verify_and_release(manifest, evidence)
     session = EnclaveSession.from_release(
         manifest, release, max_operations=max_operations, now=clock,
+        on_stop=on_stop,
     )
     return session, kbs, current, rim
 
@@ -369,6 +531,27 @@ def test_kbs_nonce_replay_produces_signed_failed_renewal(example_manifest):
     assert replay.checks[0]["passed"] is False
     with pytest.raises(ValueError, match="failed gate"):
         session.apply_renewal(example_manifest, replay)
+
+
+def test_failed_renewal_keeps_deadline_then_stops(example_manifest):
+    clock = _clock()
+    stopped = []
+    session, kbs, current, _ = _session_and_kbs(
+        example_manifest, clock, on_stop=lambda: stopped.append(True),
+    )
+    deadline = session.deadline
+    clock.advance(10)
+    failed = _renew(kbs, example_manifest, current, "wrong-rim")
+    with pytest.raises(ValueError, match="failed gate"):
+        session.apply_renewal(example_manifest, failed)
+    assert session.deadline == deadline
+    assert not session.is_wiped
+    assert stopped == []
+    session.authorize_operation()
+    clock.advance(session.remaining_seconds())
+    with pytest.raises(KeyWipedError):
+        session.authorize_operation()
+    assert stopped == [True]
 
 
 def test_renewal_refuses_wrong_signer_and_tampering(example_manifest):

@@ -31,7 +31,10 @@ question 8.9 residual), not a manifest field, so it is passed in explicitly.
 """
 from __future__ import annotations
 
+import asyncio
+import math
 import re
+import threading
 from datetime import datetime, timedelta, timezone
 from enum import Enum
 from typing import Callable, Optional
@@ -96,12 +99,69 @@ def _utcnow() -> datetime:
     return datetime.now(timezone.utc)
 
 
+class ServingShutdown:
+    """Once-only, synchronous teardown adapter for an EnclaveSession on_stop.
+
+    Callbacks belong to the measured runtime and must be bounded. Cancellation
+    must quiesce device work before unloading its buffers. Termination must
+    enforce execution stop even if cancellation or cleanup fails. This adapter
+    neither implements a hardware erasure primitive nor certifies cleanup.
+    """
+
+    def __init__(
+        self,
+        *,
+        stop_admission: Callable[[], None],
+        cancel_inflight: Callable[[], None],
+        unload_weights: Callable[[], None],
+        terminate: Callable[[], None],
+    ) -> None:
+        self._stop_admission = stop_admission
+        self._cancel_inflight = cancel_inflight
+        self._unload_weights = unload_weights
+        self._terminate = terminate
+        self._stopped = False
+        # Teardown frees device buffers, so a racing second caller must not repeat it.
+        self._lock = threading.Lock()
+
+    def __call__(self) -> None:
+        with self._lock:
+            if self._stopped:
+                return
+            self._stopped = True
+        errors: list[Exception] = []
+        try:
+            try:
+                self._stop_admission()
+            except Exception as exc:
+                errors.append(exc)
+            try:
+                self._cancel_inflight()
+            except Exception as exc:
+                errors.append(exc)
+            else:
+                try:
+                    self._unload_weights()
+                except Exception as exc:
+                    errors.append(exc)
+        finally:
+            try:
+                self._terminate()
+            except Exception as exc:
+                errors.append(exc)
+        if errors:
+            raise ExceptionGroup("serving shutdown failed", errors)
+
+
 class EnclaveSession:
     """An enclave's custody of one released key, enforcing wipe-on-lapse.
 
     Construct one from a successful release (``from_release``) or directly. Call
     ``reattest`` before the window closes to renew; ``use_key`` returns the key
     only while holding; a lapsed window zeroizes the key on the next interaction.
+    Supply ``on_stop`` to tear down loaded-model serving, and await ``monitor``
+    in a supervised task to check the deadline even while idle. All session
+    calls must be serialized on that same event loop (or by an external owner).
     """
 
     def __init__(
@@ -115,6 +175,7 @@ class EnclaveSession:
         manifest_hash: Optional[str] = None,
         renewal_public_key_b64url: Optional[str] = None,
         now: Optional[Callable[[], datetime]] = None,
+        on_stop: Optional[Callable[[], None]] = None,
     ) -> None:
         if cadence_seconds <= 0:
             raise ValueError("cadence_seconds must be greater than zero")
@@ -132,6 +193,7 @@ class EnclaveSession:
         self._renewal_public_key = renewal_public_key_b64url
         self._used_renewals: set[str] = set()
         self._now = now or _utcnow
+        self._on_stop = on_stop
         self._state = SessionState.holding
         self._deadline: datetime = self._now() + timedelta(seconds=cadence_seconds)
 
@@ -143,6 +205,7 @@ class EnclaveSession:
         *,
         max_operations: Optional[int] = None,
         now: Optional[Callable[[], datetime]] = None,
+        on_stop: Optional[Callable[[], None]] = None,
     ) -> "EnclaveSession":
         """Start custody from a KBS ``ReleaseDecision`` that released a key.
 
@@ -166,6 +229,7 @@ class EnclaveSession:
                 decision, "renewal_public_key_b64url", None
             ),
             now=now,
+            on_stop=on_stop,
         )
 
     # -- properties ------------------------------------------------------------
@@ -205,12 +269,28 @@ class EnclaveSession:
 
     # -- state transitions -----------------------------------------------------
 
+    async def monitor(self, *, poll_interval: float = 0.1) -> None:
+        """Check idle leases until wiped; cancellation or clock errors also stop.
+
+        This cooperative monitor is not a trusted hardware timer. Blocking the
+        event loop can delay it. A production runtime needs an independent
+        protected watchdog to bound execution and terminate hung cleanup.
+        Supervise/await this task so shutdown failures are not lost.
+        """
+        if not math.isfinite(poll_interval) or poll_interval <= 0:
+            raise ValueError("poll_interval must be finite and greater than zero")
+        try:
+            while self.tick() is SessionState.holding:
+                await asyncio.sleep(min(poll_interval, self.remaining_seconds()))
+        finally:
+            self.zeroize()
+
     def tick(self, now: Optional[datetime] = None) -> SessionState:
         """Evaluate the deadline; zeroize the key if the window has lapsed."""
         if self._state is SessionState.wiped:
             return self._state
         current = now if now is not None else self._now()
-        if current > self._deadline:
+        if current >= self._deadline:
             self.zeroize()
         return self._state
 
@@ -323,9 +403,16 @@ class EnclaveSession:
 
         Best-effort in a managed runtime: Python may have copied the bytes
         elsewhere. A production enclave zeroizes the real key material; this is
-        the reference semantics.
+        the reference semantics. The optional on_stop hook runs once, after
+        authorization is permanently disabled and the held key is wiped. Hook
+        errors propagate without restoring custody. Calls must be serialized
+        by the protected runtime, including deadline checks and renewals.
         """
+        if self._state is SessionState.wiped:
+            return
+        self._state = SessionState.wiped
         for i in range(len(self._key)):
             self._key[i] = 0
         self._key = bytearray()
-        self._state = SessionState.wiped
+        if self._on_stop is not None:
+            self._on_stop()
