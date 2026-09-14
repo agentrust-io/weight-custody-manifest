@@ -6,8 +6,12 @@
   agentrust-io.com/wcm/ redirects here, so this site owns the Open Graph tags
   that the old launch page used to carry. Crawlers follow the redirect and read
   these. Keep og:image absolute: relative paths break when a card is scraped.
+
+  The JSON-LD lets search and answer engines model what WCM is. Its descriptions
+  keep the same guarantee boundary as the home page; do not let them round up.
 #}
 {% block extrahead %}
+  {{ super() }}
   {% set page_title = config.site_name %}
   {% if page and page.title and not page.is_homepage %}
     {% set page_title = page.title | striptags ~ " | " ~ config.site_name %}
@@ -35,4 +39,49 @@
   <meta name="twitter:title" content="{{ page_title }}">
   <meta name="twitter:description" content="{{ page_desc }}">
   <meta name="twitter:image" content="{{ og_image }}">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "TechArticle",
+        "name": "Weight Custody Manifest (WCM)",
+        "description": "An open, pre-1.0 specification for releasing model weights only to an approved, attested runtime. Against an operator who physically owns the hardware it offers accountability, not cryptographic custody.",
+        "url": "{{ config.site_url }}",
+        "license": "https://www.apache.org/licenses/LICENSE-2.0",
+        "publisher": { "@id": "https://agentrust-io.com/#organization" }
+      },
+      {
+        "@type": "SoftwareSourceCode",
+        "name": "weight-custody-manifest",
+        "description": "Reference Python SDK for WCM. Runs the portable conformance vectors offline; they are a self-test, not certification or a hardware deployment test.",
+        "codeRepository": "{{ config.repo_url }}",
+        "programmingLanguage": "Python",
+        "license": "https://www.apache.org/licenses/LICENSE-2.0",
+        "author": { "@id": "https://agentrust-io.com/#organization" }
+      },
+      {
+        "@type": "Organization",
+        "@id": "https://agentrust-io.com/#organization",
+        "name": "AgenTrust",
+        "url": "https://agentrust-io.com/",
+        "sameAs": [
+          "https://github.com/agentrust-io",
+          "https://trace.agentrust-io.com",
+          "https://manifest.agentrust-io.com",
+          "https://cmcp.agentrust-io.com",
+          "https://ca2a.agentrust-io.com",
+          "https://wcm.agentrust-io.com",
+          "https://github.com/agentrust-io/agentrust-telemetry"
+        ]
+      },
+      {
+        "@type": "WebSite",
+        "name": "{{ config.site_name }}",
+        "url": "{{ config.site_url }}"
+      }
+    ]
+  }
+  </script>
 {% endblock %}
