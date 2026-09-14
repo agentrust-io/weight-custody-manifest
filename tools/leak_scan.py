@@ -1,50 +1,27 @@
 #!/usr/bin/env python3
-"""Pre-release leak scan — runs on every push and pull request.
+"""Scan source files and release archives for accidental disclosure.
 
-WHY THIS EXISTS (RCA-0008, 2026-09-01)
-======================================
-An Azure subscription GUID, a resource group, a VM name and a GPU device
-certificate serial were published to PUBLIC PyPI in sdists 0.25.0-0.27.0 while
-this repository was still PRIVATE on GitHub. Two manual pre-flip leak scans
-(2026-08-06 and 2026-08-13) both reported CLEAN, and both were honest: they
-searched a five-term denylist of customer, partner and codename strings, and
-those terms genuinely were absent. The leaked material was a different class
-entirely -- infrastructure identifiers -- and it landed on 2026-08-16, three
-days after the last scan.
-
-Two failures composed, and this script addresses both:
-
-  1. WRONG CLASS. A denylist of named entities cannot catch a GUID. This scans
-     for identifier SHAPES, not for a list of known-bad strings.
-
-  2. WRONG SURFACE. Every control guarded the GitHub visibility flip. Nothing
-     guarded `python -m build && twine upload`. A repository that publishes a
-     package is public AT THE PACKAGE BOUNDARY regardless of its GitHub
-     visibility. This runs in CI on every change, not by hand before a flip.
-
-Exit 0 = clean. Exit 1 = findings. No third-party dependencies, by design.
+Exit 0 means no configured pattern matched outside a documented exception.
+Exit 1 means a finding or unreadable input. This is not a complete secret audit.
+Matched values are never printed.
 """
 from __future__ import annotations
 
+import argparse
 import re
+import tarfile
+import zipfile
 import sys
+import subprocess
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
-
-# Directories that never ship and never need scanning.
-SKIP_DIRS = {".git", "node_modules", "__pycache__",
-             ".pytest_cache", ".venv", "venv", "dist", "build", ".mypy_cache",
-             ".ruff_cache", "htmlcov"}
 
 # Binary / non-text extensions.
 SKIP_EXT = {".png", ".jpg", ".jpeg", ".gif", ".pdf", ".ico", ".woff", ".woff2",
             ".zip", ".gz", ".tar", ".whl", ".so", ".dylib", ".bin"}
 
-# --- BLOCKING patterns -------------------------------------------------------
-# Calibrated 2026-09-01: each produces ZERO hits on a clean tree, so any hit is
-# a real finding rather than noise. Keep it that way -- a check that cries wolf
-# gets ignored, which is how the last one failed.
+# Publication-blocking patterns. Synthetic exceptions are scoped below.
 BLOCKING = [
     ("azure-subscription-or-tenant-guid",
      re.compile(r"\b[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-"
@@ -64,49 +41,26 @@ BLOCKING = [
      "An AWS access key ID."),
 ]
 
-# --- WARNING patterns --------------------------------------------------------
-# Not blocking, because the label is doing its job when it marks a genuinely
-# internal artifact. It becomes a defect only when such an artifact is
-# COMMITTED to a repo that publishes -- which the allowlist below makes visible.
-WARNING = [
-    ("internal-classification-label",
-     re.compile(r"OPAQUE internal"),
-     "An artifact self-labelled internal. Verify it is not shipped."),
+BLOCKING += [
+    ("internal-classification-label", re.compile(r"OPAQUE " + r"internal", re.IGNORECASE),
+     "An internal classification label."),
+    ("local-workspace-path", re.compile(r"(?:[A-Za-z]:[\\/]Users[\\/](?!Public\b|Default\b)[^\s\"<>]+|/(?:Users|home)/[^/\s]+/)", re.IGNORECASE),
+     "A local user workspace path."),
+    ("github-token", re.compile(r"\b(?:gh[pousr]_[A-Za-z0-9]{36,}|github_pat_[A-Za-z0-9_]{50,})\b"),
+     "A GitHub access token."),
 ]
 
-# Known, deliberate, reviewed exceptions, as {path-or-prefix: {pattern: reason}}.
-# Every entry needs a reason. An empty allowlist is the goal; a growing one is a
-# smell. `*` exempts every pattern for that path.
+# Exceptions cover synthetic inputs only, never production credentials.
 ALLOWLIST = {
-    # This scanner documents the patterns it hunts, so it matches itself.
-    "tools/leak_scan.py": {"*": "the scanner's own documentation"},
-
-    # Synthetic PKI, and it is stated policy: PUBLIC-RELEASE.md:45 --
-    # "synthetic PKI for portability even though the SDK also carries
-    # real-silicon fixtures." These keys protect nothing.
-    "conformance/vectors/": {
-        "private-key-block": "synthetic conformance PKI (PUBLIC-RELEASE.md:45)"},
-    # Tests the identifier patterns, so it must contain pattern-shaped strings
-    # or it tests nothing. The values there are synthetic placeholders, not the
-    # published ones; test_patterns_catch_the_identifier_classes_that_were_published
-    # says why. Reviewed 2026-09-01.
+    "conformance/vectors/": {"private-key-block": "synthetic conformance PKI; protects no deployed identity"},
     "python/tests/test_leak_scan.py": {
-        "azure-subscription-or-tenant-guid": "synthetic all-zero GUID under test",
-        "cloud-resource-name": "synthetic rg-/vm-example-placeholder under test",
-        "device-certificate-serial": "synthetic all-zero serial under test"},
-
-    "python/tests/test_final_launch.py": {
-        "private-key-block": "synthetic test key",
-        "internal-classification-label": "asserts on the label value"},
-
-    # The label is the VALUE these tools write, not leaked data. Correct
-    # behaviour: they mark internal evidence as internal.
-    "python/tools/final_launch.py": {
-        "internal-classification-label": "emits the label by design"},
-    "python/tools/paired_hardware_release.py": {
-        "internal-classification-label": "emits the label by design"},
-
-
+        "azure-subscription-or-tenant-guid": "synthetic test GUID",
+        "cloud-resource-name": "synthetic resource names",
+        "device-certificate-serial": "synthetic device serial",
+        "internal-classification-label": "synthetic negative control",
+        "local-workspace-path": "synthetic negative control",
+    },
+    "python/tests/test_final_launch.py": {"private-key-block": "synthetic test key"},
 }
 
 
@@ -120,61 +74,86 @@ def exempt(rel: str, pattern: str) -> bool:
 
 
 def iter_files():
-    for p in REPO.rglob("*"):
-        if not p.is_file():
-            continue
-        rel = p.relative_to(REPO)
-        if any(part in SKIP_DIRS for part in rel.parts):
-            continue
-        if p.suffix.lower() in SKIP_EXT:
-            continue
-        # as_posix(), not str(): ALLOWLIST keys are written with forward
-        # slashes, and str() on Windows yields backslashes, so every exemption
-        # silently missed and the scan failed on a clean tree. CI is Linux, so
-        # only a maintainer running this locally before a manual publish would
-        # have hit it -- which is exactly the case this scanner exists to cover.
-        yield p, rel.as_posix()
+    paths = subprocess.check_output(
+        ["git", "ls-files", "--cached", "--others", "--exclude-standard", "-z"], cwd=REPO
+    ).decode("utf-8").split("\0")
+    for rel in sorted(set(paths) - {""}):
+        p = REPO / rel
+        if p.is_symlink():
+            raise ValueError("source symlink requires review")
+        if p.suffix.lower() not in SKIP_EXT:
+            yield p, rel
 
 
-def main() -> int:
-    blocking_hits, warning_hits = [], []
-    for path, rel in iter_files():
-        try:
-            text = path.read_text(encoding="utf-8", errors="ignore")
-        except OSError:
-            continue
-        for name, rx, why in BLOCKING:
-            if exempt(rel, name):
-                continue
-            for m in rx.finditer(text):
-                line = text[:m.start()].count("\n") + 1
-                blocking_hits.append((rel, line, name, why, m.group(0)[:60]))
-        for name, rx, why in WARNING:
-            if exempt(rel, name):
-                continue
-            for m in rx.finditer(text):
-                line = text[:m.start()].count("\n") + 1
-                warning_hits.append((rel, line, name, why, m.group(0)[:60]))
+def findings(rel: str, text: str) -> list[tuple[str, int, str]]:
+    return [(rel, text[:m.start()].count("\n") + 1, name)
+            for name, rx, _ in BLOCKING if not exempt(rel, name)
+            for m in rx.finditer(text)]
 
-    if warning_hits:
-        print("WARNINGS (not blocking):")
-        for rel, line, name, why, snip in warning_hits:
-            print(f"  {rel}:{line}  [{name}]  {why}\n      matched: {snip}")
-        print()
 
-    if blocking_hits:
-        print("LEAK SCAN FAILED -- do not publish.\n")
-        for rel, line, name, why, snip in blocking_hits:
-            print(f"  {rel}:{line}  [{name}]\n      {why}\n      matched: {snip}")
-        print(f"\n{len(blocking_hits)} blocking finding(s).")
-        print("If a match is a deliberate, reviewed exception, add it to "
-              "ALLOWLIST in tools/leak_scan.py with a reason and an owner.")
+def archive_source_path(name: str, wheel: bool) -> str:
+    """Map the package's documented build layout to repository exceptions."""
+    if "\\" in name or name.startswith("/") or ".." in Path(name).parts:
+        raise ValueError("unsafe archive member path")
+    if wheel:
+        if name.startswith("wcm/_conformance/"):
+            return "conformance/" + name[len("wcm/_conformance/"):]
+        return "python/src/" + name
+    root, sep, rel = name.partition("/")
+    if not sep or not root.startswith("weight_custody_manifest-"):
+        raise ValueError("unexpected sdist layout")
+    return rel if rel.startswith(("conformance/", "schema/")) else "python/" + rel
+
+
+def archive_findings(path: Path) -> list[tuple[str, int, str]]:
+    hits = []
+    if path.suffix == ".whl":
+        with zipfile.ZipFile(path) as z:
+            for entry in z.infolist():
+                if not entry.is_dir():
+                    rel = archive_source_path(entry.filename, True)
+                    hits.extend(findings(rel, z.read(entry).decode("utf-8", errors="ignore")))
+    elif path.name.endswith(".tar.gz"):
+        with tarfile.open(path, "r:gz") as t:
+            for entry in t:
+                if entry.isdir():
+                    continue
+                if not entry.isfile():
+                    raise ValueError("non-regular archive member")
+                rel = archive_source_path(entry.name, False)
+                f = t.extractfile(entry)
+                if f is None:
+                    raise ValueError("unreadable archive member")
+                with f:
+                    hits.extend(findings(rel, f.read().decode("utf-8", errors="ignore")))
+    else:
+        raise ValueError("expected a wheel or .tar.gz sdist")
+    return hits
+
+
+def main(argv: tuple[str, ...] | list[str] = ()) -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--archives", nargs="+", type=Path)
+    args = parser.parse_args(argv)
+    hits = []
+    try:
+        if args.archives:
+            for path in args.archives:
+                hits.extend(archive_findings(path))
+        else:
+            for path, rel in iter_files():
+                hits.extend(findings(rel, path.read_text(encoding="utf-8", errors="ignore")))
+    except (OSError, ValueError, subprocess.CalledProcessError, tarfile.TarError, zipfile.BadZipFile):
+        print("LEAK SCAN FAILED: an input could not be scanned.")
         return 1
-
-    print(f"leak scan clean ({len(ALLOWLIST)} documented exception(s), "
-          f"{len(warning_hits)} warning(s))")
+    for rel, line, name in hits:
+        print(f"{rel}:{line} [{name}]")
+    if hits:
+        print(f"LEAK SCAN FAILED: {len(hits)} finding(s). Values withheld.")
+        return 1
+    print(f"No configured disclosure patterns matched ({len(ALLOWLIST)} scoped exception(s)).")
     return 0
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(main(sys.argv[1:]))

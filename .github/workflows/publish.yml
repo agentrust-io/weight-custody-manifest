@@ -1,13 +1,6 @@
 name: publish
 
-# Publishes the SDK to PyPI via PyPI Trusted Publishing (OIDC) - no API token
-# stored in the repo. A GitHub Release publishes to PyPI; a manual run publishes
-# to TestPyPI for a dry run. See RELEASING.md for the one-time trusted-publisher
-# setup on (Test)PyPI.
-#
-# NOTE: publishing puts the SDK SOURCE on a public index (the sdist/wheel contain
-# the code). That is a deliberate go-public decision; cutting a Release is the
-# trigger.
+# OIDC publishing requires validation, archive scanning and environment approval.
 
 on:
   release:
@@ -18,18 +11,33 @@ permissions:
   contents: read
 
 jobs:
+  validate:
+    uses: ./.github/workflows/python.yml
+
   build:
+    needs: validate
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.12"
+      - name: Verify release source and version
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: python tools/release_gate.py
+      - name: Scan source
+        run: python tools/leak_scan.py
       - name: Build sdist + wheel
         run: |
           python -m pip install --upgrade build twine
           cd python && python -m build --outdir ../dist
           twine check ../dist/*
+      - name: Scan built distributions
+        run: python tools/leak_scan.py --archives dist/*.whl dist/*.tar.gz
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: dist

@@ -760,12 +760,52 @@ def _eval_custody(vector: dict[str, Any]) -> Verdict:
     return Verdict("accept", None, "every step behaved as the scenario requires")
 
 
+def _eval_vendor(vector: dict[str, Any]) -> Verdict:
+    """Evaluate a capture taken from real vendor silicon.
+
+    Two things have to hold for an accepting capture, and only the first of them
+    is what people expect. The capture must verify at the vector's injected
+    clock, and every mutation in the refusal matrix must be refused for the
+    declared reason. A capture that verifies while its tampered twin also
+    verifies has demonstrated a parser rather than a verifier, which is the
+    whole reason the matrix is derived here rather than contributed.
+
+    A vector the runner cannot use at all, most often a root nobody staged,
+    fails with that reason rather than being skipped. Silence about a vector is
+    not evidence of passing it.
+
+    Vendor vectors are accept-only. A hand-written reject vector would compete
+    with the derived matrix, and it could not be scored honestly either: this
+    evaluator has no WCM code vocabulary, so the suite's rule that a reject must
+    carry the declared code would have had nothing real to compare against.
+    """
+    from ._vendor_vectors import VendorVectorError, evaluate_vendor
+
+    try:
+        outcome = evaluate_vendor(vector)
+    except VendorVectorError as exc:
+        return Verdict("reject", None, str(exc))
+
+    if not outcome.verified:
+        return Verdict("reject", None, outcome.reason)
+    unrefused = sorted(case for case, (ok, _) in outcome.refusals.items() if not ok)
+    if unrefused:
+        return Verdict(
+            "reject",
+            None,
+            "the capture verified but these mutations were not refused for the "
+            "declared reason: " + ", ".join(unrefused),
+        )
+    return Verdict("accept")
+
+
 _EVALUATORS = {
     "manifest": _eval_manifest,
     "signature": _eval_signature,
     "lineage": _eval_lineage,
     "gate": _eval_gate,
     "custody": _eval_custody,
+    "vendor": _eval_vendor,
 }
 
 
@@ -833,6 +873,10 @@ class SuiteReport:
     #: Levels that exist in the specification but have no vectors, so nothing
     #: here can be read as evidence about them.
     unscoreable: list[str] = field(default_factory=list)
+    #: Vendor captures evaluated against the wall clock rather than the vector's
+    #: own: (vector id, verified, reason). Reported, never scored. This is where
+    #: a capture ageing out becomes visible without degrading anyone's result.
+    live: list[tuple[str, bool, str]] = field(default_factory=list)
 
     @property
     def ok(self) -> bool:
@@ -861,6 +905,15 @@ class SuiteReport:
                 f"{level_id}  n/a   0/0     {LEVELS[level_id].title} "
                 "(specified, no vectors yet: not covered by this run)"
             )
+        if self.live:
+            aged = [entry for entry in self.live if not entry[1]]
+            lines.append("")
+            lines.append(
+                f"live  {len(self.live) - len(aged)}/{len(self.live)} vendor captures "
+                "verify against the wall clock (reported, not scored)"
+            )
+            for vector_id, _, reason in aged:
+                lines.append(f"        {vector_id}: {reason}")
         return "\n".join(lines)
 
 
@@ -914,6 +967,29 @@ def _group(outcomes: list[Outcome], levels: Iterable[str]) -> list[LevelReport]:
     return reports
 
 
+def live_tier(vectors: list[dict[str, Any]]) -> list[tuple[str, bool, str]]:
+    """Evaluate every vendor capture against the wall clock.
+
+    Separate from the score on purpose. Certificates expire, and a conformance
+    result that changed as they aged would say nothing about the implementation
+    it was scoring. This is the tier where "this capture aged out" is visible,
+    and somebody has to read it for the absence of a refresh process to stay a
+    decision rather than becoming an oversight.
+    """
+    from ._vendor_vectors import VendorVectorError, live_check
+
+    results: list[tuple[str, bool, str]] = []
+    for vector in vectors:
+        if vector.get("kind") != "vendor":
+            continue
+        try:
+            ok, reason = live_check(vector)
+        except VendorVectorError as exc:
+            ok, reason = False, str(exc)
+        results.append((str(vector["id"]), ok, reason))
+    return results
+
+
 def run_reference(*, level: Optional[str] = None) -> SuiteReport:
     """Evaluate the vectors with this SDK and score the results."""
     vectors = load_vectors(level=level)
@@ -922,6 +998,7 @@ def run_reference(*, level: Optional[str] = None) -> SuiteReport:
     return SuiteReport(
         levels=_group(outcomes, wanted),
         unscoreable=[lid for lid in wanted if not LEVELS[lid].vectored],
+        live=live_tier(vectors),
     )
 
 
@@ -943,6 +1020,7 @@ def score_results(results: dict[str, Any], *, level: Optional[str] = None) -> Su
         reported[str(entry["id"])] = entry
 
     vectors = load_vectors(level=level)
+    live = live_tier(vectors)
     known = {v["id"] for v in vectors}
     outcomes: list[Outcome] = []
     for vector in vectors:
@@ -966,6 +1044,9 @@ def score_results(results: dict[str, Any], *, level: Optional[str] = None) -> Su
     report = SuiteReport(
         levels=_group(outcomes, wanted),
         unscoreable=[lid for lid in wanted if not LEVELS[lid].vectored],
+        # About the captures rather than about the answers, so it is reported
+        # when scoring another implementation too.
+        live=live,
     )
     if unknown:
         # Not a failure: it may be a newer suite. Surfaced so it is not invisible.

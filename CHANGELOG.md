@@ -4,7 +4,87 @@ Notable changes to the Weight Custody Manifest specification and Python SDK.
 Format loosely follows [Keep a Changelog](https://keepachangelog.com/); the SDK
 uses semantic-ish versioning while pre-1.0.
 
-## Unreleased
+## 0.28.2 - 2026-09-14
+
+**[conformance]** `validity.not_after` on a vendor vector is derived from the
+certificate chain and a mismatch is refused (issue #127). The field was required
+and never checked, so it recorded a date rather than constraining one, and
+`expired-at-now` is the case that depends on it: a value rounded to the nearest
+day steps the clock past a date no certificate expires on, the capture still
+verifies, and the refusal passes having established nothing.
+
+The binding expiry is the earliest in the chain rather than the leaf's, because
+a path is valid only while every certificate on it is. The committed GCP TDX
+capture settles that: its PCK intermediate expires 2033-05-21 and its leaf
+2033-05-27.
+
+
+**[conformance]** A vector format for captures taken from real vendor silicon
+(`kind: vendor`, issue #116). The existing quote vectors use a synthetic PKI, so
+an implementation can satisfy `accept-cryptographically-verified-quote` without
+ever having seen an AMD, Intel or NVIDIA quote. A vendor vector names its root
+by the SHA-256 of the root's DER and carries leaf and intermediates inline; the
+runner resolves the root from a store (`conformance/roots`, plus
+`WCM_CONFORMANCE_ROOTS`) and fails with `root not staged` rather than fetching.
+Each capture declares which of four bindings its `REPORT_DATA` asserts, and an
+unrecognised kind is a hard failure rather than a skip. The scored tier
+evaluates at the vector's own clock so a score does not drift as certificates
+age; a live tier evaluates at wall time and is reported without being scored.
+Six refusal mutations are derived by the runner from every accepting capture, so
+a capture cannot be contributed with only a happy path, and the untrusted anchor
+is one certificate shipped with the suite rather than invented per vector. A
+vector may not pin a digest of the report nor the full report bytes, which the
+format guarantees by leaving nowhere to put one. The conformance runner is the
+reference validator, `schema/wcm-vendor-vector-v1.schema.json` is the same rules
+published for implementations in other languages, and a test asserts the two
+accept and reject the same vectors. No captures are committed under the kind
+yet.
+
+
+**[spec/sdk]** Read and gate hardware-reported platform state. SEV-SNP
+attestation reports carry two bits that are the only statements about *physical*
+platform state any production attestation report makes, and the SDK read
+neither. `snp.py` now parses `PLATFORM_INFO` (offset 0x40), version-gated so
+`ALIAS_CHECK_COMPLETE` (report v3+) and SEV-TIO (v5+) report `None` rather than
+`False` on a report that predates them. A new optional
+`release_policy.platform_integrity` lets a manifest require
+`alias_check_complete` (bit 5, AMD's BadRAM mitigation per AMD-SB-3015) and
+`ciphertext_hiding` (bit 4), and the KBS denies with a reason naming the bit,
+including when a required bit is indeterminate. The field is optional and absent
+by default so the signing pre-image of existing manifests is byte-identical; a
+regression test pins that.
+
+**[docs/correction]** Three claims in `SPEC.md` §3.6 were wrong or overstated,
+corrected against measurement rather than against the literature:
+
+- The live Azure SEV-SNP CVM this SDK validates against reports
+  `PLATFORM_INFO = 0x25`: `ALIAS_CHECK_COMPLETE` set, `CIPHERTEXT_HIDING_EN`
+  **clear**. §3.6 conditions the semi-trusted-operator custody claim on
+  ciphertext hiding being enabled, so that platform does not meet WCM's own
+  stated precondition. Recorded in `LIMITATIONS.md` and TCB item 1.
+- The GPU residual was priced at decapsulation or on-package probing. The
+  cheaper path does not touch the GPU: NVIDIA attestation does not identify the
+  guest it serves, so a broken CPU TEE can relay to a genuine confidential GPU
+  elsewhere (TEE.fail, local RTX 3060 forwarding to an external H100). WCM's
+  composite nonce binding already defends that shape, which the spec now says
+  explicitly; it does not survive T1.7.
+- `attestation_revocation_check` was described as though revocation worked
+  per-device. Verified 2026-09-11: every certificate in our own captured H100
+  chain carries `notAfter = 9999-12-31`, both NVIDIA CRLs are empty with a
+  two-year next-update, AMD VCEKs carry serial number zero so a CRL entry cannot
+  name a chip, and on no vendor can the operator invoke revocation.
+
+New threat `T1.9` records the alias-check control and its time-of-check limit
+(Battering RAM defeats the boot scan by enabling aliasing after POST).
+
+**[security/packaging]** Package publication waits for validation and checks the
+release tag, SDK version and main-branch ancestry. Source and distribution scans
+block configured disclosure patterns, withhold matched values from logs and fail
+on unreadable inputs. Internal-label output is removed from the paired hardware
+tool. Public release instructions describe the enforced approval requirements.
+
+**[security]** Add Python and GitHub Actions CodeQL analysis. Security reporting
+explicitly covers dependency, build and publication vulnerabilities affecting WCM.
 
 **[feature]** `EnclaveSession` accepts an `on_stop` hook so a lapsed lease can stop
 serving from an already-decrypted model, and `ServingShutdown` sequences the
@@ -41,7 +121,6 @@ pinning a measurement needs to know.
 
 Thanks to **Zoheb Shaik** for the H200 session and the report-stability
 measurements.
-
 ## 0.28.1 - 2026-09-08
 
 **[fix]** SNP report verification now uses the report format's ECDSA P-384 /
