@@ -1,6 +1,9 @@
 ---
 title: "Weight Custody Manifest: key release only to attested runtimes"
 description: An open, pre-1.0 specification for releasing model weights only to an approved, attested runtime, with the guarantee boundary stated plainly.
+hide:
+  - navigation
+  - toc
 ---
 
 [01 · Weights: is this the model that was released, and who may release its key?](https://agentrust-io.com/#chain)
