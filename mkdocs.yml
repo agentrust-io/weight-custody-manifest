@@ -35,6 +35,10 @@ theme:
   icon:
     repo: fontawesome/brands/github
 
+hooks:
+  # One meta description per page, taken from its first paragraph.
+  - hooks/seo.py
+
 plugins:
   - search
   - llmstxt:
@@ -48,6 +52,8 @@ plugins:
         vectors offline, which are a self-test and not certification. Against
         an operator who physically owns the hardware, WCM offers accountability,
         not cryptographic custody.
+        WCM is part of AgenTrust, open specifications for verifiable AI:
+        https://agentrust-io.com
       sections:
         Get started:
           - index.md
