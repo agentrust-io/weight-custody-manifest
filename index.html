@@ -25,7 +25,7 @@
     
     
       
-        <title>Weight Custody Manifest - Weight Custody Manifest</title>
+        <title>Weight Custody Manifest: key release only to attested runtimes - Weight Custody Manifest</title>
       
     
     
@@ -98,7 +98,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#weight-custody-manifest" class="md-skip">
+        <a href="#release-model-weights-only-to-an-attested-runtime" class="md-skip">
           Skip to content
         </a>
       
@@ -132,7 +132,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Weight Custody Manifest
+              Weight Custody Manifest: key release only to attested runtimes
             
           </span>
         </div>
@@ -1371,31 +1371,66 @@
   
 
 
-<h1 id="weight-custody-manifest">Weight Custody Manifest<a class="headerlink" href="#weight-custody-manifest" title="Permanent link">&para;</a></h1>
-<p>An open specification for protecting model weights when a builder deploys them
-into a customer's own or sovereign infrastructure.</p>
-<div class="admonition warning">
-<p class="admonition-title">Pre-1.0, design under review</p>
-<p>This is a design under review, not a production standard. Public release is a
-deliberate decision by the Project Lead and is not gated on open question 8.8;
-the hostile-owner residual is documented, not a release blocker. Do not rely
-on it for production.</p>
-</div>
+<p><a href="https://agentrust-io.com/#chain">01 · Weights: is this the model that was released, and who may release its key?</a></p>
+<h1 id="release-model-weights-only-to-an-attested-runtime">Release model weights only to an attested runtime<a class="headerlink" href="#release-model-weights-only-to-an-attested-runtime" title="Permanent link">&para;</a></h1>
+<p>WCM is an open, pre-1.0 specification that binds encrypted weights to a signed
+release policy, so a key broker releases the decryption key only to a workload
+whose attestation matches the manifest.</p>
+<p><a class="md-button md-button--primary" href="#try-it">Run the 91 conformance vectors</a>
+<a class="md-button" href="limitations/">What this proves, and what it does not</a></p>
 <div class="admonition tip">
 <p class="admonition-title">TL;DR</p>
-<p>WCM binds encrypted weights to a signed release policy. A key broker releases
-the decryption key only to a workload whose attestation evidence matches the
-manifest, keeps that authorization short-lived, and leaves portable evidence
-of the decision. The reference SDK, its 91 conformance vectors, the schema and
-the threat model are public under Apache-2.0. Against an adversary who
-physically owns the hardware, WCM offers accountability, not cryptographic
-custody, and says so in <a href="limitations/">Limitations</a>.</p>
+<p>The reference SDK (<a href="https://pypi.org/project/weight-custody-manifest/">weight-custody-manifest</a>
+0.28.1, Apache-2.0) runs its conformance vectors offline with no GPU or cloud
+account, and verifies AMD SEV-SNP, Intel TDX and NVIDIA H100 CC evidence
+captured on real hardware. Against an operator who physically owns the
+machine, WCM offers accountability, not cryptographic custody, because
+published memory-bus attacks defeat current confidential-computing silicon.</p>
+</div>
+<div class="grid cards">
+<ul>
+<li>
+<p><strong>Run it</strong></p>
+<hr />
+<p><code>wcm conformance</code> runs every level offline. The quote vectors use synthetic
+certificate roots.</p>
+<p><a href="#try-it">Try it</a></p>
+</li>
+<li>
+<p><strong>What it proves, and what it does not</strong></p>
+<hr />
+<p>What an operator who owns the hardware can still do, and why a valid
+signature cannot tell an authorized key from an extracted one.</p>
+<p><a href="limitations/">Limitations</a></p>
+</li>
+<li>
+<p><strong>Hardware evidence</strong></p>
+<hr />
+<p>AMD SEV-SNP (Azure), Intel TDX (GCP) and NVIDIA H100 CC, each with a
+committed fixture that verifies offline. H100 landed in
+<a href="https://github.com/agentrust-io/weight-custody-manifest/pull/54">#54</a>.</p>
+<p><a href="roadmap/">Roadmap</a></p>
+</li>
+<li>
+<p><strong>The chain</strong></p>
+<hr />
+<p>Next: <a href="https://manifest.agentrust-io.com">Agent Manifest</a> records the agent
+that loads the weights. Check a real TDX quote yourself at
+<a href="https://agentrust-io.com/verify/">agentrust-io.com/verify</a>.</p>
+<p><a href="https://agentrust-io.com/#chain">See the chain</a></p>
+</li>
+</ul>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Pre-1.0, design under review</p>
+<p>This is a design under review, not a production standard. Do not rely on it
+for production.</p>
 </div>
 <h2 id="the-trust-direction">The trust direction<a class="headerlink" href="#the-trust-direction" title="Permanent link">&para;</a></h2>
 <p>When a frontier model is deployed into a customer's own infrastructure (on-prem,
 sovereign cloud, air-gapped), the party at risk flips: it is now the <strong>model
 builder</strong> whose weights are exposed to the customer's hardware and operators. WCM
-is the protocol for that direction - a signed manifest describing which weights
+is the protocol for that direction: a signed manifest describing which weights
 are released and under what terms, attestation-gated key release into a verified
 enclave, wipe-on-lapse and revocation, and a chain of custody for derivatives.</p>
 <p>WCM answers one question: can a model builder release encrypted weights only to
@@ -1411,13 +1446,12 @@ attested workload and how long that workload may retain it.</p>
 <ul>
 <li><strong>Cryptographic custody</strong> against software and remote adversaries.</li>
 <li><strong>Accountability-grade</strong> protection against an operator who physically owns the
-  hardware - <em>not</em> cryptographic custody. Cheap published memory-bus attacks
+  hardware, <em>not</em> cryptographic custody. Cheap published memory-bus attacks
   (<a href="https://tee.fail/">TEE.fail</a>, <a href="https://badram.eu/">BadRAM</a>) defeat current
   confidential-computing silicon; there WCM offers cost, detection, containment,
   legal recourse, and a mandatory physical-hardening tier.</li>
 </ul>
-<p>The honesty about what does and does not hold is the point. See
-<a href="limitations/">Limitations</a> and the specification's §3.6.</p>
+<p>See <a href="limitations/">Limitations</a> and the specification's §3.6.</p>
 <table>
 <thead>
 <tr>
@@ -1509,6 +1543,9 @@ in full.</p>
 reference key-release service are available under Apache-2.0. Vendors may build
 interoperable hosted services and protected-runtime implementations. Public
 availability does not establish production readiness.</p>
+<p><strong>Status:</strong> pre-1.0 · SDK 0.28.1 · Apache-2.0 · SCITT and CoSAI standards path on
+the <a href="roadmap/">roadmap</a> · Sponsored by OPAQUE, which funds the engineering,
+infrastructure and confidential-computing work behind these projects.</p>
 
 
 
