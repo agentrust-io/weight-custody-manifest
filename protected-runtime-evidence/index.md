@@ -1,0 +1,46 @@
+# Protected-runtime evidence plan
+
+Two WCM controls cannot be established by the reference SDK alone. This page defines the evidence a protected-runtime implementation must produce before the project closes the corresponding issues. A unit-test simulation is useful for development but is not acceptable proof.
+
+## Protected-memory fingerprint sweep (issue #79)
+
+The SDK supplies `BytearrayMemoryRange`, `run_memory_sweep`, and `verify_memory_sweep` as the executable reference contract. The runner derives different full-page values and write/read permutations from protected secret material plus the fresh KBS nonce, writes and reads every declared page, detects inconsistent mappings, and signs the complete transcript with Ed25519. The KBS fails closed unless a policy-pinned sweep public key verifies that transcript; its production default does not accept the earlier unsigned structural shape. Language-neutral conformance vectors retain an explicitly isolated declarative mode because the frozen v1 vectors cannot carry a signature over a runtime nonce.
+
+This implementation executes over a real allocated byte range and its controlled test adapter detects aliased logical pages. That is reference-algorithm evidence, not proof that a production enclave covered its physical memory. The remaining work is to provide a `ProtectedMemoryRange` adapter owned by the actual protected runtime and capture the receipt described below.
+
+Run the sweep in the same measured, protected execution boundary that receives the model key. For each fresh KBS release challenge, the runtime must:
+
+1. Allocate and declare the exact protected virtual and physical range being tested, excluding only documented runtime-reserved pages.
+1. Derive unpredictable per-address values from protected randomness plus the fresh KBS nonce. Do not accept host-supplied expected values.
+1. Visit pages in a nonce-derived permutation, write the values, issue the architecture-appropriate ordering barriers, then read in a different nonce-derived permutation.
+1. Detect missing, duplicated, aliased, or inconsistent locations before reducing the observations to a fingerprint.
+1. Bind the range, algorithm version, challenge nonce, result, and fingerprint into the same attested release attempt. The KBS must verify that binding and consume the nonce even on failure.
+1. Erase temporary values before model loading continues.
+
+The controlled negative harness must expose two virtual locations backed by the same test page and show a denial. Separate cases must cover an omitted range, replayed result, host-authored result, and incomplete sweep.
+
+Record only algorithm/version identifiers, declared byte/page counts, nonce and result hashes, attestation receipt hashes, timestamps, and verdicts. Do not record page contents, raw quotes, provider tokens, tenant/resource identifiers, hostnames, IPs, customer names, or model material.
+
+Passing proves the tested address map behaved consistently during that attempt. It does not prove immunity to later remapping, bus probing, cold-boot extraction, key extraction, or every physical-memory attack.
+
+## Lease lapse, zeroization, and execution stop (issue #78)
+
+Use the production custody controller and the actual inference boundary:
+
+1. Start from clean persistent state, attest, receive a transport-sealed model key, decrypt one protected model, and record the lease deadline.
+1. Complete one signed renewal and one successful inference.
+1. Before the next deadline, block the renewal service or revoke the workload.
+1. At the effective boundary, require the controller to emit distinct signed records for `wipe_requested`, `wipe_completed`, and `process_terminated`.
+1. Attempt inference after the boundary and require failure.
+1. Inspect the controller's supported key handle—not arbitrary language memory— and require the cryptographic operation to fail after zeroization.
+1. Restart from the encrypted artifacts and stale local state. Require a new attestation and release before any inference can succeed.
+
+Run separate cases for explicit revocation and unreachable renewal service. Verify the signed record chain, monotonic sequence, manifest/weights identity, lease identifier, timestamps, and previous-record hash. Publish hashes and boolean outcomes, not keys, plaintext model data, raw attestation evidence, or environment identifiers.
+
+The result applies only to the tested controller, key API, language/runtime, hardware, compiler, and build. A best-effort overwrite of a Python `bytes` object is not proof of hardware-backed zeroization. The evidence must name the primitive that makes the key handle unusable and the mechanism that terminates in-flight and future inference.
+
+The SDK provides `RuntimeRecord`, `sign_runtime_record`, and `verify_runtime_record_chain` as the portable receipt contract. Records are Ed25519-signed and hash-chained across one weights hash, manifest hash, and lease identifier. A terminal proof must start with `lease_started`, may contain `renewal_succeeded` records, then contain exactly one `lapse_detected` or `revocation_detected` boundary followed—in order—by `wipe_requested`, `wipe_completed`, and `process_terminated`. The verifier rejects tampering, reordering, missing terminal events, signer substitution, and cross-lease splicing. The production controller must call this contract from inside its protected control path; signatures created by an external observer are not evidence of protected execution.
+
+## Review gate
+
+For either issue, merge only when the sanitized receipt, verifier, negative case, exact build identity, and rerun instructions are committed together. A green SDK suite confirms reference semantics; it does not substitute for this protected-runtime evidence.

@@ -1,0 +1,35 @@
+# Weight Custody Manifest
+
+> An open, pre-1.0 specification for releasing model weights only to an attested runtime, with the guarantee boundary stated plainly
+
+Weight Custody Manifest (WCM) is an open, pre-1.0 specification for releasing model weights only to an approved, attested runtime. A signed manifest binds encrypted weights to a release policy, and a key broker releases the decryption key only to a workload whose attestation matches it. The reference SDK is Apache-2.0 and runs 91 portable conformance vectors offline, which are a self-test and not certification. Against an operator who physically owns the hardware, WCM offers accountability, not cryptographic custody.
+
+## Start here
+
+- [Home](https://wcm.agentrust-io.com/index.md)
+- [How WCM works](https://wcm.agentrust-io.com/tutorials/how-it-works/index.md)
+- [Getting started](https://wcm.agentrust-io.com/getting-started/index.md)
+
+## Specification
+
+- [Overview](https://wcm.agentrust-io.com/spec-overview/index.md)
+- [Azure measured launch](https://wcm.agentrust-io.com/measured-launch/index.md)
+- [Provider certificate policy](https://wcm.agentrust-io.com/certificate-policy/index.md)
+- [OpenSSF Model Signing interop](https://wcm.agentrust-io.com/oms-interoperability/index.md)
+- [Threat model](https://wcm.agentrust-io.com/threat-model/index.md)
+- [Schema and conformance](https://wcm.agentrust-io.com/conformance/index.md)
+
+## SDK
+
+- [Reference KBS image](https://wcm.agentrust-io.com/reference-kbs/index.md)
+- [Protected-runtime evidence](https://wcm.agentrust-io.com/protected-runtime-evidence/index.md)
+
+## Project
+
+- [Limitations](https://wcm.agentrust-io.com/limitations/index.md)
+- [Roadmap](https://wcm.agentrust-io.com/roadmap/index.md)
+- [Governance](https://wcm.agentrust-io.com/governance/index.md)
+- [Sponsors](https://wcm.agentrust-io.com/sponsors/index.md)
+- [Contributing](https://wcm.agentrust-io.com/contributing/index.md)
+- [Changelog](https://wcm.agentrust-io.com/changelog/index.md)
+

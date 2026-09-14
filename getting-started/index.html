@@ -57,6 +57,7 @@
     
   
   
+  
     
   
   
@@ -80,6 +81,51 @@
   <meta name="twitter:title" content="Getting started | Weight Custody Manifest">
   <meta name="twitter:description" content="An open, pre-1.0 specification for releasing model weights only to an attested runtime, with the guarantee boundary stated plainly">
   <meta name="twitter:image" content="https://wcm.agentrust-io.com/assets/og-launch.png">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "TechArticle",
+        "name": "Weight Custody Manifest (WCM)",
+        "description": "An open, pre-1.0 specification for releasing model weights only to an approved, attested runtime. Against an operator who physically owns the hardware it offers accountability, not cryptographic custody.",
+        "url": "https://wcm.agentrust-io.com/",
+        "license": "https://www.apache.org/licenses/LICENSE-2.0",
+        "publisher": { "@id": "https://agentrust-io.com/#organization" }
+      },
+      {
+        "@type": "SoftwareSourceCode",
+        "name": "weight-custody-manifest",
+        "description": "Reference Python SDK for WCM. Runs the portable conformance vectors offline; they are a self-test, not certification or a hardware deployment test.",
+        "codeRepository": "https://github.com/agentrust-io/weight-custody-manifest",
+        "programmingLanguage": "Python",
+        "license": "https://www.apache.org/licenses/LICENSE-2.0",
+        "author": { "@id": "https://agentrust-io.com/#organization" }
+      },
+      {
+        "@type": "Organization",
+        "@id": "https://agentrust-io.com/#organization",
+        "name": "AgenTrust",
+        "url": "https://agentrust-io.com/",
+        "sameAs": [
+          "https://github.com/agentrust-io",
+          "https://trace.agentrust-io.com",
+          "https://manifest.agentrust-io.com",
+          "https://cmcp.agentrust-io.com",
+          "https://ca2a.agentrust-io.com",
+          "https://wcm.agentrust-io.com",
+          "https://github.com/agentrust-io/agentrust-telemetry"
+        ]
+      },
+      {
+        "@type": "WebSite",
+        "name": "Weight Custody Manifest",
+        "url": "https://wcm.agentrust-io.com/"
+      }
+    ]
+  }
+  </script>
 
   </head>
   
