@@ -747,3 +747,70 @@ def test_the_schema_also_refuses_a_reject_vector(snp_store) -> None:
     vector["expect"] = "reject"
     with pytest.raises(jsonschema.ValidationError):
         jsonschema.validate(vector, vendor_vector_schema())
+
+
+# ---- the recorded horizon is derived, not taken (#127) ---------------
+
+
+def test_a_horizon_that_disagrees_with_the_chain_is_refused(snp_store) -> None:
+    """Required is not the same as checked.
+
+    A value rounded to the nearest day steps the expiry mutation past a date no
+    certificate expires on, so the capture still verifies and the case reports a
+    refusal it never performed. That is the same shape as a mutation that does
+    not change the verdict, which the matrix already refuses to score.
+    """
+    vector, store = snp_store
+    vector["validity"]["not_after"] = "2030-01-01T00:00:00+00:00"
+    with pytest.raises(VendorVectorError) as exc:
+        evaluate_vendor(vector, store=store)
+    assert "earliest expiry in this chain" in str(exc.value)
+    assert "turns expired-at-now off" in str(exc.value)
+
+
+def test_a_horizon_rounded_to_the_day_is_refused(snp_store) -> None:
+    """The exact mistake that produced this issue, not an invented one."""
+    vector, store = snp_store
+    real = datetime.fromisoformat(vector["validity"]["not_after"])
+    vector["validity"]["not_after"] = real.replace(
+        hour=0, minute=0, second=0
+    ).isoformat()
+    with pytest.raises(VendorVectorError):
+        evaluate_vendor(vector, store=store)
+
+
+def test_the_binding_expiry_is_the_earliest_in_the_chain_not_the_leaf(
+    stage: Path,
+) -> None:
+    """A path is valid only while every certificate on it is.
+
+    The committed GCP TDX capture settles this with real bytes: its PCK
+    intermediate expires 2033-05-21 and its leaf 2033-05-27, so a rule that read
+    the leaf would record a horizon six days after the chain stops verifying.
+    """
+    from wcm.tdx import parse_tdx_quote
+
+    doc = json.loads((FIXTURES / "tdx_quote_gcp.json").read_text(encoding="utf-8"))
+    quote = parse_tdx_quote(base64.b64decode(doc["quote_b64"]))
+    chain = [quote.pck_leaf, *quote.pck_intermediates]
+    earliest = min(c.not_valid_after_utc for c in chain)
+    assert earliest < quote.pck_leaf.not_valid_after_utc, (
+        "this fixture no longer exercises the leaf-is-not-earliest case"
+    )
+
+    vector = _tdx_vector(stage)
+    vector["validity"]["not_after"] = quote.pck_leaf.not_valid_after_utc.isoformat()
+    with pytest.raises(VendorVectorError) as exc:
+        evaluate_vendor(vector, store=load_root_store(extra_dirs=[stage]))
+    assert "earliest expiry in this chain" in str(exc.value)
+
+
+def test_a_derived_horizon_makes_the_expiry_case_step_past_a_real_date(
+    snp_store,
+) -> None:
+    """What the check is for: the mutation now moves the clock past a date the
+    chain actually asserts, so the refusal is about the expiry."""
+    vector, store = snp_store
+    refused, reason = evaluate_vendor(vector, store=store).refusals["expired-at-now"]
+    assert refused
+    assert "validity window" in reason

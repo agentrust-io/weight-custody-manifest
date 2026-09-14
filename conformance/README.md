@@ -279,8 +279,17 @@ live  3/4 vendor captures verify against the wall clock (reported, not scored)
 That is where a capture ageing out becomes visible. It only works if somebody
 reads it, and who that is has not been settled.
 
-`validity.not_after` records the shortest-lived certificate in the vector and is
-**required, not optional**. The horizon is 2032, and a refresh process built now
+`validity.not_after` records the shortest-lived certificate in the vector, is
+**required, not optional**, and is **derived from the chain and compared**.
+Required is not the same as checked: a value rounded to the nearest day steps
+the expiry mutation past a date no certificate expires on, so the capture still
+verifies and `expired-at-now` reports a refusal it never performed.
+
+The binding expiry is the earliest in the chain rather than the leaf's, because
+a path is valid only while every certificate on it is. The committed GCP TDX
+capture settles that with real bytes: its PCK intermediate expires 2033-05-21
+and its leaf 2033-05-27, so a rule reading the leaf would record a horizon six
+days after the chain stops verifying. The horizon is 2032, and a refresh process built now
 would be six years of maintenance for a problem the recorded `not_after` will
 surface on its own. Recording it is what makes that a decision rather than an
 oversight.

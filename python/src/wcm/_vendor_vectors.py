@@ -35,7 +35,10 @@ performed.
 ``now``, so a score does not change as certificates age. A live tier evaluates
 at wall time and is reported without being scored. ``not_after`` of the
 shortest-lived certificate is required in every vector, which is what makes "no
-refresh process for a 2032 problem" a decision rather than an oversight.
+refresh process for a 2032 problem" a decision rather than an oversight, and it
+is **derived from the chain and compared** rather than taken on the vector's
+word: required is not the same as checked, and ``expired-at-now`` is the case
+that depends on the value being right.
 
 **Refusals are a matrix, applied to every capture**, so a new capture cannot
 arrive with only a happy path. The untrusted root is one certificate shipped
@@ -257,6 +260,44 @@ def load_root_store(extra_dirs: Optional[list[Path]] = None) -> RootStore:
                     continue
                 by_digest.setdefault(_der_sha256(cert), cert)
     return RootStore(by_digest)
+
+
+def _chain_certificates(vector: dict[str, Any], root: x509.Certificate) -> list[x509.Certificate]:
+    """Every certificate the capture's path depends on, anchor included."""
+    chain = vector["chain"]
+    certs = [
+        load_pem_certificate(chain["leaf_pem"].encode(), allow_non_positive_serial=True)
+    ]
+    certs.extend(
+        load_pem_certificate(pem.encode()) for pem in chain.get("intermediates_pem", [])
+    )
+    certs.append(root)
+    return certs
+
+
+def _check_not_after(vector: dict[str, Any], root: x509.Certificate) -> None:
+    """The recorded horizon must be the one the chain actually asserts.
+
+    Required is not the same as checked. A value that is merely close disables
+    the expiry case silently: the mutation steps the clock past a date no
+    certificate expires on, everything still verifies, and the case reports a
+    refusal it never performed.
+
+    The earliest expiry in the chain is the binding one, because a path is valid
+    only while every certificate on it is. Reading the leaf alone would miss an
+    intermediate that expires first, which is what a vendor rotation produces.
+    """
+    certs = _chain_certificates(vector, root)
+    earliest = min(cert.not_valid_after_utc for cert in certs)
+    recorded = _parse_clock(vector["validity"]["not_after"], "validity.not_after")
+    if recorded != earliest:
+        raise VendorVectorError(
+            "validity.not_after is "
+            + recorded.isoformat()
+            + " but the earliest expiry in this chain is "
+            + earliest.isoformat()
+            + "; a recorded horizon that is only close turns expired-at-now off"
+        )
 
 
 def _parse_clock(value: str, field: str) -> datetime:
@@ -691,6 +732,7 @@ def evaluate_vendor(
     _validate_shape(vector)
     store = store if store is not None else load_root_store()
     root = store.resolve(vector["chain"]["root"]["der_sha256"])
+    _check_not_after(vector, root)
     now = _parse_clock(vector["validity"]["now"], "validity.now")
 
     verify = _build_verifier(vector, root)

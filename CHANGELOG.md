@@ -6,6 +6,19 @@ uses semantic-ish versioning while pre-1.0.
 
 ## 0.28.2 - Unreleased
 
+**[conformance]** `validity.not_after` on a vendor vector is derived from the
+certificate chain and a mismatch is refused (issue #127). The field was required
+and never checked, so it recorded a date rather than constraining one, and
+`expired-at-now` is the case that depends on it: a value rounded to the nearest
+day steps the clock past a date no certificate expires on, the capture still
+verifies, and the refusal passes having established nothing.
+
+The binding expiry is the earliest in the chain rather than the leaf's, because
+a path is valid only while every certificate on it is. The committed GCP TDX
+capture settles that: its PCK intermediate expires 2033-05-21 and its leaf
+2033-05-27.
+
+
 **[conformance]** A vector format for captures taken from real vendor silicon
 (`kind: vendor`, issue #116). The existing quote vectors use a synthetic PKI, so
 an implementation can satisfy `accept-cryptographically-verified-quote` without
