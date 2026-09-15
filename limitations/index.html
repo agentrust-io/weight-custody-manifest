@@ -776,6 +776,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../deployment-trust/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Key-release trust boundary
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../conformance/" class="md-nav__link">
         
   
@@ -1278,6 +1306,11 @@
 <h1 id="limitations">Limitations<a class="headerlink" href="#limitations" title="Permanent link">&para;</a></h1>
 <p>The canonical, complete list is <a href="https://github.com/agentrust-io/weight-custody-manifest/blob/main/LIMITATIONS.md"><code>LIMITATIONS.md</code></a>. The load-bearing ones:</p>
 <ul>
+<li><strong>No custody against a customer-controlled release authority.</strong> A customer
+  who can read KBS/Trustee keys or replace its verifier and policy can bypass
+  the gate without defeating hardware attestation. The reference server does
+  not implement protected KBS provisioning. See the
+  <a href="../deployment-trust/">deployment trust checklist</a>.</li>
 <li><strong>No custody against a hardware owner.</strong> Against a physical operator who owns
   the box, cheap published memory-bus attacks (TEE.fail, BadRAM) extract the key
   and can forge attestation. WCM offers cost, detection, containment, legal

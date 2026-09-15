@@ -6,27 +6,33 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="An open, pre-1.0 specification for releasing model weights only to an attested runtime, with the guarantee boundary stated plainly">
+        <meta name="description" content="WCM's custody claim requires a release authority the model owner trusts.">
       
       
       
+        <link rel="canonical" href="https://wcm.agentrust-io.com/deployment-trust/">
       
+      
+        <link rel="prev" href="../threat-model/">
+      
+      
+        <link rel="next" href="../conformance/">
       
       
         
       
       
-      <link rel="icon" href="/assets/images/favicon.png">
+      <link rel="icon" href="../assets/images/favicon.png">
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
     
     
-  <title>Weight Custody Manifest</title>
+  <title>Key-release trust boundary - Weight Custody Manifest</title>
 
     
-      <link rel="stylesheet" href="/assets/stylesheets/main.ec1eaa64.min.css">
+      <link rel="stylesheet" href="../assets/stylesheets/main.ec1eaa64.min.css">
       
         
-        <link rel="stylesheet" href="/assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
       
       
 
@@ -41,7 +47,7 @@
     
       <link rel="stylesheet" href="https://agentrust-io.com/design-system.css?v=22">
     
-    <script>__md_scope=new URL("/",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
@@ -58,9 +64,9 @@
 
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="AgenTrust">
-  <meta property="og:title" content="Weight Custody Manifest">
-  <meta property="og:description" content="An open, pre-1.0 specification for releasing model weights only to an attested runtime, with the guarantee boundary stated plainly">
-  <meta property="og:url" content="https://wcm.agentrust-io.com/">
+  <meta property="og:title" content="Key-release trust boundary - Weight Custody Manifest">
+  <meta property="og:description" content="WCM&#39;s custody claim requires a release authority the model owner trusts.">
+  <meta property="og:url" content="https://wcm.agentrust-io.com/deployment-trust/">
   <meta property="og:locale" content="en_US">
   <meta property="og:image" content="https://wcm.agentrust-io.com/assets/og.png">
   <meta property="og:image:width" content="1200">
@@ -68,8 +74,8 @@
   <meta property="og:image:alt" content="Weight Custody Manifest: release model weights only to an attested runtime">
 
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Weight Custody Manifest">
-  <meta name="twitter:description" content="An open, pre-1.0 specification for releasing model weights only to an attested runtime, with the guarantee boundary stated plainly">
+  <meta name="twitter:title" content="Key-release trust boundary - Weight Custody Manifest">
+  <meta name="twitter:description" content="WCM&#39;s custody claim requires a release authority the model owner trusts.">
   <meta name="twitter:image" content="https://wcm.agentrust-io.com/assets/og.png">
 
   <script type="application/ld+json">
@@ -101,11 +107,11 @@
       },
       {
         "@type": "TechArticle",
-        "@id": "https://wcm.agentrust-io.com/#page",
-        "url": "https://wcm.agentrust-io.com/",
-        "name": "Weight Custody Manifest",
-        "headline": "Weight Custody Manifest",
-        "description": "An open, pre-1.0 specification for releasing model weights only to an attested runtime, with the guarantee boundary stated plainly",
+        "@id": "https://wcm.agentrust-io.com/deployment-trust/#page",
+        "url": "https://wcm.agentrust-io.com/deployment-trust/",
+        "name": "Key-release trust boundary - Weight Custody Manifest",
+        "headline": "Key-release trust boundary - Weight Custody Manifest",
+        "description": "WCM\u0027s custody claim requires a release authority the model owner trusts.",
         "inLanguage": "en",
         "isPartOf": { "@id": "https://wcm.agentrust-io.com/#website" },
         "publisher": { "@id": "https://agentrust-io.com/#organization" }
@@ -114,7 +120,7 @@
         "@type": "BreadcrumbList",
         "itemListElement": [
           { "@type": "ListItem", "position": 1, "name": "Weight Custody Manifest", "item": "https://wcm.agentrust-io.com/" },
-          { "@type": "ListItem", "position": 2, "name": "Weight Custody Manifest", "item": "https://wcm.agentrust-io.com/" }
+          { "@type": "ListItem", "position": 2, "name": "Key-release trust boundary - Weight Custody Manifest", "item": "https://wcm.agentrust-io.com/deployment-trust/" }
         ]
       }
     ]
@@ -139,6 +145,11 @@
     <label class="md-overlay" for="__drawer"></label>
     <div data-md-component="skip">
       
+        
+        <a href="#who-controls-key-release" class="md-skip">
+          Skip to content
+        </a>
+      
     </div>
     <div data-md-component="announce">
       
@@ -151,7 +162,7 @@
 
 <header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="/." title="Weight Custody Manifest" class="md-header__button md-logo" aria-label="Weight Custody Manifest" data-md-component="logo">
+    <a href=".." title="Weight Custody Manifest" class="md-header__button md-logo" aria-label="Weight Custody Manifest" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -171,7 +182,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              
+              Key-release trust boundary
             
           </span>
         </div>
@@ -278,7 +289,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="/." class="md-tabs__link">
+      <a href=".." class="md-tabs__link">
         
   
   
@@ -299,7 +310,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="/getting-started/" class="md-tabs__link">
+        <a href="../getting-started/" class="md-tabs__link">
           
   
   
@@ -315,11 +326,13 @@
   
   
   
+    
+  
   
     
     
-      <li class="md-tabs__item">
-        <a href="/spec-overview/" class="md-tabs__link">
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../spec-overview/" class="md-tabs__link">
           
   
   
@@ -339,7 +352,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="/reference-kbs/" class="md-tabs__link">
+        <a href="../reference-kbs/" class="md-tabs__link">
           
   
   
@@ -359,7 +372,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="/roadmap/" class="md-tabs__link">
+        <a href="../roadmap/" class="md-tabs__link">
           
   
   
@@ -399,7 +412,7 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="/." title="Weight Custody Manifest" class="md-nav__button md-logo" aria-label="Weight Custody Manifest" data-md-component="logo">
+    <a href=".." title="Weight Custody Manifest" class="md-nav__button md-logo" aria-label="Weight Custody Manifest" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -429,7 +442,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/." class="md-nav__link">
+      <a href=".." class="md-nav__link">
         
   
   
@@ -508,7 +521,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/getting-started/" class="md-nav__link">
+      <a href="../getting-started/" class="md-nav__link">
         
   
   
@@ -536,7 +549,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/tutorials/how-it-works/" class="md-nav__link">
+      <a href="../tutorials/how-it-works/" class="md-nav__link">
         
   
   
@@ -568,26 +581,31 @@
       
   
   
+    
   
   
+  
     
     
     
     
+      
+        
+        
       
       
         
       
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
         
           
-          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
             
   
   
@@ -605,7 +623,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_3">
             <span class="md-nav__icon md-icon"></span>
             
@@ -623,7 +641,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/spec-overview/" class="md-nav__link">
+      <a href="../spec-overview/" class="md-nav__link">
         
   
   
@@ -651,7 +669,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/measured-launch/" class="md-nav__link">
+      <a href="../measured-launch/" class="md-nav__link">
         
   
   
@@ -679,7 +697,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/certificate-policy/" class="md-nav__link">
+      <a href="../certificate-policy/" class="md-nav__link">
         
   
   
@@ -707,7 +725,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/oms-interoperability/" class="md-nav__link">
+      <a href="../oms-interoperability/" class="md-nav__link">
         
   
   
@@ -735,7 +753,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/threat-model/" class="md-nav__link">
+      <a href="../threat-model/" class="md-nav__link">
         
   
   
@@ -760,10 +778,37 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="/deployment-trust/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Key-release trust boundary
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -779,6 +824,70 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#deployment-configurations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Deployment configurations
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#deployment-review-checklist" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Deployment review checklist
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-the-reference-server-actually-does" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What the reference server actually does
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#work-required-for-customer-hosted-protected-release" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Work required for customer-hosted protected release
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -791,7 +900,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/conformance/" class="md-nav__link">
+      <a href="../conformance/" class="md-nav__link">
         
   
   
@@ -878,7 +987,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/reference-kbs/" class="md-nav__link">
+      <a href="../reference-kbs/" class="md-nav__link">
         
   
   
@@ -906,7 +1015,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/protected-runtime-evidence/" class="md-nav__link">
+      <a href="../protected-runtime-evidence/" class="md-nav__link">
         
   
   
@@ -1021,7 +1130,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/roadmap/" class="md-nav__link">
+      <a href="../roadmap/" class="md-nav__link">
         
   
   
@@ -1049,7 +1158,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/limitations/" class="md-nav__link">
+      <a href="../limitations/" class="md-nav__link">
         
   
   
@@ -1077,7 +1186,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/governance/" class="md-nav__link">
+      <a href="../governance/" class="md-nav__link">
         
   
   
@@ -1105,7 +1214,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/sponsors/" class="md-nav__link">
+      <a href="../sponsors/" class="md-nav__link">
         
   
   
@@ -1133,7 +1242,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/contributing/" class="md-nav__link">
+      <a href="../contributing/" class="md-nav__link">
         
   
   
@@ -1161,7 +1270,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/changelog/" class="md-nav__link">
+      <a href="../changelog/" class="md-nav__link">
         
   
   
@@ -1206,6 +1315,60 @@
   
   
   
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#deployment-configurations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Deployment configurations
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#deployment-review-checklist" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Deployment review checklist
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-the-reference-server-actually-does" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What the reference server actually does
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#work-required-for-customer-hosted-protected-release" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Work required for customer-hosted protected release
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
   
 </nav>
                   </div>
@@ -1223,11 +1386,166 @@
   
 
 
+  <nav class="md-path" aria-label="Navigation" >
+    <ol class="md-path__list">
+      
+        
+  
+  
+    <li class="md-path__item">
+      <a href=".." class="md-path__link">
+        
+  <span class="md-ellipsis">
+    Home
+  </span>
+
+      </a>
+    </li>
+  
+
+      
+      
+        
+  
+  
+    
+    
+      <li class="md-path__item">
+        <a href="../spec-overview/" class="md-path__link">
+          
+  <span class="md-ellipsis">
+    Specification
+  </span>
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ol>
+  </nav>
+
               
               <article class="md-content__inner md-typeset">
                 
-  <h1>404 - Not found</h1>
+                  
 
+
+  
+  
+
+
+<h1 id="who-controls-key-release">Who controls key release?<a class="headerlink" href="#who-controls-key-release" title="Permanent link">&para;</a></h1>
+<p>WCM's custody claim requires a release authority the model owner trusts. If the
+customer can read the model key or replace the verifier, trust roots, or accepted
+policy, workload attestation does not protect the owner from that customer.
+Separate administrator teams within the same entity do not establish this
+boundary when that entity can override both teams.</p>
+<p>This applies to WCM's reference KBS and to integrations with a service such as
+Confidential Containers Trustee. WCM does not supply a Trustee integration or
+certify a Trustee deployment by checking a manifest.</p>
+<h2 id="deployment-configurations">Deployment configurations<a class="headerlink" href="#deployment-configurations" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Configuration</th>
+<th>Custody claim</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Customer hosts the workload; model owner or an owner-trusted custodian controls protected key release</td>
+<td>Consistent with the trust model, conditional on the hardware, workload, and release-service assumptions being met.</td>
+</tr>
+<tr>
+<td>Customer controls both workload infrastructure and an ordinary KBS/Trustee, including keys or verification settings</td>
+<td>Unsupported for protecting the model owner's weights from that customer.</td>
+</tr>
+<tr>
+<td>Customer hosts a protected KBS whose code, configuration, and provisioning the owner independently verifies</td>
+<td>Design direction in SPEC section 3.5; not an end-to-end capability delivered by the reference server.</td>
+</tr>
+<tr>
+<td>One enterprise owns the model and operates both services</td>
+<td>Useful for internal governance, but does not demonstrate protection against an untrusted customer controlling both services.</td>
+</tr>
+</tbody>
+</table>
+<p>Hosting location alone does not decide trust. The relevant question is whether
+the customer can obtain a key or change an accepted release decision without
+the owner's authorization. An external KMS/HSM does not resolve this if it
+exports keys to customer administrators or blindly trusts their verifier.</p>
+<h2 id="deployment-review-checklist">Deployment review checklist<a class="headerlink" href="#deployment-review-checklist" title="Permanent link">&para;</a></h2>
+<p>Record the responsible principal, configuration, and verification evidence for
+each item before provisioning model keys:</p>
+<ul>
+<li><strong>Key custody:</strong> who can read, export, back up, restore, or provision model
+  keys, including mounted secrets and recovery credentials? The customer must
+  not have an alternate route to the plaintext key.</li>
+<li><strong>Verification:</strong> who can replace verifier code, hardware trust roots,
+  reference values, accepted measurements, and manifest identities? These must
+  remain under owner-approved authority, including after restart and update.</li>
+<li><strong>Policy authority:</strong> how are builder/custodian signatures and signer identities
+  verified before a manifest is accepted? A caller-provided manifest or a
+  customer-controlled allowlist is not independent authorization.</li>
+<li><strong>Release channel:</strong> is the recipient key bound to fresh workload attestation,
+  and is the model key released only to that recipient?</li>
+<li><strong>Administrative overrides:</strong> can cluster, host, KBS, KMS, or recovery admins
+  bypass these controls through debug access, replacement images, configuration
+  mounts, snapshots, or rollback?</li>
+<li><strong>Revocation and renewal:</strong> who supplies current policy and revocation state,
+  and what prevents stale state or a replacement broker from extending access?</li>
+<li><strong>Hardware trust:</strong> does the owner accept the TEE roots and relevant physical
+  and software attack assumptions for both workload and release service?</li>
+</ul>
+<p>An unanswered item is an unresolved deployment assumption. A completed checklist
+is a review record, not cryptographic evidence of administrative independence.</p>
+<h2 id="what-the-reference-server-actually-does">What the reference server actually does<a class="headerlink" href="#what-the-reference-server-actually-does" title="Permanent link">&para;</a></h2>
+<p><code>server.build_kbs_from_env</code> reads plaintext keys from <code>WCM_KEYSTORE_FILE</code>, CPU
+trust from <code>WCM_CPU_TRUST_ROOT_FILE</code>, and manifest identities from
+<code>WCM_TRUSTED_MANIFEST_IDENTITIES_FILE</code>. The KBS copies keys into process memory.
+Read-only Docker mounts prevent writes through that mount; they do not hide
+the source files from the host administrator.</p>
+<p>The environment-built server requires CPU quote verification, channel binding,
+and an exact pinned manifest identity. Those checks constrain requests to an
+intact, trusted broker. They do not constrain an administrator who can replace
+the broker or read its key file. <code>custody.kbs_image</code> describes the required image;
+the reference release path does not attest itself against that field before
+loading keys. <code>/health</code> reports availability, not custody assurance.</p>
+<p>The <a href="../reference-kbs/">reference image</a> is therefore a protocol demonstration,
+not a protected self-custody deployment. See the
+<a href="https://github.com/agentrust-io/weight-custody-manifest/blob/main/python/docs/threat-model-implementation-audit.md">implementation audit</a>.</p>
+<h2 id="work-required-for-customer-hosted-protected-release">Work required for customer-hosted protected release<a class="headerlink" href="#work-required-for-customer-hosted-protected-release" title="Permanent link">&para;</a></h2>
+<p>Before claiming support, a deployment must demonstrate owner-authorized
+provisioning into a freshly attested KBS, with the provisioning channel bound to
+that KBS instance. Verification must cover the release code and security-relevant
+configuration, including mounted policy and trust data. Merely reproducing an
+image digest does not establish this runtime boundary.</p>
+<p>Acceptance evidence must include denied provisioning after code, root, policy,
+or recipient-key substitution; attempts to read keys through host and recovery
+paths; rollback and revocation handling; and successful release only through the
+approved KBS to an approved workload. The SDK's threshold sharing primitive does
+not implement independent share custodians or their provisioning policies.</p>
+<p>These are implementation and deployment follow-ups, not a new claim that nesting
+TEEs removes hardware trust. If the owner rejects the underlying TEE assumptions,
+attesting a second service does not resolve that objection.</p>
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+
+
+                
               </article>
             </div>
           
@@ -1272,10 +1590,10 @@
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "/", "features": ["navigation.instant", "navigation.tracking", "navigation.tabs", "navigation.tabs.sticky", "navigation.sections", "navigation.top", "navigation.path", "search.suggest", "search.highlight", "content.code.copy", "content.tabs.link", "toc.follow"], "search": "/assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.instant", "navigation.tracking", "navigation.tabs", "navigation.tabs.sticky", "navigation.sections", "navigation.top", "navigation.path", "search.suggest", "search.highlight", "content.code.copy", "content.tabs.link", "toc.follow"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="/assets/javascripts/bundle.d7400e89.min.js"></script>
+      <script src="../assets/javascripts/bundle.d7400e89.min.js"></script>
       
         <script src="https://agentrust-io.com/supernav.js?v=22"></script>
       

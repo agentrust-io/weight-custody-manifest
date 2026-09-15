@@ -8,6 +8,8 @@ The reference key-release service that §3.4 / §8.3 call for - built reproducib
 
 ## Image
 
+This example trusts the host administrator with the mounted keys, trust roots, and manifest allowlist. It is not a deployment for protecting weights from that administrator. Read the [deployment trust checklist](https://wcm.agentrust-io.com/deployment-trust/index.md) before provisioning model keys.
+
 ```
 docker build -f python/docker/Dockerfile -t wcm-kbs .
 docker run --rm -p 8080:8080 \
@@ -23,6 +25,8 @@ Keys are supplied at runtime, never baked into the image. CI builds, runs, and h
 
 Reference-only deployment
 
-The reference server requires channel binding and returns only `sealed_key_b64`, encrypted to the transport public key bound into the attestation evidence; it never returns the raw key. Production deployments must additionally isolate the KBS trust boundary, authenticate clients, source keys from a KMS/HSM-backed mounted secret, restrict network ingress, and attest/pin the KBS image itself. Do not expose the reference image directly on an untrusted network.
+The reference server requires channel binding and returns only `sealed_key_b64`, encrypted to the transport public key bound into the attestation evidence; it never returns the raw key. Production deployments must additionally isolate the KBS trust boundary, authenticate clients, protect key provisioning from host administrators, restrict network ingress, and attest/pin the KBS image itself. Do not expose the reference image directly on an untrusted network.
+
+A KMS/HSM-backed secret mounted as plaintext remains readable by an administrator controlling that host. Image pinning alone does not protect mounted policy or keys; the owner must verify the provisioning boundary.
 
 The environment-built server fails closed when `WCM_CPU_TRUST_ROOT_FILE` is absent: health and challenge issuance remain available, but every release is denied rather than falling back to structural CPU evidence. The server also fails closed unless the submitted manifest is authorized. `WCM_TRUSTED_MANIFEST_IDENTITIES_FILE` must contain a JSON array of exact `sha256:` manifest identities produced by `wcm.manifest_identity`. The manifest embedded in a release request is never accepted as its own trust anchor.

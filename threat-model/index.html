@@ -16,7 +16,7 @@
         <link rel="prev" href="../oms-interoperability/">
       
       
-        <link rel="next" href="../conformance/">
+        <link rel="next" href="../deployment-trust/">
       
       
         
@@ -861,6 +861,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../deployment-trust/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Key-release trust boundary
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../conformance/" class="md-nav__link">
         
   
@@ -1397,6 +1425,11 @@ malicious custodian insider, a network adversary, a malicious or coerced builder
 (the sovereign case), a co-located side-channel tenant, and a supply-chain
 attacker.</p>
 <h2 id="the-load-bearing-assumption">The load-bearing assumption<a class="headerlink" href="#the-load-bearing-assumption" title="Permanent link">&para;</a></h2>
+<p>The model owner must trust the key-release authority. A customer who can read
+the model key or replace KBS/Trustee verification and policy can bypass workload
+attestation without attacking the TEE. Internal separation of administrators
+does not protect against the entity that can override them. See the
+<a href="../deployment-trust/">deployment configurations and checklist</a>.</p>
 <p>WCM's guarantees hold only as far as the trusted computing base does. The honest
 core: current confidential-computing silicon does <strong>not</strong> protect the key or
 attestation integrity against an operator who physically owns the hardware

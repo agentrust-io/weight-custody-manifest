@@ -883,6 +883,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../deployment-trust/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Key-release trust boundary
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../conformance/" class="md-nav__link">
         
   
@@ -1451,6 +1479,11 @@ operators it does not control. WCM is the protocol for that direction.</p>
 <p>For an open-weight deployment these roles often collapse into one enterprise
 governance function (see the <a href="https://github.com/agentrust-io/examples/tree/main/weight-custody-manifest">runnable examples</a>).</p>
 <h2 id="the-six-steps">The six steps<a class="headerlink" href="#the-six-steps" title="Permanent link">&para;</a></h2>
+<p>These steps assume a release authority the builder trusts. If the customer
+controls the broker's keys and verification settings, co-signing a manifest
+does not prevent that customer from bypassing it. Customer-hosted attested KBS
+operation is specified as a design, but the reference server does not implement
+its protected provisioning boundary. See <a href="../../deployment-trust/">who controls key release</a>.</p>
 <p><strong>0. Certify - the manifest.</strong> The builder writes a signed manifest: the
 <code>weights_hash</code>, the release terms (license, permitted derivatives), and the
 release policy (which hardware, which serving-image measurement, trusted-time

@@ -12,4 +12,6 @@ A malicious or compromised customer operator (privileged on the host), a malicio
 
 ## The load-bearing assumption
 
+The model owner must trust the key-release authority. A customer who can read the model key or replace KBS/Trustee verification and policy can bypass workload attestation without attacking the TEE. Internal separation of administrators does not protect against the entity that can override them. See the [deployment configurations and checklist](https://wcm.agentrust-io.com/deployment-trust/index.md).
+
 WCM's guarantees hold only as far as the trusted computing base does. The honest core: current confidential-computing silicon does **not** protect the key or attestation integrity against an operator who physically owns the hardware (TEE.fail, BadRAM). Against that adversary WCM provides cost, detection, containment, legal recourse, and mandatory physical hardening - not cryptographic custody. See [Limitations](https://wcm.agentrust-io.com/limitations/index.md).

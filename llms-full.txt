@@ -226,6 +226,8 @@ For an open-weight deployment these roles often collapse into one enterprise gov
 
 ## The six steps
 
+These steps assume a release authority the builder trusts. If the customer controls the broker's keys and verification settings, co-signing a manifest does not prevent that customer from bypassing it. Customer-hosted attested KBS operation is specified as a design, but the reference server does not implement its protected provisioning boundary. See [who controls key release](https://wcm.agentrust-io.com/deployment-trust/index.md).
+
 **0. Certify - the manifest.** The builder writes a signed manifest: the `weights_hash`, the release terms (license, permitted derivatives), and the release policy (which hardware, which serving-image measurement, trusted-time source). It is signed **jointly** by builder and custodian. This is the enforceable, machine-checkable version of the deployment agreement.
 
 **1. Verify - is this the real manifest?** Anyone can check the joint signature: both the builder and the custodian (and the sovereign signer, under the sovereign profile) must have signed, over the exact bytes. A tampered manifest does not verify.
@@ -445,6 +447,8 @@ A malicious or compromised customer operator (privileged on the host), a malicio
 
 ## The load-bearing assumption
 
+The model owner must trust the key-release authority. A customer who can read the model key or replace KBS/Trustee verification and policy can bypass workload attestation without attacking the TEE. Internal separation of administrators does not protect against the entity that can override them. See the [deployment configurations and checklist](https://wcm.agentrust-io.com/deployment-trust/index.md).
+
 WCM's guarantees hold only as far as the trusted computing base does. The honest core: current confidential-computing silicon does **not** protect the key or attestation integrity against an operator who physically owns the hardware (TEE.fail, BadRAM). Against that adversary WCM provides cost, detection, containment, legal recourse, and mandatory physical hardening - not cryptographic custody. See [Limitations](https://wcm.agentrust-io.com/limitations/index.md).
 
 # Schema and conformance
@@ -512,6 +516,8 @@ The reference key-release service that §3.4 / §8.3 call for - built reproducib
 
 ## Image
 
+This example trusts the host administrator with the mounted keys, trust roots, and manifest allowlist. It is not a deployment for protecting weights from that administrator. Read the [deployment trust checklist](https://wcm.agentrust-io.com/deployment-trust/index.md) before provisioning model keys.
+
 ```
 docker build -f python/docker/Dockerfile -t wcm-kbs .
 docker run --rm -p 8080:8080 \
@@ -527,7 +533,9 @@ Keys are supplied at runtime, never baked into the image. CI builds, runs, and h
 
 Reference-only deployment
 
-The reference server requires channel binding and returns only `sealed_key_b64`, encrypted to the transport public key bound into the attestation evidence; it never returns the raw key. Production deployments must additionally isolate the KBS trust boundary, authenticate clients, source keys from a KMS/HSM-backed mounted secret, restrict network ingress, and attest/pin the KBS image itself. Do not expose the reference image directly on an untrusted network.
+The reference server requires channel binding and returns only `sealed_key_b64`, encrypted to the transport public key bound into the attestation evidence; it never returns the raw key. Production deployments must additionally isolate the KBS trust boundary, authenticate clients, protect key provisioning from host administrators, restrict network ingress, and attest/pin the KBS image itself. Do not expose the reference image directly on an untrusted network.
+
+A KMS/HSM-backed secret mounted as plaintext remains readable by an administrator controlling that host. Image pinning alone does not protect mounted policy or keys; the owner must verify the provisioning boundary.
 
 The environment-built server fails closed when `WCM_CPU_TRUST_ROOT_FILE` is absent: health and challenge issuance remain available, but every release is denied rather than falling back to structural CPU evidence. The server also fails closed unless the submitted manifest is authorized. `WCM_TRUSTED_MANIFEST_IDENTITIES_FILE` must contain a JSON array of exact `sha256:` manifest identities produced by `wcm.manifest_identity`. The manifest embedded in a release request is never accepted as its own trust anchor.
 
@@ -583,6 +591,7 @@ For either issue, merge only when the sanitized receipt, verifier, negative case
 
 The canonical, complete list is [`LIMITATIONS.md`](https://github.com/agentrust-io/weight-custody-manifest/blob/main/LIMITATIONS.md). The load-bearing ones:
 
+- **No custody against a customer-controlled release authority.** A customer who can read KBS/Trustee keys or replace its verifier and policy can bypass the gate without defeating hardware attestation. The reference server does not implement protected KBS provisioning. See the [deployment trust checklist](https://wcm.agentrust-io.com/deployment-trust/index.md).
 - **No custody against a hardware owner.** Against a physical operator who owns the box, cheap published memory-bus attacks (TEE.fail, BadRAM) extract the key and can forge attestation. WCM offers cost, detection, containment, legal recourse, and mandatory physical hardening there - not silicon-enforced custody.
 - **Attestation forgery, open half.** Measurement forgery is detectable (`memory_fingerprint_challenge`); the key-extraction half is not, and is why publication is staged (open question 8.8).
 - **The platform we validate against does not meet our own ciphertext-hiding precondition.** SPEC §3.6 conditions the semi-trusted-operator custody claim on SEV-SNP ciphertext hiding being enabled. The live Azure CVM this SDK is validated against reports `PLATFORM_INFO = 0x25`: alias check set, ciphertext hiding **clear**. Require it with `release_policy.platform_integrity.ciphertext_hiding` rather than assuming it.

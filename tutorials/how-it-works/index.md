@@ -17,6 +17,8 @@ For an open-weight deployment these roles often collapse into one enterprise gov
 
 ## The six steps
 
+These steps assume a release authority the builder trusts. If the customer controls the broker's keys and verification settings, co-signing a manifest does not prevent that customer from bypassing it. Customer-hosted attested KBS operation is specified as a design, but the reference server does not implement its protected provisioning boundary. See [who controls key release](https://wcm.agentrust-io.com/deployment-trust/index.md).
+
 **0. Certify - the manifest.** The builder writes a signed manifest: the `weights_hash`, the release terms (license, permitted derivatives), and the release policy (which hardware, which serving-image measurement, trusted-time source). It is signed **jointly** by builder and custodian. This is the enforceable, machine-checkable version of the deployment agreement.
 
 **1. Verify - is this the real manifest?** Anyone can check the joint signature: both the builder and the custodian (and the sovereign signer, under the sovereign profile) must have signed, over the exact bytes. A tampered manifest does not verify.
