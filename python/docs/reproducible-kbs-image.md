@@ -16,6 +16,11 @@ docker build -f python/docker/Dockerfile -t wcm-kbs .
 
 ## Run
 
+This is a reference-only deployment. The host administrator can read the
+mounted key file and replace trust configuration. It does not protect model
+keys from that administrator or implement the attested self-custody design.
+See the [deployment trust checklist](../../docs/deployment-trust.md).
+
 Keys are supplied at **runtime**, never baked into the image. Mount a keystore
 (a JSON object mapping `weights_hash` → base64 decryption key) and point
 `WCM_KEYSTORE_FILE` at it:
@@ -23,14 +28,23 @@ Keys are supplied at **runtime**, never baked into the image. Mount a keystore
 ```bash
 docker run --rm -p 8080:8080 \
   -v "$PWD/keystore.json:/run/secrets/keystore.json:ro" \
+  -v "$PWD/cpu-root.pem:/run/trust/cpu-root.pem:ro" \
+  -v "$PWD/manifest-identities.json:/run/trust/manifest-identities.json:ro" \
   -e WCM_KEYSTORE_FILE=/run/secrets/keystore.json \
+  -e WCM_CPU_TRUST_ROOT_FILE=/run/trust/cpu-root.pem \
+  -e WCM_TRUSTED_MANIFEST_IDENTITIES_FILE=/run/trust/manifest-identities.json \
   wcm-kbs
 # GET /health, POST /challenge, POST /release
 ```
 
-`/release` returns the key in the response body for the reference server, a
-production KBS wraps it to the requesting enclave's attested transport instead
-(see `wcm/server.py`). Do not expose this image as-is on an untrusted network.
+`/release` returns only `sealed_key_b64`, encrypted to the transport key bound
+into the attestation evidence, never the raw key (see `wcm/server.py`). The
+environment-built server denies release without a configured CPU trust root
+and a pinned manifest identity. The identity file is a JSON array of exact
+`sha256:` identities from `wcm.manifest_identity`; authorize manifests out of
+band before pinning them. Sealing the HTTP response does not protect the
+plaintext source key file from the host. Do not expose this image as-is on an
+untrusted network.
 
 ## Reproducibility
 
@@ -112,4 +126,6 @@ one, the trust move in section 8.3.
   runs; that it runs inside an attested enclave is the deployment's job
   (`custody.kbs_image` is verified in the enclave's attestation, SPEC 3.5).
 - Not a production key manager. The runtime keystore mount is a reference
-  mechanism; real deployments source keys from a KMS/HSM.
+  mechanism; real deployments need owner-authorized provisioning into a
+  protected broker. A KMS/HSM that exports keys to the customer-controlled host
+  does not establish that boundary.
