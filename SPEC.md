@@ -1,3 +1,5 @@
+<a id="wcm-specification"></a>
+
 # Weight Custody Manifest (WCM)
 ### An Open Specification for Protecting Model Weights in Customer-Controlled Infrastructure
 *Working draft, v0.15. Open specification, pre-1.0. Subject to change and NOT ready to build against yet; read the open questions (section 8) before relying on anything here. The operated custody service and enclave implementation are separate and proprietary; this repository is the open protocol layer only.*
@@ -54,6 +56,8 @@ Four layers, deliberately mirroring the shape of the platform's existing custome
         Model builder                       Customer enclave
     (any frontier lab or vendor)       (any sovereign or enterprise env)
 ```
+
+<a id="wcm-manifest"></a>
 
 ### 3.1 Layer 1: The Weight Custody Manifest
 
@@ -151,6 +155,8 @@ Key design choices:
 - `deployment_model` names which direction the trust runs, and makes the symmetric case a first-class posture rather than an accident. `builder-to-customer` is the default and the primary walk-through of this document: a builder places a model into a customer's environment, and the vulnerable party is the builder. `byom-symmetric` is the case where one organization holds *both* the builder and custodian roles, bringing its own model into confidential infrastructure it also operates and custodies. This is design principle 4 (section 2) made concrete: the same control plane, enclave primitives, and gateway, exercised with the roles collapsed onto one party rather than split across two. Structurally it requires `custody.custodian_type: customer-self-custody` (the org custodies its own model), and it is the posture in which `builder.identity` equal to `custody.custodian` is expected rather than suspect; the verifier confirms the single-identity self-custody in a note. The common trigger is an enterprise governing an open-weight model for its own use, where the builder/custodian distinction that protects a frontier lab's IP against a customer no longer has two adversarial parties to separate, but the integrity, license, and derivative-custody machinery is still wanted. Naming it keeps BYOM from being two separate products; it is the same manifest with the roles identified.
 - `sovereign_profile` binds revocation to a quorum (and the name is scoped deliberately). In the default (non-sovereign) profile, either party can trigger a unilateral emergency revocation (see section 3.2). That is unacceptable in a sovereign deployment: a foreign builder holding an own-signature kill switch over a model running inside a sovereign jurisdiction is exactly the dependency sovereign programs exist to remove. With `sovereign_profile.enabled`, revocation requires a quorum that includes the sovereign signer, so no single foreign party can dark the model. The tradeoff is that emergency revocation is slower. Note that wipe-on-lapse is *not* an independent backstop in this profile, because a hostile hardware owner can forge attestation (section 3.2, open question 8.8); the sovereign profile's revocation guarantee rests on the quorum and on mandatory physical hardening, not on the floor. The name is precise about its scope: it confers a quorum veto over the release-and-revocation decision, not sovereignty over the weights, the runtime code (still builder-signed), or the silicon. It is a governance control, not a claim of full national control over the deployment.
 
+<a id="wcm-key-release"></a>
+
 ### 3.2 Layer 2: Attestation-Gated Key Release
 
 This is the handshake, run in the opposite direction from a model-passport verification, where a caller verifies a model before sending it data. Here, the builder (or the custodian acting on the builder's behalf) verifies the customer's enclave before releasing a decryption key. It builds on the established attestation-gated key-release pattern (key broker / KBS services such as CNCF Confidential Containers Trustee, Azure Secure Key Release, and Intel Trust Authority); the novelty is the weight-custody profile and the flipped trust direction, not the primitive.
@@ -196,6 +202,8 @@ Unilateral emergency revocation (default profile only). Joint signature revocati
 
 Multi-party policy co-governance and the sovereign profile. For deployments where more than one stakeholder needs to sign off (a regulator, the customer's own security team, and the builder, for example in a sovereign deployment), the `release_policy` object supports an `additional_signers` array requiring a quorum before the manifest is valid. The `sovereign_profile` extends that quorum to revocation, not just release: with it enabled, the sovereign signer is required for any revocation, so no single foreign party can dark a model running in the sovereign's jurisdiction. This is the mechanism that lets a regulated sovereign deployment satisfy "no single party unilaterally controls the release or the kill decision" without inventing a separate approval workflow outside the manifest. The cost is that the builder gives up its own-signature kill switch in exchange for the sovereign deal. Note that in this hostile-owner posture wipe-on-lapse does *not* provide an independent backstop, because the owner can forge attestation (the floor's second limit, and open question 8.8); the sovereign profile's revocation guarantee rests on the quorum and on mandatory physical hardening, not on the floor.
 
+<a id="wcm-runtime-custody"></a>
+
 ### 3.3 Layer 3: Runtime Custody & Extraction Defense
 
 Once weights are live inside the enclave, custody is an ongoing obligation, not a one time check.
@@ -204,6 +212,8 @@ Once weights are live inside the enclave, custody is an ongoing obligation, not 
 - Extraction and distillation defense, and its honest limit: the enclave boundary enforces resource and rate ceilings on inference calls, and every call produces a signed, hash-chained audit receipt (reusing TRACE's receipt format rather than inventing a second one). Anomalous call patterns, high volume probing consistent with model stealing, are visible in the receipt stream without Opaque or the builder needing to see call content. What this does not fully solve is distillation by a customer whose legitimate production traffic is already high volume: a determined customer can train a student model from outputs generated entirely within its permitted rate envelope, and no ceiling that keeps production usable will stop that. Rate ceilings and receipts raise the cost and make gross theft visible; they do not make in-envelope distillation impossible, and this draft should not claim they do. Stronger distillation resistance (output watermarking, per-tenant response perturbation) is out of scope here and noted as follow up.
 - No raw weight *software* export path, and an honest limit against a physical operator: against every software adversary, the host OS, the hypervisor, a privileged operator with software access, and an Opaque insider, the enclave design makes it structurally impossible, not merely against policy, for decrypted weights to be written to customer storage, copied to another process, or transmitted off the enclave, provided `required_serving_image` is builder-signed and measured so the customer cannot substitute a stack that dumps memory (section 3.1). That much is real and enforced in silicon. The honest limit: current confidential-GPU hardware protects GPU-resident weights by *access-control firewalling*, not memory encryption, so weights sit in plaintext in HBM during compute, and NVIDIA explicitly excludes sophisticated physical attacks (decapsulation, on-package probing) from its threat model. A determined operator who owns the hardware is therefore not stopped by the silicon. Against that adversary WCM does not claim structural impossibility; it raises the cost and skill bar, makes extraction detectable and attributable through attestation and receipts, limits the value window through wipe-on-lapse and revocation, backs it with the manifest's legal terms, and offers the optional physical-hardening tier. The full scope statement is section 3.6. A software-policy violation here is unrecoverable the moment it happens, which is why the software path is closed in silicon rather than in policy.
 - Cost and resource governance: rate ceilings enforced at the serving boundary double as a defense against resource exhaustion and as an early signal for extraction attempts, reusing the same enforcement point as the ceiling above.
+
+<a id="wcm-derivative-lineage"></a>
 
 ### 3.4 Layer 4: Derivative Lineage & Compliance Mapping
 
@@ -282,6 +292,8 @@ Threat model. Against every software adversary (the host OS, the hypervisor, a s
 
 Two lighter alternatives were considered and rejected as standalone answers. An Opaque-authored appliance the customer hosts keeps Opaque as the logical release authority, so it does not actually satisfy the no-third-party-in-path requirement; it is at most a pragmatic interim offering before the attested KBS is built. A reproducibly-built KBS with a tamper-evident audit log is detect-not-prevent (a forked binary can still self-release, you just learn about it afterward), which contradicts Principle 1, so it is useful only as an audit supplement layered on top of attestation, never on its own.
 
+<a id="wcm-guarantee-scope"></a>
+
 ### 3.6 Guarantee Scope: What the Silicon Does and Does Not Cover
 
 This section states plainly what the hardware WCM runs on actually guarantees, so no downstream reader over-reads the custody claim. It is grounded in an adversarial assessment of NVIDIA Confidential Computing (H100/H200/Blackwell) and closes former open question 8.4.
@@ -339,6 +351,8 @@ How much `attestation_revocation_check` actually buys, measured. The control is 
 - **NVIDIA: the offline path is inert, and OCSP is the only live control.** Every certificate in the GH100 device identity chain, verified against this repo's own captured H100 chain (`python/tests/fixtures/gpu_h100_attestation.json`), carries `notAfter = 9999-12-31 23:59:59 GMT`, root included. The published CRLs are empty and refresh on a two-year cycle: `crl/l1-root.crl` last updated 2026-02-06 with next update **2028-02-06**, `crl/l2-gh100.crl` last updated 2026-01-16 with next update **2028-01-16**, both with zero revoked entries (fetched 2026-09-11). So a verifier that falls back to the CRL learns nothing, and cannot tell "not revoked" from "this list is eighteen months stale". Nonce-bound OCSP against `ocsp.ndis.nvidia.com` is the only control with real freshness, and a WCM deployment MUST treat OCSP unreachability as a failure rather than falling back to the CRL.
 - **AMD: the CRL cannot name a chip even in principle.** VCEK certificates are minted per request with serial number zero, so there is no identifier for a CRL entry to carry; de-facto revocation is TCB versioning, which is fleet-wide and firmware-scoped rather than per-device.
 - **The operator cannot invoke any of it.** On all three vendors the decision to revoke sits with the vendor. A customer who knows a specific host was physically opened has no documented path to have that device's attestation key stopped. This is the practical reason physical hardening is prevention rather than detection in the hostile-owner posture: there is no containment step behind it to fall back on.
+
+<a id="wcm-transparency"></a>
 
 ### 3.7 Transparency: Making Equivocation and Suppressed Revocations Detectable
 
