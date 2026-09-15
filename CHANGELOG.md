@@ -22,8 +22,10 @@ verdict does not move.
 
 A new `PlatformFloor` is caller-supplied, as SEV-SNP's already is, with
 `forbid_debug` shared across vendors because it is one operator intent expressed
-twice. Results have three states, and `not_evaluated` always names its reason, so
-an unappraisable platform cannot read as green to anyone aggregating. There is no
+twice. Construction rejects invalid configuration with `ValueError`: `seam_svn`
+accepts `None` or a non-boolean integer from 0 through 255, and `forbid_debug`
+requires a boolean. Results have three states, and `not_evaluated` always names
+its reason, so an unappraisable platform cannot read as green to anyone aggregating. There is no
 VMPL analogue on TDX and none is invented. Floor staleness is reported beside the
 verdict and never inside it, as a stateless per-appraisal observation
 (`{"floor", "reported", "floor_behind"}`) with no watermark kept, because a

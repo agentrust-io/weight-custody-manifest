@@ -93,6 +93,39 @@ def test_the_docstring_says_carried_and_not_judged_in_those_words() -> None:
 # ---- the appraisal ---------------------------------------------------
 
 
+@pytest.mark.parametrize(
+    "value",
+    [-1, 256, True, False, 1.5, 13.0, "13", b"13", [], {}, float("nan"), float("inf")],
+)
+def test_floor_rejects_invalid_seam_svn_at_construction(value: object) -> None:
+    with pytest.raises(ValueError, match="seam_svn"):
+        PlatformFloor(seam_svn=value)  # type: ignore[arg-type]
+
+
+@pytest.mark.parametrize("value", [0, 1, None, "false", "true", [], {}, 0.0])
+def test_floor_rejects_non_boolean_debug_policy_at_construction(value: object) -> None:
+    with pytest.raises(ValueError, match="forbid_debug"):
+        PlatformFloor(seam_svn=13, forbid_debug=value)  # type: ignore[arg-type]
+
+
+@pytest.mark.parametrize("seam_svn", [None, 0, 255])
+@pytest.mark.parametrize("forbid_debug", [False, True])
+def test_floor_accepts_boundaries_and_explicit_policy_choices(
+    seam_svn: int | None, forbid_debug: bool,
+) -> None:
+    floor = PlatformFloor(seam_svn=seam_svn, forbid_debug=forbid_debug)
+    appraisal = appraise_tdx(_report(), floor)
+    expected_svn = {
+        None: FloorState.not_evaluated,
+        0: FloorState.passed,
+        255: FloorState.failed,
+    }[seam_svn]
+    assert appraisal.checks[0].state is expected_svn
+    assert appraisal.checks[1].state is (
+        FloorState.passed if forbid_debug else FloorState.not_evaluated
+    )
+    assert appraisal.ok is (seam_svn == 0 and forbid_debug)
+
 
 def test_floor_met() -> None:
     appraisal = appraise_tdx(_report(), PlatformFloor(seam_svn=13))

@@ -91,10 +91,24 @@ class PlatformFloor:
     A field left as ``None`` is an abstention rather than a floor of zero. "No
     floor supplied for this vendor" and "a floor every platform meets" are
     different statements, and only one of them should read as a pass.
+
+    Invalid configuration raises ``ValueError`` at construction. ``seam_svn``
+    must be ``None`` or a non-boolean integer from 0 through 255, matching the
+    reported byte. ``forbid_debug`` must be a boolean; neither field is coerced.
     """
 
     seam_svn: Optional[int] = None
     forbid_debug: bool = True
+
+    def __post_init__(self) -> None:
+        if self.seam_svn is not None and (
+            isinstance(self.seam_svn, bool)
+            or not isinstance(self.seam_svn, int)
+            or not 0 <= self.seam_svn <= 255
+        ):
+            raise ValueError("seam_svn must be None or a non-boolean integer from 0 through 255")
+        if not isinstance(self.forbid_debug, bool):
+            raise ValueError("forbid_debug must be a boolean")
 
 
 @dataclass(frozen=True)
