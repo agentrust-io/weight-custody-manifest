@@ -26,7 +26,7 @@ refusal nobody performed.
 
 **The binding is declared.** Real captures do not uniformly bind a caller nonce:
 Azure's SEV-SNP path binds ``REPORT_DATA`` to the vTPM attestation key, so there
-is no caller freshness in it at all. Each capture states which of four bindings
+is no caller freshness in it at all. Each capture states which of five bindings
 it asserts, and an unrecognised kind is a hard failure rather than a skip,
 because a runner that skips what it does not understand reports a pass it never
 performed.
@@ -35,7 +35,10 @@ performed.
 ``now``, so a score does not change as certificates age. A live tier evaluates
 at wall time and is reported without being scored. ``not_after`` of the
 shortest-lived certificate is required in every vector, which is what makes "no
-refresh process for a 2032 problem" a decision rather than an oversight.
+refresh process for a 2032 problem" a decision rather than an oversight, and it
+is **derived from the chain and compared** rather than taken on the vector's
+word: required is not the same as checked, and ``expired-at-now`` is the case
+that depends on the value being right.
 
 **Refusals are a matrix, applied to every capture**, so a new capture cannot
 arrive with only a happy path. The untrusted root is one certificate shipped
@@ -136,11 +139,6 @@ BINDING_KINDS = frozenset(
 
 #: The kinds that assert the caller chose the freshness.
 _NONCE_KINDS = frozenset({"nonce-digest", "nonce-and-transport", "nonce-echo"})
-
-#: Where a nonce-echo capture says its nonce sits, if it does not say.
-#: NVIDIA's offset, and a default rather than a constant because the point of
-#: the kind is that the offset belongs to the capture.
-_DEFAULT_ECHO_OFFSET = 4
 
 EVIDENCE_FORMATS = frozenset(
     {"sev-snp-report", "tdx-quote", "nvidia-attestation-report"}
@@ -268,6 +266,44 @@ def load_root_store(extra_dirs: Optional[list[Path]] = None) -> RootStore:
                     continue
                 by_digest.setdefault(_der_sha256(cert), cert)
     return RootStore(by_digest)
+
+
+def _chain_certificates(vector: dict[str, Any], root: x509.Certificate) -> list[x509.Certificate]:
+    """Every certificate the capture's path depends on, anchor included."""
+    chain = vector["chain"]
+    certs = [
+        load_pem_certificate(chain["leaf_pem"].encode(), allow_non_positive_serial=True)
+    ]
+    certs.extend(
+        load_pem_certificate(pem.encode()) for pem in chain.get("intermediates_pem", [])
+    )
+    certs.append(root)
+    return certs
+
+
+def _check_not_after(vector: dict[str, Any], root: x509.Certificate) -> None:
+    """The recorded horizon must be the one the chain actually asserts.
+
+    Required is not the same as checked. A value that is merely close disables
+    the expiry case silently: the mutation steps the clock past a date no
+    certificate expires on, everything still verifies, and the case reports a
+    refusal it never performed.
+
+    The earliest expiry in the chain is the binding one, because a path is valid
+    only while every certificate on it is. Reading the leaf alone would miss an
+    intermediate that expires first, which is what a vendor rotation produces.
+    """
+    certs = _chain_certificates(vector, root)
+    earliest = min(cert.not_valid_after_utc for cert in certs)
+    recorded = _parse_clock(vector["validity"]["not_after"], "validity.not_after")
+    if recorded != earliest:
+        raise VendorVectorError(
+            "validity.not_after is "
+            + recorded.isoformat()
+            + " but the earliest expiry in this chain is "
+            + earliest.isoformat()
+            + "; a recorded horizon that is only close turns expired-at-now off"
+        )
 
 
 def _parse_clock(value: str, field: str) -> datetime:
@@ -428,9 +464,7 @@ def _build_verifier(
             ).encode()
         ).decode()
 
-        declared_offset = int(
-            vector["binding"].get("nonce_offset", _DEFAULT_ECHO_OFFSET)
-        )
+        declared_offset = vector["binding"]["nonce_offset"]
 
         def verify_gpu(
             nonce: Optional[str], binding_bytes: bytes, now: datetime
@@ -559,6 +593,14 @@ def _validate_shape(vector: dict[str, Any]) -> None:
         )
     if kind in _NONCE_KINDS and not binding.get("nonce_hex"):
         raise VendorVectorError(f"binding kind {kind!r} requires nonce_hex")
+    if kind == "nonce-echo":
+        offset = binding.get("nonce_offset")
+        if isinstance(offset, bool) or not isinstance(offset, int) or offset < 0:
+            raise VendorVectorError(
+                "nonce-echo requires an explicit non-negative integer nonce_offset"
+            )
+        if "transport_public_key_b64url" in binding:
+            raise VendorVectorError("nonce-echo does not bind a transport key")
     if kind != "nonce-echo" and "nonce_offset" in binding:
         raise VendorVectorError(
             "nonce_offset belongs to 'nonce-echo'; kind " + repr(kind) + " binds a "
@@ -569,6 +611,12 @@ def _validate_shape(vector: dict[str, Any]) -> None:
         raise VendorVectorError(
             "binding kind 'nonce-and-transport' requires transport_public_key_b64url"
         )
+
+    fmt = vector["evidence"].get("format")
+    if fmt == "nvidia-attestation-report" and kind != "nonce-echo":
+        raise VendorVectorError("nvidia-attestation-report requires binding kind 'nonce-echo'")
+    if kind == "nonce-echo" and fmt in {"sev-snp-report", "tdx-quote"}:
+        raise VendorVectorError(f"binding kind 'nonce-echo' is incompatible with {fmt!r}")
 
     chain = vector["chain"]
     for field in ("leaf_pem", "intermediates_pem", "root", "root_source"):
@@ -725,6 +773,7 @@ def evaluate_vendor(
     _validate_shape(vector)
     store = store if store is not None else load_root_store()
     root = store.resolve(vector["chain"]["root"]["der_sha256"])
+    _check_not_after(vector, root)
     now = _parse_clock(vector["validity"]["now"], "validity.now")
 
     verify = _build_verifier(vector, root)

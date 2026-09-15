@@ -2,6 +2,19 @@
 
 What the Weight Custody Manifest does **not** do. Honest scope boundaries prevent misplaced trust; this is the same honesty the spec's §3.6 is built around.
 
+## Customer control of the release authority defeats custody
+
+A customer who can read KBS/Trustee model keys or replace its verifier, roots,
+or accepted policy can bypass workload attestation without attacking the TEE.
+Internal admin separation does not constrain an entity that can override both
+teams. This configuration is unsupported for custody against that customer.
+An external KMS that blindly trusts that verifier does not resolve the problem.
+
+SPEC section 3.5 describes a protected, attested KBS. The reference server does
+not implement owner-verified KBS attestation and protected key provisioning;
+its mounted key file and trust configuration remain under host control. See the
+[deployment checklist and implementation follow-ups](docs/deployment-trust.md).
+
 ## The load-bearing one: no custody against a hardware owner
 
 WCM protects a builder's weights when they run in a customer's own or sovereign infrastructure. Against a **software** adversary (host OS, hypervisor without ciphertext side channels, remote attacker, an Opaque insider) it is **cryptographic-custody-grade**. Against an operator who **physically owns the hardware** it is **not** custody-grade:

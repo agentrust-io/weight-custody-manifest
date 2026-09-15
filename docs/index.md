@@ -1,34 +1,82 @@
 ---
-title: Weight Custody Manifest
+title: "Weight Custody Manifest: key release only to attested runtimes"
 description: An open, pre-1.0 specification for releasing model weights only to an approved, attested runtime, with the guarantee boundary stated plainly.
+hide:
+  - navigation
+  - toc
 ---
 
-# Weight Custody Manifest
+[01 · Weights: is this the model that was released, and who may release its key?](https://agentrust-io.com/#chain)
 
-An open specification for protecting model weights when a builder deploys them
-into a customer's own or sovereign infrastructure.
+# Release model weights only to an attested runtime
 
-!!! warning "Pre-1.0, design under review"
-    This is a design under review, not a production standard. Public release is a
-    deliberate decision by the Project Lead and is not gated on open question 8.8;
-    the hostile-owner residual is documented, not a release blocker. Do not rely
-    on it for production.
+WCM is an open, pre-1.0 specification that binds encrypted weights to a signed
+release policy, so a key broker releases the decryption key only to a workload
+whose attestation matches the manifest.
+
+[Run the 91 conformance vectors](#try-it){ .md-button .md-button--primary }
+[What this proves, and what it does not](limitations.md){ .md-button }
 
 !!! tip "TL;DR"
-    WCM binds encrypted weights to a signed release policy. A key broker releases
-    the decryption key only to a workload whose attestation evidence matches the
-    manifest, keeps that authorization short-lived, and leaves portable evidence
-    of the decision. The reference SDK, its 91 conformance vectors, the schema and
-    the threat model are public under Apache-2.0. Against an adversary who
-    physically owns the hardware, WCM offers accountability, not cryptographic
-    custody, and says so in [Limitations](limitations.md).
+    The reference SDK ([weight-custody-manifest](https://pypi.org/project/weight-custody-manifest/)
+    0.28.2, Apache-2.0) runs its conformance vectors offline with no GPU or cloud
+    account, and verifies AMD SEV-SNP, Intel TDX and NVIDIA H100 CC evidence
+    captured on real hardware. Against an operator who physically owns the
+    machine, WCM offers accountability, not cryptographic custody, because
+    published memory-bus attacks defeat current confidential-computing silicon.
+
+<div class="grid cards" markdown>
+
+-   __Run it__
+
+    ---
+
+    `wcm conformance` runs every level offline. The quote vectors use synthetic
+    certificate roots.
+
+    [Try it](#try-it)
+
+-   __What it proves, and what it does not__
+
+    ---
+
+    What an operator who owns the hardware can still do, and why a valid
+    signature cannot tell an authorized key from an extracted one.
+
+    [Limitations](limitations.md)
+
+-   __Hardware evidence__
+
+    ---
+
+    AMD SEV-SNP (Azure), Intel TDX (GCP) and NVIDIA H100 CC, each with a
+    committed fixture that verifies offline. H100 landed in
+    [#54](https://github.com/agentrust-io/weight-custody-manifest/pull/54).
+
+    [Roadmap](roadmap.md)
+
+-   __The chain__
+
+    ---
+
+    Next: [Agent Manifest](https://manifest.agentrust-io.com) records the agent
+    that loads the weights. Check a real TDX quote yourself at
+    [agentrust-io.com/verify](https://agentrust-io.com/verify/).
+
+    [See the chain](https://agentrust-io.com/#chain)
+
+</div>
+
+!!! warning "Pre-1.0, design under review"
+    This is a design under review, not a production standard. Do not rely on it
+    for production.
 
 ## The trust direction
 
 When a frontier model is deployed into a customer's own infrastructure (on-prem,
 sovereign cloud, air-gapped), the party at risk flips: it is now the **model
 builder** whose weights are exposed to the customer's hardware and operators. WCM
-is the protocol for that direction - a signed manifest describing which weights
+is the protocol for that direction: a signed manifest describing which weights
 are released and under what terms, attestation-gated key release into a verified
 enclave, wipe-on-lapse and revocation, and a chain of custody for derivatives.
 
@@ -48,13 +96,12 @@ WCM names two guarantees and never blends them:
 
 - **Cryptographic custody** against software and remote adversaries.
 - **Accountability-grade** protection against an operator who physically owns the
-  hardware - *not* cryptographic custody. Cheap published memory-bus attacks
+  hardware, *not* cryptographic custody. Cheap published memory-bus attacks
   ([TEE.fail](https://tee.fail/), [BadRAM](https://badram.eu/)) defeat current
   confidential-computing silicon; there WCM offers cost, detection, containment,
   legal recourse, and a mandatory physical-hardening tier.
 
-The honesty about what does and does not hold is the point. See
-[Limitations](limitations.md) and the specification's §3.6.
+See [Limitations](limitations.md) and the specification's §3.6.
 
 | Against | What you get |
 | --- | --- |
@@ -145,3 +192,7 @@ The specification, schema, conformance suite, reference SDK, threat model, and
 reference key-release service are available under Apache-2.0. Vendors may build
 interoperable hosted services and protected-runtime implementations. Public
 availability does not establish production readiness.
+
+**Status:** pre-1.0 · SDK 0.28.2 · Apache-2.0 · SCITT and CoSAI standards path on
+the [roadmap](roadmap.md) · Sponsored by OPAQUE, which funds the engineering,
+infrastructure and confidential-computing work behind these projects.

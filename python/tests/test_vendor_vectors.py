@@ -761,6 +761,78 @@ def test_the_schema_also_refuses_a_reject_vector(snp_store) -> None:
 # ---- the fifth kind: the nonce appears verbatim (#128) ---------------
 
 
+@pytest.mark.parametrize("offset", [None, -1, True, False, 4.5, "4", [], {}])
+def test_nonce_echo_offset_must_be_explicit_and_integral(stage: Path, offset: object) -> None:
+    import jsonschema
+    from wcm.schema import vendor_vector_schema
+
+    vector = _gpu_vector(stage)
+    store = load_root_store(extra_dirs=[stage])
+    jsonschema.validate(vector, vendor_vector_schema())
+    assert evaluate_vendor(vector, store=store).verified
+    if offset is None:
+        del vector["binding"]["nonce_offset"]
+    else:
+        vector["binding"]["nonce_offset"] = offset
+    with pytest.raises(jsonschema.ValidationError):
+        jsonschema.validate(vector, vendor_vector_schema())
+    with pytest.raises(VendorVectorError, match="nonce_offset"):
+        evaluate_vendor(vector, store=store)
+
+
+@pytest.mark.parametrize("kind", ["nonce-digest", "nonce-and-transport", "attestation-key", "none"])
+def test_gpu_rejects_a_binding_it_does_not_implement(stage: Path, kind: str) -> None:
+    import jsonschema
+    from wcm.schema import vendor_vector_schema
+
+    vector = _gpu_vector(stage)
+    store = load_root_store(extra_dirs=[stage])
+    assert evaluate_vendor(vector, store=store).verified
+    nonce = vector["binding"]["nonce_hex"]
+    vector["binding"] = {"kind": kind}
+    if kind in {"nonce-digest", "nonce-and-transport"}:
+        vector["binding"]["nonce_hex"] = nonce
+    if kind == "nonce-and-transport":
+        vector["binding"]["transport_public_key_b64url"] = "YQ"
+    with pytest.raises(jsonschema.ValidationError):
+        jsonschema.validate(vector, vendor_vector_schema())
+    with pytest.raises(VendorVectorError, match="requires binding kind 'nonce-echo'"):
+        evaluate_vendor(vector, store=store)
+
+
+@pytest.mark.parametrize("make_vector", [_snp_vector, _tdx_vector])
+def test_digest_report_cannot_be_relabelled_nonce_echo(stage: Path, make_vector) -> None:
+    import jsonschema
+    from wcm.schema import vendor_vector_schema
+
+    vector = make_vector(stage)
+    store = load_root_store(extra_dirs=[stage])
+    jsonschema.validate(vector, vendor_vector_schema())
+    assert evaluate_vendor(vector, store=store).verified
+    vector["binding"]["kind"] = "nonce-echo"
+    vector["binding"]["nonce_offset"] = 4
+    vector["binding"].pop("transport_public_key_b64url", None)
+    vector["binding"].setdefault("nonce_hex", "ab" * 32)
+    with pytest.raises(jsonschema.ValidationError):
+        jsonschema.validate(vector, vendor_vector_schema())
+    with pytest.raises(VendorVectorError, match="incompatible"):
+        evaluate_vendor(vector, store=store)
+
+
+def test_nonce_echo_cannot_claim_a_transport_binding(stage: Path) -> None:
+    import jsonschema
+    from wcm.schema import vendor_vector_schema
+
+    vector = _gpu_vector(stage)
+    store = load_root_store(extra_dirs=[stage])
+    assert evaluate_vendor(vector, store=store).verified
+    vector["binding"]["transport_public_key_b64url"] = "YQ"
+    with pytest.raises(jsonschema.ValidationError):
+        jsonschema.validate(vector, vendor_vector_schema())
+    with pytest.raises(VendorVectorError, match="does not bind a transport key"):
+        evaluate_vendor(vector, store=store)
+
+
 def test_the_gpu_capture_declares_the_mechanism_in_its_bytes(stage: Path) -> None:
     """nonce-digest says REPORT_DATA equals sha256(nonce). NVIDIA reports have
     no REPORT_DATA and echo the nonce verbatim, so that label named something
@@ -810,3 +882,70 @@ def test_a_nonce_echo_capture_must_carry_a_nonce(snp_store) -> None:
     with pytest.raises(VendorVectorError) as exc:
         evaluate_vendor(vector, store=store)
     assert "requires nonce_hex" in str(exc.value)
+
+
+# ---- the recorded horizon is derived, not taken (#127) ---------------
+
+
+def test_a_horizon_that_disagrees_with_the_chain_is_refused(snp_store) -> None:
+    """Required is not the same as checked.
+
+    A value rounded to the nearest day steps the expiry mutation past a date no
+    certificate expires on, so the capture still verifies and the case reports a
+    refusal it never performed. That is the same shape as a mutation that does
+    not change the verdict, which the matrix already refuses to score.
+    """
+    vector, store = snp_store
+    vector["validity"]["not_after"] = "2030-01-01T00:00:00+00:00"
+    with pytest.raises(VendorVectorError) as exc:
+        evaluate_vendor(vector, store=store)
+    assert "earliest expiry in this chain" in str(exc.value)
+    assert "turns expired-at-now off" in str(exc.value)
+
+
+def test_a_horizon_rounded_to_the_day_is_refused(snp_store) -> None:
+    """The exact mistake that produced this issue, not an invented one."""
+    vector, store = snp_store
+    real = datetime.fromisoformat(vector["validity"]["not_after"])
+    vector["validity"]["not_after"] = real.replace(
+        hour=0, minute=0, second=0
+    ).isoformat()
+    with pytest.raises(VendorVectorError):
+        evaluate_vendor(vector, store=store)
+
+
+def test_the_binding_expiry_is_the_earliest_in_the_chain_not_the_leaf(
+    stage: Path,
+) -> None:
+    """A path is valid only while every certificate on it is.
+
+    The committed GCP TDX capture settles this with real bytes: its PCK
+    intermediate expires 2033-05-21 and its leaf 2033-05-27, so a rule that read
+    the leaf would record a horizon six days after the chain stops verifying.
+    """
+    from wcm.tdx import parse_tdx_quote
+
+    doc = json.loads((FIXTURES / "tdx_quote_gcp.json").read_text(encoding="utf-8"))
+    quote = parse_tdx_quote(base64.b64decode(doc["quote_b64"]))
+    chain = [quote.pck_leaf, *quote.pck_intermediates]
+    earliest = min(c.not_valid_after_utc for c in chain)
+    assert earliest < quote.pck_leaf.not_valid_after_utc, (
+        "this fixture no longer exercises the leaf-is-not-earliest case"
+    )
+
+    vector = _tdx_vector(stage)
+    vector["validity"]["not_after"] = quote.pck_leaf.not_valid_after_utc.isoformat()
+    with pytest.raises(VendorVectorError) as exc:
+        evaluate_vendor(vector, store=load_root_store(extra_dirs=[stage]))
+    assert "earliest expiry in this chain" in str(exc.value)
+
+
+def test_a_derived_horizon_makes_the_expiry_case_step_past_a_real_date(
+    snp_store,
+) -> None:
+    """What the check is for: the mutation now moves the clock past a date the
+    chain actually asserts, so the refusal is about the expiry."""
+    vector, store = snp_store
+    refused, reason = evaluate_vendor(vector, store=store).refusals["expired-at-now"]
+    assert refused
+    assert "validity window" in reason

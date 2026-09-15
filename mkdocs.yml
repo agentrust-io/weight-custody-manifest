@@ -1,5 +1,5 @@
 site_name: Weight Custody Manifest
-site_description: An open protocol for protecting model weights deployed into customer-controlled infrastructure
+site_description: An open, pre-1.0 specification for releasing model weights only to an attested runtime, with the guarantee boundary stated plainly
 site_url: https://wcm.agentrust-io.com
 repo_url: https://github.com/agentrust-io/weight-custody-manifest
 repo_name: agentrust-io/weight-custody-manifest
@@ -12,12 +12,16 @@ theme:
   font: false
   features:
     - navigation.instant
+    - navigation.tracking
     - navigation.tabs
+    - navigation.tabs.sticky
     - navigation.sections
     - navigation.top
+    - navigation.path
     - search.suggest
     - search.highlight
     - content.code.copy
+    - content.tabs.link
     - toc.follow
   palette:
     - scheme: default
@@ -31,15 +35,60 @@ theme:
   icon:
     repo: fontawesome/brands/github
 
+hooks:
+  # One meta description per page, taken from its first paragraph.
+  - hooks/seo.py
+
+plugins:
+  - search
+  - llmstxt:
+      full_output: llms-full.txt
+      markdown_description: >-
+        Weight Custody Manifest (WCM) is an open, pre-1.0 specification for
+        releasing model weights only to an approved, attested runtime. A signed
+        manifest binds encrypted weights to a release policy, and a key broker
+        releases the decryption key only to a workload whose attestation matches
+        it. The reference SDK is Apache-2.0 and runs 91 portable conformance
+        vectors offline, which are a self-test and not certification. Against
+        an operator who physically owns the hardware, WCM offers accountability,
+        not cryptographic custody.
+        WCM is part of AgenTrust, open specifications for verifiable AI:
+        https://agentrust-io.com
+      sections:
+        Get started:
+          - index.md
+          - getting-started.md
+          - tutorials/how-it-works.md
+        Specification:
+          - spec-overview.md
+          - measured-launch.md
+          - certificate-policy.md
+          - oms-interoperability.md
+          - threat-model.md
+          - conformance.md
+        Guides:
+          - reference-kbs.md
+          - protected-runtime-evidence.md
+        Project:
+          - limitations.md
+          - roadmap.md
+          - governance.md
+          - sponsors.md
+          - contributing.md
+          - changelog.md
+
 extra_css:
-  - https://agentrust-io.com/design-system.css
+  # The ?v= matches CSS_VERSION in agentrust-io.github.io tools/site_header.py. Browsers keep these files for hours, so bump it there and here together.
+  - https://agentrust-io.com/design-system.css?v=22
 
 extra_javascript:
-  - https://agentrust-io.com/supernav.js
+  # The ?v= matches CSS_VERSION in agentrust-io.github.io tools/site_header.py. Browsers keep these files for hours, so bump it there and here together.
+  - https://agentrust-io.com/supernav.js?v=22
 
 markdown_extensions:
   - admonition
   - attr_list
+  - md_in_html
   - tables
   - pymdownx.superfences
   - pymdownx.highlight
@@ -48,20 +97,21 @@ markdown_extensions:
 
 nav:
   - Home: index.md
-  - Tutorials:
+  - Get started:
+      - Getting started: getting-started.md
       - How WCM works: tutorials/how-it-works.md
-      - Runnable examples: https://github.com/agentrust-io/examples/tree/main/weight-custody-manifest
   - Specification:
       - Overview: spec-overview.md
       - Azure measured launch: measured-launch.md
       - Provider certificate policy: certificate-policy.md
       - OpenSSF Model Signing interop: oms-interoperability.md
       - Threat model: threat-model.md
+      - Key-release trust boundary: deployment-trust.md
       - Schema and conformance: conformance.md
-  - SDK:
-      - Getting started: getting-started.md
+  - Guides:
       - Reference KBS image: reference-kbs.md
       - Protected-runtime evidence: protected-runtime-evidence.md
+      - Runnable examples: https://github.com/agentrust-io/examples/tree/main/weight-custody-manifest
   - Project:
       - Roadmap: roadmap.md
       - Limitations: limitations.md

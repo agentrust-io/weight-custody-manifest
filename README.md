@@ -30,6 +30,11 @@ Choose the path that matches what you need:
 
 ### The protocol in six steps
 
+This flow assumes a release authority the builder trusts. A customer who can
+read broker keys or replace its verifier and policy can bypass it. The
+reference server does not implement protected KBS provisioning; see the
+[deployment trust checklist](docs/deployment-trust.md) and SPEC section 3.5.
+
 1. The builder encrypts model weights and signs a manifest containing the exact
    weight and approved-workload measurements.
 2. A protected workload asks the key broker (KBS) for a fresh, single-use

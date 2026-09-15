@@ -18,6 +18,73 @@
     "validity",
     "refusals"
   ],
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "evidence": {
+            "properties": {
+              "format": {
+                "const": "nvidia-attestation-report"
+              }
+            },
+            "required": [
+              "format"
+            ]
+          }
+        },
+        "required": [
+          "evidence"
+        ]
+      },
+      "then": {
+        "properties": {
+          "binding": {
+            "properties": {
+              "kind": {
+                "const": "nonce-echo"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "evidence": {
+            "properties": {
+              "format": {
+                "enum": [
+                  "sev-snp-report",
+                  "tdx-quote"
+                ]
+              }
+            },
+            "required": [
+              "format"
+            ]
+          }
+        },
+        "required": [
+          "evidence"
+        ]
+      },
+      "then": {
+        "properties": {
+          "binding": {
+            "properties": {
+              "kind": {
+                "not": {
+                  "const": "nonce-echo"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
   "properties": {
     "id": {
       "type": "string",

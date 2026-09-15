@@ -4,7 +4,31 @@ Notable changes to the Weight Custody Manifest specification and Python SDK.
 Format loosely follows [Keep a Changelog](https://keepachangelog.com/); the SDK
 uses semantic-ish versioning while pre-1.0.
 
-## 0.28.2 - Unreleased
+## Unreleased
+
+**[docs]** Clarify the release-authority trust boundary: a customer who can read
+broker keys or replace verification and policy can bypass workload attestation.
+Distinguish the attested self-custody design from the reference server's mounted
+keys and configuration, correct the implementation audit's insider-protection
+claim, and add a deployment checklist and protected-provisioning acceptance
+criteria. Update the image guide for sealed responses and required trust inputs.
+No runtime behavior or manifest format changes.
+
+## 0.28.2 - 2026-09-14
+
+**[conformance]** `validity.not_after` on a vendor vector is derived from the
+certificate chain and a mismatch is refused (issue #127). The field was required
+and never checked, so it recorded a date rather than constraining one, and
+`expired-at-now` is the case that depends on it: a value rounded to the nearest
+day steps the clock past a date no certificate expires on, the capture still
+verifies, and the refusal passes having established nothing.
+
+The binding expiry is the earliest in the chain rather than the leaf's, because
+a path is valid only while every certificate on it is. The committed GCP TDX
+capture settles that: its PCK intermediate expires 2033-05-21 and its leaf
+2033-05-27.
+
+
 
 **[conformance]** A fifth vendor-vector binding kind, `nonce-echo` (issue #128).
 `nonce-digest` is defined as `REPORT_DATA == sha256(nonce)`; NVIDIA device
@@ -17,6 +41,11 @@ echoing a nonce verbatim belongs in it, with the offset declared per capture so
 a second such platform needs a value and not a branch. The runner checks the
 declared offset against the report format, and refuses `nonce_offset` on any
 kind that binds a digest, because a digest has no offset to declare.
+
+The offset is mandatory and must be a non-negative integer, without coercion.
+Both the schema and runner enforce report-format compatibility: NVIDIA requires
+`nonce-echo`; SEV-SNP and TDX reject it. A mislabelled capture cannot pass by
+relying on the verifier's implicit binding behavior.
 
 
 **[conformance]** A vector format for captures taken from real vendor silicon
