@@ -1,9 +1,9 @@
-"""The third TDX capture, and what having three points establishes.
+"""The third TDX capture and the byte values observed across the three captures.
 
-Two captures cannot separate firmware movement from platform difference and
-three can, which is the whole reason this one was contributed. It is an external
-capture, labelled as such in the fixture, and no appraisal rule rests on it
-alone: every threshold in the suite comes from the two captures this project
+The existing captures share byte 0 while differing in byte 2. The third changes
+both values, so these observations do not establish independent movement of
+byte 0. It is labelled as an external capture, and no appraisal rule rests on
+it alone: every threshold in the suite comes from the two captures this project
 took itself.
 
 The fields are read as raw slices of the TD report body rather than through any
@@ -84,12 +84,11 @@ def test_the_offsets_cross_check_against_the_parser_on_these_bytes() -> None:
     assert report.mrtd == body[136:184]
 
 
-def test_three_captures_separate_firmware_from_platform() -> None:
-    """The finding the carried-not-judged rule rests on.
+def test_three_captures_report_the_recorded_tcb_svn_values() -> None:
+    """Byte 0 is 13 on both existing captures and 15 here; byte 1 stays at 1.
 
-    Byte 0 moves on its own: 13 on both existing captures and 15 here, with
-    byte 1 at 1 throughout. Byte 2 differs across all three, so whatever it
-    tracks it is not the SEAM module version.
+    Byte 2 differs across all three. The third capture changes both byte 0 and
+    byte 2, so these values do not demonstrate that byte 0 moves independently.
     """
     svn = {name: _body(path)[0:16] for name, path in
            (("gcp", GCP), ("azure", AZURE), ("seam15", SEAM15))}
@@ -100,9 +99,10 @@ def test_three_captures_separate_firmware_from_platform() -> None:
 
 
 def test_no_appraisal_threshold_is_taken_from_this_capture() -> None:
-    """It is the third point that separates two axes, not the basis for a
-    floor. Every threshold in the suite comes from the captures this project
-    took itself."""
+    """The external capture supplies another observation, without setting a floor.
+
+    Every threshold in the suite comes from the captures this project took itself.
+    """
     here = Path(__file__)
     referencing = [
         p.name

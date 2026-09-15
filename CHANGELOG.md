@@ -13,10 +13,11 @@ than through a provider, with its kernel, instance type, zone, date and method
 recorded in the fixture and the run log beside it.
 
 It reports `TEE_TCB_SVN` `0f 01 0a`: SEAM SVN 15 against 13 on both existing
-captures, with byte 1 unchanged at 1 and byte 2 at 10 against their 8 and 4. Two
-captures cannot separate firmware movement from platform difference and three
-can, which is the only reason it is here. No appraisal threshold is taken from
-it, and a test asserts nothing else in the suite references it.
+captures, with byte 1 unchanged at 1 and byte 2 at 10 against their 8 and 4.
+The existing captures share byte 0 while differing in byte 2; the third capture
+changes both values, so these observations do not establish independent movement
+of byte 0. No appraisal threshold is taken from this capture, and a test asserts
+nothing else in the suite references it.
 
 **[conformance]** A vector format for captures taken from real vendor silicon
 (`kind: vendor`, issue #116). The existing quote vectors use a synthetic PKI, so
