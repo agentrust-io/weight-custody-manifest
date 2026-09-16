@@ -394,12 +394,13 @@ class EnclaveSession:
             and len(check_names) == len(set(check_names))
             and REQUIRED_RENEWAL_CHECKS.issubset(check_names)
         )
-        # Only a decision claiming success must carry every gate; a denial
-        # short-circuits the list, and demanding completeness of it would report
-        # the KBS's verdict as malformed.
-        if decision.renewed and (not checks_complete
-                or not all(check.get("passed") is True for check in decision.checks)):
-            raise ValueError("renewal decision contains a failed gate")
+        # A denial short-circuits the gate list, so only a success claim must be complete.
+        if decision.renewed:
+            if not checks_complete:
+                raise ValueError("renewal decision omits required gates")
+            # renewed is the issuer's summary; these gates are the evidence for it.
+            if not all(check.get("passed") is True for check in decision.checks):
+                raise ValueError("renewal decision claims success over a failed gate")
         if decision.weights_hash != self.weights_hash:
             raise ValueError("renewal decision is for different model weights")
         expected_manifest = manifest_identity(manifest)

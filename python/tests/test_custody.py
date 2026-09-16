@@ -670,8 +670,42 @@ def test_renewal_refuses_signed_truncated_gate_list(example_manifest):
         checks=valid.checks[:-1],
     )
     assert truncated.verify(valid.public_key_b64url)
-    with pytest.raises(ValueError, match="failed gate"):
+    with pytest.raises(ValueError, match="omits required gates"):
         session.apply_renewal(example_manifest, truncated)
+
+
+def test_renewal_refuses_success_claimed_over_a_failed_gate(example_manifest):
+    from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+    from wcm.renewal import sign_renewal_decision
+
+    clock = _clock()
+    signer = Ed25519PrivateKey.generate()
+    session, kbs, current, rim = _session_and_kbs(
+        example_manifest, clock, renewal_signing_key=signer,
+    )
+    deadline = session.deadline
+    valid = _renew(kbs, example_manifest, current, rim)
+    challenge = kbs.issue_challenge()
+    evidence = SoftwareProvider().produce(
+        challenge, serving_image_measurement=current, gpu_measurement=rim,
+    )
+    # Every required gate is present, one failed, and the issuer still claims success.
+    checks = [dict(check) for check in valid.checks]
+    checks[-1]["passed"] = False
+    contradictory = sign_renewal_decision(
+        signing_key=signer,
+        renewed=True,
+        manifest=example_manifest,
+        evidence=evidence,
+        issued_at=valid.issued_at,
+        expires_at=valid.expires_at,
+        checks=checks,
+    )
+    assert contradictory.verify(contradictory.public_key_b64url)
+    with pytest.raises(ValueError, match="claims success over a failed gate"):
+        session.apply_renewal(example_manifest, contradictory)
+    assert session.deadline == deadline
+    assert session.state is SessionState.holding
 
 
 def test_renewal_refuses_cross_model_and_policy_drift(example_manifest, example_dict):
