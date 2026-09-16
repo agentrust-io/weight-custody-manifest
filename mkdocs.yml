@@ -35,6 +35,10 @@ theme:
   icon:
     repo: fontawesome/brands/github
 
+hooks:
+  # One meta description per page, taken from its first paragraph.
+  - hooks/seo.py
+
 plugins:
   - search
   - llmstxt:
@@ -48,6 +52,8 @@ plugins:
         vectors offline, which are a self-test and not certification. Against
         an operator who physically owns the hardware, WCM offers accountability,
         not cryptographic custody.
+        WCM is part of AgenTrust, open specifications for verifiable AI:
+        https://agentrust-io.com
       sections:
         Get started:
           - index.md
@@ -72,10 +78,12 @@ plugins:
           - changelog.md
 
 extra_css:
-  - https://agentrust-io.com/design-system.css
+  # The ?v= matches CSS_VERSION in agentrust-io.github.io tools/site_header.py. Browsers keep these files for hours, so bump it there and here together.
+  - https://agentrust-io.com/design-system.css?v=22
 
 extra_javascript:
-  - https://agentrust-io.com/supernav.js
+  # The ?v= matches CSS_VERSION in agentrust-io.github.io tools/site_header.py. Browsers keep these files for hours, so bump it there and here together.
+  - https://agentrust-io.com/supernav.js?v=22
 
 markdown_extensions:
   - admonition
@@ -98,6 +106,7 @@ nav:
       - Provider certificate policy: certificate-policy.md
       - OpenSSF Model Signing interop: oms-interoperability.md
       - Threat model: threat-model.md
+      - Key-release trust boundary: deployment-trust.md
       - Schema and conformance: conformance.md
   - Guides:
       - Reference KBS image: reference-kbs.md

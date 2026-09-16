@@ -23,7 +23,7 @@ Legend for **Enforced by**:
 | T1.6 snapshot enclave memory | SEV-SNP at rest | Hardware/TCB | — |
 | T1.7 physical key extraction / forge attestation | none at silicon; compensating controls | SDK (partial) + Residual | `kbs._check_attestation_revocation` (revocation freshness), `kbs._check_memory_fingerprint` (BadRAM-class); key-extraction half open (8.8) |
 | T1.8 stall the clock | trusted monotonic time | SDK (reports) + Hardware/TCB | `custody.time_floor` surfaces `sound`/`weaker`/`none`; the bound itself needs `secure-tsc` |
-| T3.1 insider releases key wrongly | attestation gate + joint signature | **SDK** | `verify_manifest` (builder+custodian), `kbs.verify_and_release` |
+| T3.1 insider releases key wrongly | trusted release code, configuration, and provisioning | SDK request checks + deployment assumption | `kbs.verify_and_release` pins manifest identity; `verify_manifest` is separate. Neither protects keys or code from the KBS administrator. |
 | T3.2 suppress/delay revocation | wipe-on-lapse + transparency log | **SDK** | `custody` + `transparency.TransparencyLog.find` (missing-entry detection) |
 | T3.3 observe decrypted weights via infra | SEV-SNP | Hardware/TCB | — |
 | T4.1 replay an old quote | single-use KBS nonce | **SDK** | `_challenge.ChallengeStore` (consume-once), `kbs` nonce check |
@@ -33,12 +33,21 @@ Legend for **Enforced by**:
 | T5.2 manifest over-collects | customer reviews terms | Operational/legal | `release_terms` is expressed; enforcement is human review |
 | T5.3 builder ships exfiltrating image | reproducible build + audit | Operational | — (8.3) |
 | T6.1 side channel | hardware + dedicated tenancy | Hardware/TCB + SDK (expresses) | `models` `tenancy: dedicated` control; enforcement is deployment |
-| T7.1 supply-chain image compromise | reproducible build + audit; measurement pinning | Operational + SDK (structural) | `required_serving_image` / `custody.kbs_image` measurement pinning |
+| T7.1 supply-chain image compromise | reproducible build + audit; measurement pinning | Operational + SDK (partial) | `required_serving_image` is checked by the workload gate; `custody.kbs_image` is represented in the manifest but requires external KBS verification and protected provisioning. |
 | A3 manifest integrity | joint signature | **SDK** | `_signing` + `verify_manifest` (Ed25519 / ML-DSA-65 / hybrid) |
 | A6 derivative lineage | `derived_from` chain + policy | **SDK** | `lineage.verify_lineage` |
 | A5 audit receipts | TRACE hash-chained receipts | Not in this SDK | reuses TRACE (separate package) |
 
 ## Findings / gaps (honest)
+
+**Release-authority boundary (2026-09-14):** `server.build_kbs_from_env` loads
+plaintext keys, a CPU root, and manifest identities from administrator-supplied
+files. `KeyBrokerService.__init__` copies keys into process memory. The release
+path checks the workload; it does not verify `custody.kbs_image` before receiving
+keys. T3.1 is therefore not an SDK-enforced defense against an administrator
+controlling those inputs or the process. `threshold.py` supplies secret sharing,
+not independent share-custodian enforcement. Protected self-custody remains a
+deployment implementation gap. See the [trust-boundary review](../../docs/deployment-trust.md).
 
 1. **The gate is only cryptographic when a quote verifier is wired.** `kbs.verify_and_release` checks serving-image and GPU *claims* structurally; the
    `cpu_quote_verified` check reports **"structural trust only"** until a

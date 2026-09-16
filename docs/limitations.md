@@ -1,7 +1,16 @@
+---
+description: "Where WCM stops: no custody against a hardware owner, an open attestation forgery question, weak vendor key revocation, and trusted time as an assumption."
+---
+
 # Limitations
 
 The canonical, complete list is [`LIMITATIONS.md`](https://github.com/agentrust-io/weight-custody-manifest/blob/main/LIMITATIONS.md). The load-bearing ones:
 
+- **No custody against a customer-controlled release authority.** A customer
+  who can read KBS/Trustee keys or replace its verifier and policy can bypass
+  the gate without defeating hardware attestation. The reference server does
+  not implement protected KBS provisioning. See the
+  [deployment trust checklist](deployment-trust.md).
 - **No custody against a hardware owner.** Against a physical operator who owns
   the box, cheap published memory-bus attacks (TEE.fail, BadRAM) extract the key
   and can forge attestation. WCM offers cost, detection, containment, legal

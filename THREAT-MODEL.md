@@ -43,6 +43,8 @@ WCM's guarantees hold **if and only if** every item below holds. This is the hon
 7. **Cryptographic primitives are sound.** Signatures, the hash chain, and the at-rest weight encryption are not broken.
 8. **Trusted monotonic time is available to the enclave. (Assessed, being designed.)** Wipe-on-lapse enforces a cadence TTL, which requires a clock the host cannot stall. SEV-SNP does not provide this by default, so the deployment must supply SecureTSC or an equivalent, or use a KBS-issued signed lease (design-doc 3.2, open question 8.9). If this item fails, a host-privileged operator stalls the enclave's perceived time and serves indefinitely on a stale key, defeating the revocation floor with no physical access at all. Treat it as a required build property, not a free assumption.
 
+9. **The model owner trusts the release authority and its provisioning path.** The customer cannot read model keys or override the verifier, trust roots, accepted policy, or recovery paths. Separate admin teams do not establish this against their shared controlling entity. A customer-hosted KBS needs owner-verified code and configuration plus protected provisioning before this assumption can hold. The reference server's mounted key file does not implement that boundary. See the [deployment checklist](docs/deployment-trust.md).
+
 Anything not on this list is an adversary in section 3, not an assumption.
 
 ---
@@ -81,7 +83,14 @@ Format: threat -> mechanism (design-doc reference) -> residual risk. Residual ri
 
 ### 4.2 ADV-3 (malicious Opaque insider) against A2 (key) / A1
 
-- **T3.1 Release the key to an environment that should not have it.** Mitigation: release is gated on an attestation quote matching manifest policy, which the insider cannot forge (TCB 3, 4); and in the default profile the manifest is builder+custodian co-signed, so the insider cannot unilaterally author policy (3.1). Residual: an insider who could alter the KBS verification logic. Resolved: the KBS runs in an attested enclave in every profile (design 3.1/3.5, `custody.kbs_image`), Opaque-hosted included, so the verification logic is measured and an insider cannot alter it undetectably. The residual narrows to a bug in the measured KBS logic itself, which is the v1 single-key single-point-of-failure that threshold split-key hardens in v2.
+**Implementation qualification for T3.1–T3.3:** the attested KBS below is a design
+requirement, not protection supplied by the reference Docker server. These
+mitigations require TCB item 9, including protected configuration and key
+provisioning. An insider who can read the mounted key file or replace the broker
+can bypass the reference gate. The same applies when ADV-1 also controls the
+release authority; no forged workload quote is needed.
+
+- **T3.1 Release the key to an environment that should not have it.** The design requires a protected KBS in every profile, with owner-verified release code, configuration, and key provisioning (TCB 9, SPEC 3.5). Within that boundary, workload attestation and authorized manifest policy constrain release. Joint signatures alone do not stop an insider from replacing the broker or reading its key store. The reference server does not implement the protected KBS boundary, so this insider threat remains a deployment gap. Even a protected deployment retains hardware and measured-code risks; threshold sharing helps only when share custody and release decisions are independently protected.
 - **T3.2 Suppress or delay a revocation.** Mitigation: wipe-on-lapse does not depend on the KBS actively pushing anything; absence of renewal is itself the kill (3.2). An insider suppressing a revocation still cannot extend access past a cadence window without also forging fresh quotes. Residual: within one cadence window, an insider colluding with the host could sustain access; shortens with cadence.
 - **T3.3 Observe the decrypted weights via infra access.** Mitigation: TCB item 1, Opaque staff have infra access but not enclave-memory access (3.2 step 3). Residual: none above TCB.
 

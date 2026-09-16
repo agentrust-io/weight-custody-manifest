@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
 {#
-  Social-card and canonical metadata for wcm.agentrust-io.com.
+  Search, social and structured metadata for wcm.agentrust-io.com.
 
   agentrust-io.com/wcm/ redirects here, so this site owns the Open Graph tags
   that the old launch page used to carry. Crawlers follow the redirect and read
@@ -9,27 +9,42 @@
   The card is docs/assets/og.png, rendered by tools/render-og-card.py in
   agentrust-io.github.io. og-launch.png stays for shares cached against it.
 
-  The JSON-LD lets search and answer engines model what WCM is. Its descriptions
-  keep the same guarantee boundary as the home page; do not let them round up.
+  Page descriptions come from hooks/seo.py (front matter wins). The JSON-LD
+  gives every page its own node and points at the one AgenTrust organization
+  the hub defines. Its project descriptions keep the same guarantee boundary
+  as the home page; do not let them round up.
 #}
+
+{#- One title string for <title>, og:title and twitter:title. Material appends
+    " - site_name" to every title; that repeats the name on pages whose title
+    already carries it (the home page, "Weight Custody Manifest: ..."), so the
+    suffix is added only when the title does not name the site. -#}
+{% macro page_title() -%}
+  {%- set t = page.meta.title if page and page.meta and page.meta.title else (page.title | striptags if page and page.title and not page.is_homepage else "") -%}
+  {%- if not t -%}{{ config.site_name }}
+  {%- elif (page and page.is_homepage) or config.site_name in t -%}{{ t }}
+  {%- else -%}{{ t }} - {{ config.site_name }}
+  {%- endif -%}
+{%- endmacro %}
+
+{% block htmltitle %}
+  <title>{{ page_title() | e }}</title>
+{% endblock %}
+
 {% block extrahead %}
   {{ super() }}
-  {% set page_title = config.site_name %}
-  {% if page and page.title and not page.is_homepage %}
-    {% set page_title = page.title | striptags ~ " | " ~ config.site_name %}
-  {% endif %}
-  {% set page_desc = config.site_description %}
-  {% if page and page.meta and page.meta.description %}
-    {% set page_desc = page.meta.description %}
-  {% endif %}
+  {% set title = page_title() %}
+  {% set page_desc = page.meta.description if page and page.meta and page.meta.description else config.site_description %}
   {% set page_url = page.canonical_url if page and page.canonical_url else config.site_url %}
+  {% set is_home = page and page.is_homepage %}
   {# Absolute and literal: the site is CNAME-pinned, and Jinja has no rtrim filter. #}
   {% set og_image = 'https://wcm.agentrust-io.com/assets/og.png' %}
+  {% set org = 'https://agentrust-io.com/#organization' %}
 
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="AgenTrust">
-  <meta property="og:title" content="{{ page_title }}">
-  <meta property="og:description" content="{{ page_desc }}">
+  <meta property="og:title" content="{{ title | e }}">
+  <meta property="og:description" content="{{ page_desc | e }}">
   <meta property="og:url" content="{{ page_url }}">
   <meta property="og:locale" content="en_US">
   <meta property="og:image" content="{{ og_image }}">
@@ -38,8 +53,8 @@
   <meta property="og:image:alt" content="Weight Custody Manifest: release model weights only to an attested runtime">
 
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="{{ page_title }}">
-  <meta name="twitter:description" content="{{ page_desc }}">
+  <meta name="twitter:title" content="{{ title | e }}">
+  <meta name="twitter:description" content="{{ page_desc | e }}">
   <meta name="twitter:image" content="{{ og_image }}">
 
   <script type="application/ld+json">
@@ -47,25 +62,8 @@
     "@context": "https://schema.org",
     "@graph": [
       {
-        "@type": "TechArticle",
-        "name": "Weight Custody Manifest (WCM)",
-        "description": "An open, pre-1.0 specification for releasing model weights only to an approved, attested runtime. Against an operator who physically owns the hardware it offers accountability, not cryptographic custody.",
-        "url": "{{ config.site_url }}",
-        "license": "https://www.apache.org/licenses/LICENSE-2.0",
-        "publisher": { "@id": "https://agentrust-io.com/#organization" }
-      },
-      {
-        "@type": "SoftwareSourceCode",
-        "name": "weight-custody-manifest",
-        "description": "Reference Python SDK for WCM. Runs the portable conformance vectors offline; they are a self-test, not certification or a hardware deployment test.",
-        "codeRepository": "{{ config.repo_url }}",
-        "programmingLanguage": "Python",
-        "license": "https://www.apache.org/licenses/LICENSE-2.0",
-        "author": { "@id": "https://agentrust-io.com/#organization" }
-      },
-      {
         "@type": "Organization",
-        "@id": "https://agentrust-io.com/#organization",
+        "@id": "{{ org }}",
         "name": "AgenTrust",
         "url": "https://agentrust-io.com/",
         "sameAs": [
@@ -75,14 +73,59 @@
           "https://cmcp.agentrust-io.com",
           "https://ca2a.agentrust-io.com",
           "https://wcm.agentrust-io.com",
-          "https://github.com/agentrust-io/agentrust-telemetry"
+          "https://tests.agentrust-io.com",
+          "https://governance.agentrust-io.com"
         ]
       },
       {
         "@type": "WebSite",
-        "name": "{{ config.site_name }}",
-        "url": "{{ config.site_url }}"
+        "@id": {{ (config.site_url ~ '#website') | tojson }},
+        "name": {{ config.site_name | tojson }},
+        "url": {{ config.site_url | tojson }},
+        "publisher": { "@id": "{{ org }}" }
+      },
+      {
+        "@type": {{ ('WebPage' if is_home else 'TechArticle') | tojson }},
+        "@id": {{ (page_url ~ '#page') | tojson }},
+        "url": {{ page_url | tojson }},
+        "name": {{ title | tojson }},
+        "headline": {{ title | tojson }},
+        "description": {{ page_desc | tojson }},
+        "inLanguage": "en",
+        "isPartOf": { "@id": {{ (config.site_url ~ '#website') | tojson }} },
+        "publisher": { "@id": "{{ org }}" }
       }
+      {%- if is_home %},
+      {
+        "@type": "TechArticle",
+        "@id": {{ (config.site_url ~ '#specification') | tojson }},
+        "name": "Weight Custody Manifest (WCM)",
+        "headline": "Weight Custody Manifest (WCM)",
+        "description": "An open, pre-1.0 specification for releasing model weights only to an approved, attested runtime. Against an operator who physically owns the hardware it offers accountability, not cryptographic custody.",
+        "url": {{ config.site_url | tojson }},
+        "license": "https://www.apache.org/licenses/LICENSE-2.0",
+        "publisher": { "@id": "{{ org }}" }
+      },
+      {
+        "@type": "SoftwareSourceCode",
+        "@id": {{ (config.site_url ~ '#sdk') | tojson }},
+        "name": "weight-custody-manifest",
+        "description": "Reference Python SDK for WCM. Runs the portable conformance vectors offline; they are a self-test, not certification or a hardware deployment test.",
+        "url": "https://pypi.org/project/weight-custody-manifest/",
+        "codeRepository": {{ config.repo_url | tojson }},
+        "programmingLanguage": "Python",
+        "license": "https://www.apache.org/licenses/LICENSE-2.0",
+        "author": { "@id": "{{ org }}" }
+      }
+      {%- else %},
+      {
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          { "@type": "ListItem", "position": 1, "name": {{ config.site_name | tojson }}, "item": {{ config.site_url | tojson }} },
+          { "@type": "ListItem", "position": 2, "name": {{ title | tojson }}, "item": {{ page_url | tojson }} }
+        ]
+      }
+      {%- endif %}
     ]
   }
   </script>

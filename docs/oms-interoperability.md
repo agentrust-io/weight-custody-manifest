@@ -1,3 +1,7 @@
+---
+description: "OpenSSF Model Signing proves the model files are authentic; WCM decides whether their key may be released to an attested workload, and on what terms."
+---
+
 # OpenSSF Model Signing + WCM
 
 OpenSSF Model Signing (OMS) and WCM answer different questions in one release
