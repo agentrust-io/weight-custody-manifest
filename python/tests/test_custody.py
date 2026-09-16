@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from datetime import datetime, timedelta, timezone
 
 import pytest
@@ -10,8 +11,11 @@ from wcm import (
     KeyBrokerService,
     KeyWipedError,
     ReattestationRequired,
+    RenewalDenied,
     SessionState,
+    ServingShutdown,
     SoftwareProvider,
+    StopFloor,
     TimeFloor,
     TrustedTimeSource,
     parse_cadence,
@@ -125,6 +129,164 @@ def test_tick_on_wiped_is_noop():
     s = EnclaveSession(KEY, cadence_seconds=3600, now=_clock())
     s.zeroize()
     assert s.tick() is SessionState.wiped
+
+
+def test_deadline_stops_serving_once_after_wiping():
+    clock = _clock()
+    stopped = []
+
+    def stop():
+        assert session.is_wiped
+        assert session._key == bytearray()
+        with pytest.raises(KeyWipedError):
+            session.authorize_operation()
+        stopped.append(True)
+
+    session = EnclaveSession(KEY, cadence_seconds=10, now=clock, on_stop=stop)
+    clock.advance(10)
+    assert session.tick() is SessionState.wiped
+    session.zeroize()
+    assert stopped == [True]
+
+
+def test_stop_error_cannot_restore_custody():
+    def stop():
+        raise RuntimeError("runtime cleanup failed")
+
+    session = EnclaveSession(KEY, cadence_seconds=10, now=_clock(), on_stop=stop)
+    with pytest.raises(RuntimeError, match="runtime cleanup failed"):
+        session.zeroize()
+    assert session.is_wiped
+    assert session._key == bytearray()
+    with pytest.raises(KeyWipedError):
+        session.reattest()
+    session.zeroize()
+
+
+def test_from_release_passes_stop_hook(example_manifest):
+    clock = _clock()
+    stopped = []
+    session = EnclaveSession.from_release(
+        example_manifest, _released_decision(example_manifest, clock),
+        now=clock, on_stop=lambda: stopped.append(True),
+    )
+    session.zeroize()
+    assert stopped == [True]
+
+
+@pytest.mark.parametrize("failed_step", [None, "admission", "cancel", "unload", "terminate"])
+def test_shutdown_order_and_failure_fallback(failed_step):
+    steps = []
+
+    def callback(name):
+        def run():
+            steps.append(name)
+            if name == failed_step:
+                raise RuntimeError(name)
+        return run
+
+    shutdown = ServingShutdown(
+        stop_admission=callback("admission"),
+        cancel_inflight=callback("cancel"),
+        unload_weights=callback("unload"),
+        terminate=callback("terminate"),
+    )
+    if failed_step is None:
+        shutdown()
+    else:
+        with pytest.raises(ExceptionGroup) as caught:
+            shutdown()
+        assert str(caught.value.exceptions[0]) == failed_step
+    shutdown()
+    expected = ["admission", "cancel", "terminate"] if failed_step == "cancel" else [
+        "admission", "cancel", "unload", "terminate",
+    ]
+    assert steps == expected
+
+
+def test_monitor_stops_idle_session(monkeypatch):
+    clock = _clock()
+    stopped = []
+    session = EnclaveSession(
+        KEY, cadence_seconds=10, now=clock, on_stop=lambda: stopped.append(True),
+    )
+
+    async def advance(delay):
+        clock.advance(delay)
+
+    monkeypatch.setattr("wcm.custody.asyncio.sleep", advance)
+    asyncio.run(session.monitor(poll_interval=3))
+    assert clock() == session.deadline
+    assert session.is_wiped
+    assert stopped == [True]
+
+
+def test_monitor_cancellation_stops_serving():
+    stopped = []
+    session = EnclaveSession(
+        KEY, cadence_seconds=10, now=_clock(), on_stop=lambda: stopped.append(True),
+    )
+
+    async def run():
+        task = asyncio.create_task(session.monitor())
+        await asyncio.sleep(0)
+        task.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await task
+
+    asyncio.run(run())
+    assert session.is_wiped
+    assert stopped == [True]
+
+
+def test_monitor_honors_successful_signed_renewal(example_manifest, monkeypatch):
+    clock = _clock()
+    stopped = []
+    session, kbs, current, rim = _session_and_kbs(
+        example_manifest, clock, on_stop=lambda: stopped.append(True),
+    )
+    original_deadline = session.deadline
+    renewed = False
+
+    async def advance(delay):
+        nonlocal renewed
+        clock.advance(delay)
+        if not renewed:
+            session.apply_renewal(example_manifest, _renew(kbs, example_manifest, current, rim))
+            renewed = True
+
+    monkeypatch.setattr("wcm.custody.asyncio.sleep", advance)
+    asyncio.run(session.monitor(poll_interval=3600))
+    assert session.deadline == original_deadline + timedelta(seconds=3600)
+    assert clock() == session.deadline
+    assert stopped == [True]
+
+
+def test_monitor_clock_failure_stops_serving():
+    stopped = []
+    clock = _clock()
+    fail = False
+
+    def now():
+        if fail:
+            raise RuntimeError("clock unavailable")
+        return clock()
+
+    session = EnclaveSession(
+        KEY, cadence_seconds=10, now=now, on_stop=lambda: stopped.append(True),
+    )
+    fail = True
+    with pytest.raises(RuntimeError, match="clock unavailable"):
+        asyncio.run(session.monitor())
+    assert session.is_wiped
+    assert stopped == [True]
+
+
+@pytest.mark.parametrize("interval", [0, -1, float("nan"), float("inf")])
+def test_monitor_rejects_invalid_interval(interval):
+    session = EnclaveSession(KEY, cadence_seconds=10, now=_clock())
+    with pytest.raises(ValueError, match="poll_interval"):
+        asyncio.run(session.monitor(poll_interval=interval))
 
 
 # -- trusted-time honesty ------------------------------------------------------
@@ -297,6 +459,7 @@ def test_from_release_passes_max_operations(example_manifest):
 
 def _session_and_kbs(
     manifest, clock, *, max_operations=1, renewal_ttl=60, renewal_signing_key=None,
+    on_stop=None,
 ):
     kbs = KeyBrokerService(
         {manifest.weights_hash: KEY}, now=clock,
@@ -317,6 +480,7 @@ def _session_and_kbs(
     release = kbs.verify_and_release(manifest, evidence)
     session = EnclaveSession.from_release(
         manifest, release, max_operations=max_operations, now=clock,
+        on_stop=on_stop,
     )
     return session, kbs, current, rim
 
@@ -367,8 +531,92 @@ def test_kbs_nonce_replay_produces_signed_failed_renewal(example_manifest):
     assert replay.verify(first.public_key_b64url)
     assert replay.checks[0]["name"] == "nonce_fresh"
     assert replay.checks[0]["passed"] is False
-    with pytest.raises(ValueError, match="failed gate"):
+    # A short-circuited gate list is still the KBS's verdict, not a malformed decision.
+    with pytest.raises(RenewalDenied) as denied:
         session.apply_renewal(example_manifest, replay)
+    assert denied.value.failed_check_names == {"nonce_fresh"}
+
+
+def test_signed_denial_is_distinguishable_from_a_malformed_decision(example_manifest):
+    from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+    from wcm.renewal import sign_renewal_decision
+
+    clock = _clock()
+    signer = Ed25519PrivateKey.generate()
+    session, kbs, current, rim = _session_and_kbs(
+        example_manifest, clock, renewal_signing_key=signer,
+    )
+    deadline = session.deadline
+    revoked = next(
+        item.measurement
+        for item in example_manifest.release_policy.required_serving_image.accepted_measurements
+        if item.status.value == "revoked"
+    )
+
+    verdict = _renew(kbs, example_manifest, revoked, rim)
+    assert verdict.verify(verdict.public_key_b64url) and not verdict.renewed
+    with pytest.raises(RenewalDenied) as denied:
+        session.apply_renewal(example_manifest, verdict)
+    assert "serving_image" in denied.value.failed_check_names
+    assert denied.value.decision is verdict
+    assert isinstance(denied.value, ValueError)  # back-compatible with ValueError callers
+
+    valid = _renew(kbs, example_manifest, current, rim)
+    challenge = kbs.issue_challenge()
+    evidence = SoftwareProvider().produce(
+        challenge, serving_image_measurement=current, gpu_measurement=rim,
+    )
+    malformed = sign_renewal_decision(
+        signing_key=signer,
+        renewed=True,
+        manifest=example_manifest,
+        evidence=evidence,
+        issued_at=valid.issued_at,
+        expires_at=valid.expires_at,
+        checks=valid.checks[:-1],
+    )
+    assert malformed.verify(malformed.public_key_b64url)
+    with pytest.raises(ValueError) as inconclusive:
+        session.apply_renewal(example_manifest, malformed)
+    assert not isinstance(inconclusive.value, RenewalDenied)
+
+    # Neither outcome moves the deadline, so exposure stays one cadence window.
+    assert session.deadline == deadline
+    assert session.state is SessionState.holding
+
+
+def test_stop_floor_discloses_whether_a_teardown_adapter_exists():
+    clock = _clock()
+    undisclosed = EnclaveSession(KEY, cadence_seconds=10, now=clock)
+    assert undisclosed.stop_floor is StopFloor.none
+    assert EnclaveSession(
+        KEY, cadence_seconds=10, now=clock, on_stop=lambda: None
+    ).stop_floor is StopFloor.adapter
+
+    # No adapter still ends custody; it just tears nothing down.
+    clock.advance(10)
+    assert undisclosed.tick() is SessionState.wiped
+
+
+def test_failed_renewal_keeps_deadline_then_stops(example_manifest):
+    clock = _clock()
+    stopped = []
+    session, kbs, current, _ = _session_and_kbs(
+        example_manifest, clock, on_stop=lambda: stopped.append(True),
+    )
+    deadline = session.deadline
+    clock.advance(10)
+    failed = _renew(kbs, example_manifest, current, "wrong-rim")
+    with pytest.raises(RenewalDenied):
+        session.apply_renewal(example_manifest, failed)
+    assert session.deadline == deadline
+    assert not session.is_wiped
+    assert stopped == []
+    session.authorize_operation()
+    clock.advance(session.remaining_seconds())
+    with pytest.raises(KeyWipedError):
+        session.authorize_operation()
+    assert stopped == [True]
 
 
 def test_renewal_refuses_wrong_signer_and_tampering(example_manifest):
@@ -422,8 +670,42 @@ def test_renewal_refuses_signed_truncated_gate_list(example_manifest):
         checks=valid.checks[:-1],
     )
     assert truncated.verify(valid.public_key_b64url)
-    with pytest.raises(ValueError, match="failed gate"):
+    with pytest.raises(ValueError, match="omits required gates"):
         session.apply_renewal(example_manifest, truncated)
+
+
+def test_renewal_refuses_success_claimed_over_a_failed_gate(example_manifest):
+    from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+    from wcm.renewal import sign_renewal_decision
+
+    clock = _clock()
+    signer = Ed25519PrivateKey.generate()
+    session, kbs, current, rim = _session_and_kbs(
+        example_manifest, clock, renewal_signing_key=signer,
+    )
+    deadline = session.deadline
+    valid = _renew(kbs, example_manifest, current, rim)
+    challenge = kbs.issue_challenge()
+    evidence = SoftwareProvider().produce(
+        challenge, serving_image_measurement=current, gpu_measurement=rim,
+    )
+    # Every required gate is present, one failed, and the issuer still claims success.
+    checks = [dict(check) for check in valid.checks]
+    checks[-1]["passed"] = False
+    contradictory = sign_renewal_decision(
+        signing_key=signer,
+        renewed=True,
+        manifest=example_manifest,
+        evidence=evidence,
+        issued_at=valid.issued_at,
+        expires_at=valid.expires_at,
+        checks=checks,
+    )
+    assert contradictory.verify(contradictory.public_key_b64url)
+    with pytest.raises(ValueError, match="claims success over a failed gate"):
+        session.apply_renewal(example_manifest, contradictory)
+    assert session.deadline == deadline
+    assert session.state is SessionState.holding
 
 
 def test_renewal_refuses_cross_model_and_policy_drift(example_manifest, example_dict):
@@ -478,7 +760,7 @@ def test_renewal_refuses_expired_failed_and_post_wipe_decisions(example_manifest
     )
     failed = kbs.verify_for_renewal(example_manifest, bad_evidence)
     assert not failed.renewed
-    with pytest.raises(ValueError, match="failed gate"):
+    with pytest.raises(RenewalDenied):
         session.apply_renewal(example_manifest, failed)
 
     fresh = _renew(kbs, example_manifest, current, rim)
