@@ -25,6 +25,12 @@ governance function (see the [runnable examples](https://github.com/agentrust-io
 
 ## The six steps
 
+These steps assume a release authority the builder trusts. If the customer
+controls the broker's keys and verification settings, co-signing a manifest
+does not prevent that customer from bypassing it. Customer-hosted attested KBS
+operation is specified as a design, but the reference server does not implement
+its protected provisioning boundary. See [who controls key release](../deployment-trust.md).
+
 **0. Certify - the manifest.** The builder writes a signed manifest: the
 `weights_hash`, the release terms (license, permitted derivatives), and the
 release policy (which hardware, which serving-image measurement, trusted-time

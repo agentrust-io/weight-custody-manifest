@@ -1,6 +1,9 @@
 ---
 title: "Weight Custody Manifest: key release only to attested runtimes"
 description: An open, pre-1.0 specification for releasing model weights only to an approved, attested runtime, with the guarantee boundary stated plainly.
+hide:
+  - navigation
+  - toc
 ---
 
 [01 · Weights: is this the model that was released, and who may release its key?](https://agentrust-io.com/#chain)
@@ -16,7 +19,7 @@ whose attestation matches the manifest.
 
 !!! tip "TL;DR"
     The reference SDK ([weight-custody-manifest](https://pypi.org/project/weight-custody-manifest/)
-    0.28.1, Apache-2.0) runs its conformance vectors offline with no GPU or cloud
+    0.28.2, Apache-2.0) runs its conformance vectors offline with no GPU or cloud
     account, and verifies AMD SEV-SNP, Intel TDX and NVIDIA H100 CC evidence
     captured on real hardware. Against an operator who physically owns the
     machine, WCM offers accountability, not cryptographic custody, because
@@ -190,6 +193,6 @@ reference key-release service are available under Apache-2.0. Vendors may build
 interoperable hosted services and protected-runtime implementations. Public
 availability does not establish production readiness.
 
-**Status:** pre-1.0 · SDK 0.28.1 · Apache-2.0 · SCITT and CoSAI standards path on
+**Status:** pre-1.0 · SDK 0.28.2 · Apache-2.0 · SCITT and CoSAI standards path on
 the [roadmap](roadmap.md) · Sponsored by OPAQUE, which funds the engineering,
 infrastructure and confidential-computing work behind these projects.

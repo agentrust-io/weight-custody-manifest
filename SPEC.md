@@ -249,9 +249,20 @@ Whether a derivative may be created at all is governed by the parent's `release_
 
 ### 3.5 Self-Custody: The Attested Key Release Service
 
+**Implementation status:** this section specifies the required deployment, not
+a capability delivered by the reference Docker server. Customer control of an
+ordinary KBS/Trustee, including its keys or verifier configuration, is unsupported
+for custody against that customer. The owner must verify KBS code and all
+security-relevant configuration before provisioning keys over a channel bound
+to that attested instance. Host-mounted plaintext secrets, internal admin
+separation, or an external KMS that trusts customer-controlled decisions do not
+meet that requirement. The reference server does not implement this provisioning
+flow; `custody.kbs_image` alone does not enforce it. See the
+[deployment checklist and acceptance evidence](docs/deployment-trust.md).
+
 The default deployment has Opaque operating the key release service (KBS). A sovereign customer will often refuse a third party, even a trusted one, sitting permanently in the release path. The naive answer, "let the customer run the KBS," breaks the whole model: a customer who controls the KBS can release the key to itself and ignore the manifest. The builder would be trusting the customer's word, which is exactly the thing this architecture exists to replace.
 
-First, a point that is broader than self-custody: the KBS runs inside an attested enclave in every deployment, Opaque-hosted included. Its release logic (`custody.kbs_image`) is measured and builder-verified, which closes the insider threat uniformly, an Opaque operator cannot alter release behavior without failing that measurement (threat model ADV-3). Self-custody then changes only *who operates* the attested enclave, not whether it is attested.
+The design requires the KBS to run inside an attested enclave in every deployment, Opaque-hosted included. Its release logic (`custody.kbs_image`) and security-relevant configuration must be builder-verified before keys are provisioned into that instance. Protecting only the executable measurement leaves mutable configuration and key-loading paths exposed to the insider (threat model ADV-3). Self-custody changes who hosts this protected boundary; it does not grant that host authority to override it.
 
 The reference design for self-custody applies the same primitive one level up, with the customer as the operator: the customer runs the attested KBS enclave itself.
 
