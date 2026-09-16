@@ -117,9 +117,11 @@ from .custody import (
     EnclaveSession,
     ServingShutdown,
     SessionState,
+    StopFloor,
     TimeFloor,
     KeyWipedError,
     ReattestationRequired,
+    RenewalDenied,
     parse_cadence,
 )
 from .runtime_records import (
@@ -298,9 +300,11 @@ __all__ = [
     "EnclaveSession",
     "ServingShutdown",
     "SessionState",
+    "StopFloor",
     "TimeFloor",
     "KeyWipedError",
     "ReattestationRequired",
+    "RenewalDenied",
     "parse_cadence",
     "RuntimeEvent",
     "RuntimeRecord",

@@ -100,7 +100,11 @@ Wipe-on-lapse (runtime custody):
   zeroization to admission stop, in-flight cancellation, model cleanup, and
   worker termination. Run `session.monitor()` as a supervised asyncio task to
   check idle leases; cancellation also stops custody. Failed renewals never
-  extend the deadline. These are reference integration hooks, not a hardware
+  extend the deadline, and `apply_renewal()` separates the two ways one fails: a
+  verified decision refusing renewal raises `RenewalDenied` with the signed gate
+  results, while an unverifiable or self-contradictory one raises plain
+  `ValueError`. `stop_floor` discloses whether a teardown adapter was supplied at
+  all. These are reference integration hooks, not a hardware
   watchdog or proof of memory erasure; see the
   [shutdown integration contract](../docs/protected-runtime-evidence.md#serving-shutdown-integration).
 - **`memory_sweep.py`** - full-range write/readback with nonce-derived page

@@ -11,9 +11,11 @@ from wcm import (
     KeyBrokerService,
     KeyWipedError,
     ReattestationRequired,
+    RenewalDenied,
     SessionState,
     ServingShutdown,
     SoftwareProvider,
+    StopFloor,
     TimeFloor,
     TrustedTimeSource,
     parse_cadence,
@@ -529,8 +531,71 @@ def test_kbs_nonce_replay_produces_signed_failed_renewal(example_manifest):
     assert replay.verify(first.public_key_b64url)
     assert replay.checks[0]["name"] == "nonce_fresh"
     assert replay.checks[0]["passed"] is False
-    with pytest.raises(ValueError, match="failed gate"):
+    # A short-circuited gate list is still the KBS's verdict, not a malformed decision.
+    with pytest.raises(RenewalDenied) as denied:
         session.apply_renewal(example_manifest, replay)
+    assert denied.value.failed_check_names == {"nonce_fresh"}
+
+
+def test_signed_denial_is_distinguishable_from_a_malformed_decision(example_manifest):
+    from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+    from wcm.renewal import sign_renewal_decision
+
+    clock = _clock()
+    signer = Ed25519PrivateKey.generate()
+    session, kbs, current, rim = _session_and_kbs(
+        example_manifest, clock, renewal_signing_key=signer,
+    )
+    deadline = session.deadline
+    revoked = next(
+        item.measurement
+        for item in example_manifest.release_policy.required_serving_image.accepted_measurements
+        if item.status.value == "revoked"
+    )
+
+    verdict = _renew(kbs, example_manifest, revoked, rim)
+    assert verdict.verify(verdict.public_key_b64url) and not verdict.renewed
+    with pytest.raises(RenewalDenied) as denied:
+        session.apply_renewal(example_manifest, verdict)
+    assert "serving_image" in denied.value.failed_check_names
+    assert denied.value.decision is verdict
+    assert isinstance(denied.value, ValueError)  # back-compatible with ValueError callers
+
+    valid = _renew(kbs, example_manifest, current, rim)
+    challenge = kbs.issue_challenge()
+    evidence = SoftwareProvider().produce(
+        challenge, serving_image_measurement=current, gpu_measurement=rim,
+    )
+    malformed = sign_renewal_decision(
+        signing_key=signer,
+        renewed=True,
+        manifest=example_manifest,
+        evidence=evidence,
+        issued_at=valid.issued_at,
+        expires_at=valid.expires_at,
+        checks=valid.checks[:-1],
+    )
+    assert malformed.verify(malformed.public_key_b64url)
+    with pytest.raises(ValueError) as inconclusive:
+        session.apply_renewal(example_manifest, malformed)
+    assert not isinstance(inconclusive.value, RenewalDenied)
+
+    # Neither outcome moves the deadline, so exposure stays one cadence window.
+    assert session.deadline == deadline
+    assert session.state is SessionState.holding
+
+
+def test_stop_floor_discloses_whether_a_teardown_adapter_exists():
+    clock = _clock()
+    undisclosed = EnclaveSession(KEY, cadence_seconds=10, now=clock)
+    assert undisclosed.stop_floor is StopFloor.none
+    assert EnclaveSession(
+        KEY, cadence_seconds=10, now=clock, on_stop=lambda: None
+    ).stop_floor is StopFloor.adapter
+
+    # No adapter still ends custody; it just tears nothing down.
+    clock.advance(10)
+    assert undisclosed.tick() is SessionState.wiped
 
 
 def test_failed_renewal_keeps_deadline_then_stops(example_manifest):
@@ -542,7 +607,7 @@ def test_failed_renewal_keeps_deadline_then_stops(example_manifest):
     deadline = session.deadline
     clock.advance(10)
     failed = _renew(kbs, example_manifest, current, "wrong-rim")
-    with pytest.raises(ValueError, match="failed gate"):
+    with pytest.raises(RenewalDenied):
         session.apply_renewal(example_manifest, failed)
     assert session.deadline == deadline
     assert not session.is_wiped
@@ -661,7 +726,7 @@ def test_renewal_refuses_expired_failed_and_post_wipe_decisions(example_manifest
     )
     failed = kbs.verify_for_renewal(example_manifest, bad_evidence)
     assert not failed.renewed
-    with pytest.raises(ValueError, match="failed gate"):
+    with pytest.raises(RenewalDenied):
         session.apply_renewal(example_manifest, failed)
 
     fresh = _renew(kbs, example_manifest, current, rim)

@@ -1,14 +1,14 @@
 """Wipe-on-lapse: the runtime custody floor (SPEC.md sections 3.2, 3.3).
 
 Once the KBS releases a key into the enclave, the enclave holds it only for the
-``attestation_cadence`` window. Before the window lapses it must re-attest; if
-it does not, it zeroizes the key from its own memory and stops serving. The key
-is not "suspended pending renewal", it is gone, and a fresh release requires a
+``attestation_cadence`` window. Before the window lapses it must re-attest; if it
+does not, it zeroizes the key from its own memory and stops authorizing work. The
+key is not "suspended pending renewal", it is gone, and a fresh release requires a
 fresh successful attestation. This is what bounds worst-case exposure to one
 cadence window against an operator who cannot forge attestation, whether or not
 any revocation signal ever arrives.
 
-Two honest limits, both from the spec:
+Three honest limits, the first two from the spec:
 
   1. It assumes trusted time. The bound only holds if the clock the enclave
      checks the deadline against cannot be stalled by the host. That is what
@@ -21,6 +21,15 @@ Two honest limits, both from the spec:
      an owner re-attests every window with a fresh forged quote and never
      zeroizes. That adversary is out of scope for this logic (open question 8.8);
      against it the bound comes from the quorum and physical hardening, not here.
+  3. It does not stop a serving worker. This module ends authorization and wipes
+     its own key copy; weights already decrypted into host or device memory are
+     outside its reach. Ending serving is a deployment-supplied teardown adapter
+     (``on_stop``, usually ``ServingShutdown``) that this module invokes in a
+     defined order, exactly once. What is enforced here is that ordering, the
+     once-only property, and the fail-safe that skips memory release when
+     in-flight work cannot be confirmed stopped, not the stopping itself. A
+     session given no adapter reports ``stop_floor`` ``none``, the same
+     disclosure-rather-than-silence treatment ``trusted_time_source`` gets.
 
 For ``lease-with-op-count-hybrid``, the wall-clock lease bounds the idle case
 here, and ``max_operations`` anchors the actively-serving case: after N serving
@@ -62,6 +71,21 @@ _FLOOR: dict[TrustedTimeSource, TimeFloor] = {
     TrustedTimeSource.none_best_effort: TimeFloor.none,
 }
 
+
+class StopFloor(str, Enum):
+    """Whether anything tears serving down when this session's custody ends.
+
+    ``adapter``: a teardown adapter was supplied, so its callbacks run in order,
+    once, on the fail-safe rules. Whether they succeed is the deployment's to
+    evidence, not something this session observes.
+    ``none``: no adapter. Custody still ends and authorization still stops, but
+    an already-loaded model is not torn down by anything here. Disclosed rather
+    than left silent, as ``none-best-effort`` is for trusted time.
+    """
+
+    adapter = "adapter"
+    none = "none"
+
 _CADENCE_UNITS = {"d": 86400, "h": 3600, "m": 60, "s": 1}
 _CADENCE_RE = re.compile(r"^\s*(\d+)\s*([dhms])\s*$")
 
@@ -80,6 +104,37 @@ class ReattestationRequired(Exception):
     doing the inference work. The wall-clock lease still bounds the idle case
     and zeroizes independently.
     """
+
+
+class RenewalDenied(ValueError):
+    """The KBS verified this enclave's evidence and refused to renew custody.
+
+    A verdict, not a transport error, and the distinction the wire format already
+    carries in ``renewed``. A decision that does not verify, or that claims
+    ``renewed`` while contradicting itself, is malformed and raises plain
+    ``ValueError`` instead: nothing was decided, so there is nothing to act on.
+
+    Denial does not move the deadline in either direction. Custody continues on
+    the unextendable remainder of the lease, so worst-case exposure is still the
+    one cadence window wipe-on-lapse bounds. Acting sooner is the controller's
+    call: ``failed_checks`` carries the signed gate results, and a reason such as
+    a revoked serving image, a revoked attestation key, or a manifest no longer
+    pinned warrants ending custody at once rather than serving out the window.
+    The decision carries no signed disposition field yet (SPEC.md 3.2), so that
+    mapping is deployment policy and is not made here.
+    """
+
+    def __init__(self, decision: RenewalDecision) -> None:
+        self.decision = decision
+        self.failed_checks = tuple(
+            check for check in decision.checks if check.get("passed") is not True
+        )
+        self.failed_check_names = frozenset(
+            name for check in self.failed_checks
+            if isinstance(name := check.get("name"), str)
+        )
+        reasons = ", ".join(sorted(self.failed_check_names)) or "no gate reported"
+        super().__init__(f"KBS denied renewal; failed gates: {reasons}")
 
 
 def parse_cadence(text: str) -> int:
@@ -251,6 +306,11 @@ class EnclaveSession:
         """How much the cadence bound is worth for this session's trusted time."""
         return _FLOOR[self._tts]
 
+    @property
+    def stop_floor(self) -> StopFloor:
+        """Whether a teardown adapter will run when custody ends."""
+        return StopFloor.none if self._on_stop is None else StopFloor.adapter
+
     def remaining_seconds(self, now: Optional[datetime] = None) -> float:
         if self._state is SessionState.wiped:
             return 0.0
@@ -334,7 +394,10 @@ class EnclaveSession:
             and len(check_names) == len(set(check_names))
             and REQUIRED_RENEWAL_CHECKS.issubset(check_names)
         )
-        if (not decision.renewed or not checks_complete
+        # Only a decision claiming success must carry every gate; a denial
+        # short-circuits the list, and demanding completeness of it would report
+        # the KBS's verdict as malformed.
+        if decision.renewed and (not checks_complete
                 or not all(check.get("passed") is True for check in decision.checks)):
             raise ValueError("renewal decision contains a failed gate")
         if decision.weights_hash != self.weights_hash:
@@ -357,6 +420,11 @@ class EnclaveSession:
             raise ValueError("renewal decision timestamps are invalid") from exc
         if issued > current or current > expires or expires <= issued:
             raise ValueError("renewal decision is not currently valid")
+        # Raised only now: a verdict is actionable once it is bound to this
+        # session's model and policy and is current. A denial for another model,
+        # or a stale one, must not be reported as this session's refusal.
+        if not decision.renewed:
+            raise RenewalDenied(decision)
         renewal_id = decision.renewal_id
         if renewal_id in self._used_renewals:
             raise ValueError("renewal decision was already applied")

@@ -86,6 +86,16 @@ tool. Public release instructions describe the enforced approval requirements.
 **[security]** Add Python and GitHub Actions CodeQL analysis. Security reporting
 explicitly covers dependency, build and publication vulnerabilities affecting WCM.
 
+**[feature]** `apply_renewal` distinguishes an authenticated denial from a
+malformed decision. A decision that verifies and reports `renewed: false` now
+raises `RenewalDenied` carrying the signed failed gates, instead of collapsing
+into the same `ValueError` a truncated or unverifiable decision produces; the
+distinction was already on the wire and was being discarded. `RenewalDenied`
+subclasses `ValueError`, so existing handlers are unaffected. A denial still
+cannot move the deadline, so exposure remains one cadence window, and mapping a
+denial to immediate termination stays deployment policy until the decision
+carries a signed disposition field.
+
 **[feature]** `EnclaveSession` accepts an `on_stop` hook so a lapsed lease can stop
 serving from an already-decrypted model, and `ServingShutdown` sequences the
 measured runtime's admission stop, in-flight cancellation, weight cleanup and
@@ -96,6 +106,8 @@ idle; cancellation and clock failure also stop serving. A denied, invalid or
 unreachable renewal still never extends the lease. These are integration hooks, not
 a trusted watchdog or proof of memory erasure: hardware teardown primitives, stop
 latency and receipt capture remain the protected-runtime evidence in issue #78.
+A session given no adapter reports `stop_floor` as `none`, so an absent teardown
+path is disclosed rather than silent, as `none-best-effort` is for trusted time.
 
 **[change]** The lease deadline is now inclusive: custody ends at `now >= deadline`
 rather than strictly after it. This fails closed at the exact boundary instant and

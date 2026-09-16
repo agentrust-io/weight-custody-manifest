@@ -135,9 +135,25 @@ new work, and call `session.zeroize()` immediately when its reasons are
 revocation-class, such as a revoked serving image, a revoked attestation key, or a
 manifest no longer in force. Apply only verified successful signed renewals. Call
 `session.zeroize()` immediately for an independently verified revocation under the
-manifest's profile. The SDK reports gate results and does not classify them for
-you; until a signed disposition field exists, the controller owns the mapping from
-denial reasons to immediate termination.
+manifest's profile.
+
+`apply_renewal` surfaces that distinction rather than leaving it to the caller to
+re-derive: a decision that verifies and reports `renewed: false` raises
+`RenewalDenied`, carrying the signed `failed_checks` and `failed_check_names`,
+while an unverifiable, expired, replayed, cross-model or self-contradictory
+decision raises plain `ValueError`. `RenewalDenied` subclasses `ValueError`, so
+existing handlers keep working and only code that wants the distinction needs to
+ask for it. The SDK does not classify a denial as revocation-class. The decision
+carries no signed disposition field yet, so that mapping is deployment policy;
+until it exists, treat a revocation-class gate name in `failed_check_names` as the
+trigger for immediate termination.
+
+A session constructed without a teardown adapter reports `stop_floor` as `none`
+rather than failing quietly, the same disclosure `trusted_time_source` requires of
+`none-best-effort`. It still ends custody and stops authorizing at the boundary;
+nothing tears its loaded model down. Record the reported `stop_floor` alongside the
+receipts below, because a `none` result bounds what the rest of the evidence can
+claim.
 
 Check `authorize_operation()` on every inference dispatch, including requests
 already queued. Admission checks alone do not stop a long-running operation:
