@@ -6,6 +6,13 @@ uses semantic-ish versioning while pre-1.0.
 
 ## Unreleased
 
+**[security]** Require cryptographic GPU report verification in the environment-built
+key-release server. Add an owner-side SNP key-provisioning reference with explicit
+image, configuration, epoch, guest-policy and TCB checks. Require independently
+pinned roots and manifest bytes in the paired-hardware test runner. Protected
+broker boot integration, persistent epoch state, GPU firmware appraisal and
+protected CPU/GPU inference remain unvalidated.
+
 **[docs]** Clarify the release-authority trust boundary: a customer who can read
 broker keys or replace verification and policy can bypass workload attestation.
 Distinguish the attested self-custody design from the reference server's mounted

@@ -199,3 +199,53 @@ def test_env_server_fails_closed_without_cpu_trust_root(
         check.name == "cpu_quote_verified" and not check.passed
         for check in decision.checks
     )
+
+
+def test_env_server_requires_gpu_verification(monkeypatch):
+    from wcm.server import build_kbs_from_env
+
+    monkeypatch.delenv("WCM_GPU_TRUST_ROOT_FILE", raising=False)
+    kbs = build_kbs_from_env()
+    assert kbs._require_gpu_report_verification
+    assert kbs._gpu_report_verifier is None
+
+
+def test_env_server_loads_gpu_root(monkeypatch):
+    from pathlib import Path
+    from wcm.server import build_kbs_from_env
+    from wcm.nvidia import NvidiaGpuVerifier
+
+    root = Path(__file__).parent / "fixtures" / "nvidia_device_identity_ca.pem"
+    monkeypatch.setenv("WCM_GPU_TRUST_ROOT_FILE", str(root))
+    assert isinstance(build_kbs_from_env()._gpu_report_verifier, NvidiaGpuVerifier)
+
+
+def test_required_gpu_verification_rejects_structural_claim(example_manifest):
+    # Every other gate passes: this must fail specifically at GPU verification.
+    current, rim = _measurements(example_manifest)
+    kbs = KeyBrokerService(
+        {example_manifest.weights_hash: KEY},
+        require_gpu_report_verification=True,
+        trusted_manifest_identities={manifest_identity(example_manifest)},
+    )
+    evidence = SoftwareProvider().produce(
+        kbs.issue_challenge(), serving_image_measurement=current, gpu_measurement=rim
+    )
+    decision = kbs.verify_and_release(example_manifest, evidence)
+    assert not decision.released
+    assert [c.name for c in decision.checks if not c.passed] == ["gpu_report_verified"]
+
+
+def test_required_gpu_verification_allows_cpu_only_manifest(example_manifest):
+    manifest = example_manifest.model_copy(deep=True)
+    manifest.release_policy.required_gpu_measurement = None
+    current, _ = _measurements(example_manifest)
+    kbs = KeyBrokerService(
+        {manifest.weights_hash: KEY},
+        require_gpu_report_verification=True,
+        trusted_manifest_identities={manifest_identity(manifest)},
+    )
+    evidence = SoftwareProvider().produce(
+        kbs.issue_challenge(), serving_image_measurement=current, include_gpu=False
+    )
+    assert kbs.verify_and_release(manifest, evidence).released

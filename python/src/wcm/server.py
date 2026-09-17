@@ -31,6 +31,7 @@ from . import __version__
 from .attestation import CompositeEvidence
 from .kbs import KeyBrokerService
 from .models import WeightCustodyManifest
+from .nvidia import build_gpu_verifier
 from ._quote_verify import JsonQuoteParser, QuoteVerifier, TrustStore
 
 
@@ -103,6 +104,11 @@ def build_kbs_from_env() -> KeyBrokerService:
         trust.add_root(root)
         cpu_verifier = QuoteVerifier(JsonQuoteParser(), trust)
     trusted_manifest_identities: set[str] = set()
+    gpu_verifier = None
+    gpu_root_path = os.environ.get("WCM_GPU_TRUST_ROOT_FILE")
+    if gpu_root_path:
+        with open(gpu_root_path, "rb") as fh:
+            gpu_verifier = build_gpu_verifier(fh.read())
     manifest_identities_path = os.environ.get("WCM_TRUSTED_MANIFEST_IDENTITIES_FILE")
     if manifest_identities_path:
         with open(manifest_identities_path, "r", encoding="utf-8") as fh:
@@ -120,8 +126,10 @@ def build_kbs_from_env() -> KeyBrokerService:
     return KeyBrokerService(
         keystore,
         cpu_quote_verifier=cpu_verifier,
+        gpu_report_verifier=gpu_verifier,
         require_channel_binding=True,
         require_cpu_quote_verification=True,
+        require_gpu_report_verification=True,
         trusted_manifest_identities=trusted_manifest_identities,
     )
 
