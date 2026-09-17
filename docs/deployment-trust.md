@@ -175,8 +175,10 @@ configured VCEK chain; changing that chain requires fresh configuration approval
 GPU evidence without a configured root is denied. GPU firmware RIM appraisal
 and protected CPU/GPU transport remain outside this receiver.
 
-This is a library boot lifecycle, not an HTTP provisioning endpoint or a measured
-broker image. Python immutability and private attributes do not constrain a host
+The [receiver HTTP service](provisioned-broker-service.md) wraps this boot
+lifecycle with native report collection, sealed installation and release
+endpoints. Neither the library nor the service supplies a measured broker image.
+Python immutability and private attributes do not constrain a host
 that can modify the process. The runtime must protect code, configuration, clock
 and keys. Workload policy remains the pinned manifest's policy; the receiver
 does not add an independently chosen workload TCB floor. Synthetic tests in

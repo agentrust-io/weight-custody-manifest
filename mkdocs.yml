@@ -110,6 +110,8 @@ nav:
       - Schema and conformance: conformance.md
   - Guides:
       - Reference KBS image: reference-kbs.md
+      - Provisioned receiver service: provisioned-broker-service.md
+      - Owner provisioning client: owner-provisioning-client.md
       - Protected-runtime evidence: protected-runtime-evidence.md
       - Runnable examples: https://github.com/agentrust-io/examples/tree/main/weight-custody-manifest
   - Project:

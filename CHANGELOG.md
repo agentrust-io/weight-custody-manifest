@@ -14,7 +14,12 @@ provision-once broker receiver that hashes its actual immutable verifier inputs,
 generates a fresh boot key, installs an owner-authenticated envelope and permits
 only strict attested release until retirement. Add an optional SQLite owner
 epoch guard that rejects policy rollback and stale concurrent owner processes.
-The receiver is a library path; measured-image packaging, protected memory,
+Add a runnable native-SNP receiver HTTP service without plaintext model-key
+configuration, plus an owner client that independently verifies the returned
+report before sending a signed sealed envelope. The client requires HTTPS by
+default and a persistent owner epoch store; an explicit loopback-only HTTP
+option supports development. Synthetic-signed evidence tests include a real
+loopback HTTP exchange. Measured-image packaging, protected memory,
 trusted nonsnapshot owner storage, GPU firmware appraisal and protected CPU/GPU
 inference remain deployment requirements, without new live hardware validation.
 
