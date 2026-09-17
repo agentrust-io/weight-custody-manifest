@@ -87,3 +87,79 @@ not implement independent share custodians or their provisioning policies.
 These are implementation and deployment follow-ups, not a new claim that nesting
 TEEs removes hardware trust. If the owner rejects the underlying TEE assumptions,
 attesting a second service does not resolve that objection.
+
+### Owner-side provisioning reference protocol
+
+`wcm.provisioning.OwnerProvisioner` now supplies a native-SNP protocol primitive
+for an owner-operated provisioning service. It does not alter the HTTP reference
+server's plaintext keystore loading or provide a protected broker image.
+
+The owner pins the broker's raw 48-byte SNP measurement, SHA-256 of its complete
+effective configuration, model-key label, update epoch and explicit hardware
+requirements in
+`BrokerProvisioningPolicy`. Configuration must include verifier selection, trust
+roots, accepted manifest identities, platform requirements and override paths.
+The protected broker generates its X25519 key internally and computes the digest
+from the configuration it will enforce. It requests an SNP report with
+`REPORT_DATA[:32] = SHA256(owner_nonce || provisioning_binding(policy, public_key))`.
+
+The owner verifies the pinned certificate chain, report signature, challenge,
+configuration/session binding, signed image measurement, exact guest policy,
+required/forbidden platform fields and component-wise reported TCB floor before
+sealing the model key. Debug-enabled guest policy is rejected unconditionally.
+An owner Ed25519 signature authenticates the resulting envelope.
+`open_provisioned_key` verifies that signature and the exact policy before
+opening it with the broker's transport key. Policy updates must advance the
+epoch and invalidate all pending challenges; each attempt consumes its nonce.
+
+This closes protocol-level substitution paths in the reference implementation.
+It does not establish that a real runtime measures configuration correctly or
+prevents subsequent changes. Deployment still needs an immutable measured broker
+boot path, owner-key pinning, a durable owner-side epoch floor, installation once
+per session, protected memory, retirement of old instances and key erasure.
+The owner must choose the TCB floor in the selected CPU generation's eight-byte
+little-endian ABI layout; no default firmware floor is inferred. Required and
+forbidden platform fields both reject unavailable version-gated fields. The
+guest policy, TCB floor and platform requirements are themselves bound into
+attestation and the signed envelope. The TCB byte layouts and DEBUG bit follow
+[AMD's SNP ABI](https://www.amd.com/content/dam/amd/en/documents/developer/56860.pdf).
+The primitive does not establish revocation or physical-attack resistance.
+Those remain admission requirements for the selected threat model.
+Azure's vTPM/PCR provisioning adapter is
+not implemented by this native-SNP protocol.
+
+`python/tests/test_provisioning.py` uses synthetic SNP signatures and a synthetic
+certificate root to exercise image/configuration/root/key substitutions, stale
+epochs, replay, expiry and owner/envelope tampering. These tests establish
+protocol behavior under the stated assumptions, not live broker isolation.
+
+## CPU-to-GPU confidentiality acceptance
+
+The reference HTTP server requires cryptographic GPU verification whenever GPU
+evidence is submitted, using `WCM_GPU_TRUST_ROOT_FILE`. This closes a structural
+evidence downgrade. The library retains an explicit development mode; callers
+requiring verified GPU reports must set `require_gpu_report_verification=True`.
+
+Shared challenge nonces establish freshness of two reports. They do not by
+themselves establish physical co-location or an authenticated encrypted data
+path between those devices. NVIDIA report signature verification also does not
+compare signed firmware measurements against vendor RIMs. The serving runtime
+and vendor verifier must supply those additional assurances.
+
+Before claiming confidential model execution across CPU and GPU, retain:
+
+- Fresh CPU and GPU verification results bound to the receiving workload and
+  its session, with approved firmware/driver measurements and CC mode enabled.
+- Evidence that the driver establishes the protected device session and that
+  model bytes, activations and outputs cross only that protected path, including
+  staging buffers and diagnostics.
+- Denials after GPU substitution, CC mode disablement, unsupported firmware,
+  expired verification collateral and loss of the protected device session.
+- An exact-artifact decrypt/load/inference result inside the measured workload,
+  followed by revocation or lease-lapse handling.
+
+The existing `python/tools/paired_hardware_release.py` exercises paired quote
+verification and sealed key release. It does not run model inference or inspect
+the CPU-to-GPU data path. The August 20, 2026 fixture README records a historical
+pass, but its `paired-release.json` receipt is not distributed in this checkout;
+the retained preflight and README do not independently reproduce that result.

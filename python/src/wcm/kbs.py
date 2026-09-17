@@ -110,6 +110,7 @@ class KeyBrokerService:
         gpu_report_verifier: Optional[NvidiaGpuVerifier] = None,
         require_channel_binding: bool = False,
         require_cpu_quote_verification: bool = False,
+        require_gpu_report_verification: bool = False,
         renewal_signing_key: Optional[Ed25519PrivateKey] = None,
         renewal_decision_ttl_seconds: int = 60,
         memory_fingerprint_public_key_b64url: Optional[str] = None,
@@ -140,6 +141,7 @@ class KeyBrokerService:
         # default: the pre-channel-binding release shape is unchanged.
         self._require_channel_binding = require_channel_binding
         self._require_cpu_quote_verification = require_cpu_quote_verification
+        self._require_gpu_report_verification = require_gpu_report_verification
         self._renewal_signing_key = renewal_signing_key or Ed25519PrivateKey.generate()
         self._renewal_ttl = renewal_decision_ttl_seconds
         self._memory_fingerprint_public_key = memory_fingerprint_public_key_b64url
@@ -472,17 +474,22 @@ class KeyBrokerService:
     def _check_gpu_report(
         self, evidence: CompositeEvidence, nonce: str
     ) -> CheckResult:
+        gpu = evidence.gpu
+        if gpu is None:
+            # Required-but-absent GPU evidence is rejected by _check_gpu.
+            return CheckResult("gpu_report_verified", True, "no GPU report present")
         if self._gpu_report_verifier is None:
+            if self._require_gpu_report_verification:
+                return CheckResult(
+                    "gpu_report_verified",
+                    False,
+                    "cryptographic GPU report verifier required but not configured",
+                )
             return CheckResult(
                 "gpu_report_verified",
                 True,
                 "not configured: structural trust only (no cryptographic GPU verification)",
             )
-        gpu = evidence.gpu
-        if gpu is None:
-            # Whether a GPU is required at all is _check_gpu's job; if none is
-            # present there is no report to cryptographically verify.
-            return CheckResult("gpu_report_verified", True, "no GPU report present")
         if gpu.quote_b64 is None:
             return CheckResult(
                 "gpu_report_verified", False, "verifier configured but GPU report has no raw quote"

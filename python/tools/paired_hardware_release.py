@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 """Run one fail-closed Azure SNP/vTPM plus NVIDIA CC key release.
 
-This is the live partner-node closure for WCM issue #77. Raw attestation
-evidence and key material stay in memory. The retained report contains hashes,
-public identities, and exact verifier decisions only.
+This checks authenticated reports and sealed release of a PUBLIC TEST KEY.
+It does not run inference or establish CPU/GPU co-location, protected transfer,
+or firmware-to-RIM appraisal. Trust roots and the manifest must be selected
+independently of the host and supplied by the relying party. Raw reports stay
+in memory; the retained report still contains device-identifying metadata.
 """
 
 from __future__ import annotations
@@ -12,8 +14,8 @@ import argparse
 import hashlib
 import json
 import platform
+import re
 import subprocess
-import urllib.request
 from dataclasses import asdict
 from datetime import datetime, timezone
 from pathlib import Path
@@ -30,39 +32,35 @@ from wcm import (
     WeightCustodyManifest,
     build_gpu_verifier,
     generate_transport_keypair,
+    manifest_identity,
     open_sealed,
 )
 
-THIM_URL = "http://169.254.169.254/metadata/THIM/amd/certification"
-SERVING_IMAGE = "sha256:" + "5e2d" * 16
 DEK = hashlib.sha256(b"wcm-issue-77-live-validation-dek").digest()
 
 
-def _split_pems(blob: str) -> list[str]:
-    marker = "-----END CERTIFICATE-----"
-    return [
-        part + marker + "\n"
-        for part in blob.split(marker)
-        if "BEGIN CERTIFICATE" in part
-    ]
-
-
-def _cpu_verifier() -> AzureSnpVtpmVerifier:
-    req = urllib.request.Request(THIM_URL, headers={"Metadata": "true"})
-    with urllib.request.urlopen(req, timeout=10) as response:  # nosec B310, fixed IMDS URL
-        thim = json.loads(response.read())
-    chain = _split_pems(thim.get("certificateChain", ""))
-    if not chain:
-        raise RuntimeError("Azure THIM did not return an AMD certificate chain")
+def _cpu_verifier(root_pem: bytes) -> AzureSnpVtpmVerifier:
+    # Endorsements may arrive with evidence, but the evidence source must never
+    # get to choose the relying party's trust root.
     trust = TrustStore()
-    trust.add_root_pem(chain[-1])
+    trust.add_root_pem(root_pem.decode("ascii"))
     return AzureSnpVtpmVerifier(trust)
 
 
-def _manifest(root: Path, gpu_measurement: str) -> WeightCustodyManifest:
-    value = json.loads((root / "python/examples/manifest.example.json").read_text())
-    value["release_policy"]["required_gpu_measurement"]["rim_pin"] = gpu_measurement
-    return WeightCustodyManifest.model_validate(value)
+def _manifest(raw: bytes, expected_sha256: str, serving_image: str) -> WeightCustodyManifest:
+    if not re.fullmatch(r"[0-9a-f]{64}", expected_sha256):
+        raise ValueError("manifest SHA-256 must be 64 lowercase hexadecimal characters")
+    if hashlib.sha256(raw).hexdigest() != expected_sha256:
+        raise ValueError("manifest bytes do not match the independently approved digest")
+    manifest = WeightCustodyManifest.model_validate(json.loads(raw))
+    policy = manifest.release_policy
+    if policy.required_gpu_measurement is None:
+        raise ValueError("paired validation requires an independently approved GPU measurement")
+    approved = policy.required_serving_image.accepted_measurements
+    if not any(str(item.measurement) == serving_image and item.status.value == "current"
+               for item in approved):
+        raise ValueError("serving image must be current in the pinned manifest")
+    return manifest
 
 
 def _checks(decision: Any) -> list[dict[str, Any]]:
@@ -108,20 +106,29 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--release-candidate", required=True)
+    parser.add_argument("--cpu-root", type=Path, required=True,
+                        help="independently obtained AMD trust-root PEM")
+    parser.add_argument("--gpu-root", type=Path, required=True,
+                        help="independently obtained NVIDIA device trust-root PEM")
+    parser.add_argument("--manifest", type=Path, required=True,
+                        help="relying-party approved manifest; never learned from this run")
+    parser.add_argument("--manifest-sha256", required=True,
+                        help="independently approved digest of the exact manifest file bytes")
+    parser.add_argument("--serving-image", required=True,
+                        help="current serving-image measurement from the pinned manifest")
     args = parser.parse_args()
-    root = Path(__file__).resolve().parents[2]
+    manifest_raw = args.manifest.read_bytes()
+    manifest = _manifest(manifest_raw, args.manifest_sha256, args.serving_image)
+    cpu_root = args.cpu_root.read_bytes()
+    gpu_root = args.gpu_root.read_bytes()
+    cpu_verifier = _cpu_verifier(cpu_root)
+    gpu_verifier = build_gpu_verifier(gpu_root)
     if not AzureSnpVtpmProvider.is_available() or not NvidiaCcProvider.is_available():
         raise SystemExit("paired Azure SNP/vTPM and NVIDIA providers are required")
 
-    cpu_verifier = _cpu_verifier()
-    gpu_root = (
-        root / "python/tests/fixtures/nvidia_device_identity_ca.pem"
-    ).read_text()
-    gpu_verifier = build_gpu_verifier(gpu_root)
     provider = HardwareCompositeProvider(AzureSnpVtpmProvider(), NvidiaCcProvider())
 
-    example = json.loads((root / "python/examples/manifest.example.json").read_text())
-    weights_hash = example["weights_hash"]
+    weights_hash = str(manifest.weights_hash)
     kbs = KeyBrokerService(
         {weights_hash: DEK},
         challenge_ttl_seconds=1800,
@@ -129,6 +136,8 @@ def main() -> int:
         gpu_report_verifier=gpu_verifier,
         require_channel_binding=True,
         require_cpu_quote_verification=True,
+        require_gpu_report_verification=True,
+        trusted_manifest_identities={manifest_identity(manifest)},
     )
 
     captures: list[tuple[str, Any, Any, str]] = []
@@ -137,7 +146,7 @@ def main() -> int:
         private_key, public_key = generate_transport_keypair()
         evidence = provider.produce(
             challenge,
-            serving_image_measurement=SERVING_IMAGE,
+            serving_image_measurement=args.serving_image,
             transport_public_key=public_key,
         )
         if evidence.gpu is None or not evidence.gpu.quote_b64:
@@ -147,7 +156,8 @@ def main() -> int:
     measurements = {item[1].gpu.measurement for item in captures}
     if len(measurements) != 1:
         raise RuntimeError("GPU identity changed across the contemporaneous run")
-    manifest = _manifest(root, next(iter(measurements)))
+    if next(iter(measurements)) != manifest.release_policy.required_gpu_measurement.rim_pin:
+        raise RuntimeError("observed GPU identity does not match the independently approved manifest")
 
     summaries = []
     for label, evidence, _, public_key in captures:
@@ -155,7 +165,7 @@ def main() -> int:
             evidence.cpu.quote_b64,
             expected_nonce=evidence.cpu.nonce_echo,
             channel_binding=bytes.fromhex(public_key),
-            expected_workload_measurement=SERVING_IMAGE,
+            expected_workload_measurement=args.serving_image,
         )
         gpu_result = gpu_verifier.verify(
             evidence.gpu.quote_b64,
@@ -194,9 +204,21 @@ def main() -> int:
         raise RuntimeError("cross-run CPU/GPU evidence substitution was accepted")
 
     report = {
-        "kind": "wcm-paired-hardware-release/v1",
+        "kind": "wcm-paired-hardware-release/v2",
         "captured_at": datetime.now(timezone.utc).isoformat(),
         "release_candidate": args.release_candidate,
+        "claim_scope": "report-authentication-and-sealed-test-key-release",
+        "test_material_only": True,
+        "confidential_inference_validated": False,
+        "cpu_gpu_protected_path_validated": False,
+        "gpu_firmware_rim_appraised": False,
+        "trust_inputs": {
+            "source": "relying-party supplied; not learned from observed evidence",
+            "cpu_root_pem_sha256": hashlib.sha256(cpu_root).hexdigest(),
+            "gpu_root_pem_sha256": hashlib.sha256(gpu_root).hexdigest(),
+            "manifest_sha256": hashlib.sha256(manifest_raw).hexdigest(),
+            "serving_image_measurement": args.serving_image,
+        },
         "provider_topology": "Azure SNP/vTPM freshness quote + NVIDIA H100 NVAT local appraisal",
         "environment": {
             "kernel": platform.release(),
