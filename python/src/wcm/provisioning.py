@@ -10,9 +10,10 @@ from __future__ import annotations
 import hashlib
 import json
 import threading
+from contextlib import nullcontext
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Callable
+from typing import Callable, ContextManager
 
 from cryptography import x509
 from cryptography.hazmat.primitives.asymmetric.ed25519 import (
@@ -25,6 +26,7 @@ from ._challenge import Challenge, ChallengeStore
 from ._quote_verify import QuoteVerifier, TrustStore
 from ._seal import open_sealed, seal_to_public_key
 from .snp import SnpQuoteParser, parse_snp_report
+from .provisioning_state import OwnerEpochStore
 
 _DOMAIN = b"wcm/broker-provisioning/v1\x00"
 
@@ -120,8 +122,9 @@ class OwnerProvisioner:
     """Provision only to an authenticated native-SNP broker instance.
 
     Owner state and signing key must be protected from the customer. Updates
-    revoke outstanding challenges and advance the epoch. Persisting an epoch
-    floor across owner-service restarts is a deployment responsibility.
+    revoke outstanding challenges and advance the epoch. An optional owner-side
+    epoch store enforces restart floors and rejects stale live owner processes.
+    Protecting that database from deletion and snapshot rollback remains required.
     """
 
     def __init__(
@@ -130,6 +133,7 @@ class OwnerProvisioner:
         trusted_root: x509.Certificate,
         now: Callable[[], datetime] | None = None,
         challenge_ttl_seconds: int = 60,
+        epoch_store: OwnerEpochStore | None = None,
     ) -> None:
         if type(challenge_ttl_seconds) is not int or challenge_ttl_seconds <= 0:
             raise ValueError("challenge TTL must be a positive integer")
@@ -141,17 +145,28 @@ class OwnerProvisioner:
         self._ttl = challenge_ttl_seconds
         self._challenges = ChallengeStore(ttl_seconds=self._ttl, now=self._now)
         self._lock = threading.Lock()
+        self._epoch_store = epoch_store
+        with self._epoch_guard(policy, admit=True):
+            pass
+
+    def _epoch_guard(
+        self, policy: BrokerProvisioningPolicy, *, admit: bool = False,
+    ) -> ContextManager[None]:
+        return (self._epoch_store.guard(policy.epoch, policy.context(), admit=admit)
+                if self._epoch_store is not None else nullcontext())
 
     def issue_challenge(self) -> Challenge:
         with self._lock:
-            return self._challenges.issue()
+            with self._epoch_guard(self._policy):
+                return self._challenges.issue()
 
     def update_policy(self, policy: BrokerProvisioningPolicy) -> None:
         with self._lock:
             if policy.epoch <= self._policy.epoch:
                 raise ValueError("policy update must advance epoch")
-            self._policy = policy
-            self._challenges = ChallengeStore(ttl_seconds=self._ttl, now=self._now)
+            with self._epoch_guard(policy, admit=True):
+                self._policy = policy
+                self._challenges = ChallengeStore(ttl_seconds=self._ttl, now=self._now)
 
     def provision(
         self, *, nonce: str, report: bytes, vcek: x509.Certificate,
@@ -170,7 +185,7 @@ class OwnerProvisioner:
         # a mutable buffer despite the bytes annotation.
         report = bytes(report)
         intermediates = list(intermediates)
-        with self._lock:
+        with self._lock, self._epoch_guard(self._policy):
             self._challenges.consume(nonce)
             if not isinstance(model_key, bytes) or len(model_key) not in (16, 24, 32):
                 raise ValueError("model key must be a 16, 24 or 32-byte AES key")
@@ -188,6 +203,8 @@ class OwnerProvisioner:
                 raise ValueError("broker image measurement rejected")
             if parsed.policy != policy.guest_policy or parsed.policy & (1 << 19):
                 raise ValueError("broker guest policy rejected")
+            if parsed.vmpl != 0:
+                raise ValueError("broker must run at VMPL 0")
             # Each byte is a component SVN (or reserved), never a scalar TCB
             # ordering. The owner pins the floor's CPU-generation-specific ABI.
             if any(actual < floor for actual, floor in zip(

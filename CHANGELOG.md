@@ -9,9 +9,14 @@ uses semantic-ish versioning while pre-1.0.
 **[security]** Require cryptographic GPU report verification in the environment-built
 key-release server. Add an owner-side SNP key-provisioning reference with explicit
 image, configuration, epoch, guest-policy and TCB checks. Require independently
-pinned roots and manifest bytes in the paired-hardware test runner. Protected
-broker boot integration, persistent epoch state, GPU firmware appraisal and
-protected CPU/GPU inference remain unvalidated.
+pinned roots and manifest bytes in the paired-hardware test runner. Add a
+provision-once broker receiver that hashes its actual immutable verifier inputs,
+generates a fresh boot key, installs an owner-authenticated envelope and permits
+only strict attested release until retirement. Add an optional SQLite owner
+epoch guard that rejects policy rollback and stale concurrent owner processes.
+The receiver is a library path; measured-image packaging, protected memory,
+trusted nonsnapshot owner storage, GPU firmware appraisal and protected CPU/GPU
+inference remain deployment requirements, without new live hardware validation.
 
 **[docs]** Clarify the release-authority trust boundary: a customer who can read
 broker keys or replace verification and policy can bypass workload attestation.
