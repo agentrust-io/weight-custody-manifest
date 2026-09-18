@@ -14,7 +14,7 @@ from datetime import datetime, timedelta, timezone
 import json
 from pathlib import Path
 import time
-from urllib.error import HTTPError, URLError
+from urllib.error import HTTPError
 from urllib.parse import urlsplit
 from urllib.request import Request, urlopen
 
@@ -92,7 +92,10 @@ def check(base: str) -> None:
             status, body = request(base, "/health")
             if status == 200 and body == {"status": "ok"}:
                 break
-        except (URLError, TimeoutError):
+        except OSError:
+            # A listening container port can reset/disconnect while uvicorn is
+            # still starting. Retry only readiness GETs within this deadline;
+            # provisioning/challenge POSTs below must remain single attempts.
             pass
         if time.monotonic() >= deadline:
             raise RuntimeError("provisioned image failed to start")

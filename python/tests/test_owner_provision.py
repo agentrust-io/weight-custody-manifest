@@ -198,13 +198,18 @@ def test_network_redirect_and_oversized_response_are_rejected(oversized):
     class Redirect(BaseHTTPRequestHandler):
         def do_POST(self):
             requests.append(self.path)
+            # Drain the request before closing the socket. Linux can otherwise
+            # reset it with unread inbound bytes, masking the size-limit check.
+            self.rfile.read(int(self.headers.get("Content-Length", "0")))
             if oversized:
                 self.send_response(200)
+                self.send_header("Content-Length", "131073")
                 self.end_headers()
                 self.wfile.write(b"x" * 131073)
                 return
             self.send_response(307)
             self.send_header("Location", "/redirected")
+            self.send_header("Content-Length", "0")
             self.end_headers()
         def log_message(self, *args):
             pass
