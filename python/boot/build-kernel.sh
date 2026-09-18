@@ -15,7 +15,7 @@ export KBUILD_BUILD_USER=wcm KBUILD_BUILD_HOST=boot-test KBUILD_BUILD_VERSION=1
 make ARCH=x86_64 tinyconfig
 # All boot-critical drivers are built in; no module loader or external root.
 enabled="64BIT PRINTK MULTIUSER BINFMT_ELF TTY SERIAL_8250 SERIAL_8250_CONSOLE
-SYSFS TMPFS DEVTMPFS BLK_DEV_INITRD PCI ACPI FW_CFG_SYSFS
+SYSFS SHMEM TMPFS DEVTMPFS BLK_DEV_INITRD PCI ACPI FW_CFG_SYSFS
 NET INET UNIX NETDEVICES ETHERNET NET_VENDOR_INTEL E1000 IP_PNP
 FUTEX EPOLL EVENTFD SIGNALFD TIMERFD POSIX_TIMERS SYSCTL
 ADVISE_SYSCALLS FILE_LOCKING EFI EFI_STUB RELOCATABLE CPU_SUP_AMD
@@ -24,9 +24,12 @@ disabled="MODULES DEVMEM DEVKMEM KEXEC KEXEC_FILE USER_NS BINFMT_MISC COREDUMP S
 for option in $enabled; do scripts/config --enable "$option"; done
 for option in $disabled; do scripts/config --disable "$option"; done
 make ARCH=x86_64 olddefconfig
+cp .config "$output/kernel.config"
+missing=0
 for option in $enabled; do
-  grep -qx "CONFIG_$option=y" .config || { echo "Required built-in missing: $option"; exit 1; }
+  grep -qx "CONFIG_$option=y" .config || { echo "Required built-in missing: $option"; missing=1; }
 done
+test "$missing" = 0
 for option in $disabled; do
   if grep -q "^CONFIG_$option=[ym]" .config; then echo "Forbidden feature: $option"; exit 1; fi
 done
