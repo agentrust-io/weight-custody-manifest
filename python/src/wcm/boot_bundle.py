@@ -70,7 +70,7 @@ def build_initramfs(runtime_tar: bytes, loader: bytes) -> bytes:
             if (not re.fullmatch(r"[A-Za-z0-9_+.,@/-]+", name)
                     or any(part in ("", ".", "..") for part in name.split("/"))
                     or name.split("/")[0] in _RESERVED or name in seen):
-                raise ValueError("unsafe, reserved or duplicate runtime path")
+                raise ValueError(f"unsafe, reserved or duplicate runtime path: {name!r}")
             seen.add(name)
             if len(seen) > MAX_FILES or item.mode & 0o7022:
                 raise ValueError("runtime count or permission policy violated")

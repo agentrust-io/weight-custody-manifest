@@ -19,7 +19,9 @@ python -m wcm.boot_bundle /absolute/path/to/new-build/runtime.tar \
 
 The shell recipe reuses the digest-pinned Python image and hash-locked WCM
 dependency installation. It exports the interpreter, Python/dependency libraries,
-native libraries, loader cache and CA certificates. Dereferencing occurs inside
+native libraries, loader cache and the canonical CA certificate bundle. Individual
+CA aliases are omitted because their names need not fit the restricted archive
+path format. Dereferencing occurs inside
 that container, never against host paths. No host directory is mounted into it.
 The native loader is compiled statically. The local compiler/libc are additional
 build inputs: record their versions and independently compare their outputs.

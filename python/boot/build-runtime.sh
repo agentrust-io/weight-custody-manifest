@@ -11,7 +11,7 @@ docker run --rm --network none --read-only --user 0 --entrypoint tar \
   --mtime=@0 --owner=0 --group=0 --numeric-owner --mode=u=rwX,go=rX \
   --dereference --hard-dereference --directory=/ \
   usr/local/bin/python3 usr/local/lib lib/x86_64-linux-gnu lib64 \
-  etc/ld.so.cache etc/ssl/certs > "$output/runtime.tar"
+  etc/ld.so.cache etc/ssl/certs/ca-certificates.crt > "$output/runtime.tar"
 cc -static -O2 -Wall -Wextra -Werror python/boot/init.c -o "$output/init"
 python - "$output" <<'PY'
 from pathlib import Path
