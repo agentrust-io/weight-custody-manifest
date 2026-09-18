@@ -50,7 +50,7 @@ BLOCKING += [
      "A GitHub access token."),
 ]
 
-# Exceptions cover synthetic inputs only, never production credentials.
+# Exceptions cover synthetic inputs and public protocol constants, never credentials.
 ALLOWLIST = {
     "conformance/vectors/": {"private-key-block": "synthetic conformance PKI; protects no deployed identity"},
     "python/tests/test_leak_scan.py": {
@@ -61,6 +61,19 @@ ALLOWLIST = {
         "local-workspace-path": "synthetic negative control",
     },
     "python/tests/test_final_launch.py": {"private-key-block": "synthetic test key"},
+}
+
+# Exact public QEMU/OVMF hash-table GUIDs, scoped to their implementation/tests.
+# Compact spelling keeps this scanner's own source free of GUID-shaped matches.
+PUBLIC_ABI_GUIDS = {
+    "9438d6064f224cc9b479a793d411fd21",
+    "97d02dd8bd204c94aa78e7714d36ab2a",
+    "44baf7313a2f4bd79af141e29169781d",
+    "4de79437abd2427fb835d5b172d2045b",
+}
+PUBLIC_ABI_PATHS = {
+    "python/boot/predict_measurement.py",
+    "python/tests/test_measurement_prediction.py",
 }
 
 
@@ -88,7 +101,10 @@ def iter_files():
 def findings(rel: str, text: str) -> list[tuple[str, int, str]]:
     return [(rel, text[:m.start()].count("\n") + 1, name)
             for name, rx, _ in BLOCKING if not exempt(rel, name)
-            for m in rx.finditer(text)]
+            for m in rx.finditer(text)
+            if not (rel in PUBLIC_ABI_PATHS
+                    and name == "azure-subscription-or-tenant-guid"
+                    and m.group().lower().replace("-", "") in PUBLIC_ABI_GUIDS)]
 
 
 def archive_source_path(name: str, wheel: bool) -> str:

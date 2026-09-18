@@ -156,6 +156,12 @@ is required for this profile. Pin the tool and environment rather than relying
 on a moving default. This procedure specifies inputs, not a claim that WCM has
 validated a particular firmware/QEMU/kernel combination.
 
+The [offline prediction procedure](broker-measurement-profile.md) now pins the
+external source, checks hash-table coverage and records exact candidate inputs.
+It includes a bounded OVMF/QEMU source review and software substitution tests.
+The approval generator still consumes the independently derived digest; it
+does not invoke or approve the predictor automatically.
+
 The broker's effective configuration can be provided as untrusted **data** to
 the measured loader. The loader must instantiate only the fixed approved code,
 compute the digest of the actual loaded constructor inputs, and bind that digest
@@ -174,8 +180,8 @@ cannot satisfy this adapter merely by echoing the approved configuration hash.
 
 The current Python receiver and report-binding checks are reusable components.
 The provisional builder and fixed loader implement the packaging and handoff
-restrictions described in the boot guide. Their complete boot path and live
-hardware evidence remain required work. Unsupported deployment layouts
+restrictions described in the boot guide. Software VM boot is exercised, while
+the measured OVMF chain and matching live hardware evidence remain required work. Unsupported deployment layouts
 must report the property as not established.
 
 ## Required hardware validation, separately authorized

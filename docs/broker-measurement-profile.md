@@ -1,0 +1,127 @@
+# Provisional SNP measurement profile
+
+The offline predictor derives a candidate digest from owner-selected bytes.
+It does not approve firmware, authenticate a report or establish application
+identity. No matching genuine SNP report has been validated for this profile.
+
+## Source review and coverage contract
+
+This bounded source review uses edk2 `edk2-stable202608`, commit
+`2970e5699ba6267f3384ffab20f96647578aebc8`, and QEMU `v10.1.0`, commit
+`f8b2f64e2336a28bf0d50b6ef8a7d8c013e9bcf3`. These are review references,
+not approved production releases or a vulnerability assessment.
+
+| Boundary | Source behavior and required evidence |
+| --- | --- |
+| QEMU launch | [`snp_launch_update_kernel_hashes`](https://github.com/qemu/qemu/blob/f8b2f64e2336a28bf0d50b6ef8a7d8c013e9bcf3/target/i386/sev.c) copies the hash table into a NORMAL measured page when `kernel-hashes=on`; otherwise it uses a ZERO page. The launch must explicitly enable the property. |
+| Hash table | `build_kernel_loader_hashes` in that source emits SHA-256 entries for command line, initrd and kernel, including kernel setup bytes. All three entries are required. The command line includes its terminating NUL. |
+| Firmware library selection | [`AmdSevX64.dsc`](https://github.com/tianocore/edk2/blob/2970e5699ba6267f3384ffab20f96647578aebc8/OvmfPkg/AmdSev/AmdSevX64.dsc) selects `BlobVerifierLibSevHashes`. A filename such as `OVMF.fd` or metadata GUID alone does not establish this selection. |
+| Blob verification | [`VerifyBlob`](https://github.com/tianocore/edk2/blob/2970e5699ba6267f3384ffab20f96647578aebc8/OvmfPkg/AmdSev/BlobVerifierLibSevHashes/BlobVerifierSevHashes.c) dead-loops on fetch failure or a mismatched recognized hash. Missing table/wrong hash size returns access denied. **An absent blob GUID returns success.** Consequently, partial hash tables cannot establish this profile. |
+| Boot alternatives | The DSC has a GRUB prebuild and optional shell support. The [platform boot manager](https://github.com/tianocore/edk2/blob/2970e5699ba6267f3384ffab20f96647578aebc8/OvmfPkg/Library/PlatformBootManagerLib/BdsPlatform.c) contains additional boot-option handling after attempting the QEMU kernel. A production build still needs a reviewed configuration and executable failure tests proving alternate paths cannot run unapproved code. |
+
+The [kernel-loader filesystem driver](https://github.com/tianocore/edk2/blob/2970e5699ba6267f3384ffab20f96647578aebc8/OvmfPkg/QemuKernelLoaderFsDxe/QemuKernelLoaderFsDxe.c)
+propagates errors from the verifier. Its named-blob path bypasses `VerifyBlob`
+for names other than `kernel`, `initrd` and `cmdline`. The production review
+must establish which consumers can execute or interpret those other blobs;
+the three-entry hash table does not cover them.
+
+The predictor requires exactly one 4 KiB SNP kernel-hashes metadata section
+containing the whole 176-byte table. It independently constructs the complete
+table and compares bytes with the external predictor. This verifies a software
+encoding and metadata relationship; it does not execute QEMU or firmware.
+
+Configuration supplied through `opt/wcm/config` is not one of these three
+measured blobs. Its effective digest is computed by the approved broker and
+bound into fresh provisioning evidence, as described in the deployment identity
+guide. This only has meaning once measured code identity is established.
+
+## Offline prediction
+
+On a trusted owner build host, obtain VirTEE's tool at exactly
+`8f2b337e38bc83f87cd30f3253cdfe8e3e12cc3a`. Preserve LF source bytes:
+
+```bash
+git -c core.autocrlf=false clone https://github.com/virtee/sev-snp-measure.git measurement-tool
+git -C measurement-tool checkout 8f2b337e38bc83f87cd30f3253cdfe8e3e12cc3a
+python -I -B python/boot/predict_measurement.py \
+  --tool-source measurement-tool \
+  --firmware owner-build/OVMF.fd --kernel owner-build/bzImage \
+  --initrd owner-build/initrd.cpio --command-line owner-build/cmdline.txt \
+  --vcpus 1 --vcpu-type EPYC-v4 --guest-features 0x1 > prediction.json
+```
+
+The vCPU/features above illustrate explicit inputs; select values matching the
+reviewed launch. Neither TCG's `max` CPU nor an implicit feature default is
+accepted. Run from a fresh Python 3.11+ process. The prediction path needs only
+the standard library; the tool is not installed in the broker or added as a
+runtime dependency. Exact upstream package source hashes are committed in
+`python/boot/measurement-tool.json`; changed or extra package files, including
+bytecode caches, fail before import.
+
+Inputs are snapshotted into temporary files before hashing and prediction.
+The firmware must be page-aligned and 1..16 MiB; this rejects upstream's 4 KiB
+suffix fixtures but does not prove that a larger file is genuine firmware.
+Kernel and initrd must be nonempty. Command-line files contain printable ASCII
+with no trailing newline, NUL or encoding normalization. The predictor adds
+the one terminating NUL required by the hash-table format. No precalculated
+OVMF-hash override, report-derived expectation or guest-supplied digest is used.
+
+Retain the JSON, exact input bytes, tool lock/source and interpreter/build
+environment. Check the recorded artifact hashes and launch parameters against
+the deployment approval. Feed `expected_measurement_hex` into the existing
+approval-generation procedure, pin the resulting approval independently, and
+perform the separate initramfs containment comparison. `measurement_tool` in
+the approval should identify the retained tool/environment bundle; the source
+lock alone does not identify a Python distribution or the whole build system.
+
+The JSON always reports `provisional: true`, `hardware_validated: false` and
+`firmware_enforcement_validated: false`. It cannot close issue #144.
+
+## Software evidence and limits
+
+`test_measurement_prediction.py` compares a published upstream launch-digest
+vector and independently encodes one SNP PAGE_INFO update and the complete
+QEMU hash table. Seven substitutions change the predicted digest: firmware,
+kernel, initrd, command line, vCPU count, CPU signature and guest features.
+Negative cases cover incomplete metadata, source changes, unsupported launch
+inputs, empty artifacts and suffix-only firmware.
+
+The integration vectors use a **synthetic zero-padded firmware suffix** to
+exercise the CLI. They are not bootable firmware. The published vector comes
+from the same upstream predictor project, so it is a compatibility check, not
+an independent hardware oracle. The hash-table encoder and PAGE_INFO check
+are independent implementations; the complete VMSA/launch-digest calculation
+still relies on VirTEE. CI runs the pinned tool in a dedicated job.
+
+Existing Azure paired-release and PCR 23 validation packs describe a different
+vTPM-backed deployment. They do not retain the exact OVMF/kernel/initrd/vCPU
+inputs for this profile and cannot validate its prediction. Genuine signatures
+on unrelated launch measurements are insufficient.
+
+## Matching hardware acceptance
+
+Before an authorized native-SNP run, retain a reviewed, reproducible firmware
+build with resolved library selections, all boot payloads/options, compiler
+and linker inputs. Pin the QEMU binary/build, host and guest kernels, machine
+type, CPU signature, VMSA features and exact command line. Check that the
+actual QEMU launch enables `kernel-hashes=on` and uses the same full firmware.
+
+Derive and approve the expected digest **before** collecting evidence. Supply
+AMD trust roots and policy independently. Use the existing owner provisioning
+client with the pinned approval to authenticate a fresh native report and its
+transport-key/configuration/policy binding; never compare a raw parsed
+measurement and call that report authentication.
+
+Retain sanitized results for:
+
+- Baseline prediction equal to the authenticated report's 48-byte measurement.
+- Each launch-input substitution rejected against the original owner pin.
+- Kernel hashes disabled, missing/partial tables, substituted fw_cfg blobs and
+  alternate boot attempts denied before provisioning.
+- Changed effective configuration rejected under the original policy.
+- The separate post-appraisal mutation, debug/admin/device/key-export and
+  protected-restart tests in issue #144.
+
+A predictor/report match alone does not test these enforcement paths. Keep
+the firmware, application-identity and installation claims provisional until
+the relevant acceptance evidence exists.

@@ -69,6 +69,17 @@ def test_scanner_reports_the_tree_clean() -> None:
     assert leak_scan.main() == 0
 
 
+def test_public_abi_exception_is_value_and_path_scoped() -> None:
+    import uuid
+
+    path = "python/boot/predict_measurement.py"
+    for value in leak_scan.PUBLIC_ABI_GUIDS:
+        text = str(uuid.UUID(hex=value))
+        assert leak_scan.findings(path, text) == []
+        assert leak_scan.findings("unrelated.py", text)
+    assert leak_scan.findings(path, "12345678-1234-1234-1234-123456789abc")
+
+
 def test_exceptions_never_allow_known_open_findings() -> None:
     assert not any("OPEN" in reason for patterns in leak_scan.ALLOWLIST.values()
                    for reason in patterns.values())
