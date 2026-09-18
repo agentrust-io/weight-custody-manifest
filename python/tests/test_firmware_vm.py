@@ -15,6 +15,7 @@ finally:
     sys.path.remove(str(ROOT))
 
 SERIAL = "Run /init as init process\nKernel panic - not syncing: Attempted to kill init! exitcode=0x00006f00"
+NAMED = "WCM_TEST_NAMED_DENY\n"
 
 
 def test_linux_positive_requires_kernel_and_pid1():
@@ -28,16 +29,17 @@ def test_linux_positive_requires_kernel_and_pid1():
 
 @pytest.mark.parametrize("expected,code", [("table", 35), ("hash", 37), ("named", 41)])
 def test_rejection_requires_specific_stop_and_no_pid1(expected, code):
-    vm.require_result(code, "", "N", expected)
+    vm.require_result(code, "", NAMED, expected)
     for wrong in (0, 1, -15, 99):
         with pytest.raises(AssertionError):
-            vm.require_result(wrong, "", "N", expected)
+            vm.require_result(wrong, "", NAMED, expected)
     with pytest.raises(AssertionError):
-        vm.require_result(code, SERIAL, "N", expected)
+        vm.require_result(code, SERIAL, NAMED, expected)
     with pytest.raises(AssertionError):
-        vm.require_result(code, "Linux version 6.12", "N", expected)
+        vm.require_result(code, "Linux version 6.12", NAMED, expected)
 
 
 def test_generic_manager_stop_does_not_prove_named_rejection():
-    with pytest.raises(AssertionError):
-        vm.require_result(41, "", "", "named")
+    for debug in ("", "N", "UNRELATED FIRMWARE ERROR\n"):
+        with pytest.raises(AssertionError):
+            vm.require_result(41, "", debug, "named")

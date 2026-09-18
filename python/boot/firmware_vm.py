@@ -21,7 +21,7 @@ def require_result(code, serial, debug, expected):
         if code != required or any(marker in serial for marker in
                                     ("Linux version", "Run /init as init process")):
             raise AssertionError(f"expected firmware {expected} stop, got {code}")
-        if expected == "named" and "N" not in debug:
+        if expected == "named" and "WCM_TEST_NAMED_DENY\n" not in debug:
             raise AssertionError("named-payload rejection marker absent")
 
 

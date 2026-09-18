@@ -50,7 +50,14 @@ def apply(source, receipt):
     text = path.read_text()
     start, _, end = profile.function_span(text, "QemuKernelFetchNamedBlobs")
     text = text[:start] + text[start:end].replace("return EFI_ACCESS_DENIED;",
-        '__asm__ __volatile__ ("outb %0, %w1" : : "a" ((UINT8)\'N\'), "Nd" ((UINT16)0x402));\n    return EFI_ACCESS_DENIED;') + text[end:]
+        '''{
+      CONST CHAR8 *Marker = "WCM_TEST_NAMED_DENY\\n";
+      while (*Marker != '\\0') {
+        __asm__ __volatile__ ("outb %0, %w1" : : "a" ((UINT8)*Marker), "Nd" ((UINT16)0x402));
+        Marker++;
+      }
+    }
+    return EFI_ACCESS_DENIED;''') + text[end:]
     path.write_bytes(text.encode())
     path = source / profile.MANAGER
     path.write_bytes(path.read_text().replace("CpuDeadLoop ();", exit_vm(20)).encode())
