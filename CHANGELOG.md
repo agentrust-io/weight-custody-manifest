@@ -6,6 +6,11 @@ uses semantic-ish versioning while pre-1.0.
 
 ## Unreleased
 
+Record real GCP native-SNP report controls and owner-side verification. A fresh
+report retains its launch measurement after an application probe file changes.
+The native provisioning collector binds supplied bytes; protected broker
+identity, custom firmware and key custody remain unvalidated by this run.
+
 Add a live Azure SNP/vTPM diagnostic with independently supplied roots and
 owner nonces. Real-hardware controls reject six evidence substitutions and
 reproduce the caller-supplied PCR23 digest limitation after a probe file changes.

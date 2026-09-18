@@ -164,3 +164,25 @@ fallback. This host therefore did not validate native-SNP provisioning or the
 custom OVMF launch. Preserve those unsupported results rather than relabeling
 the vTPM quote as native evidence. Raw bundles contain device identifiers and
 remain private; the committed summary contains hashes and bounded outcomes.
+
+The same day's GCP N2D SEV-SNP diagnostic used a pinned Ubuntu 24.04 image,
+Secure Boot, no service account and SDK commit `af5468e`. The owner machine
+verified two fresh reports against owner-generated nonces, a supplied transport
+binding and an independently fetched, pinned AMD Milan root. Five substitutions
+were rejected: wrong nonce, wrong transport binding, modified signed measurement,
+modified signature and an untrusted root. A separate native
+`SevSnpProvider.provisioning_report()` request returned a valid signed report
+with the exact caller-selected 64-byte binding; a different binding did not match.
+This exercised the collector, not protected broker provisioning or key custody.
+
+After the diagnostic changed a nonsecret application file, the second fresh
+report retained the first report's launch measurement. That measurement was
+observed, not independently predicted or approved. It did not identify the
+installed application. The guest exposed `/dev/sev-guest` and `/dev/tpmrm0`,
+but neither `/dev/sev` nor `/dev/kvm`; the restricted OVMF was not launched.
+The report carried policy `0x30000`, VMPL 0 and PLATFORM_INFO `0x25`. This run
+verified report bindings, not satisfaction of a production platform policy.
+Certificate revocation was not checked; the VCEK produced a cryptography
+deprecation warning for its nonpositive serial number. The temporary VM and
+boot disk were deleted and absence confirmed. The sanitized receipt is
+[`gcp-native-snp-2026-09-18/summary.json`](../python/tests/fixtures/live-validation/weight-custody-manifest/gcp-native-snp-2026-09-18/summary.json).
