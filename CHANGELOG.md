@@ -6,6 +6,15 @@ uses semantic-ish versioning while pre-1.0.
 
 ## Unreleased
 
+Add a provisional x86-64 initramfs builder and fixed native broker loader.
+Packaging checks reject ambiguous paths, links, device entries and privilege
+bits; owners can independently rebuild and compare runtime containment. The
+loader uses read-only mounts, a restricted device set, cleared capabilities,
+UID 10001 and a fixed isolated Python entry point. Inline configuration is data
+and must match the effective receiver digest. Dedicated Linux tests exercise
+the handoff and deliberate weakening. Full kernel/firmware boot coverage and
+SNP hardware validation remain outstanding; assurance receipts stay unchanged.
+
 **[security]** Require cryptographic GPU report verification in the environment-built
 key-release server. Add an owner-side SNP key-provisioning reference with explicit
 image, configuration, epoch, guest-policy and TCB checks. Require independently

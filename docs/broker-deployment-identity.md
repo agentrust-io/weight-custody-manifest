@@ -5,8 +5,9 @@ This is the software contract and provisional SNP adapter specification for
 It derives a deterministic owner-side approval record from local build inputs
 and constrains provisioning to the approved policy. It does **not** establish
 that a running broker executes those inputs. No live hardware validation of this
-profile has been performed, and the repository does not yet build its immutable
-boot image.
+profile has been performed. The [provisional boot builder and loader](broker-boot-loader.md)
+now assemble a runtime-contained initramfs; firmware/kernel boot coverage remains
+unvalidated.
 
 ## Platform-neutral requirements
 
@@ -47,8 +48,10 @@ order. Each role has a SHA-256 digest and nonzero size. The application artifact
 must identify the complete approved application/dependency bundle. The tool
 artifact should identify the reviewed measurement-tool distribution and its
 reproducible environment. The separate initrd must actually contain the approved
-runtime bundle; the record generator does not inspect or prove that relationship.
-An independent packaging review must establish it before a hardware claim.
+runtime bundle; the record generator does not inspect that relationship. The
+separate `wcm.boot_bundle --verify` command rebuilds and compares the complete
+initramfs from the runtime TAR and loader. Use it before deriving the approval;
+independent packaging review is still required before a hardware claim.
 
 Records omit local filenames and timestamps. Identity is
 `SHA256(domain || canonical_json)`, where the domain is the ASCII string
@@ -170,8 +173,9 @@ inputs. A mutable image or generic guest that lets arbitrary code request report
 cannot satisfy this adapter merely by echoing the approved configuration hash.
 
 The current Python receiver and report-binding checks are reusable components.
-The immutable image builder, loader restrictions, guest privilege/device policy
-and their live evidence remain required work. Unsupported deployment layouts
+The provisional builder and fixed loader implement the packaging and handoff
+restrictions described in the boot guide. Their complete boot path and live
+hardware evidence remain required work. Unsupported deployment layouts
 must report the property as not established.
 
 ## Required hardware validation, separately authorized
