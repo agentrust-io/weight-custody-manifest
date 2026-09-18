@@ -133,6 +133,17 @@ def transform(sources):
     result[MANAGER] = body(result[MANAGER], "PlatformBootManagerBeforeConsole", BEFORE)
     result[MANAGER] = result[MANAGER].replace('#include "BdsPlatform.h"',
         '#include "BdsPlatform.h"\n\nVOID\nPciAcpiInitialization (VOID);')
+    # Remove private helpers made unreachable by the restricted before-console
+    # path; retain the firmware's warnings-as-errors build settings.
+    for name in ("ConnectVirtioPciRng", "SaveS3BootScript"):
+        text = result[MANAGER]
+        declaration = text.index("\n" + name + " (")
+        start = text.rfind("\nSTATIC", 0, declaration) + 1
+        end = text.index("\n  );", declaration) + len("\n  );")
+        text = text[:start] + text[end:]
+        function, _, end = function_span(text, name)
+        start = text.rfind("\nSTATIC", 0, function) + 1
+        result[MANAGER] = text[:start] + text[end:]
     for name in ("PlatformBootManagerAfterConsole", "PlatformBootManagerUnableToBoot"):
         result[MANAGER] = body(result[MANAGER], name, "  CpuDeadLoop ();")
     # Remove executable fallback payloads, not merely their menu entries.
