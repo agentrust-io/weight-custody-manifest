@@ -18,7 +18,8 @@ def require_result(code, serial, debug, expected):
         require_init_exit(serial, 111)
     else:
         required = {"table": 35, "hash": 37, "named": 41}[expected]
-        if code != required or "Run /init as init process" in serial:
+        if code != required or any(marker in serial for marker in
+                                    ("Linux version", "Run /init as init process")):
             raise AssertionError(f"expected firmware {expected} stop, got {code}")
         if expected == "named" and "N" not in debug:
             raise AssertionError("named-payload rejection marker absent")
@@ -80,6 +81,14 @@ def run(firmware, weakened, kernel, initrd, output):
             result = subprocess.run(command, stdout=log, stderr=log, timeout=150, check=False)
         require_result(result.returncode, serial.read_text(errors="replace"),
                        debug.read_text(errors="replace"), expected)
+        if change == "weakened":
+            try:
+                require_result(result.returncode, serial.read_text(errors="replace"),
+                               debug.read_text(errors="replace"), "hash")
+            except AssertionError:
+                pass
+            else:
+                raise AssertionError("original rejection oracle accepted weakened firmware")
         observations.append({"case": name, "expected": expected, "qemu_exit": result.returncode,
                              "firmware": file_identity(image), "kernel": file_identity(actual_kernel),
                              "initrd": file_identity(actual_initrd), "command_line": append,

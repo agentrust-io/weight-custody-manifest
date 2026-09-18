@@ -34,6 +34,8 @@ def test_rejection_requires_specific_stop_and_no_pid1(expected, code):
             vm.require_result(wrong, "", "N", expected)
     with pytest.raises(AssertionError):
         vm.require_result(code, SERIAL, "N", expected)
+    with pytest.raises(AssertionError):
+        vm.require_result(code, "Linux version 6.12", "N", expected)
 
 
 def test_generic_manager_stop_does_not_prove_named_rejection():

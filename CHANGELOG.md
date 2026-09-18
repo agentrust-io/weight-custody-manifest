@@ -9,7 +9,9 @@ uses semantic-ish versioning while pre-1.0.
 Add an experimental restricted edk2 build profile: require the complete launch
 hash table, reject named and IGVM boot blobs, and stop before generic BDS boot
 options if the verified kernel fails or returns. Remove GRUB and shell payloads.
-Native C controls and full candidate builds run in Linux CI. This is not
+Native C controls, repeated candidate builds and separately instrumented
+complete-image TCG controls run in Linux CI. Test firmware injects synthetic
+launch state and is explicitly unsuitable for custody. This is not
 production firmware approval or SNP hardware validation.
 
 Add a source-pinned offline SNP prediction tool with complete kernel/initrd/

@@ -3,6 +3,7 @@ import importlib.util
 import json
 import os
 from pathlib import Path
+import sys
 
 import pytest
 
@@ -53,4 +54,26 @@ def test_changed_source_fails_before_any_file_is_written(source, name):
     before = {p: p.read_bytes() for p in source.rglob("*") if p.is_file()}
     with pytest.raises(ValueError, match="pinned"):
         profile.apply(source)
+    assert before == {p: p.read_bytes() for p in before}
+
+
+def test_vm_instrumentation_requires_candidate_and_does_not_weaken_hash_gate(source):
+    sys.path.insert(0, str(FILE.parent))
+    try:
+        import firmware_vm_fixture as fixture
+    finally:
+        sys.path.remove(str(FILE.parent))
+    receipt = source / "profile.json"
+    receipt.write_text(json.dumps(profile.apply(source)))
+    inf = (source / profile.VERIFIER).with_name("BlobVerifierLibSevHashes.inf")
+    inf.write_text("[LibraryClasses]\n  BaseCryptLib\n")
+    fixture.apply(source, receipt)
+    verifier = (source / profile.VERIFIER).read_text()
+    assert "opt/wcm/test-hashes" in verifier
+    assert "CompareMem (Entry->Data, Hash, EntrySize) == 0" in verifier
+    assert "Ptr->Len != 168" in verifier
+    assert '"a" (17)' in verifier and '"a" (18)' in verifier
+    before = {p: p.read_bytes() for p in source.rglob("*") if p.is_file()}
+    with pytest.raises(ValueError, match="exact candidate"):
+        fixture.apply(source, receipt)
     assert before == {p: p.read_bytes() for p in before}
