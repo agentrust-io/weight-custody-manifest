@@ -8,13 +8,13 @@ permissions:
 jobs:
   linux-handoff:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: '3.12'
-      - run: sudo apt-get update && sudo apt-get install -y gcc libc6-dev cpio
+      - run: sudo apt-get update && sudo apt-get install -y gcc libc6-dev cpio qemu-system-x86 flex bison bc libelf-dev libssl-dev
       - run: python -m pip install -e './python[dev]'
       - name: Exercise native handoff and deliberate weakening
         working-directory: python
@@ -35,6 +35,13 @@ jobs:
           sudo chroot runtime /usr/local/bin/python3 -I -B -c 'import wcm.guest_broker, uvicorn; print("installed guest imports passed")'
           cd "$RUNNER_TEMP/boot-one"
           sha256sum runtime.tar init initrd.cpio > "$GITHUB_WORKSPACE/python/boot-digests.txt"
+      - name: Build pinned-source test kernel
+        run: bash python/boot/build-kernel.sh "$RUNNER_TEMP/boot-kernel"
+      - name: Boot production refusal and explicit test-device images under TCG
+        run: |
+          python python/boot/qemu_smoke.py "$RUNNER_TEMP/boot-kernel/bzImage" \
+            "$RUNNER_TEMP/boot-one/runtime.tar" "$RUNNER_TEMP/boot-one/initrd.cpio" \
+            "$RUNNER_TEMP/boot-vm-evidence"
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
         with:
@@ -42,3 +49,8 @@ jobs:
           path: |
             python/boot-loader-results.xml
             python/boot-digests.txt
+            ${{ runner.temp }}/boot-kernel/kernel.config
+            ${{ runner.temp }}/boot-kernel/kernel-digests.txt
+            ${{ runner.temp }}/boot-kernel/toolchain.txt
+            ${{ runner.temp }}/boot-vm-evidence/*.json
+            ${{ runner.temp }}/boot-vm-evidence/*.log

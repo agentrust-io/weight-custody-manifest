@@ -2,8 +2,9 @@
 
 This software slice of [#144](https://github.com/agentrust-io/weight-custody-manifest/issues/144)
 adds deterministic initramfs assembly and a fixed Linux x86-64 loader. It is
-**provisional**: namespace tests and runtime imports do not establish a successful
-guest boot, SNP launch coverage, or resistance to a malicious host. Owner
+**provisional**: software boot tests do not establish SNP launch coverage or
+resistance to a malicious host. The production image refuses a VM without native
+SNP; positive emulated boots use an explicitly modified test-only image. Owner
 receipts continue to report `application_identity_established: false`.
 
 ## Build and independently check containment
@@ -117,8 +118,55 @@ The probe uses a synthetic character device and is never shipped in a runtime.
 
 CI also builds the actual broker runtime twice, compares runtime/loader/initramfs
 bytes on the same runner, extracts it and imports the installed broker with
-isolated Python inside a chroot. This validates dependency availability; it does
-not exercise firmware, network setup, PID 1 lifecycle in a VM or SNP ioctls.
+isolated Python inside a chroot. This validates dependency availability.
+
+### Full software VM boot
+
+`python/boot/build-kernel.sh` builds a test kernel from Linux 6.12.110, with its
+source archive pinned to SHA-256
+`8cee19e1839bb6ff4d5254d761933ae6ab670492d5ed030e09a80538320d5c4c`
+from the [kernel.org checksum manifest](https://cdn.kernel.org/pub/linux/kernel/v6.x/sha256sums.asc).
+The script checks required drivers are built in and forbids modules, external
+helper startup, core dumps, swap and selected debug interfaces. The resolved
+configuration, kernel hash and compiler/linker versions are retained by CI.
+This is a software-test kernel, not an approved hardware deployment profile.
+
+The QEMU TCG harness in `python/boot/qemu_smoke.py` uses no KVM/SNP hardware and
+requires no privileged host access. It uses direct kernel boot, a fixed command
+line, fw_cfg public data, a restricted user network and a loopback-only forwarded
+port. QEMU's default PC firmware is not the proposed measured OVMF chain.
+
+The unchanged production loader must reach PID 1 and stop with status 111 when
+the SNP device is absent. For positive boot cases, the harness separately
+compiles a **test-only** loader changing exactly the initial device lookup from
+`/dev/sev-guest` to `/dev/urandom`. No fallback is added to production source,
+and the broker's real SNP ioctl remains unchanged. Test and production loader
+and image hashes are distinct and recorded.
+
+The probe boots through the actual kernel, fw_cfg channel, mounts, privilege
+drop and exec. Its exit status comes from the observed restrictions. A variant
+with the read-only runtime restriction removed must fail that same probe.
+Missing/oversized configuration must terminate before handoff; changed effective
+policy must terminate the real broker. An unrelated panic or timeout never
+counts as successful rejection: each expected exit requires the kernel's
+PID 1 execution marker and exact exit status.
+
+Two fresh boots of the actual broker runtime with the test-only loader must
+return health 200, refuse pre-provisioning admission with 409, and return 503
+for a native report request. No report is fabricated, no owner/model key is
+provided and no release is authorized. Serial/QEMU logs and structured outcomes
+are retained; this establishes startup and fail-closed behavior in emulation,
+not protected restart, transport-key uniqueness or firmware measurement coverage.
+
+Run after the normal runtime build on a Linux host with QEMU and kernel build
+tools installed:
+
+```sh
+bash python/boot/build-kernel.sh /absolute/path/to/test-kernel
+python python/boot/qemu_smoke.py /absolute/path/to/test-kernel/bzImage \
+  /absolute/path/to/new-build/runtime.tar /absolute/path/to/new-build/initrd.cpio \
+  /absolute/path/to/new-vm-evidence
+```
 
 Before live validation, pin and review the kernel configuration, firmware/QEMU
 combination, command line, toolchain and launch prediction tool. Required kernel
@@ -132,8 +180,9 @@ A compromised kernel, firmware or broker process is outside the filesystem
 immutability claim. There is no seccomp syscall policy, arbitrary code-execution
 resistance, secure memory erasure, rollback-resistant guest state or protected
 GPU claim. The loader's restricted device access does not isolate the report key
-from vulnerabilities in the approved broker. Full QEMU boot tests, native-SNP
-prediction/report comparison, post-appraisal substitution and restart tests
+from vulnerabilities in the approved broker. Production SNP/OVMF boot,
+native-SNP prediction/report comparison, live post-appraisal substitution and
+protected restart tests
 remain open in #144 and #145.
 
 Format references:

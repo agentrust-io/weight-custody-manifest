@@ -6,6 +6,12 @@ uses semantic-ish versioning while pre-1.0.
 
 ## Unreleased
 
+Add checksum-pinned kernel construction and QEMU TCG boot validation for the
+provisional loader. The unchanged production image must refuse a non-SNP VM;
+separately identified test-device images exercise kernel-to-broker startup,
+read-only enforcement, configuration failures and fresh unprovisioned starts.
+No attestation is fabricated, and no new hardware assurance is established.
+
 Add a provisional x86-64 initramfs builder and fixed native broker loader.
 Packaging checks reject ambiguous paths, links, device entries and privilege
 bits; owners can independently rebuild and compare runtime containment. The
