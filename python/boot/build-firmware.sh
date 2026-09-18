@@ -24,7 +24,7 @@ export SOURCE_DATE_EPOCH=1789689600
 export PYTHON_COMMAND=python3
 make -C BaseTools -j"$(nproc)"
 set +u
-source edksetup.sh
+source edksetup.sh --reconfig
 set -u
 options=(-a X64 -t GCC -b RELEASE -p OvmfPkg/AmdSev/AmdSevX64.dsc
   -D SOURCE_DEBUG_ENABLE=FALSE -D BUILD_SHELL=FALSE -D DEBUG_TO_MEM=FALSE

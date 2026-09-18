@@ -87,7 +87,7 @@ ROUTE_HEADER = r'''
 #define QEMU_FW_CFG_FNAME_SIZE 56
 #define QemuFwCfgItemFileDir 1
 static UINT32 count,cursor; static unsigned char directory[3][64];
-static int hob,loads,events,visits,pci,transfer;
+static int hob,loads,events,visits,pci,transfer,kernel_status;
 static int gEfiIgvmDataHobGuid,gEfiPciRootBridgeIoProtocolGuid;
 static int gRootBridgesConnectedEventGroupGuid,gEfiEndOfDxeEventGroupGuid;
 static void ConnectRootBridge(void){}
@@ -103,7 +103,7 @@ static void VisitAllInstancesOfProtocol(void *a,void (*b)(void),void *c){
 }
 static void EfiEventGroupSignal(void *p){(void)p;events++;}
 static void PciAcpiInitialization(void){pci++;}
-static int TryRunningQemuKernel(void){loads++;if(transfer)longjmp(jump,2);return transfer;}
+static int TryRunningQemuKernel(void){loads++;if(transfer)longjmp(jump,2);return kernel_status;}
 '''
 
 ROUTE_MAIN = r'''
@@ -124,9 +124,8 @@ int main(int argc,char **argv){
     hob=!strcmp(mode,"igvm-present");
     puts(QemuKernelRegisterIgvmBlobs()==EFI_SUCCESS?"ALLOW":"DENY");return 0;
   }
-  transfer=!strcmp(mode,"transfer")?1:(!strcmp(mode,"kernel-error")?-1:0);
-  // Only the transfer case simulates control never returning from the kernel.
-  if(transfer==-1)transfer=0;
+  transfer=!strcmp(mode,"transfer");
+  kernel_status=!strcmp(mode,"kernel-error")?EFI_ACCESS_DENIED:EFI_SUCCESS;
   int state=setjmp(jump);
   if(state){printf("%s:%d:%d:%d:%d\n",state==2?"TRANSFER":"STOP",loads,events,visits,pci);return 0;}
   if(!strcmp(mode,"after"))PlatformBootManagerAfterConsole();

@@ -39,6 +39,7 @@ def test_exact_source_profile_and_second_application_rejected(source):
         text = (source / name).read_text()
         assert "OvmfPkg/AmdSev/Grub/" not in text
         assert "BootManagerMenuApp" not in text
+        assert "Application/UiApp" not in text
         assert "ShellComponents.dsc.inc" not in text
         assert "ShellDxe.fdf.inc" not in text
     with pytest.raises(ValueError, match="pinned"):

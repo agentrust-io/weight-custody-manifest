@@ -121,13 +121,19 @@ def transform(sources):
     result[LOADER] = body(body(result[LOADER], "QemuKernelFetchNamedBlobs", NAMED),
                           "QemuKernelRegisterIgvmBlobs", IGVM)
     result[MANAGER] = body(result[MANAGER], "PlatformBootManagerBeforeConsole", BEFORE)
+    result[MANAGER] = result[MANAGER].replace('#include "BdsPlatform.h"',
+        '#include "BdsPlatform.h"\n\nVOID\nPciAcpiInitialization (VOID);')
     for name in ("PlatformBootManagerAfterConsole", "PlatformBootManagerUnableToBoot"):
         result[MANAGER] = body(result[MANAGER], name, "  CpuDeadLoop ();")
     # Remove executable fallback payloads, not merely their menu entries.
+    start = result[DSC].index("  MdeModulePkg/Application/UiApp/UiApp.inf {")
+    end = result[DSC].index("\n  }", start) + len("\n  }")
+    result[DSC] = result[DSC][:start] + result[DSC][end:]
     for name in (DSC, FDF):
         result[name] = "\n".join(line for line in result[name].split("\n")
             if "OvmfPkg/AmdSev/Grub/" not in line
             and "ShellComponents.dsc.inc" not in line and "ShellDxe.fdf.inc" not in line
+            and "MdeModulePkg/Application/UiApp/UiApp.inf" not in line
             and "MdeModulePkg/Application/BootManagerMenuApp/" not in line)
     return result
 

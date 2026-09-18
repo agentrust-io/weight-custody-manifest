@@ -26,7 +26,7 @@ any file and rejects a second application or changed source.
   fails or the kernel returns, it stops. It does not return to generic BDS
   hotkeys, DriverOrder, BootNext, BootOrder or recovery processing. The later
   platform hooks stop defensively as well.
-- GRUB's prebuild/payload, shell components and BootManagerMenuApp are removed
+- GRUB's prebuild/payload, shell components, UiApp and BootManagerMenuApp are removed
   from the build description/firmware volume. The build disables source debug,
   shell selection and memory debugging explicitly.
 
