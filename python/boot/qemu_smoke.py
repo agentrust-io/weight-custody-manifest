@@ -45,9 +45,14 @@ def compile_loader(output: Path, *, test_device: bool, writable: bool = False) -
         before = "MS_BIND | MS_REMOUNT | MS_RDONLY | MS_NOSUID | MS_NODEV"
         assert source.count(before) == 1
         source = source.replace(before, "MS_BIND | MS_REMOUNT | MS_NOSUID | MS_NODEV")
-    output.with_suffix(".c").write_text(source)
+    # ELF symbol metadata includes the source basename even without debug info.
+    # Recompile production from its actual path, not a renamed generated copy.
+    source_path = HERE / "init.c"
+    if test_device or writable:
+        source_path = output.with_suffix(".c")
+        source_path.write_text(source)
     subprocess.run(["cc", "-static", "-O2", "-Wall", "-Wextra", "-Werror",
-                    str(output.with_suffix(".c")), "-o", str(output)], check=True)
+                    str(source_path), "-o", str(output)], check=True)
     return output.read_bytes()
 
 

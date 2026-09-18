@@ -42,6 +42,14 @@ def test_real_static_loader_and_independent_cpio_reader(binaries):
     assert subprocess.run([str(init)]).returncode == 111
 
 
+def test_production_loader_recompilation_preserves_exact_artifact(binaries, tmp_path):
+    from tests.test_qemu_boot import module
+
+    init, _ = binaries
+    assert module.compile_loader(tmp_path / "different-output-name", test_device=False) == init.read_bytes()
+    assert module.compile_loader(tmp_path / "test-device", test_device=True) != init.read_bytes()
+
+
 @pytest.mark.parametrize("mutation", [None, "writable-runtime", "privileged", "environment", "bounding-caps", "descriptors", "new-privileges", "empty-config", "oversized-config"])
 def test_actual_handoff_restrictions_and_negative_controls(tmp_path, binaries, mutation):
     _, probe = binaries
