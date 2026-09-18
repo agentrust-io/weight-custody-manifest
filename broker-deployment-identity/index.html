@@ -6,17 +6,17 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Two WCM controls cannot be established by the reference SDK alone.">
+        <meta name="description" content="This is the software contract and provisional SNP adapter specification for #144.">
       
       
       
-        <link rel="canonical" href="https://wcm.agentrust-io.com/protected-runtime-evidence/">
+        <link rel="canonical" href="https://wcm.agentrust-io.com/broker-deployment-identity/">
       
       
-        <link rel="prev" href="../broker-boot-loader/">
+        <link rel="prev" href="../owner-provisioning-client/">
       
       
-        <link rel="next" href="../roadmap/">
+        <link rel="next" href="../broker-boot-loader/">
       
       
         
@@ -26,7 +26,7 @@
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
     
     
-  <title>Protected-runtime evidence - Weight Custody Manifest</title>
+  <title>Broker deployment identity - Weight Custody Manifest</title>
 
     
       <link rel="stylesheet" href="../assets/stylesheets/main.ec1eaa64.min.css">
@@ -64,9 +64,9 @@
 
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="AgenTrust">
-  <meta property="og:title" content="Protected-runtime evidence - Weight Custody Manifest">
-  <meta property="og:description" content="Two WCM controls cannot be established by the reference SDK alone.">
-  <meta property="og:url" content="https://wcm.agentrust-io.com/protected-runtime-evidence/">
+  <meta property="og:title" content="Broker deployment identity - Weight Custody Manifest">
+  <meta property="og:description" content="This is the software contract and provisional SNP adapter specification for #144.">
+  <meta property="og:url" content="https://wcm.agentrust-io.com/broker-deployment-identity/">
   <meta property="og:locale" content="en_US">
   <meta property="og:image" content="https://wcm.agentrust-io.com/assets/og.png">
   <meta property="og:image:width" content="1200">
@@ -74,8 +74,8 @@
   <meta property="og:image:alt" content="Weight Custody Manifest: release model weights only to an attested runtime">
 
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Protected-runtime evidence - Weight Custody Manifest">
-  <meta name="twitter:description" content="Two WCM controls cannot be established by the reference SDK alone.">
+  <meta name="twitter:title" content="Broker deployment identity - Weight Custody Manifest">
+  <meta name="twitter:description" content="This is the software contract and provisional SNP adapter specification for #144.">
   <meta name="twitter:image" content="https://wcm.agentrust-io.com/assets/og.png">
 
   <script type="application/ld+json">
@@ -107,11 +107,11 @@
       },
       {
         "@type": "TechArticle",
-        "@id": "https://wcm.agentrust-io.com/protected-runtime-evidence/#page",
-        "url": "https://wcm.agentrust-io.com/protected-runtime-evidence/",
-        "name": "Protected-runtime evidence - Weight Custody Manifest",
-        "headline": "Protected-runtime evidence - Weight Custody Manifest",
-        "description": "Two WCM controls cannot be established by the reference SDK alone.",
+        "@id": "https://wcm.agentrust-io.com/broker-deployment-identity/#page",
+        "url": "https://wcm.agentrust-io.com/broker-deployment-identity/",
+        "name": "Broker deployment identity - Weight Custody Manifest",
+        "headline": "Broker deployment identity - Weight Custody Manifest",
+        "description": "This is the software contract and provisional SNP adapter specification for #144.",
         "inLanguage": "en",
         "isPartOf": { "@id": "https://wcm.agentrust-io.com/#website" },
         "publisher": { "@id": "https://agentrust-io.com/#organization" }
@@ -120,7 +120,7 @@
         "@type": "BreadcrumbList",
         "itemListElement": [
           { "@type": "ListItem", "position": 1, "name": "Weight Custody Manifest", "item": "https://wcm.agentrust-io.com/" },
-          { "@type": "ListItem", "position": 2, "name": "Protected-runtime evidence - Weight Custody Manifest", "item": "https://wcm.agentrust-io.com/protected-runtime-evidence/" }
+          { "@type": "ListItem", "position": 2, "name": "Broker deployment identity - Weight Custody Manifest", "item": "https://wcm.agentrust-io.com/broker-deployment-identity/" }
         ]
       }
     ]
@@ -146,7 +146,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#protected-runtime-evidence-plan" class="md-skip">
+        <a href="#broker-deployment-identity-approval-contract" class="md-skip">
           Skip to content
         </a>
       
@@ -182,7 +182,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Protected-runtime evidence
+              Broker deployment identity
             
           </span>
         </div>
@@ -977,10 +977,37 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../broker-deployment-identity/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Broker deployment identity
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -996,6 +1023,81 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#platform-neutral-requirements" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Platform-neutral requirements
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-each-identifier-means" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What each identifier means
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#derive-and-check-an-owner-approval" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Derive and check an owner approval
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#provisional-adapter-snp-direct-boot-with-an-initrd-contained-broker" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Provisional adapter: SNP direct boot with an initrd-contained broker
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#required-hardware-validation-separately-authorized" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Required hardware validation, separately authorized
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -1033,37 +1135,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Protected-runtime evidence
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../protected-runtime-evidence/" class="md-nav__link">
         
   
   
@@ -1079,59 +1154,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#protected-memory-fingerprint-sweep-issue-79" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Protected-memory fingerprint sweep (issue #79)
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#lease-lapse-zeroization-and-execution-stop-issue-78" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Lease lapse, zeroization, and execution stop (issue #78)
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#review-gate" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Review gate
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -1426,10 +1448,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#protected-memory-fingerprint-sweep-issue-79" class="md-nav__link">
+  <a href="#platform-neutral-requirements" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Protected-memory fingerprint sweep (issue #79)
+        Platform-neutral requirements
       
     </span>
   </a>
@@ -1437,10 +1459,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#lease-lapse-zeroization-and-execution-stop-issue-78" class="md-nav__link">
+  <a href="#what-each-identifier-means" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Lease lapse, zeroization, and execution stop (issue #78)
+        What each identifier means
       
     </span>
   </a>
@@ -1448,10 +1470,32 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#review-gate" class="md-nav__link">
+  <a href="#derive-and-check-an-owner-approval" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Review gate
+        Derive and check an owner approval
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#provisional-adapter-snp-direct-boot-with-an-initrd-contained-broker" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Provisional adapter: SNP direct boot with an initrd-contained broker
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#required-hardware-validation-separately-authorized" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Required hardware validation, separately authorized
       
     </span>
   </a>
@@ -1526,94 +1570,249 @@
   
 
 
-<h1 id="protected-runtime-evidence-plan">Protected-runtime evidence plan<a class="headerlink" href="#protected-runtime-evidence-plan" title="Permanent link">&para;</a></h1>
-<p>Two WCM controls cannot be established by the reference SDK alone. This page
-defines the evidence a protected-runtime implementation must produce before the
-project closes the corresponding issues. A unit-test simulation is useful for
-development but is not acceptable proof.</p>
-<h2 id="protected-memory-fingerprint-sweep-issue-79">Protected-memory fingerprint sweep (issue #79)<a class="headerlink" href="#protected-memory-fingerprint-sweep-issue-79" title="Permanent link">&para;</a></h2>
-<p>The SDK supplies <code>BytearrayMemoryRange</code>, <code>run_memory_sweep</code>, and
-<code>verify_memory_sweep</code> as the executable reference contract. The runner derives
-different full-page values and write/read permutations from protected secret
-material plus the fresh KBS nonce, writes and reads every declared page, detects
-inconsistent mappings, and signs the complete transcript with Ed25519. The KBS
-fails closed unless a policy-pinned sweep public key verifies that transcript;
-its production default does not accept the earlier unsigned structural shape.
-Language-neutral conformance vectors retain an explicitly isolated declarative
-mode because the frozen v1 vectors cannot carry a signature over a runtime nonce.</p>
-<p>This implementation executes over a real allocated byte range and its controlled
-test adapter detects aliased logical pages. That is reference-algorithm evidence,
-not proof that a production enclave covered its physical memory. The remaining
-work is to provide a <code>ProtectedMemoryRange</code> adapter owned by the actual protected
-runtime and capture the receipt described below.</p>
-<p>Run the sweep in the same measured, protected execution boundary that receives
-the model key. For each fresh KBS release challenge, the runtime must:</p>
+<h1 id="broker-deployment-identity-approval-contract">Broker deployment identity: approval contract<a class="headerlink" href="#broker-deployment-identity-approval-contract" title="Permanent link">&para;</a></h1>
+<p>This is the software contract and provisional SNP adapter specification for
+<a href="https://github.com/agentrust-io/weight-custody-manifest/issues/144">#144</a>.
+It derives a deterministic owner-side approval record from local build inputs
+and constrains provisioning to the approved policy. It does <strong>not</strong> establish
+that a running broker executes those inputs. No live hardware validation of this
+profile has been performed. The <a href="../broker-boot-loader/">provisional boot builder and loader</a>
+now assemble a runtime-contained initramfs; firmware/kernel boot coverage remains
+unvalidated.</p>
+<h2 id="platform-neutral-requirements">Platform-neutral requirements<a class="headerlink" href="#platform-neutral-requirements" title="Permanent link">&para;</a></h2>
+<p>A deployment identity has three independent obligations:</p>
 <ol>
-<li>Allocate and declare the exact protected virtual and physical range being
-   tested, excluding only documented runtime-reserved pages.</li>
-<li>Derive unpredictable per-address values from protected randomness plus the
-   fresh KBS nonce. Do not accept host-supplied expected values.</li>
-<li>Visit pages in a nonce-derived permutation, write the values, issue the
-   architecture-appropriate ordering barriers, then read in a different
-   nonce-derived permutation.</li>
-<li>Detect missing, duplicated, aliased, or inconsistent locations before
-   reducing the observations to a fingerprint.</li>
-<li>Bind the range, algorithm version, challenge nonce, result, and fingerprint
-   into the same attested release attempt. The KBS must verify that binding and
-   consume the nonce even on failure.</li>
-<li>Erase temporary values before model loading continues.</li>
+<li><strong>Approval before deployment.</strong> An independent owner approves the code,
+   configuration, boot/loading chain, dependencies and platform policy. The
+   expected identity must be derivable without asking the target what to trust.</li>
+<li><strong>Evidence-to-execution binding.</strong> An authenticated platform measurement must
+   cover an approved loader that enforces those inputs. A signed guest assertion
+   or a digest supplied by an untrusted host is insufficient on its own.</li>
+<li><strong>Instance binding and continuity.</strong> Fresh evidence must bind the provisioning
+   recipient key and effective policy to this instance. Post-appraisal mutation,
+   administrative entry points, key export and restart must obey the deployment
+   contract. Approval hashes cannot enforce these properties.</li>
 </ol>
-<p>The controlled negative harness must expose two virtual locations backed by the
-same test page and show a denial. Separate cases must cover an omitted range,
-replayed result, host-authored result, and incomplete sweep.</p>
-<p>Record only algorithm/version identifiers, declared byte/page counts, nonce and
-result hashes, attestation receipt hashes, timestamps, and verdicts. Do not
-record page contents, raw quotes, provider tokens, tenant/resource identifiers,
-hostnames, IPs, customer names, or model material.</p>
-<p>Passing proves the tested address map behaved consistently during that attempt.
-It does not prove immunity to later remapping, bus probing, cold-boot extraction,
-key extraction, or every physical-memory attack.</p>
-<h2 id="lease-lapse-zeroization-and-execution-stop-issue-78">Lease lapse, zeroization, and execution stop (issue #78)<a class="headerlink" href="#lease-lapse-zeroization-and-execution-stop-issue-78" title="Permanent link">&para;</a></h2>
-<p>Use the production custody controller and the actual inference boundary:</p>
-<ol>
-<li>Start from clean persistent state, attest, receive a transport-sealed model
-   key, decrypt one protected model, and record the lease deadline.</li>
-<li>Complete one signed renewal and one successful inference.</li>
-<li>Before the next deadline, block the renewal service or revoke the workload.</li>
-<li>At the effective boundary, require the controller to emit distinct signed
-   records for <code>wipe_requested</code>, <code>wipe_completed</code>, and <code>process_terminated</code>.</li>
-<li>Attempt inference after the boundary and require failure.</li>
-<li>Inspect the controller's supported key handle—not arbitrary language memory—
-   and require the cryptographic operation to fail after zeroization.</li>
-<li>Restart from the encrypted artifacts and stale local state. Require a new
-   attestation and release before any inference can succeed.</li>
-</ol>
-<p>Run separate cases for explicit revocation and unreachable renewal service.
-Verify the signed record chain, monotonic sequence, manifest/weights identity,
-lease identifier, timestamps, and previous-record hash. Publish hashes and
-boolean outcomes, not keys, plaintext model data, raw attestation evidence, or
-environment identifiers.</p>
-<p>The result applies only to the tested controller, key API, language/runtime,
-hardware, compiler, and build. A best-effort overwrite of a Python <code>bytes</code>
-object is not proof of hardware-backed zeroization. The evidence must name the
-primitive that makes the key handle unusable and the mechanism that terminates
-in-flight and future inference.</p>
-<p>The SDK provides <code>RuntimeRecord</code>, <code>sign_runtime_record</code>, and
-<code>verify_runtime_record_chain</code> as the portable receipt contract. Records are
-Ed25519-signed and hash-chained across one weights hash, manifest hash, and lease
-identifier. A terminal proof must start with <code>lease_started</code>, may contain
-<code>renewal_succeeded</code> records, then contain exactly one <code>lapse_detected</code> or
-<code>revocation_detected</code> boundary followed—in order—by <code>wipe_requested</code>,
-<code>wipe_completed</code>, and <code>process_terminated</code>. The verifier rejects tampering,
-reordering, missing terminal events, signer substitution, and cross-lease
-splicing. The production controller must call this contract from inside its
-protected control path; signatures created by an external observer are not
-evidence of protected execution.</p>
-<h2 id="review-gate">Review gate<a class="headerlink" href="#review-gate" title="Permanent link">&para;</a></h2>
-<p>For either issue, merge only when the sanitized receipt, verifier, negative
-case, exact build identity, and rerun instructions are committed together. A
-green SDK suite confirms reference semantics; it does not substitute for this
-protected-runtime evidence.</p>
+<p>Each platform adapter must state its measurement semantics, independently
+derivable inputs, trusted computing base and unsupported cases. The first record
+format supports only <code>wcm/snp-direct-boot-initrd/v1</code>; unknown profiles are rejected.
+It does not reinterpret OCI digests, Azure PCR events, TDX measurements or
+self-reported configuration hashes as native-SNP launch measurements.</p>
+<h2 id="what-each-identifier-means">What each identifier means<a class="headerlink" href="#what-each-identifier-means" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Identifier</th>
+<th>Meaning</th>
+<th>What it does not establish</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>OCI digest</td>
+<td>Identity of an OCI object</td>
+<td>Guest launch identity or effective mounted configuration</td>
+</tr>
+<tr>
+<td>Existing image comparison snapshot</td>
+<td>Equality of selected filesystem/configuration build outputs</td>
+<td>A hardware measurement</td>
+</tr>
+<tr>
+<td>Artifact SHA-256 and size</td>
+<td>Exact independently supplied build input bytes</td>
+<td>That the artifact is present or enforced in a running guest</td>
+</tr>
+<tr>
+<td>Native-SNP measurement, 48 raw bytes</td>
+<td>Expected signed launch digest from the reviewed measurement procedure</td>
+<td>Code loaded afterward unless the measured loader authenticates it</td>
+</tr>
+<tr>
+<td>Effective configuration SHA-256</td>
+<td>Exact receiver constructor inputs and fixed profile</td>
+<td>Protection against modified code that lies about those inputs</td>
+</tr>
+<tr>
+<td>Provisioning-policy SHA-256</td>
+<td>Exact existing domain-separated policy context, including epoch and platform controls</td>
+<td>Authorization to change that policy</td>
+</tr>
+<tr>
+<td>Deployment approval identity</td>
+<td>Domain-separated SHA-256 of the canonical approval record</td>
+<td>Hardware validation, key installation or model execution</td>
+</tr>
+</tbody>
+</table>
+<p>The record commits to seven artifact roles: <code>application</code>, <code>command_line</code>,
+<code>configuration</code>, <code>firmware</code>, <code>initrd</code>, <code>kernel</code>, and <code>measurement_tool</code>, in that
+order. Each role has a SHA-256 digest and nonzero size. The application artifact
+must identify the complete approved application/dependency bundle. The tool
+artifact should identify the reviewed measurement-tool distribution and its
+reproducible environment. The separate initrd must actually contain the approved
+runtime bundle; the record generator does not inspect that relationship. The
+separate <code>wcm.boot_bundle --verify</code> command rebuilds and compares the complete
+initramfs from the runtime TAR and loader. Use it before deriving the approval;
+independent packaging review is still required before a hardware claim.</p>
+<p>Records omit local filenames and timestamps. Identity is
+<code>SHA256(domain || canonical_json)</code>, where the domain is the ASCII string
+<code>wcm/deployment-approval/v1</code> followed by one NUL byte. It is serialized as a
+<code>sha256:</code> value. Canonical JSON sorts object keys,
+uses compact separators and ASCII escapes, and preserves the required artifact
+order. Duplicate JSON members, extra fields, malformed digests, missing/repeated
+roles and unsupported profiles fail validation. Nested records are immutable.</p>
+<h2 id="derive-and-check-an-owner-approval">Derive and check an owner approval<a class="headerlink" href="#derive-and-check-an-owner-approval" title="Permanent link">&para;</a></h2>
+<p>On the trusted owner/build host, first derive the expected launch measurement
+with the independently reviewed tool, using the actual firmware, kernel,
+initrd, command line and vCPU parameters. <strong>Do not copy the measurement from a
+target report.</strong> The WCM command below hashes the inputs and checks consistency;
+it does not calculate the SNP launch digest or approve the measurement tool.</p>
+<p>Create <code>identity-inputs.json</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nt">"artifacts"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">"application"</span><span class="p">:</span><span class="w"> </span><span class="s2">"broker-runtime.tar"</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"command_line"</span><span class="p">:</span><span class="w"> </span><span class="s2">"kernel-command-line.txt"</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"configuration"</span><span class="p">:</span><span class="w"> </span><span class="s2">"approved-broker.json"</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"firmware"</span><span class="p">:</span><span class="w"> </span><span class="s2">"OVMF.fd"</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"initrd"</span><span class="p">:</span><span class="w"> </span><span class="s2">"broker-initrd.img"</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"kernel"</span><span class="p">:</span><span class="w"> </span><span class="s2">"vmlinuz"</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"measurement_tool"</span><span class="p">:</span><span class="w"> </span><span class="s2">"reviewed-measurement-tool.tar"</span>
+<span class="w">  </span><span class="p">},</span>
+<span class="w">  </span><span class="nt">"launch"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">"vmm_type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"QEMU"</span><span class="p">,</span><span class="w"> </span><span class="nt">"vcpus"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"vcpu_type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"EPYC-v4"</span><span class="p">,</span><span class="w"> </span><span class="nt">"guest_features"</span><span class="p">:</span><span class="w"> </span><span class="s2">"0x1"</span>
+<span class="w">  </span><span class="p">},</span>
+<span class="w">  </span><span class="nt">"expected_measurement_hex"</span><span class="p">:</span><span class="w"> </span><span class="s2">"&lt;96 lowercase hex characters from independent prediction&gt;"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"policy_file"</span><span class="p">:</span><span class="w"> </span><span class="s2">"approved-policy.json"</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>Replace the placeholder with the independently derived result. The approved
+policy must contain that measurement and the reviewed effective configuration
+digest. See <a href="../owner-provisioning-client/">the owner client</a> for deriving the
+effective digest from actual configuration inputs.</p>
+<div class="highlight"><pre><span></span><code>python<span class="w"> </span>-m<span class="w"> </span>wcm.deployment_identity<span class="w"> </span>identity-inputs.json<span class="w"> </span>&gt;<span class="w"> </span>approved-identity.json
+python<span class="w"> </span>-m<span class="w"> </span>wcm.deployment_identity<span class="w"> </span>identity-inputs.json<span class="w"> </span>--identity-only
+python<span class="w"> </span>-m<span class="w"> </span>wcm.deployment_identity<span class="w"> </span>identity-inputs.json<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--verify-approval<span class="w"> </span>approved-identity.json<span class="w"> </span>--expected-identity<span class="w"> </span>sha256:&lt;owner-pin&gt;
+</code></pre></div>
+<p>The last command re-derives the candidate from files and compares it to the
+independently pinned approval. Changed application/configuration bytes, launch
+parameters, tool inputs or policy produce a different identity. Protect the
+approval and its pin independently from the deployment. An attacker who can
+replace both on the owner host can change what is approved. Read and hash inputs
+from a frozen build snapshot; this command is not a concurrent filesystem-mutation
+guard or a launcher.</p>
+<p>Opt in on the owner provisioning client with both fields:</p>
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nt">"deployment_approval_file"</span><span class="p">:</span><span class="w"> </span><span class="s2">"approved-identity.json"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"deployment_approval_identity"</span><span class="p">:</span><span class="w"> </span><span class="s2">"sha256:&lt;independently approved identity&gt;"</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>These fields extend the existing owner configuration. A missing half, changed
+record, wrong pin or policy mismatch fails before contacting the broker. The
+library <code>OwnerProvisioner</code> also accepts <code>deployment_approval</code>; this object must
+come from trusted owner inputs. Its policy checks apply at construction, update
+and release. The existing signed-report verifier still authenticates the nonce,
+raw measurement, configuration/policy binding, platform fields and recipient key
+before sealing anything. No verifier is replaced by an artifact hash check.
+The wire report binds the policy referenced by the approval; it does not gain a
+new field containing the approval record or its artifact list. Their relationship
+depends on the independently reviewed measurement and packaging procedure.</p>
+<p>The approval commits to the full provisioning policy, so even an epoch-only
+update needs a newly reviewed record and a new owner instance. The existing
+durable epoch store rejects stale owners once the new policy is admitted. It
+still requires protected, nonsnapshot owner storage.</p>
+<p>Receipts include the approval identity when configured and always report
+<code>application_identity_established: false</code> in this software slice. Legacy clients
+without the optional fields retain their existing native-SNP policy behavior.
+Neither mode proves installation or protected execution.</p>
+<h2 id="provisional-adapter-snp-direct-boot-with-an-initrd-contained-broker">Provisional adapter: SNP direct boot with an initrd-contained broker<a class="headerlink" href="#provisional-adapter-snp-direct-boot-with-an-initrd-contained-broker" title="Permanent link">&para;</a></h2>
+<p>The intended chain is AMD-rooted SNP evidence → measured OVMF/initial vCPU state
+and kernel-hash metadata → approved kernel/initrd/command line → fixed broker
+entry point and complete runtime dependencies. The approved image must have no
+unmeasured executable filesystem, network package installation, interactive
+console, debug/admin shell or host-controlled interpreter/import override.</p>
+<p>VirTEE's <a href="https://github.com/virtee/sev-snp-measure">measurement tool</a> accepts
+firmware, kernel, initrd, command-line and vCPU inputs for offline prediction.
+Its output depends on these launch choices; firmware support for kernel hashes
+is required for this profile. Pin the tool and environment rather than relying
+on a moving default. This procedure specifies inputs, not a claim that WCM has
+validated a particular firmware/QEMU/kernel combination.</p>
+<p>The broker's effective configuration can be provided as untrusted <strong>data</strong> to
+the measured loader. The loader must instantiate only the fixed approved code,
+compute the digest of the actual loaded constructor inputs, and bind that digest
+and the exact provisioning policy to its freshly generated in-boundary transport
+key. The owner's existing nonce-bound report verification then checks that
+binding. <a href="https://docs.kernel.org/virt/coco/sev-guest.html">Linux's SEV guest API</a>
+allows guest-supplied report data; that field is meaningful only when the
+measurement identifies code that computes it honestly.</p>
+<p>This distinction also avoids a circular build dependency: do not embed a policy
+containing the final launch measurement into the initrd whose measurement is
+being calculated. Treat the later policy as untrusted data, enforce the measured
+loader's fixed behavior, and verify its full context from independent owner
+inputs. A mutable image or generic guest that lets arbitrary code request reports
+cannot satisfy this adapter merely by echoing the approved configuration hash.</p>
+<p>The current Python receiver and report-binding checks are reusable components.
+The provisional builder and fixed loader implement the packaging and handoff
+restrictions described in the boot guide. Their complete boot path and live
+hardware evidence remain required work. Unsupported deployment layouts
+must report the property as not established.</p>
+<h2 id="required-hardware-validation-separately-authorized">Required hardware validation, separately authorized<a class="headerlink" href="#required-hardware-validation-separately-authorized" title="Permanent link">&para;</a></h2>
+<p>Freeze and retain the source revision, build/dependency inputs, tool distribution,
+launch parameters, expected digest, approval record and independently obtained
+AMD trust inputs <strong>before</strong> launching the target. Then run:</p>
+<table>
+<thead>
+<tr>
+<th>Case</th>
+<th>Required observation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Approved image/configuration, fresh key and challenge</td>
+<td>Authenticated report matches independent prediction; only the recipient opens the sealed envelope</td>
+</tr>
+<tr>
+<td>Substituted application/dependency in initrd</td>
+<td>Re-derived digest/approval changes; owner rejects the actual mismatched report</td>
+</tr>
+<tr>
+<td>Substituted firmware/kernel/initrd/command line or vCPU state</td>
+<td>Prediction/report mismatch denies provisioning</td>
+</tr>
+<tr>
+<td>Changed runtime configuration or policy with unchanged boot image</td>
+<td>Effective-input check or signed policy binding denies before envelope creation</td>
+</tr>
+<tr>
+<td>Replaced transport key, replayed challenge or old-boot envelope</td>
+<td>Authentication/freshness fails; no successful installation in the new instance</td>
+</tr>
+<tr>
+<td>Post-appraisal file mutation or executable injection</td>
+<td>Image/loader refuses the mutation or stops admission; unchanged attestation alone is not a pass</td>
+</tr>
+<tr>
+<td>Debug/admin path, report-device access or key export attempt</td>
+<td>Denied by the deployed boundary; a Python private attribute is not protection</td>
+</tr>
+<tr>
+<td>Restart and update</td>
+<td>Fresh in-boundary key, new challenge and owner-approved policy; no inherited plaintext key or stale owner admission</td>
+</tr>
+</tbody>
+</table>
+<p>Record actual recipient/sink observations, not only reported errors. Include
+negative controls that remove the relevant restriction and cause the oracle to
+fail. Retain sanitized outcomes, exact verifier commands and limitations; raw
+reports and device-linked certificates require private handling. Software tests
+use synthetic signed SNP reports and cannot replace this run.</p>
+<p>This profile does not establish side-channel resistance, host-wide recovery,
+secure erasure, rollback-resistant runtime state or protected GPU execution.
+Issue #144 remains open until the measured loader and live substitution/runtime
+tests provide evidence for its stated deployment claim.</p>
 
 
 

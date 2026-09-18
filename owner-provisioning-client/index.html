@@ -6,17 +6,17 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Two WCM controls cannot be established by the reference SDK alone.">
+        <meta name="description" content="The owner client authenticates a fresh native-SNP broker report before sending an owner-signed, sealed model-key envelope.">
       
       
       
-        <link rel="canonical" href="https://wcm.agentrust-io.com/protected-runtime-evidence/">
+        <link rel="canonical" href="https://wcm.agentrust-io.com/owner-provisioning-client/">
       
       
-        <link rel="prev" href="../broker-boot-loader/">
+        <link rel="prev" href="../provisioned-broker-service/">
       
       
-        <link rel="next" href="../roadmap/">
+        <link rel="next" href="../broker-deployment-identity/">
       
       
         
@@ -26,7 +26,7 @@
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
     
     
-  <title>Protected-runtime evidence - Weight Custody Manifest</title>
+  <title>Owner provisioning client - Weight Custody Manifest</title>
 
     
       <link rel="stylesheet" href="../assets/stylesheets/main.ec1eaa64.min.css">
@@ -64,9 +64,9 @@
 
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="AgenTrust">
-  <meta property="og:title" content="Protected-runtime evidence - Weight Custody Manifest">
-  <meta property="og:description" content="Two WCM controls cannot be established by the reference SDK alone.">
-  <meta property="og:url" content="https://wcm.agentrust-io.com/protected-runtime-evidence/">
+  <meta property="og:title" content="Owner provisioning client - Weight Custody Manifest">
+  <meta property="og:description" content="The owner client authenticates a fresh native-SNP broker report before sending an owner-signed, sealed model-key envelope.">
+  <meta property="og:url" content="https://wcm.agentrust-io.com/owner-provisioning-client/">
   <meta property="og:locale" content="en_US">
   <meta property="og:image" content="https://wcm.agentrust-io.com/assets/og.png">
   <meta property="og:image:width" content="1200">
@@ -74,8 +74,8 @@
   <meta property="og:image:alt" content="Weight Custody Manifest: release model weights only to an attested runtime">
 
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Protected-runtime evidence - Weight Custody Manifest">
-  <meta name="twitter:description" content="Two WCM controls cannot be established by the reference SDK alone.">
+  <meta name="twitter:title" content="Owner provisioning client - Weight Custody Manifest">
+  <meta name="twitter:description" content="The owner client authenticates a fresh native-SNP broker report before sending an owner-signed, sealed model-key envelope.">
   <meta name="twitter:image" content="https://wcm.agentrust-io.com/assets/og.png">
 
   <script type="application/ld+json">
@@ -107,11 +107,11 @@
       },
       {
         "@type": "TechArticle",
-        "@id": "https://wcm.agentrust-io.com/protected-runtime-evidence/#page",
-        "url": "https://wcm.agentrust-io.com/protected-runtime-evidence/",
-        "name": "Protected-runtime evidence - Weight Custody Manifest",
-        "headline": "Protected-runtime evidence - Weight Custody Manifest",
-        "description": "Two WCM controls cannot be established by the reference SDK alone.",
+        "@id": "https://wcm.agentrust-io.com/owner-provisioning-client/#page",
+        "url": "https://wcm.agentrust-io.com/owner-provisioning-client/",
+        "name": "Owner provisioning client - Weight Custody Manifest",
+        "headline": "Owner provisioning client - Weight Custody Manifest",
+        "description": "The owner client authenticates a fresh native-SNP broker report before sending an owner-signed, sealed model-key envelope.",
         "inLanguage": "en",
         "isPartOf": { "@id": "https://wcm.agentrust-io.com/#website" },
         "publisher": { "@id": "https://agentrust-io.com/#organization" }
@@ -120,7 +120,7 @@
         "@type": "BreadcrumbList",
         "itemListElement": [
           { "@type": "ListItem", "position": 1, "name": "Weight Custody Manifest", "item": "https://wcm.agentrust-io.com/" },
-          { "@type": "ListItem", "position": 2, "name": "Protected-runtime evidence - Weight Custody Manifest", "item": "https://wcm.agentrust-io.com/protected-runtime-evidence/" }
+          { "@type": "ListItem", "position": 2, "name": "Owner provisioning client - Weight Custody Manifest", "item": "https://wcm.agentrust-io.com/owner-provisioning-client/" }
         ]
       }
     ]
@@ -146,7 +146,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#protected-runtime-evidence-plan" class="md-skip">
+        <a href="#owner-side-provisioning-client" class="md-skip">
           Skip to content
         </a>
       
@@ -182,7 +182,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Protected-runtime evidence
+              Owner provisioning client
             
           </span>
         </div>
@@ -949,10 +949,37 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../owner-provisioning-client/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Owner provisioning client
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -968,6 +995,59 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Configuration
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#execute-once" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Execute once
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#remaining-deployment-work" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Remaining deployment work
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -1033,37 +1113,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Protected-runtime evidence
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../protected-runtime-evidence/" class="md-nav__link">
         
   
   
@@ -1079,59 +1132,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#protected-memory-fingerprint-sweep-issue-79" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Protected-memory fingerprint sweep (issue #79)
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#lease-lapse-zeroization-and-execution-stop-issue-78" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Lease lapse, zeroization, and execution stop (issue #78)
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#review-gate" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Review gate
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -1426,10 +1426,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#protected-memory-fingerprint-sweep-issue-79" class="md-nav__link">
+  <a href="#configuration" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Protected-memory fingerprint sweep (issue #79)
+        Configuration
       
     </span>
   </a>
@@ -1437,10 +1437,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#lease-lapse-zeroization-and-execution-stop-issue-78" class="md-nav__link">
+  <a href="#execute-once" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Lease lapse, zeroization, and execution stop (issue #78)
+        Execute once
       
     </span>
   </a>
@@ -1448,10 +1448,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#review-gate" class="md-nav__link">
+  <a href="#remaining-deployment-work" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Review gate
+        Remaining deployment work
       
     </span>
   </a>
@@ -1526,94 +1526,94 @@
   
 
 
-<h1 id="protected-runtime-evidence-plan">Protected-runtime evidence plan<a class="headerlink" href="#protected-runtime-evidence-plan" title="Permanent link">&para;</a></h1>
-<p>Two WCM controls cannot be established by the reference SDK alone. This page
-defines the evidence a protected-runtime implementation must produce before the
-project closes the corresponding issues. A unit-test simulation is useful for
-development but is not acceptable proof.</p>
-<h2 id="protected-memory-fingerprint-sweep-issue-79">Protected-memory fingerprint sweep (issue #79)<a class="headerlink" href="#protected-memory-fingerprint-sweep-issue-79" title="Permanent link">&para;</a></h2>
-<p>The SDK supplies <code>BytearrayMemoryRange</code>, <code>run_memory_sweep</code>, and
-<code>verify_memory_sweep</code> as the executable reference contract. The runner derives
-different full-page values and write/read permutations from protected secret
-material plus the fresh KBS nonce, writes and reads every declared page, detects
-inconsistent mappings, and signs the complete transcript with Ed25519. The KBS
-fails closed unless a policy-pinned sweep public key verifies that transcript;
-its production default does not accept the earlier unsigned structural shape.
-Language-neutral conformance vectors retain an explicitly isolated declarative
-mode because the frozen v1 vectors cannot carry a signature over a runtime nonce.</p>
-<p>This implementation executes over a real allocated byte range and its controlled
-test adapter detects aliased logical pages. That is reference-algorithm evidence,
-not proof that a production enclave covered its physical memory. The remaining
-work is to provide a <code>ProtectedMemoryRange</code> adapter owned by the actual protected
-runtime and capture the receipt described below.</p>
-<p>Run the sweep in the same measured, protected execution boundary that receives
-the model key. For each fresh KBS release challenge, the runtime must:</p>
-<ol>
-<li>Allocate and declare the exact protected virtual and physical range being
-   tested, excluding only documented runtime-reserved pages.</li>
-<li>Derive unpredictable per-address values from protected randomness plus the
-   fresh KBS nonce. Do not accept host-supplied expected values.</li>
-<li>Visit pages in a nonce-derived permutation, write the values, issue the
-   architecture-appropriate ordering barriers, then read in a different
-   nonce-derived permutation.</li>
-<li>Detect missing, duplicated, aliased, or inconsistent locations before
-   reducing the observations to a fingerprint.</li>
-<li>Bind the range, algorithm version, challenge nonce, result, and fingerprint
-   into the same attested release attempt. The KBS must verify that binding and
-   consume the nonce even on failure.</li>
-<li>Erase temporary values before model loading continues.</li>
-</ol>
-<p>The controlled negative harness must expose two virtual locations backed by the
-same test page and show a denial. Separate cases must cover an omitted range,
-replayed result, host-authored result, and incomplete sweep.</p>
-<p>Record only algorithm/version identifiers, declared byte/page counts, nonce and
-result hashes, attestation receipt hashes, timestamps, and verdicts. Do not
-record page contents, raw quotes, provider tokens, tenant/resource identifiers,
-hostnames, IPs, customer names, or model material.</p>
-<p>Passing proves the tested address map behaved consistently during that attempt.
-It does not prove immunity to later remapping, bus probing, cold-boot extraction,
-key extraction, or every physical-memory attack.</p>
-<h2 id="lease-lapse-zeroization-and-execution-stop-issue-78">Lease lapse, zeroization, and execution stop (issue #78)<a class="headerlink" href="#lease-lapse-zeroization-and-execution-stop-issue-78" title="Permanent link">&para;</a></h2>
-<p>Use the production custody controller and the actual inference boundary:</p>
-<ol>
-<li>Start from clean persistent state, attest, receive a transport-sealed model
-   key, decrypt one protected model, and record the lease deadline.</li>
-<li>Complete one signed renewal and one successful inference.</li>
-<li>Before the next deadline, block the renewal service or revoke the workload.</li>
-<li>At the effective boundary, require the controller to emit distinct signed
-   records for <code>wipe_requested</code>, <code>wipe_completed</code>, and <code>process_terminated</code>.</li>
-<li>Attempt inference after the boundary and require failure.</li>
-<li>Inspect the controller's supported key handle—not arbitrary language memory—
-   and require the cryptographic operation to fail after zeroization.</li>
-<li>Restart from the encrypted artifacts and stale local state. Require a new
-   attestation and release before any inference can succeed.</li>
-</ol>
-<p>Run separate cases for explicit revocation and unreachable renewal service.
-Verify the signed record chain, monotonic sequence, manifest/weights identity,
-lease identifier, timestamps, and previous-record hash. Publish hashes and
-boolean outcomes, not keys, plaintext model data, raw attestation evidence, or
-environment identifiers.</p>
-<p>The result applies only to the tested controller, key API, language/runtime,
-hardware, compiler, and build. A best-effort overwrite of a Python <code>bytes</code>
-object is not proof of hardware-backed zeroization. The evidence must name the
-primitive that makes the key handle unusable and the mechanism that terminates
-in-flight and future inference.</p>
-<p>The SDK provides <code>RuntimeRecord</code>, <code>sign_runtime_record</code>, and
-<code>verify_runtime_record_chain</code> as the portable receipt contract. Records are
-Ed25519-signed and hash-chained across one weights hash, manifest hash, and lease
-identifier. A terminal proof must start with <code>lease_started</code>, may contain
-<code>renewal_succeeded</code> records, then contain exactly one <code>lapse_detected</code> or
-<code>revocation_detected</code> boundary followed—in order—by <code>wipe_requested</code>,
-<code>wipe_completed</code>, and <code>process_terminated</code>. The verifier rejects tampering,
-reordering, missing terminal events, signer substitution, and cross-lease
-splicing. The production controller must call this contract from inside its
-protected control path; signatures created by an external observer are not
-evidence of protected execution.</p>
-<h2 id="review-gate">Review gate<a class="headerlink" href="#review-gate" title="Permanent link">&para;</a></h2>
-<p>For either issue, merge only when the sanitized receipt, verifier, negative
-case, exact build identity, and rerun instructions are committed together. A
-green SDK suite confirms reference semantics; it does not substitute for this
-protected-runtime evidence.</p>
+<h1 id="owner-side-provisioning-client">Owner-side provisioning client<a class="headerlink" href="#owner-side-provisioning-client" title="Permanent link">&para;</a></h1>
+<p>The owner client authenticates a fresh native-SNP broker report before sending
+an owner-signed, sealed model-key envelope. The model key and signing private key
+stay on the owner host; neither is sent as a plaintext HTTP field. The receiver
+service is described in <a href="../provisioned-broker-service/">Provisioned broker service</a>.</p>
+<p>Run the client on a trusted owner machine with the WCM package installed. Its
+configuration, key files, epoch database and namespace must be protected from
+the broker operator and from rollback. This is a reference client, not a KMS or
+a protected key-storage implementation.</p>
+<h2 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Permanent link">&para;</a></h2>
+<p>An owner JSON configuration requires these fields:</p>
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nt">"policy_file"</span><span class="p">:</span><span class="w"> </span><span class="s2">"approved-policy.json"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"owner_signing_key_file"</span><span class="p">:</span><span class="w"> </span><span class="s2">"owner-private.raw"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"amd_root_file"</span><span class="p">:</span><span class="w"> </span><span class="s2">"amd-root.pem"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"broker_vcek_file"</span><span class="p">:</span><span class="w"> </span><span class="s2">"broker-vcek.pem"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"broker_intermediate_files"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">"amd-ask.pem"</span><span class="p">],</span>
+<span class="w">  </span><span class="nt">"model_key_file"</span><span class="p">:</span><span class="w"> </span><span class="s2">"model-key.raw"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"epoch_database"</span><span class="p">:</span><span class="w"> </span><span class="s2">"owner-epochs.sqlite"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"epoch_namespace"</span><span class="p">:</span><span class="w"> </span><span class="s2">"broker-production"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"broker_url"</span><span class="p">:</span><span class="w"> </span><span class="s2">"https://broker.example"</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>Paths are relative to this JSON file. The Ed25519 signing key is 32 raw private
+bytes; the model key is 16, 24 or 32 raw bytes. Certificates are PEM. The AMD root
+must come from an independently trusted source. Supply the VCEK and intermediate
+chain appropriate to the broker; the client verifies their signatures and chain
+against that root. Certificate presence alone is not approval.</p>
+<p>The optional <code>deployment_approval_file</code> and <code>deployment_approval_identity</code> fields
+must appear together. They pin a separately approved build/launch/policy record
+before any broker request. See <a href="../broker-deployment-identity/">Broker deployment identity</a>
+for derivation, substitution checks and the provisional hardware adapter.</p>
+<p><code>approved-policy.json</code> contains the exact <code>BrokerProvisioningPolicy</code> fields:
+<code>measurement_hex</code>, <code>configuration_sha256</code>, <code>weights_hash</code>, <code>epoch</code>, <code>guest_policy</code>,
+<code>minimum_tcb_le_hex</code>, <code>required_platform_fields</code>, and <code>forbidden_platform_fields</code>.
+Platform fields are JSON string arrays. The image measurement, TCB floor and
+platform requirements must come from the owner's approval process. Do not fill
+them from a report merely because that report arrived during provisioning.</p>
+<p>The broker configuration format is in the service guide. Compute its digest
+from the actual approved certificate bytes, owner public key, manifest identities
+and fixed verifier profile:</p>
+<div class="highlight"><pre><span></span><code>python<span class="w"> </span>-m<span class="w"> </span>wcm.provisioning_wire<span class="w"> </span>approved-broker.json
+</code></pre></div>
+<p>This command computes a candidate digest; it does not approve a deployment. The
+input policy must be structurally valid, but its existing configuration digest
+is not used to compute the candidate. The owner reviews the effective inputs and
+places the approved result into both policy copies. The broker factory refuses
+to start when the local effective configuration differs. Bind that factory,
+configuration and code to the measured deployment; a mutable host can otherwise
+replace them. A container digest alone is not an SNP launch measurement.</p>
+<h2 id="execute-once">Execute once<a class="headerlink" href="#execute-once" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code>python<span class="w"> </span>-m<span class="w"> </span>wcm.owner_provision<span class="w"> </span>owner.json
+</code></pre></div>
+<p>The client first admits the approved policy through the durable owner epoch
+guard, then issues a fresh challenge. It asks the broker to collect native SNP
+evidence bound to its boot key and configuration. Only after authenticating that
+evidence and applying owner policy does it send the sealed envelope for installation.
+Responses are size-limited, redirects and environment proxies are disabled, and
+there is no automatic retry. TLS uses the normal verified system trust context;
+there is no insecure-TLS option.</p>
+<p>For a local development service only, <code>--allow-loopback-http</code> permits HTTP to
+<code>localhost</code> or a literal loopback IP. It does not permit plaintext HTTP to remote
+hosts. Synthetic loopback tests exercise the wire path but do not establish
+hardware protection.</p>
+<p>On acknowledgement, the client prints a minimized JSON receipt with the policy
+and report digests, epoch, <code>broker_acknowledged: true</code> and
+<code>installation_proven: false</code>. It also reports the optional deployment approval
+identity and <code>application_identity_established: false</code>; record consistency is
+not measured execution evidence. A server acknowledgement is not an attested proof
+that installation occurred. On failure the CLI prints only the exception type
+and an unknown-outcome message; it does not echo file contents, upstream error
+bodies or private keys. Protect receipts because report digests can be linkable.</p>
+<p>If a timeout occurs after sending the envelope, the broker may already have
+installed it. Do not automatically replay or restart provisioning. Reconcile
+the deployment through its separately authenticated control plane. The reference
+API intentionally has no remote retirement or status-proof endpoint.</p>
+<h2 id="remaining-deployment-work">Remaining deployment work<a class="headerlink" href="#remaining-deployment-work" title="Permanent link">&para;</a></h2>
+<p>The service has one in-memory receiver per process. Its management ingress needs
+operator access controls and rate/body limits: an unauthenticated caller can
+consume or replace pending challenges and cause denial of service. Envelopes
+authenticate the owner and report appraisal authenticates the recipient key;
+these checks do not provide availability or authenticate ordinary HTTP clients.</p>
+<p>Use one worker per broker instance. Process restart requires fresh provisioning
+with a fresh boot key. Protect native-SNP device access, the image and effective
+configuration, clocks and guest privileges. The epoch store must reside on
+trusted nonsnapshot owner storage. Policy advancement does not erase a key from
+an already provisioned receiver. Secure erasure, recovery, revocation, firmware
+currency and protected CPU/GPU model execution still need separate evidence.</p>
 
 
 

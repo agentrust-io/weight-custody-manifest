@@ -6,17 +6,17 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Two WCM controls cannot be established by the reference SDK alone.">
+        <meta name="description" content="wcm.broker_server runs the native-SNP receiver lifecycle over HTTP.">
       
       
       
-        <link rel="canonical" href="https://wcm.agentrust-io.com/protected-runtime-evidence/">
+        <link rel="canonical" href="https://wcm.agentrust-io.com/provisioned-broker-service/">
       
       
-        <link rel="prev" href="../broker-boot-loader/">
+        <link rel="prev" href="../reference-kbs/">
       
       
-        <link rel="next" href="../roadmap/">
+        <link rel="next" href="../owner-provisioning-client/">
       
       
         
@@ -26,7 +26,7 @@
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
     
     
-  <title>Protected-runtime evidence - Weight Custody Manifest</title>
+  <title>Provisioned receiver service - Weight Custody Manifest</title>
 
     
       <link rel="stylesheet" href="../assets/stylesheets/main.ec1eaa64.min.css">
@@ -64,9 +64,9 @@
 
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="AgenTrust">
-  <meta property="og:title" content="Protected-runtime evidence - Weight Custody Manifest">
-  <meta property="og:description" content="Two WCM controls cannot be established by the reference SDK alone.">
-  <meta property="og:url" content="https://wcm.agentrust-io.com/protected-runtime-evidence/">
+  <meta property="og:title" content="Provisioned receiver service - Weight Custody Manifest">
+  <meta property="og:description" content="wcm.broker_server runs the native-SNP receiver lifecycle over HTTP.">
+  <meta property="og:url" content="https://wcm.agentrust-io.com/provisioned-broker-service/">
   <meta property="og:locale" content="en_US">
   <meta property="og:image" content="https://wcm.agentrust-io.com/assets/og.png">
   <meta property="og:image:width" content="1200">
@@ -74,8 +74,8 @@
   <meta property="og:image:alt" content="Weight Custody Manifest: release model weights only to an attested runtime">
 
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Protected-runtime evidence - Weight Custody Manifest">
-  <meta name="twitter:description" content="Two WCM controls cannot be established by the reference SDK alone.">
+  <meta name="twitter:title" content="Provisioned receiver service - Weight Custody Manifest">
+  <meta name="twitter:description" content="wcm.broker_server runs the native-SNP receiver lifecycle over HTTP.">
   <meta name="twitter:image" content="https://wcm.agentrust-io.com/assets/og.png">
 
   <script type="application/ld+json">
@@ -107,11 +107,11 @@
       },
       {
         "@type": "TechArticle",
-        "@id": "https://wcm.agentrust-io.com/protected-runtime-evidence/#page",
-        "url": "https://wcm.agentrust-io.com/protected-runtime-evidence/",
-        "name": "Protected-runtime evidence - Weight Custody Manifest",
-        "headline": "Protected-runtime evidence - Weight Custody Manifest",
-        "description": "Two WCM controls cannot be established by the reference SDK alone.",
+        "@id": "https://wcm.agentrust-io.com/provisioned-broker-service/#page",
+        "url": "https://wcm.agentrust-io.com/provisioned-broker-service/",
+        "name": "Provisioned receiver service - Weight Custody Manifest",
+        "headline": "Provisioned receiver service - Weight Custody Manifest",
+        "description": "wcm.broker_server runs the native-SNP receiver lifecycle over HTTP.",
         "inLanguage": "en",
         "isPartOf": { "@id": "https://wcm.agentrust-io.com/#website" },
         "publisher": { "@id": "https://agentrust-io.com/#organization" }
@@ -120,7 +120,7 @@
         "@type": "BreadcrumbList",
         "itemListElement": [
           { "@type": "ListItem", "position": 1, "name": "Weight Custody Manifest", "item": "https://wcm.agentrust-io.com/" },
-          { "@type": "ListItem", "position": 2, "name": "Protected-runtime evidence - Weight Custody Manifest", "item": "https://wcm.agentrust-io.com/protected-runtime-evidence/" }
+          { "@type": "ListItem", "position": 2, "name": "Provisioned receiver service - Weight Custody Manifest", "item": "https://wcm.agentrust-io.com/provisioned-broker-service/" }
         ]
       }
     ]
@@ -146,7 +146,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#protected-runtime-evidence-plan" class="md-skip">
+        <a href="#provisioned-broker-receiver-service" class="md-skip">
           Skip to content
         </a>
       
@@ -182,7 +182,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Protected-runtime evidence
+              Provisioned receiver service
             
           </span>
         </div>
@@ -921,10 +921,37 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../provisioned-broker-service/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Provisioned receiver service
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -940,6 +967,76 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#configuration-and-startup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Configuration and startup
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Configuration and startup">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#container-target" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Container target
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#protocol" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Protocol
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#deployment-boundary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Deployment boundary
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -1033,37 +1130,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Protected-runtime evidence
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../protected-runtime-evidence/" class="md-nav__link">
         
   
   
@@ -1079,59 +1149,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#protected-memory-fingerprint-sweep-issue-79" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Protected-memory fingerprint sweep (issue #79)
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#lease-lapse-zeroization-and-execution-stop-issue-78" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Lease lapse, zeroization, and execution stop (issue #78)
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#review-gate" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Review gate
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -1426,10 +1443,38 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#protected-memory-fingerprint-sweep-issue-79" class="md-nav__link">
+  <a href="#configuration-and-startup" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Protected-memory fingerprint sweep (issue #79)
+        Configuration and startup
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Configuration and startup">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#container-target" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Container target
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#protocol" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Protocol
       
     </span>
   </a>
@@ -1437,21 +1482,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#lease-lapse-zeroization-and-execution-stop-issue-78" class="md-nav__link">
+  <a href="#deployment-boundary" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Lease lapse, zeroization, and execution stop (issue #78)
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#review-gate" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Review gate
+        Deployment boundary
       
     </span>
   </a>
@@ -1526,94 +1560,149 @@
   
 
 
-<h1 id="protected-runtime-evidence-plan">Protected-runtime evidence plan<a class="headerlink" href="#protected-runtime-evidence-plan" title="Permanent link">&para;</a></h1>
-<p>Two WCM controls cannot be established by the reference SDK alone. This page
-defines the evidence a protected-runtime implementation must produce before the
-project closes the corresponding issues. A unit-test simulation is useful for
-development but is not acceptable proof.</p>
-<h2 id="protected-memory-fingerprint-sweep-issue-79">Protected-memory fingerprint sweep (issue #79)<a class="headerlink" href="#protected-memory-fingerprint-sweep-issue-79" title="Permanent link">&para;</a></h2>
-<p>The SDK supplies <code>BytearrayMemoryRange</code>, <code>run_memory_sweep</code>, and
-<code>verify_memory_sweep</code> as the executable reference contract. The runner derives
-different full-page values and write/read permutations from protected secret
-material plus the fresh KBS nonce, writes and reads every declared page, detects
-inconsistent mappings, and signs the complete transcript with Ed25519. The KBS
-fails closed unless a policy-pinned sweep public key verifies that transcript;
-its production default does not accept the earlier unsigned structural shape.
-Language-neutral conformance vectors retain an explicitly isolated declarative
-mode because the frozen v1 vectors cannot carry a signature over a runtime nonce.</p>
-<p>This implementation executes over a real allocated byte range and its controlled
-test adapter detects aliased logical pages. That is reference-algorithm evidence,
-not proof that a production enclave covered its physical memory. The remaining
-work is to provide a <code>ProtectedMemoryRange</code> adapter owned by the actual protected
-runtime and capture the receipt described below.</p>
-<p>Run the sweep in the same measured, protected execution boundary that receives
-the model key. For each fresh KBS release challenge, the runtime must:</p>
-<ol>
-<li>Allocate and declare the exact protected virtual and physical range being
-   tested, excluding only documented runtime-reserved pages.</li>
-<li>Derive unpredictable per-address values from protected randomness plus the
-   fresh KBS nonce. Do not accept host-supplied expected values.</li>
-<li>Visit pages in a nonce-derived permutation, write the values, issue the
-   architecture-appropriate ordering barriers, then read in a different
-   nonce-derived permutation.</li>
-<li>Detect missing, duplicated, aliased, or inconsistent locations before
-   reducing the observations to a fingerprint.</li>
-<li>Bind the range, algorithm version, challenge nonce, result, and fingerprint
-   into the same attested release attempt. The KBS must verify that binding and
-   consume the nonce even on failure.</li>
-<li>Erase temporary values before model loading continues.</li>
-</ol>
-<p>The controlled negative harness must expose two virtual locations backed by the
-same test page and show a denial. Separate cases must cover an omitted range,
-replayed result, host-authored result, and incomplete sweep.</p>
-<p>Record only algorithm/version identifiers, declared byte/page counts, nonce and
-result hashes, attestation receipt hashes, timestamps, and verdicts. Do not
-record page contents, raw quotes, provider tokens, tenant/resource identifiers,
-hostnames, IPs, customer names, or model material.</p>
-<p>Passing proves the tested address map behaved consistently during that attempt.
-It does not prove immunity to later remapping, bus probing, cold-boot extraction,
-key extraction, or every physical-memory attack.</p>
-<h2 id="lease-lapse-zeroization-and-execution-stop-issue-78">Lease lapse, zeroization, and execution stop (issue #78)<a class="headerlink" href="#lease-lapse-zeroization-and-execution-stop-issue-78" title="Permanent link">&para;</a></h2>
-<p>Use the production custody controller and the actual inference boundary:</p>
-<ol>
-<li>Start from clean persistent state, attest, receive a transport-sealed model
-   key, decrypt one protected model, and record the lease deadline.</li>
-<li>Complete one signed renewal and one successful inference.</li>
-<li>Before the next deadline, block the renewal service or revoke the workload.</li>
-<li>At the effective boundary, require the controller to emit distinct signed
-   records for <code>wipe_requested</code>, <code>wipe_completed</code>, and <code>process_terminated</code>.</li>
-<li>Attempt inference after the boundary and require failure.</li>
-<li>Inspect the controller's supported key handle—not arbitrary language memory—
-   and require the cryptographic operation to fail after zeroization.</li>
-<li>Restart from the encrypted artifacts and stale local state. Require a new
-   attestation and release before any inference can succeed.</li>
-</ol>
-<p>Run separate cases for explicit revocation and unreachable renewal service.
-Verify the signed record chain, monotonic sequence, manifest/weights identity,
-lease identifier, timestamps, and previous-record hash. Publish hashes and
-boolean outcomes, not keys, plaintext model data, raw attestation evidence, or
-environment identifiers.</p>
-<p>The result applies only to the tested controller, key API, language/runtime,
-hardware, compiler, and build. A best-effort overwrite of a Python <code>bytes</code>
-object is not proof of hardware-backed zeroization. The evidence must name the
-primitive that makes the key handle unusable and the mechanism that terminates
-in-flight and future inference.</p>
-<p>The SDK provides <code>RuntimeRecord</code>, <code>sign_runtime_record</code>, and
-<code>verify_runtime_record_chain</code> as the portable receipt contract. Records are
-Ed25519-signed and hash-chained across one weights hash, manifest hash, and lease
-identifier. A terminal proof must start with <code>lease_started</code>, may contain
-<code>renewal_succeeded</code> records, then contain exactly one <code>lapse_detected</code> or
-<code>revocation_detected</code> boundary followed—in order—by <code>wipe_requested</code>,
-<code>wipe_completed</code>, and <code>process_terminated</code>. The verifier rejects tampering,
-reordering, missing terminal events, signer substitution, and cross-lease
-splicing. The production controller must call this contract from inside its
-protected control path; signatures created by an external observer are not
-evidence of protected execution.</p>
-<h2 id="review-gate">Review gate<a class="headerlink" href="#review-gate" title="Permanent link">&para;</a></h2>
-<p>For either issue, merge only when the sanitized receipt, verifier, negative
-case, exact build identity, and rerun instructions are committed together. A
-green SDK suite confirms reference semantics; it does not substitute for this
-protected-runtime evidence.</p>
+<h1 id="provisioned-broker-receiver-service">Provisioned broker receiver service<a class="headerlink" href="#provisioned-broker-receiver-service" title="Permanent link">&para;</a></h1>
+<p><code>wcm.broker_server</code> runs the native-SNP receiver lifecycle over HTTP. It starts
+without model keys and accepts only an owner-authenticated sealed provisioning
+envelope. It uses the <code>server</code> package extra and does not read
+<code>WCM_KEYSTORE_FILE</code>. The original <code>wcm.server</code> remains a separate mounted-key
+reference service.</p>
+<h2 id="configuration-and-startup">Configuration and startup<a class="headerlink" href="#configuration-and-startup" title="Permanent link">&para;</a></h2>
+<p>Set <code>WCM_BROKER_CONFIG_FILE</code> to a JSON document with exactly two top-level fields:
+<code>configuration</code> and <code>policy</code>. Certificate paths and the public-key path are
+relative to that file. All are read once at startup.</p>
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nt">"configuration"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">"cpu_root_file"</span><span class="p">:</span><span class="w"> </span><span class="s2">"cpu-root.pem"</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"cpu_vcek_file"</span><span class="p">:</span><span class="w"> </span><span class="s2">"workload-vcek.pem"</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"cpu_intermediate_files"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">"cpu-ask.pem"</span><span class="p">],</span>
+<span class="w">    </span><span class="nt">"trusted_manifest_identities"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">"sha256:&lt;approved-manifest-identity&gt;"</span><span class="p">],</span>
+<span class="w">    </span><span class="nt">"owner_public_key_file"</span><span class="p">:</span><span class="w"> </span><span class="s2">"owner-ed25519.pub"</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"gpu_root_file"</span><span class="p">:</span><span class="w"> </span><span class="s2">"nvidia-device-root.pem"</span>
+<span class="w">  </span><span class="p">},</span>
+<span class="w">  </span><span class="nt">"policy"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">"measurement_hex"</span><span class="p">:</span><span class="w"> </span><span class="s2">"&lt;approved-broker-48-byte-SNP-measurement-as-96-hex-characters&gt;"</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"configuration_sha256"</span><span class="p">:</span><span class="w"> </span><span class="s2">"&lt;approved-effective-configuration-digest&gt;"</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"weights_hash"</span><span class="p">:</span><span class="w"> </span><span class="s2">"sha256:&lt;approved-weight-artifact-digest&gt;"</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"epoch"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"guest_policy"</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"minimum_tcb_le_hex"</span><span class="p">:</span><span class="w"> </span><span class="s2">"&lt;owner-chosen-eight-byte-TCB-floor-as-16-hex-characters&gt;"</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"required_platform_fields"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">"ciphertext_hiding_en"</span><span class="p">,</span><span class="w"> </span><span class="s2">"alias_check_complete"</span><span class="p">],</span>
+<span class="w">    </span><span class="nt">"forbidden_platform_fields"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">"smt_en"</span><span class="p">]</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>Replace every placeholder with independently approved values. <code>guest_policy: 0</code>
+is illustrative, not a recommended hardware policy; choose the exact acceptable
+guest-policy word for the deployment, with DEBUG disabled. Select the TCB floor
+for the CPU generation. <code>owner-ed25519.pub</code> contains the raw 32-byte public key,
+not a private signing key. Certificates are PEM and normalized to DER for the
+effective configuration hash. Omit <code>gpu_root_file</code> for CPU-only workloads; GPU
+claims will then be refused. Unknown or duplicate JSON fields are rejected.</p>
+<p>The owner approves <code>BrokerEffectiveConfiguration.digest()</code> for these actual
+inputs. Startup constructs the receiver from those same inputs and refuses an
+owner-policy digest mismatch. No model key belongs in this JSON or any receiver
+environment variable.</p>
+<div class="highlight"><pre><span></span><code><span class="nb">export</span><span class="w"> </span><span class="nv">WCM_BROKER_CONFIG_FILE</span><span class="o">=</span>/run/wcm/broker.json
+uvicorn<span class="w"> </span>wcm.broker_server:app_from_env<span class="w"> </span>--factory<span class="w"> </span>--workers<span class="w"> </span><span class="m">1</span><span class="w"> </span>--host<span class="w"> </span><span class="m">127</span>.0.0.1<span class="w"> </span>--port<span class="w"> </span><span class="m">8080</span>
+</code></pre></div>
+<p>Use one process per broker instance: each process has a different boot key and
+provisioning state. Run on a native SEV-SNP guest exposing <code>/dev/sev-guest</code>.
+Azure vTPM-backed SNP and software providers are not substitutes for this path.</p>
+<h3 id="container-target">Container target<a class="headerlink" href="#container-target" title="Permanent link">&para;</a></h3>
+<p>Build the explicit receiver target; the default Docker build retains the
+mounted-key reference entry point:</p>
+<div class="highlight"><pre><span></span><code>docker<span class="w"> </span>build<span class="w"> </span>--target<span class="w"> </span>provisioned<span class="w"> </span>-f<span class="w"> </span>python/docker/Dockerfile<span class="w"> </span>-t<span class="w"> </span>wcm-broker<span class="w"> </span>.
+docker<span class="w"> </span>run<span class="w"> </span>--rm<span class="w"> </span>--read-only<span class="w"> </span>--cap-drop<span class="w"> </span>ALL<span class="w"> </span>--security-opt<span class="w"> </span>no-new-privileges<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-p<span class="w"> </span><span class="m">127</span>.0.0.1:8080:8080<span class="w"> </span>-v<span class="w"> </span><span class="s2">"</span><span class="nv">$PWD</span><span class="s2">/approved-config:/run/wcm:ro"</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-e<span class="w"> </span><span class="nv">WCM_BROKER_CONFIG_FILE</span><span class="o">=</span>/run/wcm/broker.json<span class="w"> </span>wcm-broker
+</code></pre></div>
+<p>This deliberately omits device access: on an ordinary host, health succeeds but
+provisioning reports fail with 503. On an approved native-SNP guest, the deployment
+must grant the broker user narrowly scoped access to <code>/dev/sev-guest</code> and expose
+that device to the container. Do not grant <code>--privileged</code> or change to root just
+to bypass an access failure. Device permissions, the guest kernel and launcher
+are part of the trusted deployment and must be approved with the image.</p>
+<p>CI exercises the installed image using synthetic public configuration, verifies
+missing-hardware denial, UID 10001, no effective capabilities, no-new-privileges
+and read-only root configuration. It builds both targets twice and retains
+filesystem/runtime-configuration snapshots. These are same-runner build and
+container observations, not evidence of SNP-protected execution. The snapshot
+SHA256 is not an SNP launch measurement or an OCI digest. A measured deployment
+must bind the selected command, effective configuration and runtime overrides;
+reproducible image files alone do not supply that binding.</p>
+<p>The <a href="../owner-provisioning-client/">owner provisioning client</a> performs the
+challenge, independent report verification and sealed installation exchange:
+<code>python -m wcm.owner_provision owner.json</code>. HTTPS is required by default;
+<code>--allow-loopback-http</code> is reserved for local development. Its guide documents
+the separate owner configuration and effective-configuration digest command.</p>
+<h2 id="protocol">Protocol<a class="headerlink" href="#protocol" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Endpoint</th>
+<th>Request</th>
+<th>Response</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>GET /health</code></td>
+<td>None</td>
+<td><code>{"status":"ok"}</code>; availability only</td>
+</tr>
+<tr>
+<td><code>POST /provisioning/report</code></td>
+<td><code>nonce</code>, <code>issued_at</code>, <code>expires_at</code></td>
+<td><code>report_b64</code>, <code>transport_public_key</code></td>
+</tr>
+<tr>
+<td><code>POST /provisioning/install</code></td>
+<td><code>nonce</code>, <code>ciphertext_b64</code>, <code>owner_signature_b64</code></td>
+<td><code>{"installed":true}</code></td>
+</tr>
+<tr>
+<td><code>POST /challenge</code></td>
+<td>None</td>
+<td><code>nonce</code>, <code>issued_at</code>, <code>expires_at</code></td>
+</tr>
+<tr>
+<td><code>POST /release</code></td>
+<td><code>manifest</code>, <code>evidence</code></td>
+<td><code>released</code>, <code>sealed_key_b64</code>, <code>checks</code></td>
+</tr>
+</tbody>
+</table>
+<p>The owner generates the challenge. Its nonce is 64 lowercase hex characters;
+times are ISO 8601 strings with UTC offsets. The report endpoint computes
+REPORT_DATA using the receiver's own configuration, policy and boot key, then
+calls the native device adapter. It cannot accept externally supplied report
+bytes or REPORT_DATA. Missing hardware returns HTTP 503 without fallback.</p>
+<p>The owner independently verifies the returned report and creates the signed
+sealed envelope. Base64 fields use canonical padded standard base64. The
+install endpoint verifies the owner, pending challenge, exact policy and boot
+key before installing one AES key. Success returns an acknowledgment; it is not
+a cryptographic proof of installation. A failed cryptographic install consumes
+that pending request. Successful installation disables further provisioning.</p>
+<p>Challenge/release return HTTP 409 before provisioning or after retirement.
+Requests in the wrong lifecycle state also return 409. Invalid wire shapes
+return 422; stale challenges and rejected cryptographic envelopes return 400.
+Validation responses omit submitted values. Model-key release returns only
+ciphertext bound to an attested workload key. The workload measurement and
+verifier profile are described in <a href="../deployment-trust/">deployment trust</a>.</p>
+<h2 id="deployment-boundary">Deployment boundary<a class="headerlink" href="#deployment-boundary" title="Permanent link">&para;</a></h2>
+<p>This runnable service does not supply a measured image, protected process
+memory, secure erasure or host-independent configuration. Those must be
+provided by the deployment approved by the owner. Keep the receiver's code,
+configuration, clock and key state inside that protected boundary.</p>
+<p>HTTP ingress authentication, TLS termination, request-size/rate limits and
+availability controls are deployment responsibilities. In particular, an
+unauthenticated caller can consume or replace pending provisioning requests;
+cryptographic owner authentication prevents unauthorized key installation but
+does not prevent denial of service. Restrict provisioning ingress to the owner.
+Do not log request bodies or raw attestation reports. No administrative
+retirement or configuration-mutation endpoint is exposed.</p>
+<p>Tests use <code>TestClient</code> and synthetic signed SNP reports. They establish the HTTP
+and receiver behavior without a new live hardware claim.</p>
 
 
 
