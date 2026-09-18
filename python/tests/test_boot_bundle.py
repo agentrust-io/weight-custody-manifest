@@ -81,6 +81,17 @@ def test_links_and_special_files_rejected(kind):
         build_initramfs(runtime([("usr/escape", b"", 0o644, kind)]), loader())
 
 
+@pytest.mark.parametrize("kind", [tarfile.LNKTYPE, tarfile.SYMTYPE])
+def test_link_with_existing_empty_target_is_rejected(kind):
+    # Avoid missing-target or size guards masking the explicit link rule.
+    items = [("usr/local/bin/python3", b"python", 0o755, tarfile.REGTYPE),
+             ("outside", b"", 0o644, tarfile.REGTYPE),
+             ("usr/outside", b"", 0o644, tarfile.REGTYPE),
+             ("usr/escape", b"", 0o644, kind)]
+    with pytest.raises(ValueError, match="plain regular"):
+        build_initramfs(runtime(items), loader())
+
+
 @pytest.mark.parametrize("mode", [0o4755, 0o2755, 0o1755, 0o777, 0o664])
 def test_privilege_and_writable_modes_rejected(mode):
     with pytest.raises(ValueError):

@@ -13,5 +13,14 @@ docker run --rm --network none --read-only --user 0 --entrypoint tar \
   usr/local/bin/python3 usr/local/lib lib/x86_64-linux-gnu lib64 \
   etc/ld.so.cache etc/ssl/certs > "$output/runtime.tar"
 cc -static -O2 -Wall -Wextra -Werror python/boot/init.c -o "$output/init"
-python -m wcm.boot_bundle "$output/runtime.tar" "$output/init" --output "$output/initrd.cpio"
+python - "$output" <<'PY'
+from pathlib import Path
+import sys
+from wcm.boot_bundle import build_initramfs
+base = Path(sys.argv[1])
+# Build-host diagnostics: preserve the actual rejection reason in CI.
+bundle = build_initramfs((base / "runtime.tar").read_bytes(), (base / "init").read_bytes())
+with (base / "initrd.cpio").open("xb") as destination:
+    destination.write(bundle)
+PY
 python -m wcm.boot_bundle "$output/runtime.tar" "$output/init" --verify "$output/initrd.cpio"
