@@ -23,6 +23,23 @@ INJECTION = r'''
   }
 '''
 
+SETUP = r'''
+  // TEST ONLY: TCG's QEMU rewrites Linux setup bytes; SEV delivery does not.
+  // Restore bytes from the actual supplied test kernel before verification.
+  // This is transport emulation, not a trusted firmware input path.
+  if (!EFI_ERROR (FetchStatus) && (Blob != NULL) && (StrCmp (FileName, L"kernel") == 0)) {
+    FIRMWARE_CONFIG_ITEM Item;
+    UINTN FixtureSize;
+    if (EFI_ERROR (QemuFwCfgFindFile ("opt/wcm/test-setup", &Item, &FixtureSize)) ||
+        (FixtureSize == 0) || (FixtureSize > 8192) || (FixtureSize > Blob->Size)) {
+      __asm__ __volatile__ ("outl %0, %w1" : : "a" (19), "Nd" ((UINT16)0xf4));
+      CpuDeadLoop ();
+    }
+    QemuFwCfgSelectItem (Item);
+    QemuFwCfgReadBytes (FixtureSize, Blob->Data);
+  }
+'''
+
 
 def exit_vm(code):
     # GCC-only test build. isa-debug-exit returns (value << 1) | 1.
@@ -48,6 +65,10 @@ def apply(source, receipt):
     inf.write_bytes(inf.read_text().replace("[LibraryClasses]", "[LibraryClasses]\n  QemuFwCfgLib").encode())
     path = source / profile.LOADER
     text = path.read_text()
+    anchor = "  Blob   = FindKernelBlob (FileName);"
+    if text.count(anchor) != 1:
+        raise ValueError("kernel fixture anchor changed")
+    text = text.replace(anchor, anchor + "\n" + SETUP)
     start, _, end = profile.function_span(text, "QemuKernelFetchNamedBlobs")
     text = text[:start] + text[start:end].replace("return EFI_ACCESS_DENIED;",
         '''{

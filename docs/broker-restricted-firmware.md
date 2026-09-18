@@ -79,6 +79,13 @@ at existing stop points. The weakened image additionally bypasses the hash
 comparison. Their separate hashes and complete diffs are retained. Neither
 image may be used for custody or as an approved launch identity.
 
+QEMU's non-SEV Linux loader rewrites setup-header bytes; its SEV path preserves
+the input file ([QEMU 8.2.2 source](https://github.com/qemu/qemu/blob/v8.2.2/hw/i386/x86.c#L1100)).
+The test fixture restores only that bounded setup prefix from the actual
+supplied test kernel before hashing. This emulates SEV transport under TCG;
+it is another test-only input path, absent from the production candidate.
+The first VM run detected this mismatch by rejecting the positive control.
+
 `firmware_vm.py` boots those complete images under QEMU TCG. Its positive
 control must reach the unchanged production Linux PID1 and its expected
 non-SNP refusal (exit 111). Negative controls require specific firmware exit

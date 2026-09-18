@@ -62,6 +62,10 @@ def run(firmware, weakened, kernel, initrd, output):
                 actual_initrd = altered
         if change in ("cmdline", "weakened"):
             append += " changed=1"
+        raw = actual_kernel.read_bytes()
+        setup = output / (name + ".setup")
+        setup_size = ((raw[0x1f1] or 4) + 1) * 512
+        setup.write_bytes(raw[:min(8192, setup_size)])
         image = weakened if change == "weakened" else firmware
         command = ["qemu-system-x86_64", "-machine", "q35,accel=tcg", "-cpu", "max",
                    "-m", "1536", "-smp", "1", "-nodefaults", "-display", "none",
@@ -69,7 +73,8 @@ def run(firmware, weakened, kernel, initrd, output):
                    "-debugcon", "file:" + str(debug), "-global", "isa-debugcon.iobase=0x402",
                    "-device", "isa-debug-exit,iobase=0xf4,iosize=0x04", "-no-reboot",
                    "-bios", str(image), "-kernel", str(actual_kernel),
-                   "-initrd", str(actual_initrd), "-append", append]
+                   "-initrd", str(actual_initrd), "-append", append,
+                   "-fw_cfg", "name=opt/wcm/test-setup,file=" + str(setup)]
         if fixture is not None:
             path = output / (name + ".table")
             path.write_bytes(fixture)
@@ -92,6 +97,7 @@ def run(firmware, weakened, kernel, initrd, output):
         observations.append({"case": name, "expected": expected, "qemu_exit": result.returncode,
                              "firmware": file_identity(image), "kernel": file_identity(actual_kernel),
                              "initrd": file_identity(actual_initrd), "command_line": append,
+                             "test_only_setup": file_identity(setup),
                              "table_sha256": None if fixture is None else hashlib.sha256(fixture).hexdigest()})
         print("PASS", name, flush=True)
     (output / "observations.json").write_text(json.dumps({
