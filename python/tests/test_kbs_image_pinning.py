@@ -61,11 +61,36 @@ def test_lock_has_no_unpinned_or_ranged_requirement(lock: str) -> None:
 def test_base_image_is_pinned_by_digest() -> None:
     digest = _arg("BASE_DIGEST")
     assert re.fullmatch(r"sha256:[0-9a-f]{64}", digest), digest
-    # Both stages must use the digest, not the bare tag.
+    # External bases must use the digest; local stages inherit only an earlier
+    # pinned stage, never an arbitrary image with a convenient name.
     from_lines = re.findall(r"^FROM (.+)$", DOCKERFILE, re.MULTILINE)
     assert from_lines, "no FROM lines"
+    pinned_stages = set()
     for line in from_lines:
-        assert "@${BASE_DIGEST}" in line, f"FROM without the digest pin: {line}"
+        parts = line.split()
+        assert "@${BASE_DIGEST}" in parts[0] or parts[0] in pinned_stages, (
+            f"FROM without pinned ancestry: {line}"
+        )
+        if len(parts) == 3 and parts[1].upper() == "AS":
+            pinned_stages.add(parts[2])
+
+
+def test_default_reference_and_opt_in_provisioned_commands() -> None:
+    import json
+
+    stages = {}
+    active = None
+    for line in _instructions():
+        if line.startswith("FROM "):
+            active = line.split()[-1]
+            stages[active] = None
+        elif line.startswith("CMD "):
+            stages[active] = json.loads(line[4:])
+    assert active == "reference", "default build target must preserve the reference service"
+    assert stages["reference"][1] == "wcm.server:app_from_env"
+    provisioned = stages["provisioned"]
+    assert provisioned[1] == "wcm.broker_server:app_from_env"
+    assert provisioned[provisioned.index("--workers") + 1] == "1"
 
 
 def test_interpreter_version_agrees_across_the_build() -> None:

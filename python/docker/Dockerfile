@@ -25,7 +25,8 @@
 # would be three.
 #
 # CI runs docker/verify-reproducible.sh, which builds twice (the second time with
-# --no-cache) and compares the EXPORTED FILESYSTEM CONTENT of the two images. See
+# --no-cache) and compares exported filesystem content/metadata and runtime
+# configuration of the two images. See
 # docs/reproducible-kbs-image.md for why content rather than layer digests, and
 # for what the check does and does not prove (it is a same-runner check, not a
 # cross-machine one).
@@ -37,8 +38,9 @@
 # tools/gen_kbs_lock.py plus SITE_PACKAGES below if the interpreter version
 # changes), then regenerate the locks. Dependabot tracks the digest.
 #
-# Keys are provided at RUNTIME via WCM_KEYSTORE_FILE (a mounted secret), never
-# baked into the image.
+# Default/reference target: keys arrive at runtime via WCM_KEYSTORE_FILE.
+# Provisioned target: only public configuration is mounted; the owner provisions
+# a sealed key after verifying native SNP evidence. Neither target bakes in keys.
 
 ARG BASE_IMAGE=python:3.12-slim-bookworm
 # python:3.12-slim-bookworm, multi-arch index digest. Immutable.
@@ -76,7 +78,7 @@ RUN pip install --no-cache-dir --no-compile --require-hashes -r /tmp/requirement
 # --------------------------------------------------------------------------
 # Runtime: hash-locked dependencies plus the built wheel. No build tooling.
 # --------------------------------------------------------------------------
-FROM ${BASE_IMAGE}@${BASE_DIGEST}
+FROM ${BASE_IMAGE}@${BASE_DIGEST} AS runtime
 
 ARG SOURCE_DATE_EPOCH
 # Normalization targets. Scoped deliberately: a blanket `find /` would copy every
@@ -109,4 +111,11 @@ RUN pip install --no-cache-dir --no-compile --require-hashes -r /tmp/requirement
 USER 10001
 
 EXPOSE 8080
+
+# Explicit opt-in service with an empty keystore until owner provisioning.
+FROM runtime AS provisioned
+CMD ["uvicorn", "wcm.broker_server:app_from_env", "--factory", "--workers", "1", "--host", "0.0.0.0", "--port", "8080"]
+
+# Keep the final/default target's entry point backward compatible.
+FROM runtime AS reference
 CMD ["uvicorn", "wcm.server:app_from_env", "--factory", "--host", "0.0.0.0", "--port", "8080"]

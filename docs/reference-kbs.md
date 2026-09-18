@@ -23,9 +23,11 @@ docker build -f python/docker/Dockerfile -t wcm-kbs .
 docker run --rm -p 8080:8080 \
   -v "$PWD/keystore.json:/run/secrets/keystore.json:ro" \
   -v "$PWD/cpu-root.pem:/run/trust/cpu-root.pem:ro" \
+  -v "$PWD/gpu-root.pem:/run/trust/gpu-root.pem:ro" \
   -v "$PWD/manifest-identities.json:/run/trust/manifest-identities.json:ro" \
   -e WCM_KEYSTORE_FILE=/run/secrets/keystore.json \
   -e WCM_CPU_TRUST_ROOT_FILE=/run/trust/cpu-root.pem \
+  -e WCM_GPU_TRUST_ROOT_FILE=/run/trust/gpu-root.pem \
   -e WCM_TRUSTED_MANIFEST_IDENTITIES_FILE=/run/trust/manifest-identities.json wcm-kbs
 ```
 
@@ -54,3 +56,10 @@ operator hardening steps, documented in the link above).
     `WCM_TRUSTED_MANIFEST_IDENTITIES_FILE` must contain a JSON array of exact
     `sha256:` manifest identities produced by `wcm.manifest_identity`. The manifest
     embedded in a release request is never accepted as its own trust anchor.
+
+    GPU evidence also requires a cryptographic verifier. Set
+    `WCM_GPU_TRUST_ROOT_FILE` to the reviewed NVIDIA device identity root PEM.
+    Without that root, any request containing GPU evidence is denied. A
+    CPU-only manifest without GPU evidence remains supported. This verifies
+    the GPU report's certificate chain, signature and challenge nonce; it does
+    not establish a protected CPU-to-GPU transfer path or verify RIM claims.

@@ -114,6 +114,18 @@ class SevSnpProvider(CpuQuoteProvider):
     def is_available() -> bool:
         return os.path.exists(SevSnpProvider._DEV)
 
+    def provisioning_report(self, report_data: bytes) -> bytes:
+        """Collect native SNP evidence for a broker receiver's computed binding.
+
+        This uses the existing device ioctl without any software fallback. The
+        caller must obtain report_data from its protected BrokerReceiver; this
+        collector cannot establish which process chose the bytes.
+        """
+        report_data = bytes(report_data)
+        if len(report_data) != 64:
+            raise ValueError("SNP provisioning REPORT_DATA must be exactly 64 bytes")
+        return self._fetch_report(report_data)
+
     def _fetch_report(self, report_data: bytes) -> bytes:
         """Fetch a raw SNP report with the given REPORT_DATA. Overridable in tests."""
         class _GuestRequest(ctypes.Structure):

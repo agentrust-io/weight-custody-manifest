@@ -1,10 +1,9 @@
 # Reproducible reference KBS image
 
 The reference key-release-service image that SPEC.md sections 3.4 / 8.3 call for.
-Its purpose is **auditability**: built reproducibly, its measurement can be
-pinned in a manifest's `custody.kbs_image.measurement` and independently
-reproduced by any party, so trust moves from the operator's word to a value
-anyone can recompute.
+Its purpose is **auditability**: a builder can retain and compare exact image
+content and runtime configuration. Binding an approved image to a hardware
+launch and the running broker is a separate deployment requirement.
 
 ## Build
 
@@ -14,7 +13,20 @@ From the repo root:
 docker build -f python/docker/Dockerfile -t wcm-kbs .
 ```
 
-## Run
+## Provisioned target
+
+```bash
+docker build --target provisioned -f python/docker/Dockerfile -t wcm-broker .
+```
+
+This target starts `wcm.broker_server:app_from_env` with one worker. It accepts
+`WCM_BROKER_CONFIG_FILE` and starts without model keys; provisioning uses the
+owner-authenticated envelope protocol. The default build still starts the
+mounted-key reference service. See the [provisioned service guide](../../docs/provisioned-broker-service.md)
+for configuration and runtime restrictions. Neither target itself supplies an
+immutable, hardware-measured guest image.
+
+## Run the mounted-key reference
 
 This is a reference-only deployment. The host administrator can read the
 mounted key file and replace trust configuration. It does not protect model
@@ -48,9 +60,8 @@ untrusted network.
 
 ## Reproducibility
 
-Every input to the build is fixed, so two builds of the same source produce the
-same filesystem. That is what makes `kbs_image.measurement` worth pinning: a
-measurement nobody else can arrive at is a number, not evidence.
+The build pins its base and dependency inputs and normalizes selected timestamps.
+The comparison below tests whether two builds match under its stated scope.
 
 1. **The base image is pinned by digest**, not by a moving tag (`BASE_DIGEST` in
    the Dockerfile, the multi-arch index digest for `python:3.12-slim-bookworm`).
@@ -86,45 +97,54 @@ measurement nobody else can arrive at is a number, not evidence.
 ## Verifying it
 
 ```bash
-./python/docker/verify-reproducible.sh
+./python/docker/verify-reproducible.sh --target reference --output-dir ./image-evidence/reference
+./python/docker/verify-reproducible.sh --target provisioned --output-dir ./image-evidence/provisioned
 ```
 
-It builds twice, the second time with `--no-cache` so every step genuinely
-reruns, then compares the two images' **exported filesystem content**: a sorted
-manifest of every entry's type, permissions and path, plus a sha256 of every
-regular file. It prints a content digest that is stable across builds. CI runs
-the same script on every change to the image.
+Each command builds its selected target twice, with `--no-cache` for the second
+build. It exports both filesystems and compares canonical snapshots containing:
 
-**Content rather than layer digests**, deliberately. A layer digest covers tar
-metadata, and BuildKit sets some of that from wall-clock no matter what the
-Dockerfile does: the destination directory entry a `COPY` creates gets a
-build-time mtime that no in-image normalization can reach. Comparing layer
-digests fails on metadata noise that says nothing about what the image contains.
-What a KBS measurement is about is the content, which files are present, with
-what permissions, holding what bytes, so that is what gets compared.
+- File types, contents, paths, numeric owners/groups and permissions.
+- Symlink and hardlink targets, device numbers and non-time PAX metadata,
+  including exported extended attributes such as capabilities.
+- Image architecture/OS/variant and the complete runtime `Config`, including
+  entry point, command, environment, user, working directory and health checks.
 
-### What this proves, and what it does not
+An export or parser failure stops the comparison. Exports are parsed without
+extracting them or requiring sudo. Duplicate/escaping paths, unresolved
+hardlinks, unsupported entries and truncated file contents are refused.
 
-- **It does prove** the build does not depend on when it ran, on cached layers,
-  or on whatever versions a resolver would have picked that day. All three of
-  those broke the check while it was being written, which is the argument for
-  having it.
-- **It does not prove** cross-machine reproducibility. Both builds run on one
-  runner, with one Docker version, from one checkout.
+`image-snapshot.json` and `sha256.txt` are retained when `--output-dir` is
+provided. The digest identifies this comparison format and its contents. It is
+neither an OCI image digest nor an SNP launch measurement. The format is now
+`wcm/image-content-and-config/v1`; it is not compatible with the earlier
+filesystem-only digest, which omitted link targets, ownership and runtime
+configuration. Any consumers of the old reference must recompute and review it.
 
-So the honest claim is: reproducible under a fixed builder, with every content
-input pinned. Verifying it across independent builders is the remaining step, and
-it belongs to whoever is certifying a deployment rather than to CI.
+Timestamps and image history are deliberately excluded. BuildKit can attach
+fresh tar timestamps to otherwise identical content. Comparing content and
+runtime configuration avoids treating that metadata noise as a changed program,
+while retaining fields that change what starts or which privileges/files it has.
+This does not mean timestamps are irrelevant to every application or threat
+model; deployments that depend on them need a different measurement contract.
 
-The measurement a builder pins and a customer (or a sovereign's accreditation
-body) recomputes is what makes the running KBS checkable against the certified
-one, the trust move in section 8.3.
+### What the comparison establishes
+
+A pass establishes equality of the defined snapshot fields for these two builds
+on one runner. It does not prove future builds or independent builders will
+match, or that the published source is trustworthy. It also does not appraise
+the running host, firmware, VM launch state, mounted configuration or keys.
+
+CI builds both targets, exercises the provisioned image with synthetic public
+configuration and no hardware, and retains the comparison snapshots. That smoke
+run checks missing-hardware denial and configured container restrictions. It
+cannot establish native-SNP key custody or protected model execution.
 
 ## What the image is not
 
-- Not a hardware root of trust. The image measurement attests *which KBS code*
-  runs; that it runs inside an attested enclave is the deployment's job
-  (`custody.kbs_image` is verified in the enclave's attestation, SPEC 3.5).
+- Not a hardware root of trust. The snapshot records image inputs; it does not
+  attest that this image is running. Binding image, effective configuration and
+  key custody to authenticated hardware evidence is the deployment's job.
 - Not a production key manager. The runtime keystore mount is a reference
   mechanism; real deployments need owner-authorized provisioning into a
   protected broker. A KMS/HSM that exports keys to the customer-controlled host

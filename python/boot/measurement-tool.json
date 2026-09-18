@@ -1,0 +1,17 @@
+{
+  "repository": "https://github.com/virtee/sev-snp-measure",
+  "revision": "8f2b337e38bc83f87cd30f3253cdfe8e3e12cc3a",
+  "sources": {
+    "sevsnpmeasure/__init__.py": "9b4fb307c1534ccaeb2e45ac9b6e8f5134f7e394efbc37071c7dc049985cf35b",
+    "sevsnpmeasure/cli.py": "9779ecb2c4008f0a45d7b010cf0cfa0a34ee9387e261634cc4a6ba33da89112d",
+    "sevsnpmeasure/gctx.py": "50d04d05fa38fa9dc1acfe981fc06b8640ac84fdea485e6fcc03c41a30546196",
+    "sevsnpmeasure/guest.py": "26900fecdbe7fcab3718b8ec2245c1089944bf16edac44a24150355ae10d47b3",
+    "sevsnpmeasure/id_block.py": "79c9f783d7f8d93e30b97c4d5794bde7977bf447cc45c85f9fe31e541078db51",
+    "sevsnpmeasure/ovmf.py": "f282b14172947d74c172837dce19405e217a6fc467059175e5253ae19352cbf3",
+    "sevsnpmeasure/sev_hashes.py": "90f374e1534dd7286cb97c159f954a5cb166e090eedb9f62bea3adc3d18de94c",
+    "sevsnpmeasure/sev_mode.py": "7447a65d5f5a78b65a08ac95dae11e04a37c630ffa57988cf63ec6eccfd221a6",
+    "sevsnpmeasure/vcpu_types.py": "c0bffd98b4ebcd02909bcdb4bea124ae7531bfc2e9bfd7a8babe4748ded7df76",
+    "sevsnpmeasure/vmm_types.py": "ceacd11452501b2fac3f758adc197be09d73d729312bca9ba490d9ec4b4462ad",
+    "sevsnpmeasure/vmsa.py": "5c9b2d8e528c66187a3c8d52711e69caf6b45fc2a1039d7d3e0b25397118e70f"
+  }
+}

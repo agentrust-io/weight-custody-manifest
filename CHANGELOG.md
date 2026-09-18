@@ -6,6 +6,59 @@ uses semantic-ish versioning while pre-1.0.
 
 ## Unreleased
 
+Add a source-pinned offline SNP prediction tool with complete kernel/initrd/
+command-line hash-table comparison, explicit vCPU/features and substitution
+tests. Record the OVMF/QEMU source review and hardware acceptance procedure.
+Prediction and firmware metadata do not establish firmware enforcement or
+agreement with a genuine report; both remain provisional.
+
+Add checksum-pinned kernel construction and QEMU TCG boot validation for the
+provisional loader. The unchanged production image must refuse a non-SNP VM;
+separately identified test-device images exercise kernel-to-broker startup,
+read-only enforcement, configuration failures and fresh unprovisioned starts.
+No attestation is fabricated, and no new hardware assurance is established.
+
+Add a provisional x86-64 initramfs builder and fixed native broker loader.
+Packaging checks reject ambiguous paths, links, device entries and privilege
+bits; owners can independently rebuild and compare runtime containment. The
+loader uses read-only mounts, a restricted device set, cleared capabilities,
+UID 10001 and a fixed isolated Python entry point. Inline configuration is data
+and must match the effective receiver digest. Dedicated Linux tests exercise
+the handoff and deliberate weakening. Full kernel/firmware boot coverage and
+SNP hardware validation remain outstanding; assurance receipts stay unchanged.
+
+**[security]** Require cryptographic GPU report verification in the environment-built
+key-release server. Add an owner-side SNP key-provisioning reference with explicit
+image, configuration, epoch, guest-policy and TCB checks. Require independently
+pinned roots and manifest bytes in the paired-hardware test runner. Add a
+provision-once broker receiver that hashes its actual immutable verifier inputs,
+generates a fresh boot key, installs an owner-authenticated envelope and permits
+only strict attested release until retirement. Add an optional SQLite owner
+epoch guard that rejects policy rollback and stale concurrent owner processes.
+Add a runnable native-SNP receiver HTTP service without plaintext model-key
+configuration, plus an owner client that independently verifies the returned
+report before sending a signed sealed envelope. The client requires HTTPS by
+default and a persistent owner epoch store; an explicit loopback-only HTTP
+option supports development. Synthetic-signed evidence tests include a real
+loopback HTTP exchange. Measured-image packaging, protected memory,
+trusted nonsnapshot owner storage, GPU firmware appraisal and protected CPU/GPU
+inference remain deployment requirements, without new live hardware validation.
+
+Add an explicit `provisioned` container target while preserving the default
+mounted-key entry point. CI exercises the installed provisioned image without
+hardware under read-only/non-root/capability restrictions. Image comparison now
+fails on export errors and includes ownership, link targets, extended metadata
+and runtime configuration; its versioned digest is build evidence, not a hardware
+launch measurement. Both target snapshots are retained by CI.
+
+Add a deterministic owner-side deployment approval record and predeployment
+artifact checks. Optional pinned approvals constrain provisioning to the exact
+launch/configuration/policy tuple and reject mismatches before broker contact.
+The platform-neutral contract and provisional SNP direct-boot adapter specify
+the remaining measured-loader and live validation work. Approval consistency is
+not execution evidence; receipts explicitly report application identity as not
+established in this software slice.
+
 **[docs]** Clarify the release-authority trust boundary: a customer who can read
 broker keys or replace verification and policy can bypass workload attestation.
 Distinguish the attested self-custody design from the reference server's mounted
