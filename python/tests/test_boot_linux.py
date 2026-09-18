@@ -42,7 +42,7 @@ def test_real_static_loader_and_independent_cpio_reader(binaries):
     assert subprocess.run([str(init)]).returncode == 111
 
 
-@pytest.mark.parametrize("mutation", [None, "writable-runtime", "privileged", "environment", "bounding-caps"])
+@pytest.mark.parametrize("mutation", [None, "writable-runtime", "privileged", "environment", "bounding-caps", "descriptors", "new-privileges", "empty-config", "oversized-config"])
 def test_actual_handoff_restrictions_and_negative_controls(tmp_path, binaries, mutation):
     _, probe = binaries
     source = (BOOT / "init.c").read_text()
@@ -51,8 +51,10 @@ def test_actual_handoff_restrictions_and_negative_controls(tmp_path, binaries, m
         "privileged": ("need(setresuid(BROKER_UID, BROKER_UID, BROKER_UID));", "/* deliberately retain root */"),
         "environment": ('char *const env[] = {"LANG=C.UTF-8", NULL};', 'extern char **environ; char **env = environ;'),
         "bounding-caps": ("int cap = 0; ; ++cap", "int cap = 1; ; ++cap"),
+        "descriptors": ("need((int)syscall(SYS_close_range, 0U, ~0U, 0));", "/* deliberately retain descriptors */"),
+        "new-privileges": ("need(prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0));", "/* deliberately permit new privileges */"),
     }
-    if mutation:
+    if mutation in changes:
         old, new = changes[mutation]
         assert old in source
         source = source.replace(old, new)
@@ -68,6 +70,7 @@ int main(int argc, char **argv) {
     umask(0);
     need(mount(NULL, "/", NULL, MS_REC | MS_PRIVATE, NULL));
     need(chroot(argv[1])); need(chdir("/"));
+    need(open("/outside", O_RDONLY)); /* must not survive the handoff */
     int input = open("/config", O_RDONLY); need(input);
     runtime_mounts(input, makedev(1, 9)); /* synthetic device, no SNP claim */
     enter_runtime(); return 113;
@@ -80,10 +83,13 @@ int main(int argc, char **argv) {
         (root / name).mkdir(parents=True)
     shutil.copyfile(probe, root / "runtime/usr/local/bin/python3")
     (root / "runtime/usr/local/bin/python3").chmod(0o755)
-    (root / "config").write_bytes(b"{}")
+    data = b"" if mutation == "empty-config" else b"x" * (1024 * 1024 + 1) if mutation == "oversized-config" else b"{}"
+    (root / "config").write_bytes(data)
     (root / "outside").write_text("not reachable after handoff")
     result = subprocess.run(["sudo", "env", "PYTHONPATH=/outside",
                              "unshare", "--mount", "--pid", "--fork", "--net",
                              str(executable), str(root)], timeout=30, capture_output=True)
     assert result.returncode == {None: 0, "writable-runtime": 20, "privileged": 11,
-                                 "environment": 12, "bounding-caps": 16}[mutation], result.stderr
+                                 "environment": 12, "bounding-caps": 16, "descriptors": 111,
+                                 "new-privileges": 13, "empty-config": 111,
+                                 "oversized-config": 111}[mutation], result.stderr
