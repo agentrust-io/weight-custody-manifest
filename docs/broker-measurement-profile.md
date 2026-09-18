@@ -129,3 +129,38 @@ Retain sanitized results for:
 A predictor/report match alone does not test these enforcement paths. Keep
 the firmware, application-identity and installation claims provisional until
 the relevant acceptance evidence exists.
+
+## Managed-cloud hardware diagnostics
+
+The restricted OVMF profile requires control of the firmware and direct boot
+inputs. A managed confidential VM's genuine attestation does not establish that
+it launched this candidate. Google documents its [provider-managed firmware and
+signed launch endorsements](https://docs.cloud.google.com/confidential-computing/confidential-vm/docs/verify-firmware).
+Azure's [vTPM architecture](https://learn.microsoft.com/en-us/azure/confidential-computing/virtual-tpms-in-azure-confidential-vm)
+uses a separate freshness path from native guest-controlled SNP REPORT_DATA.
+
+`python/tools/azure_attestation_controls.py` tests the Azure adapter on an
+isolated disposable confidential VM. Supply an independently retrieved AMD root
+and two distinct owner-generated nonces. The tool changes application-owned
+PCR23; do not run it against a shared application relying on that PCR.
+
+```bash
+python python/tools/azure_attestation_controls.py \
+  --root amd-root.pem --nonce "$OWNER_NONCE" --second-nonce "$SECOND_OWNER_NONCE" \
+  --output /tmp/wcm-azure-diagnostic
+```
+
+The September 18, 2026 run on a DC2as_v5 guest passed one positive and six
+rejection controls: wrong nonce, transport key and workload digest, modified
+TPM signature and SNP body, and an untrusted root. It also reproduced a
+counterexample: after changing a nonsecret application probe file, asking the
+provider to quote the old caller-supplied digest still produces an accepted
+fresh quote. PCR23 authenticates that supplied value; this API does not establish
+file immutability or bind the running broker to a precomputed application image.
+
+The tested guest exposed `/dev/tpmrm0`, but neither `/dev/sev-guest`, `/dev/sev`
+nor `/dev/kvm`. A native provisioning-report request failed without software
+fallback. This host therefore did not validate native-SNP provisioning or the
+custom OVMF launch. Preserve those unsupported results rather than relabeling
+the vTPM quote as native evidence. Raw bundles contain device identifiers and
+remain private; the committed summary contains hashes and bounded outcomes.

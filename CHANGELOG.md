@@ -6,6 +6,11 @@ uses semantic-ish versioning while pre-1.0.
 
 ## Unreleased
 
+Add a live Azure SNP/vTPM diagnostic with independently supplied roots and
+owner nonces. Real-hardware controls reject six evidence substitutions and
+reproduce the caller-supplied PCR23 digest limitation after a probe file changes.
+This does not validate the custom firmware or native-SNP broker provisioning.
+
 Add an experimental restricted edk2 build profile: require the complete launch
 hash table, reject named and IGVM boot blobs, and stop before generic BDS boot
 options if the verified kernel fails or returns. Remove GRUB and shell payloads.
