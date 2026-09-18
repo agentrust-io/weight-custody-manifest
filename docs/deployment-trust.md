@@ -115,8 +115,9 @@ epoch and invalidate all pending challenges; each attempt consumes its nonce.
 This closes protocol-level substitution paths in the reference implementation.
 It does not establish that a real runtime measures configuration correctly or
 prevents subsequent changes. Deployment still needs an immutable measured broker
-boot path, owner-key pinning, a durable owner-side epoch floor, installation once
-per session, protected memory, retirement of old instances and key erasure.
+boot image, protected memory, secure owner-side persistence, retirement of old
+instances and key erasure. The receiver lifecycle and optional persistent epoch
+guard below implement software controls for some of these requirements.
 The owner must choose the TCB floor in the selected CPU generation's eight-byte
 little-endian ABI layout; no default firmware floor is inferred. Required and
 forbidden platform fields both reject unavailable version-gated fields. The
@@ -132,6 +133,73 @@ not implemented by this native-SNP protocol.
 certificate root to exercise image/configuration/root/key substitutions, stale
 epochs, replay, expiry and owner/envelope tampering. These tests establish
 protocol behavior under the stated assumptions, not live broker isolation.
+
+### Receiver boot lifecycle
+
+`wcm.broker_receiver.BrokerEffectiveConfiguration` snapshots normalized DER CPU
+root/VCEK/intermediate certificates, an optional NVIDIA root, exact accepted
+manifest identities and the owner's Ed25519 public key. Its digest also commits
+the fixed verifier profile, strict channel/CPU/GPU checks and timeout settings.
+Construct these inputs from the actual approved configuration; do not accept an
+attacker-supplied digest as a substitute. `BrokerReceiver(configuration, policy)`
+computes that digest locally and rejects a mismatch with the owner policy.
+
+Each receiver creates a fresh X25519 key internally and starts without model
+keys. The native-SNP boot integration is:
+
+```python
+receiver = BrokerReceiver(configuration, owner_approved_policy)
+challenge = owner.issue_challenge()
+report_data = receiver.provisioning_report_data(challenge)
+report = SevSnpProvider().provisioning_report(report_data)
+# Send report, receiver.transport_public_key and the VCEK chain to the owner.
+# The owner independently verifies them and returns a signed sealed envelope.
+receiver.install(envelope)
+```
+
+The report collector calls the existing `/dev/sev-guest` adapter with no software
+fallback. Installation authenticates the owner, exact policy, boot key and
+pending nonce. Requests expire locally after at most 60 seconds and cannot be
+extended by repeating a nonce. A successful installation constructs the KBS
+from the same configuration inputs and permanently closes provisioning for that
+receiver. Release is unavailable before installation. A new receiver cannot
+open an old boot's envelope. `retire()` permanently disables its release and
+provisioning APIs; releasing Python references does not prove memory erasure.
+
+The receiver's native-SNP workload profile uses `sha256:` of the **raw signed
+48-byte launch measurement** as the manifest serving-image measurement. It
+checks that value after authenticating the report, requires VMPL 0, rejects
+debug-enabled workloads, and binds key release to the workload's transport key. This profile
+is not an OCI digest or a hash of an arbitrary supplied image name. It uses the
+configured VCEK chain; changing that chain requires fresh configuration approval.
+GPU evidence without a configured root is denied. GPU firmware RIM appraisal
+and protected CPU/GPU transport remain outside this receiver.
+
+The [receiver HTTP service](provisioned-broker-service.md) wraps this boot
+lifecycle with native report collection, sealed installation and release
+endpoints. Neither the library nor the service supplies a measured broker image.
+Python immutability and private attributes do not constrain a host
+that can modify the process. The runtime must protect code, configuration, clock
+and keys. Workload policy remains the pinned manifest's policy; the receiver
+does not add an independently chosen workload TCB floor. Synthetic tests in
+`python/tests/test_broker_receiver.py` exercise boot-to-release behavior and
+substitution/replay/retirement failures; no new hardware result is implied.
+Changes to fixed verifier semantics or defaults require a new configuration
+profile version and owner approval of the resulting digest.
+
+### Optional persistent owner epoch guard
+
+Pass `epoch_store=OwnerEpochStore(path, namespace)` from
+`wcm.provisioning_state` when constructing `OwnerProvisioner`. The SQLite store
+persists the current epoch and policy-context hash. It refuses older epochs and
+same-epoch policy substitutions, and guards releases against another owner
+process advancing the epoch. Without this option, owner state remains in memory.
+
+The database, its namespace and the owner service must reside on trusted storage
+that the customer cannot roll back or replace. SQLite transactions do not make
+a hostile disk or VM snapshot trustworthy. Provisioning epoch advances do not
+erase keys already provisioned to a broker or revoke their future use; retiring
+those brokers and enforcing workload key lifetimes are separate controls.
 
 ## CPU-to-GPU confidentiality acceptance
 

@@ -28,7 +28,7 @@ POLICY = BrokerProvisioningPolicy(
 
 
 def report_for(key, nonce, public_key, policy=POLICY, measurement=None,
-               guest_policy=0, platform_info=0x30, tcb="0101000000000101", version=3):
+               guest_policy=0, platform_info=0x30, tcb="0101000000000101", version=3, vmpl=0):
     # Build the wire binding independently from the implementation helper.
     context = b"wcm/broker-provisioning/v1\x00" + json.dumps({
         "measurement_hex": policy.measurement_hex,
@@ -44,6 +44,7 @@ def report_for(key, nonce, public_key, policy=POLICY, measurement=None,
     body = bytearray(0x2A0)
     struct.pack_into("<I", body, 0, version)
     struct.pack_into("<Q", body, 8, guest_policy)
+    struct.pack_into("<I", body, 0x30, vmpl)
     struct.pack_into("<Q", body, 0x40, platform_info)
     body[0x180:0x188] = bytes.fromhex(tcb)
     body[0x50:0x70] = hashlib.sha256(bytes.fromhex(nonce) + binding).digest()
@@ -56,7 +57,7 @@ def report_for(key, nonce, public_key, policy=POLICY, measurement=None,
 
 
 @pytest.mark.parametrize("changes", [
-    {"guest_policy": 1 << 19}, {"guest_policy": 1},
+    {"guest_policy": 1 << 19}, {"guest_policy": 1}, {"vmpl": 1},
     {"platform_info": 0x20}, {"platform_info": 0x10}, {"platform_info": 0x31},
     {"tcb": "0002000000000202"},  # larger scalar value hides lower boot-loader SVN
     {"tcb": "0200000000000202"}, {"tcb": "0202000000000002"},
