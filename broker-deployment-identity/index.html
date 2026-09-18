@@ -1138,6 +1138,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../broker-measurement-profile/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Provisional measurement profile
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../protected-runtime-evidence/" class="md-nav__link">
         
   
@@ -1739,6 +1767,11 @@ Its output depends on these launch choices; firmware support for kernel hashes
 is required for this profile. Pin the tool and environment rather than relying
 on a moving default. This procedure specifies inputs, not a claim that WCM has
 validated a particular firmware/QEMU/kernel combination.</p>
+<p>The <a href="../broker-measurement-profile/">offline prediction procedure</a> now pins the
+external source, checks hash-table coverage and records exact candidate inputs.
+It includes a bounded OVMF/QEMU source review and software substitution tests.
+The approval generator still consumes the independently derived digest; it
+does not invoke or approve the predictor automatically.</p>
 <p>The broker's effective configuration can be provided as untrusted <strong>data</strong> to
 the measured loader. The loader must instantiate only the fixed approved code,
 compute the digest of the actual loaded constructor inputs, and bind that digest
@@ -1755,8 +1788,8 @@ inputs. A mutable image or generic guest that lets arbitrary code request report
 cannot satisfy this adapter merely by echoing the approved configuration hash.</p>
 <p>The current Python receiver and report-binding checks are reusable components.
 The provisional builder and fixed loader implement the packaging and handoff
-restrictions described in the boot guide. Their complete boot path and live
-hardware evidence remain required work. Unsupported deployment layouts
+restrictions described in the boot guide. Software VM boot is exercised, while
+the measured OVMF chain and matching live hardware evidence remain required work. Unsupported deployment layouts
 must report the property as not established.</p>
 <h2 id="required-hardware-validation-separately-authorized">Required hardware validation, separately authorized<a class="headerlink" href="#required-hardware-validation-separately-authorized" title="Permanent link">&para;</a></h2>
 <p>Freeze and retain the source revision, build/dependency inputs, tool distribution,
