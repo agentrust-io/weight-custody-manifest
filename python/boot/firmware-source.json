@@ -1,0 +1,11 @@
+{
+  "repository": "https://github.com/tianocore/edk2",
+  "revision": "2970e5699ba6267f3384ffab20f96647578aebc8",
+  "sources": {
+    "OvmfPkg/AmdSev/AmdSevX64.dsc": "dfae16dff39241772086bf2b8e37c46055359d47fb1336313e270ff7e159925f",
+    "OvmfPkg/AmdSev/AmdSevX64.fdf": "6bc8df16452293c3c3a042426e322a1c01a048524c521887a22eaf62614251a7",
+    "OvmfPkg/AmdSev/BlobVerifierLibSevHashes/BlobVerifierSevHashes.c": "fe41663fa66356990256790cf4786123fae03ae45d30a792785e9fce6154aac9",
+    "OvmfPkg/Library/PlatformBootManagerLib/BdsPlatform.c": "414bd805b16796abe6b81361705adf813128637ed2dccb15b4652d7365f444e9",
+    "OvmfPkg/QemuKernelLoaderFsDxe/QemuKernelLoaderFsDxe.c": "1e248ea2a41487b8432eb86465db9feda3c02146fc56269661e16bc495cd2e87"
+  }
+}

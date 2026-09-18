@@ -6,6 +6,12 @@ uses semantic-ish versioning while pre-1.0.
 
 ## Unreleased
 
+Add an experimental restricted edk2 build profile: require the complete launch
+hash table, reject named and IGVM boot blobs, and stop before generic BDS boot
+options if the verified kernel fails or returns. Remove GRUB and shell payloads.
+Native C controls and full candidate builds run in Linux CI. This is not
+production firmware approval or SNP hardware validation.
+
 Add a source-pinned offline SNP prediction tool with complete kernel/initrd/
 command-line hash-table comparison, explicit vCPU/features and substitution
 tests. Record the OVMF/QEMU source review and hardware acceptance procedure.

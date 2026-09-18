@@ -4,6 +4,10 @@ The offline predictor derives a candidate digest from owner-selected bytes.
 It does not approve firmware, authenticate a report or establish application
 identity. No matching genuine SNP report has been validated for this profile.
 
+The [restricted firmware candidate](broker-restricted-firmware.md) provides an
+exact-source patch and build procedure for the named-blob and fallback gates
+identified below. Source controls are not firmware or hardware acceptance.
+
 ## Source review and coverage contract
 
 This bounded source review uses edk2 `edk2-stable202608`, commit
