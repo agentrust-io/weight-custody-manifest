@@ -53,7 +53,6 @@ jobs:
           name: measurement-prediction-results
           path: measurement-results.xml
   linux-handoff:
-    needs: restricted-firmware
     runs-on: ubuntu-latest
     timeout-minutes: 40
     steps:
@@ -89,16 +88,12 @@ jobs:
           python python/boot/qemu_smoke.py "$RUNNER_TEMP/boot-kernel/bzImage" \
             "$RUNNER_TEMP/boot-one/runtime.tar" "$RUNNER_TEMP/boot-one/initrd.cpio" \
             "$RUNNER_TEMP/boot-vm-evidence"
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: restricted-firmware-results
-          path: ${{ runner.temp }}/firmware-images
-      - name: Boot complete test-only firmware with positive and rejection controls
-        run: |
-          python python/boot/firmware_vm.py "$RUNNER_TEMP/firmware-images/TEST-ONLY.fd" \
-            "$RUNNER_TEMP/firmware-images/WEAKENED-TEST-ONLY.fd" \
-            "$RUNNER_TEMP/boot-kernel/bzImage" "$RUNNER_TEMP/boot-one/initrd.cpio" \
-            "$RUNNER_TEMP/firmware-vm-evidence"
+          name: firmware-vm-inputs
+          path: |
+            ${{ runner.temp }}/boot-kernel/bzImage
+            ${{ runner.temp }}/boot-one/initrd.cpio
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
         with:
@@ -111,5 +106,36 @@ jobs:
             ${{ runner.temp }}/boot-kernel/toolchain.txt
             ${{ runner.temp }}/boot-vm-evidence/*.json
             ${{ runner.temp }}/boot-vm-evidence/*.log
+  firmware-vm:
+    needs: [restricted-firmware, linux-handoff]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.12'
+      - run: sudo apt-get update && sudo apt-get install -y qemu-system-x86
+      - run: python -m pip install -e './python[server]'
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: restricted-firmware-results
+          path: ${{ runner.temp }}/firmware-images
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: firmware-vm-inputs
+          path: ${{ runner.temp }}/boot-inputs
+      - name: Boot complete test-only firmware with positive and rejection controls
+        run: |
+          python python/boot/firmware_vm.py "$RUNNER_TEMP/firmware-images/TEST-ONLY.fd" \
+            "$RUNNER_TEMP/firmware-images/WEAKENED-TEST-ONLY.fd" \
+            "$RUNNER_TEMP/boot-inputs/boot-kernel/bzImage" \
+            "$RUNNER_TEMP/boot-inputs/boot-one/initrd.cpio" \
+            "$RUNNER_TEMP/firmware-vm-evidence"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: firmware-vm-results
+          path: |
             ${{ runner.temp }}/firmware-vm-evidence/*.json
             ${{ runner.temp }}/firmware-vm-evidence/*.log

@@ -42,6 +42,7 @@ def run(firmware, weakened, kernel, initrd, output):
         cases.append((name, bytes(changed), "table", None))
     for role in ("kernel", "initrd", "cmdline"):
         cases.append(("changed-" + role, table, "hash", role))
+    cases.append(("changed-kernel-header", table, "hash", "header"))
     cases += [("named-shim", table, "named", "named"),
               ("weakened-hash-control", table, "linux", "weakened")]
     observations = []
@@ -50,13 +51,20 @@ def run(firmware, weakened, kernel, initrd, output):
         debug = output / (name + ".debug.log")
         actual_kernel, actual_initrd = kernel, initrd
         append = APPEND
-        if change in ("kernel", "initrd"):
-            original = kernel if change == "kernel" else initrd
+        if change in ("kernel", "initrd", "header"):
+            original = initrd if change == "initrd" else kernel
             altered = output / (name + ".bin")
             # Append one byte: QEMU can still parse the Linux header; the hash
             # check, rather than host format rejection, must produce the verdict.
-            altered.write_bytes(original.read_bytes() + b"X")
-            if change == "kernel":
+            data = bytearray(original.read_bytes())
+            if change == "header":
+                # A benign setup field; restoration must preserve this tamper,
+                # not silently replace it with the approved kernel's bytes.
+                data[0x1fa] ^= 1
+            else:
+                data += b"X"
+            altered.write_bytes(data)
+            if change != "initrd":
                 actual_kernel = altered
             else:
                 actual_initrd = altered
