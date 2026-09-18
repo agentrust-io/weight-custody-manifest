@@ -112,6 +112,12 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: virtee/sev-snp-measure
+          ref: 8f2b337e38bc83f87cd30f3253cdfe8e3e12cc3a
+          path: .measurement-tool
+          persist-credentials: false
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: '3.12'
@@ -132,6 +138,25 @@ jobs:
             "$RUNNER_TEMP/boot-inputs/boot-kernel/bzImage" \
             "$RUNNER_TEMP/boot-inputs/boot-one/initrd.cpio" \
             "$RUNNER_TEMP/firmware-vm-evidence"
+      - name: Predict actual candidate artifacts and exercise seven substitutions
+        run: |
+          printf %s 'console=ttyS0 panic=-1 rdinit=/init' > "$RUNNER_TEMP/prediction-cmdline.txt"
+          python -I -B -S python/boot/prediction_controls.py \
+            --tool-source .measurement-tool \
+            --firmware "$RUNNER_TEMP/firmware-images/OVMF.fd" \
+            --kernel "$RUNNER_TEMP/boot-inputs/boot-kernel/bzImage" \
+            --initrd "$RUNNER_TEMP/boot-inputs/boot-one/initrd.cpio" \
+            --command-line "$RUNNER_TEMP/prediction-cmdline.txt" \
+            --vcpus 1 --vcpu-type EPYC-v4 --guest-features 0x1 \
+            --changed-vcpus 2 --changed-vcpu-type EPYC-Milan-v2 --changed-guest-features 0x21 \
+            --output "$RUNNER_TEMP/built-launch-prediction"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: built-launch-prediction
+          path: |
+            ${{ runner.temp }}/built-launch-prediction/*.json
+            ${{ runner.temp }}/prediction-cmdline.txt
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
         with:

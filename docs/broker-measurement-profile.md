@@ -97,6 +97,22 @@ an independent hardware oracle. The hash-table encoder and PAGE_INFO check
 are independent implementations; the complete VMSA/launch-digest calculation
 still relies on VirTEE. CI runs the pinned tool in a dedicated job.
 
+The `firmware-vm` job also runs `python/boot/prediction_controls.py` against the
+actual production-candidate `OVMF.fd`, built kernel and broker initramfs from
+that workflow. It repeats the baseline prediction in fresh isolated processes
+and requires seven substitutions to change the digest: firmware, kernel,
+initramfs, command line, vCPU count, CPU signature and guest features. Each
+receipt retains artifact hashes, parameters and the resulting digest; a changed
+receipt with an unchanged digest fails. The `built-launch-prediction` artifact
+contains the baseline, controls and exact command line.
+
+CI selects `EPYC-v4`, one vCPU and features `0x1` as a reproducible candidate
+profile. These parameters are not inferred from the cloud reports or approved
+for a deployment. Byte substitutions test predictor sensitivity and need not be
+bootable. Firmware enforcement and the independently authenticated hardware
+match remain separate acceptance requirements. This control shares the pinned
+predictor with the baseline and cannot detect a consistent predictor error.
+
 Existing Azure paired-release and PCR 23 validation packs describe a different
 vTPM-backed deployment. They do not retain the exact OVMF/kernel/initrd/vCPU
 inputs for this profile and cannot validate its prediction. Genuine signatures

@@ -6,6 +6,11 @@ uses semantic-ish versioning while pre-1.0.
 
 ## Unreleased
 
+Predict the actual built firmware/kernel/broker initramfs in CI, repeat the
+baseline and require seven launch-input substitutions to change the digest.
+Retain exact artifact identities and candidate launch parameters. This is
+software prediction evidence; matching hardware and firmware approval remain open.
+
 Record real GCP native-SNP report controls and owner-side verification. A fresh
 report retains its launch measurement after an application probe file changes.
 The native provisioning collector binds supplied bytes; protected broker
