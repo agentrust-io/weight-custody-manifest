@@ -13,7 +13,7 @@ import threading
 from contextlib import nullcontext
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Callable, ContextManager
+from typing import TYPE_CHECKING, Callable, ContextManager
 
 from cryptography import x509
 from cryptography.hazmat.primitives.asymmetric.ed25519 import (
@@ -27,6 +27,8 @@ from ._quote_verify import QuoteVerifier, TrustStore
 from ._seal import open_sealed, seal_to_public_key
 from .snp import SnpQuoteParser, parse_snp_report
 from .provisioning_state import OwnerEpochStore
+if TYPE_CHECKING:
+    from .deployment_identity import DeploymentApproval
 
 _DOMAIN = b"wcm/broker-provisioning/v1\x00"
 
@@ -134,9 +136,13 @@ class OwnerProvisioner:
         now: Callable[[], datetime] | None = None,
         challenge_ttl_seconds: int = 60,
         epoch_store: OwnerEpochStore | None = None,
+        deployment_approval: DeploymentApproval | None = None,
     ) -> None:
         if type(challenge_ttl_seconds) is not int or challenge_ttl_seconds <= 0:
             raise ValueError("challenge TTL must be a positive integer")
+        if deployment_approval is not None:
+            deployment_approval.require_policy(policy)
+        self._deployment_approval = deployment_approval
         self._policy = policy
         self._signer = owner_signing_key
         self._trust = TrustStore()
@@ -164,6 +170,8 @@ class OwnerProvisioner:
         with self._lock:
             if policy.epoch <= self._policy.epoch:
                 raise ValueError("policy update must advance epoch")
+            if self._deployment_approval is not None:
+                self._deployment_approval.require_policy(policy)
             with self._epoch_guard(policy, admit=True):
                 self._policy = policy
                 self._challenges = ChallengeStore(ttl_seconds=self._ttl, now=self._now)
@@ -190,6 +198,8 @@ class OwnerProvisioner:
             if not isinstance(model_key, bytes) or len(model_key) not in (16, 24, 32):
                 raise ValueError("model key must be a 16, 24 or 32-byte AES key")
             policy = self._policy
+            if self._deployment_approval is not None:
+                self._deployment_approval.require_policy(policy)
             verifier = QuoteVerifier(SnpQuoteParser(vcek, intermediates), self._trust)
             result = verifier.verify(
                 base64.b64encode(report).decode("ascii"), expected_nonce=nonce,

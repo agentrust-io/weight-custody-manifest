@@ -30,6 +30,14 @@ fails on export errors and includes ownership, link targets, extended metadata
 and runtime configuration; its versioned digest is build evidence, not a hardware
 launch measurement. Both target snapshots are retained by CI.
 
+Add a deterministic owner-side deployment approval record and predeployment
+artifact checks. Optional pinned approvals constrain provisioning to the exact
+launch/configuration/policy tuple and reject mismatches before broker contact.
+The platform-neutral contract and provisional SNP direct-boot adapter specify
+the remaining measured-loader and live validation work. Approval consistency is
+not execution evidence; receipts explicitly report application identity as not
+established in this software slice.
+
 **[docs]** Clarify the release-authority trust boundary: a customer who can read
 broker keys or replace verification and policy can bypass workload attestation.
 Distinguish the attested self-custody design from the reference server's mounted

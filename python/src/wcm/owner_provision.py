@@ -21,6 +21,7 @@ from ._certificates import load_pem_certificate
 from .provisioning import OwnerProvisioner
 from .provisioning_state import OwnerEpochStore
 from .provisioning_wire import config_path, exact_fields, json_object, load_policy
+from .deployment_identity import load_approval
 
 
 class _NoRedirect(HTTPRedirectHandler):
@@ -62,7 +63,8 @@ def provision_from_file(path: str | Path, *, allow_loopback_http: bool = False) 
     raw = json_object(path.read_bytes())
     exact_fields(raw, {"policy_file", "owner_signing_key_file", "amd_root_file", "broker_vcek_file",
                        "broker_intermediate_files", "model_key_file", "epoch_database",
-                       "epoch_namespace", "broker_url"})
+                       "epoch_namespace", "broker_url"},
+                 {"deployment_approval_file", "deployment_approval_identity"})
     base = path.parent
     url = validate_url(raw["broker_url"], allow_loopback_http=allow_loopback_http)
     if not isinstance(raw["epoch_namespace"], str) or not raw["epoch_namespace"]:
@@ -71,12 +73,20 @@ def provision_from_file(path: str | Path, *, allow_loopback_http: bool = False) 
     if not isinstance(intermediates, list):
         raise ValueError("intermediate certificate path array required")
     policy = load_policy(config_path(base, raw["policy_file"]))
+    approval = None
+    if {"deployment_approval_file", "deployment_approval_identity"} & raw.keys():
+        if not {"deployment_approval_file", "deployment_approval_identity"} <= raw.keys():
+            raise ValueError("deployment approval requires both file and owner identity pin")
+        approval = load_approval(config_path(base, raw["deployment_approval_file"]),
+                                 raw["deployment_approval_identity"])
+        approval.require_policy(policy)
     owner = OwnerProvisioner(
         policy,
         owner_signing_key=Ed25519PrivateKey.from_private_bytes(
             config_path(base, raw["owner_signing_key_file"]).read_bytes()),
         trusted_root=load_pem_certificate(config_path(base, raw["amd_root_file"]).read_bytes()),
         epoch_store=OwnerEpochStore(config_path(base, raw["epoch_database"]), raw["epoch_namespace"]),
+        deployment_approval=approval,
     )
     vcek = load_pem_certificate(config_path(base, raw["broker_vcek_file"]).read_bytes())
     chain = [load_pem_certificate(config_path(base, item).read_bytes()) for item in intermediates]
@@ -111,6 +121,8 @@ def provision_from_file(path: str | Path, *, allow_loopback_http: bool = False) 
         "epoch": policy.epoch, "policy_sha256": hashlib.sha256(policy.context()).hexdigest(),
         "report_sha256": hashlib.sha256(report).hexdigest(),
         "broker_acknowledged": True, "installation_proven": False,
+        "deployment_approval_identity": approval.identity() if approval is not None else None,
+        "application_identity_established": False,
     }
 
 

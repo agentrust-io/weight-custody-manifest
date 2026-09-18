@@ -12,7 +12,7 @@ a protected key-storage implementation.
 
 ## Configuration
 
-An owner JSON configuration has exactly these fields:
+An owner JSON configuration requires these fields:
 
 ```json
 {
@@ -33,6 +33,11 @@ bytes; the model key is 16, 24 or 32 raw bytes. Certificates are PEM. The AMD ro
 must come from an independently trusted source. Supply the VCEK and intermediate
 chain appropriate to the broker; the client verifies their signatures and chain
 against that root. Certificate presence alone is not approval.
+
+The optional `deployment_approval_file` and `deployment_approval_identity` fields
+must appear together. They pin a separately approved build/launch/policy record
+before any broker request. See [Broker deployment identity](broker-deployment-identity.md)
+for derivation, substitution checks and the provisional hardware adapter.
 
 `approved-policy.json` contains the exact `BrokerProvisioningPolicy` fields:
 `measurement_hex`, `configuration_sha256`, `weights_hash`, `epoch`, `guest_policy`,
@@ -78,7 +83,9 @@ hardware protection.
 
 On acknowledgement, the client prints a minimized JSON receipt with the policy
 and report digests, epoch, `broker_acknowledged: true` and
-`installation_proven: false`. A server acknowledgement is not an attested proof
+`installation_proven: false`. It also reports the optional deployment approval
+identity and `application_identity_established: false`; record consistency is
+not measured execution evidence. A server acknowledgement is not an attested proof
 that installation occurred. On failure the CLI prints only the exception type
 and an unknown-outcome message; it does not echo file contents, upstream error
 bodies or private keys. Protect receipts because report digests can be linkable.

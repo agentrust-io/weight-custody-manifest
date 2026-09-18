@@ -90,6 +90,55 @@ def test_owner_client_provisions_receiver_without_transmitting_plaintext_key(bun
     assert KEY.hex() not in json.dumps(calls)
     assert receipt["broker_acknowledged"] is True
     assert receipt["installation_proven"] is False
+    assert receipt["application_identity_established"] is False
+
+
+@pytest.mark.parametrize("attack", [None, "pin", "record", "missing-pin", "missing-file", "policy"])
+def test_owner_client_checks_independent_deployment_approval_before_network(bundle, monkeypatch, attack):
+    from wcm.deployment_identity import ROLES, SnpLaunchParameters, derive_approval
+    from wcm.provisioning_wire import load_policy
+
+    _, owner_path, _ = bundle
+    base = owner_path.parent
+    artifacts = {}
+    for role in ROLES:
+        artifacts[role] = base / (role + ".bin")
+        artifacts[role].write_bytes(("synthetic " + role).encode())
+    policy = load_policy(base / "policy.json")
+    approval = derive_approval(
+        artifacts=artifacts,
+        launch=SnpLaunchParameters(vmm_type="QEMU", vcpus=1, vcpu_type="EPYC-v4", guest_features="0x1"),
+        expected_measurement_hex=policy.measurement_hex, policy=policy,
+    )
+    record = base / "approval.json"
+    record.write_bytes(approval.canonical_bytes())
+    owner = json.loads(owner_path.read_text())
+    owner.update(deployment_approval_file="approval.json", deployment_approval_identity=approval.identity())
+    if attack == "pin":
+        owner["deployment_approval_identity"] = "sha256:" + "00" * 32
+    elif attack == "record":
+        changed = json.loads(record.read_text())
+        changed["artifacts"][0]["sha256"] = "00" * 32
+        record.write_text(json.dumps(changed))
+    elif attack == "missing-pin":
+        del owner["deployment_approval_identity"]
+    elif attack == "missing-file":
+        del owner["deployment_approval_file"]
+    elif attack == "policy":
+        changed = json.loads((base / "policy.json").read_text())
+        changed["epoch"] += 1
+        (base / "policy.json").write_text(json.dumps(changed))
+    owner_path.write_text(json.dumps(owner))
+    _, calls = wire_receiver(bundle, monkeypatch)
+    if attack is not None:
+        with pytest.raises(ValueError):
+            owner_provision.provision_from_file(owner_path)
+        assert calls == []
+    else:
+        receipt = owner_provision.provision_from_file(owner_path)
+        assert len(calls) == 2
+        assert receipt["deployment_approval_identity"] == approval.identity()
+        assert receipt["application_identity_established"] is False
 
 
 def test_owner_and_service_over_real_http_with_synthetic_snp(bundle, monkeypatch):
