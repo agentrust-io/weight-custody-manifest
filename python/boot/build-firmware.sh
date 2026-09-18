@@ -41,3 +41,23 @@ cmp "$output/OVMF.fd" Build/AmdSev/RELEASE_GCC/FV/OVMF.fd
 cd "$output"
 sha256sum OVMF.fd profile.json profile.patch > firmware-digests.txt
 echo 'Restricted firmware repeated byte-for-byte on one runner; hardware validation remains false.'
+
+# Separate, deliberately insecure TCG fixtures. Never overwrite OVMF.fd.
+cd "$output/source"
+python "$scripts/firmware_vm_fixture.py" "$PWD" "$output/profile.json"
+git diff --binary > "$output/test-only.patch"
+build "${options[@]}"
+cp Build/AmdSev/RELEASE_GCC/FV/OVMF.fd "$output/TEST-ONLY.fd"
+python - <<'PY'
+from pathlib import Path
+path = Path('OvmfPkg/AmdSev/BlobVerifierLibSevHashes/BlobVerifierSevHashes.c')
+text = path.read_text()
+gate = 'CompareMem (Entry->Data, Hash, EntrySize) == 0'
+assert text.count(gate) == 1
+path.write_bytes(text.replace(gate, 'TRUE').encode())
+PY
+build "${options[@]}"
+cp Build/AmdSev/RELEASE_GCC/FV/OVMF.fd "$output/WEAKENED-TEST-ONLY.fd"
+git diff --binary > "$output/weakened-test-only.patch"
+cd "$output"
+sha256sum TEST-ONLY.fd WEAKENED-TEST-ONLY.fd > test-only-digests.txt

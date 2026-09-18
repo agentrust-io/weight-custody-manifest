@@ -69,6 +69,29 @@ enumeration, ACPI consumers, option ROM policy, S3/resume, firmware variables,
 DXE dispatch and kernel handoff as a whole. The earlier TCG tests boot PC firmware
 and do not validate this OVMF candidate. Full-image compilation is a build check.
 
+### Complete-image TCG controls
+
+After preserving and repeating `OVMF.fd`, the builder creates two separate
+**test-only, insecure images**: `TEST-ONLY.fd` and `WEAKENED-TEST-ONLY.fd`.
+`firmware_vm_fixture.py` first checks the candidate's patched-source hashes.
+It then supplies a synthetic hash table through fw_cfg and adds diagnostic I/O
+at existing stop points. The weakened image additionally bypasses the hash
+comparison. Their separate hashes and complete diffs are retained. Neither
+image may be used for custody or as an approved launch identity.
+
+`firmware_vm.py` boots those complete images under QEMU TCG. Its positive
+control must reach the unchanged production Linux PID1 and its expected
+non-SNP refusal (exit 111). Negative controls require specific firmware exit
+codes, absence of that Linux marker, and a named-payload marker where applicable.
+Timeouts and unrelated failures fail the test. A changed command line must
+reach Linux only in the deliberately weakened firmware control.
+
+This matrix exercises missing/malformed tables, all three changed boot inputs
+and a named shim. The hash-table encoder is shared with the offline predictor;
+it is not an independent implementation. These instrumented images do not
+prove enforcement by the exact production bytes, hardware-authenticated table
+placement, IGVM injection, alternate-device boot or every pre-hook DXE path.
+
 ## Acceptance still required
 
 Review the resolved full image and all pre-hook execution paths, especially
