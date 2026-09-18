@@ -6,6 +6,12 @@ uses semantic-ish versioning while pre-1.0.
 
 ## Unreleased
 
+Add a source-pinned offline SNP prediction tool with complete kernel/initrd/
+command-line hash-table comparison, explicit vCPU/features and substitution
+tests. Record the OVMF/QEMU source review and hardware acceptance procedure.
+Prediction and firmware metadata do not establish firmware enforcement or
+agreement with a genuine report; both remain provisional.
+
 Add checksum-pinned kernel construction and QEMU TCG boot validation for the
 provisional loader. The unchanged production image must refuse a non-SNP VM;
 separately identified test-device images exercise kernel-to-broker startup,
