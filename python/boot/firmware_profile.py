@@ -118,6 +118,16 @@ def transform(sources):
     function = function.replace("    Sha256HashAll (Buf, BufSize, Hash);",
         "    if (!Sha256HashAll (Buf, BufSize, Hash)) {\n      CpuDeadLoop ();\n      return EFI_ACCESS_DENIED;\n    }")
     result[VERIFIER] = verifier[:start] + function + verifier[end:]
+    result[VERIFIER] = result[VERIFIER].replace(
+        "The blob was verified successfully or was not", "The blob was verified successfully; no missing")
+    result[VERIFIER] = result[VERIFIER].replace(
+        "found in the hash table.", "entry is accepted by this profile.")
+    result[VERIFIER] = result[VERIFIER].replace(
+        "If the GUID is not in the hash table, execution can still continue.",
+        "If the GUID is not in the hash table, execution must stop.")
+    result[VERIFIER] = result[VERIFIER].replace(
+        "This blob will not be measured, but at least one blob must be.",
+        "Every admitted blob must have an authenticated table entry.")
     result[LOADER] = body(body(result[LOADER], "QemuKernelFetchNamedBlobs", NAMED),
                           "QemuKernelRegisterIgvmBlobs", IGVM)
     result[MANAGER] = body(result[MANAGER], "PlatformBootManagerBeforeConsole", BEFORE)

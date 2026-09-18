@@ -11,11 +11,8 @@ git -c core.autocrlf=false clone --quiet --no-checkout --depth 1 \
 cd "$output/source"
 test "$(git rev-parse HEAD)" = "$revision"
 git checkout --detach "$revision"
-git submodule update --init --depth 1 \
-  CryptoPkg/Library/OpensslLib/openssl \
-  MdeModulePkg/Library/BrotliCustomDecompressLib/brotli \
-  BaseTools/Source/C/BrotliCompress/brotli \
-  MdePkg/Library/MipiSysTLib/mipisyst
+# Package declarations reference include directories even for unused modules.
+git submodule update --init --depth 1
 git submodule status > "$output/submodules.txt"
 python "$scripts/firmware_controls.py" "$PWD" "$output/native-controls.json"
 python "$scripts/firmware_profile.py" "$PWD" > "$output/profile.json"
