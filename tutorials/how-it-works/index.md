@@ -25,13 +25,13 @@ These steps assume a release authority the builder trusts. If the customer contr
 
 **2. Gate - attestation-gated release.** The KBS issues a single-use nonce. The enclave returns evidence: a CPU confidential-VM quote and a *separate* GPU report, both echoing the nonce. The KBS checks all of it - genuine hardware, the platform the manifest requires, and a serving-image measurement matching what the builder signed - and only then releases the decryption key into the enclave. The key decrypts weights **only** under the builder-signed, measured serving stack, so "no raw weight export path" can be a real property, not a promise.
 
-**3. Custody - wipe-on-lapse.** The enclave holds the key only for the manifest's attestation cadence window. If it does not re-attest in time, it **zeroizes** the key from its own memory and stops serving - the key is gone, not suspended. This bounds worst-case exposure to one cadence window even if a compromised host blocks every revocation signal, *provided the clock cannot be stalled* (`trusted_time_source`).
+**3. Custody - wipe-on-lapse.** The enclave holds the key only for the manifest's attestation cadence window. If it does not re-attest in time, it **zeroizes** the key from its own memory and stops authorizing inference - the key is gone, not suspended - and invokes the teardown adapter the deployment supplied to stop its serving worker. This bounds worst-case exposure to one cadence window even if a compromised host blocks every revocation signal, *provided the clock cannot be stalled* (`trusted_time_source`).
 
 **4. Terms - license and field-of-use.** The manifest's `release_terms` carry the license and usage restrictions; release happens only under the disclosed, conforming configuration. The manifest turns contract text into a technical release condition.
 
 **5. Derive - lineage.** If the customer is permitted to fine-tune inside the enclave, the result gets its own manifest with `derived_from` pointing at the parent and a `rights_holder` recording the IP split - a chain of custody back to the original.
 
-**6. Revoke - the kill switch.** Either party (or the sovereign quorum) can revoke; the enclave stops serving on the next cadence lapse at the latest. Wipe-on-lapse is the floor underneath revocation.
+**6. Revoke - the kill switch.** Either party (or the sovereign quorum) can revoke; the enclave ends custody and tears serving down on the next cadence lapse at the latest. Wipe-on-lapse is the floor underneath revocation.
 
 ## The honesty at the center
 
