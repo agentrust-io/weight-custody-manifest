@@ -12,7 +12,7 @@ on:
   pull_request:
     paths:
       - "python/docker/**"
-      - "python/src/wcm/server.py"
+      - "python/src/wcm/**"
       - "python/pyproject.toml"
       - "schema/**"
       - "conformance/**"
@@ -31,6 +31,9 @@ jobs:
       - name: Build the reference KBS image
         run: docker build -f python/docker/Dockerfile -t wcm-kbs:ci .
 
+      - name: Build the provisioned receiver target
+        run: docker build --target provisioned -f python/docker/Dockerfile -t wcm-kbs:provisioned-ci .
+
       - name: Run and health-check
         run: |
           docker run -d --name kbs -p 8080:8080 wcm-kbs:ci
@@ -44,25 +47,59 @@ jobs:
           docker logs kbs
           docker rm -f kbs
 
+      - name: Smoke-test the installed provisioned service without hardware
+        run: |
+          set -euo pipefail
+          fixture="$RUNNER_TEMP/wcm-public-smoke"
+          mkdir -p "$fixture"
+          # Write public certificates/config only. No model key or owner private
+          # key is mounted into the service container.
+          docker run --rm --read-only --cap-drop ALL --security-opt no-new-privileges \
+            --user "$(id -u):$(id -g)" --entrypoint python \
+            -v "$PWD/python/docker/smoke_provisioned.py:/smoke.py:ro" \
+            -v "$fixture:/fixture" wcm-kbs:provisioned-ci /smoke.py fixture /fixture
+          trap 'docker logs provisioned-kbs; docker rm -f provisioned-kbs >/dev/null' EXIT
+          docker run -d --name provisioned-kbs --read-only --cap-drop ALL \
+            --security-opt no-new-privileges -p 127.0.0.1:8081:8080 \
+            -v "$fixture:/run/wcm:ro" \
+            -e WCM_BROKER_CONFIG_FILE=/run/wcm/broker.json \
+            -e WCM_KEYSTORE_FILE=/must-not-read-legacy-keystore.json \
+            wcm-kbs:provisioned-ci
+          python3 python/docker/smoke_provisioned.py check http://127.0.0.1:8081
+          # Check effective kernel credentials/capabilities as well as Docker's
+          # configured read-only root, rather than assuming flags took effect.
+          docker exec provisioned-kbs python -c \
+            "import os; s=open('/proc/self/status').read().splitlines(); assert os.getuid()==10001; assert 'CapEff:\t0000000000000000' in s; assert 'NoNewPrivs:\t1' in s"
+          test "$(docker inspect provisioned-kbs --format '{{.HostConfig.ReadonlyRootfs}}')" = true
+
       - name: Assert no build tooling reached the runtime image
         # The runtime stage installs the wheel with --no-deps against a
         # hash-locked closure, so hatchling must not be present.
         run: |
-          if docker run --rm --entrypoint python wcm-kbs:ci -c "import hatchling" 2>/dev/null; then
-            echo "::error::hatchling leaked into the runtime image"
-            exit 1
-          fi
-          docker run --rm --entrypoint python wcm-kbs:ci -c "import wcm, wcm.schema; print('wcm', wcm.__version__, wcm.schema.SCHEMA_ID)"
+          for image in wcm-kbs:ci wcm-kbs:provisioned-ci; do
+            if docker run --rm --entrypoint python "$image" -c "import hatchling" 2>/dev/null; then
+              echo "::error::hatchling leaked into the runtime image"
+              exit 1
+            fi
+            docker run --rm --entrypoint python "$image" -c "import wcm, wcm.schema; print('wcm', wcm.__version__, wcm.schema.SCHEMA_ID)"
+          done
 
-      - name: Verify the build is reproducible
-        # Builds twice (second with --no-cache) and compares the exported
-        # filesystem CONTENT. Content rather than layer digests, because BuildKit
-        # stamps build-time mtimes onto COPY destination directory entries that no
-        # in-image normalization can reach, and content is what a KBS measurement
-        # is about anyway. See the script header and docs/reproducible-kbs-image.md.
-        run: ./python/docker/verify-reproducible.sh
+      - name: Verify both targets repeat on the same runner
+        # Filesystem content/metadata plus runtime configuration, without mtimes.
+        # These digests are build evidence, not SNP measurements.
+        run: |
+          ./python/docker/verify-reproducible.sh --target reference --output-dir "$RUNNER_TEMP/wcm-image-evidence/reference"
+          ./python/docker/verify-reproducible.sh --target provisioned --output-dir "$RUNNER_TEMP/wcm-image-evidence/provisioned"
+
+      - name: Retain image comparison evidence
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: wcm-image-evidence
+          path: ${{ runner.temp }}/wcm-image-evidence
+          if-no-files-found: error
 
       - name: Record the measurement reference
         run: |
           docker image inspect wcm-kbs:ci --format 'layers: {{json .RootFS.Layers}}'
           docker image inspect wcm-kbs:ci --format 'image id: {{.Id}}'
+          docker image inspect wcm-kbs:provisioned-ci --format 'provisioned image id: {{.Id}}'

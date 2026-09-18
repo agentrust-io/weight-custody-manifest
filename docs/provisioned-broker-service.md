@@ -57,6 +57,34 @@ Use one process per broker instance: each process has a different boot key and
 provisioning state. Run on a native SEV-SNP guest exposing `/dev/sev-guest`.
 Azure vTPM-backed SNP and software providers are not substitutes for this path.
 
+### Container target
+
+Build the explicit receiver target; the default Docker build retains the
+mounted-key reference entry point:
+
+```bash
+docker build --target provisioned -f python/docker/Dockerfile -t wcm-broker .
+docker run --rm --read-only --cap-drop ALL --security-opt no-new-privileges \
+  -p 127.0.0.1:8080:8080 -v "$PWD/approved-config:/run/wcm:ro" \
+  -e WCM_BROKER_CONFIG_FILE=/run/wcm/broker.json wcm-broker
+```
+
+This deliberately omits device access: on an ordinary host, health succeeds but
+provisioning reports fail with 503. On an approved native-SNP guest, the deployment
+must grant the broker user narrowly scoped access to `/dev/sev-guest` and expose
+that device to the container. Do not grant `--privileged` or change to root just
+to bypass an access failure. Device permissions, the guest kernel and launcher
+are part of the trusted deployment and must be approved with the image.
+
+CI exercises the installed image using synthetic public configuration, verifies
+missing-hardware denial, UID 10001, no effective capabilities, no-new-privileges
+and read-only root configuration. It builds both targets twice and retains
+filesystem/runtime-configuration snapshots. These are same-runner build and
+container observations, not evidence of SNP-protected execution. The snapshot
+SHA256 is not an SNP launch measurement or an OCI digest. A measured deployment
+must bind the selected command, effective configuration and runtime overrides;
+reproducible image files alone do not supply that binding.
+
 The [owner provisioning client](owner-provisioning-client.md) performs the
 challenge, independent report verification and sealed installation exchange:
 `python -m wcm.owner_provision owner.json`. HTTPS is required by default;

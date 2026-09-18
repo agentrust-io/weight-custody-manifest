@@ -23,6 +23,13 @@ loopback HTTP exchange. Measured-image packaging, protected memory,
 trusted nonsnapshot owner storage, GPU firmware appraisal and protected CPU/GPU
 inference remain deployment requirements, without new live hardware validation.
 
+Add an explicit `provisioned` container target while preserving the default
+mounted-key entry point. CI exercises the installed provisioned image without
+hardware under read-only/non-root/capability restrictions. Image comparison now
+fails on export errors and includes ownership, link targets, extended metadata
+and runtime configuration; its versioned digest is build evidence, not a hardware
+launch measurement. Both target snapshots are retained by CI.
+
 **[docs]** Clarify the release-authority trust boundary: a customer who can read
 broker keys or replace verification and policy can bypass workload attestation.
 Distinguish the attested self-custody design from the reference server's mounted
