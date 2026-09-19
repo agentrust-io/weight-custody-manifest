@@ -6,6 +6,11 @@ uses semantic-ish versioning while pre-1.0.
 
 ## Unreleased
 
+Document provisioning lifecycle and recovery, with software controls for lost
+HTTP acknowledgements, pending installation failures, owner restart, storage
+rollback assumptions and retirement followed by local worker shutdown. Reuse
+the existing custody monitor and stop adapter; no hardware claim is added.
+
 Add a source-pinned offline SNP prediction tool with complete kernel/initrd/
 command-line hash-table comparison, explicit vCPU/features and substitution
 tests. Record the OVMF/QEMU source review and hardware acceptance procedure.
