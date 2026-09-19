@@ -112,6 +112,7 @@ nav:
       - Reference KBS image: reference-kbs.md
       - Provisioned receiver service: provisioned-broker-service.md
       - Owner provisioning client: owner-provisioning-client.md
+      - Provisioning lifecycle: provisioning-lifecycle.md
       - Broker deployment identity: broker-deployment-identity.md
       - Provisional boot loader: broker-boot-loader.md
       - Provisional measurement profile: broker-measurement-profile.md

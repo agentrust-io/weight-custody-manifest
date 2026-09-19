@@ -109,3 +109,7 @@ configuration, clocks and guest privileges. The epoch store must reside on
 trusted nonsnapshot owner storage. Policy advancement does not erase a key from
 an already provisioned receiver. Secure erasure, recovery, revocation, firmware
 currency and protected CPU/GPU model execution still need separate evidence.
+
+See [Provisioning lifecycle and recovery](provisioning-lifecycle.md) for the
+restart, uncertain-outcome, storage and worker-stop contract and executable
+software controls.
