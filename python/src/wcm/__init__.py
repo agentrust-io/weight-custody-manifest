@@ -115,10 +115,13 @@ from ._quote_verify import (
 from .azure_vtpm import AzureSnpVtpmVerifier
 from .custody import (
     EnclaveSession,
+    ServingShutdown,
     SessionState,
+    StopFloor,
     TimeFloor,
     KeyWipedError,
     ReattestationRequired,
+    RenewalDenied,
     parse_cadence,
 )
 from .runtime_records import (
@@ -295,10 +298,13 @@ __all__ = [
     "QuoteFormatError",
     "verify_cert_chain",
     "EnclaveSession",
+    "ServingShutdown",
     "SessionState",
+    "StopFloor",
     "TimeFloor",
     "KeyWipedError",
     "ReattestationRequired",
+    "RenewalDenied",
     "parse_cadence",
     "RuntimeEvent",
     "RuntimeRecord",
