@@ -6,6 +6,29 @@ uses semantic-ish versioning while pre-1.0.
 
 ## Unreleased
 
+Predict the actual built firmware/kernel/broker initramfs in CI, repeat the
+baseline and require seven launch-input substitutions to change the digest.
+Retain exact artifact identities and candidate launch parameters. This is
+software prediction evidence; matching hardware and firmware approval remain open.
+
+Record real GCP native-SNP report controls and owner-side verification. A fresh
+report retains its launch measurement after an application probe file changes.
+The native provisioning collector binds supplied bytes; protected broker
+identity, custom firmware and key custody remain unvalidated by this run.
+
+Add a live Azure SNP/vTPM diagnostic with independently supplied roots and
+owner nonces. Real-hardware controls reject six evidence substitutions and
+reproduce the caller-supplied PCR23 digest limitation after a probe file changes.
+This does not validate the custom firmware or native-SNP broker provisioning.
+
+Add an experimental restricted edk2 build profile: require the complete launch
+hash table, reject named and IGVM boot blobs, and stop before generic BDS boot
+options if the verified kernel fails or returns. Remove GRUB and shell payloads.
+Native C controls, repeated candidate builds and separately instrumented
+complete-image TCG controls run in Linux CI. Test firmware injects synthetic
+launch state and is explicitly unsuitable for custody. This is not
+production firmware approval or SNP hardware validation.
+
 Add a source-pinned offline SNP prediction tool with complete kernel/initrd/
 command-line hash-table comparison, explicit vCPU/features and substitution
 tests. Record the OVMF/QEMU source review and hardware acceptance procedure.

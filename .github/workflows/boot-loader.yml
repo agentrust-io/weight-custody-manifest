@@ -6,6 +6,28 @@ on:
 permissions:
   contents: read
 jobs:
+  restricted-firmware:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.12'
+      - run: sudo apt-get update && sudo apt-get install -y build-essential uuid-dev nasm acpica-tools libssl-dev
+      - name: Compile firmware controls and repeat the complete candidate build
+        run: bash python/boot/build-firmware.sh "$RUNNER_TEMP/restricted-firmware"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: restricted-firmware-results
+          path: |
+            ${{ runner.temp }}/restricted-firmware/OVMF.fd
+            ${{ runner.temp }}/restricted-firmware/TEST-ONLY.fd
+            ${{ runner.temp }}/restricted-firmware/WEAKENED-TEST-ONLY.fd
+            ${{ runner.temp }}/restricted-firmware/*.json
+            ${{ runner.temp }}/restricted-firmware/*.txt
+            ${{ runner.temp }}/restricted-firmware/*.patch
   measurement-prediction:
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -67,6 +89,12 @@ jobs:
             "$RUNNER_TEMP/boot-one/runtime.tar" "$RUNNER_TEMP/boot-one/initrd.cpio" \
             "$RUNNER_TEMP/boot-vm-evidence"
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: firmware-vm-inputs
+          path: |
+            ${{ runner.temp }}/boot-kernel/bzImage
+            ${{ runner.temp }}/boot-one/initrd.cpio
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
         with:
           name: boot-loader-results
@@ -78,3 +106,61 @@ jobs:
             ${{ runner.temp }}/boot-kernel/toolchain.txt
             ${{ runner.temp }}/boot-vm-evidence/*.json
             ${{ runner.temp }}/boot-vm-evidence/*.log
+  firmware-vm:
+    needs: [restricted-firmware, linux-handoff]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: virtee/sev-snp-measure
+          ref: 8f2b337e38bc83f87cd30f3253cdfe8e3e12cc3a
+          path: .measurement-tool
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.12'
+      - run: sudo apt-get update && sudo apt-get install -y qemu-system-x86
+      - run: python -m pip install -e './python[server]'
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: restricted-firmware-results
+          path: ${{ runner.temp }}/firmware-images
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: firmware-vm-inputs
+          path: ${{ runner.temp }}/boot-inputs
+      - name: Boot complete test-only firmware with positive and rejection controls
+        run: |
+          python python/boot/firmware_vm.py "$RUNNER_TEMP/firmware-images/TEST-ONLY.fd" \
+            "$RUNNER_TEMP/firmware-images/WEAKENED-TEST-ONLY.fd" \
+            "$RUNNER_TEMP/boot-inputs/boot-kernel/bzImage" \
+            "$RUNNER_TEMP/boot-inputs/boot-one/initrd.cpio" \
+            "$RUNNER_TEMP/firmware-vm-evidence"
+      - name: Predict actual candidate artifacts and exercise seven substitutions
+        run: |
+          printf %s 'console=ttyS0 panic=-1 rdinit=/init' > "$RUNNER_TEMP/prediction-cmdline.txt"
+          python -I -B -S python/boot/prediction_controls.py \
+            --tool-source .measurement-tool \
+            --firmware "$RUNNER_TEMP/firmware-images/OVMF.fd" \
+            --kernel "$RUNNER_TEMP/boot-inputs/boot-kernel/bzImage" \
+            --initrd "$RUNNER_TEMP/boot-inputs/boot-one/initrd.cpio" \
+            --command-line "$RUNNER_TEMP/prediction-cmdline.txt" \
+            --vcpus 1 --vcpu-type EPYC-v4 --guest-features 0x1 \
+            --changed-vcpus 2 --changed-vcpu-type EPYC-Milan-v2 --changed-guest-features 0x21 \
+            --output "$RUNNER_TEMP/built-launch-prediction"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: built-launch-prediction
+          path: |
+            ${{ runner.temp }}/built-launch-prediction/*.json
+            ${{ runner.temp }}/prediction-cmdline.txt
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: firmware-vm-results
+          path: |
+            ${{ runner.temp }}/firmware-vm-evidence/*.json
+            ${{ runner.temp }}/firmware-vm-evidence/*.log

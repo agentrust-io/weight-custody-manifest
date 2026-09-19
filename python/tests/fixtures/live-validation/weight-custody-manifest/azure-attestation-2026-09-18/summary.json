@@ -1,0 +1,73 @@
+{
+  "kind": "wcm/azure-live-attestation-controls/v1",
+  "captured_at": "2026-09-18T22:24:34.017526+00:00",
+  "kernel": "6.17.0-1018-azure-fde",
+  "root_der_sha256": "69d063b45344d26a2e94e1f4210de49ef555308287d4c174445c95639a540bcd",
+  "quote_sha256": "ad58be845b43bb4c1080a89e0aec5a180965c70b846025113f1a1d46b9132ba1",
+  "launch_measurement_sha256": "8f04d264ede334706b54f0737f4e412657bf75d1d4c9fcd6f8bbfd3f494e56e9",
+  "devices": {
+    "/dev/sev": false,
+    "/dev/sev-guest": false,
+    "/dev/kvm": false,
+    "/dev/tpmrm0": true
+  },
+  "native_provisioning_interface_available": false,
+  "controls": [
+    {
+      "case": "positive",
+      "verified": true,
+      "expected": true,
+      "reason": null
+    },
+    {
+      "case": "wrong-nonce",
+      "verified": false,
+      "expected": false,
+      "reason": "TPM qualifying data does not bind nonce and transport key"
+    },
+    {
+      "case": "wrong-transport-key",
+      "verified": false,
+      "expected": false,
+      "reason": "TPM qualifying data does not bind nonce and transport key"
+    },
+    {
+      "case": "wrong-workload-digest",
+      "verified": false,
+      "expected": false,
+      "reason": "TPM PCR digest does not match the approved workload measurement"
+    },
+    {
+      "case": "tampered-tpm_signature_b64",
+      "verified": false,
+      "expected": false,
+      "reason": "TPM quote verification failed: "
+    },
+    {
+      "case": "tampered-hcl_b64",
+      "verified": false,
+      "expected": false,
+      "reason": "SNP report signature does not verify"
+    },
+    {
+      "case": "untrusted-root",
+      "verified": false,
+      "expected": false,
+      "reason": "does not chain to a trusted root"
+    }
+  ],
+  "changed_file_with_stale_caller_digest": {
+    "verified": true,
+    "approved_digest": "sha256:d714cdd51ef211a59aacde59fab5fc2bc8e592c58cba755c3d29cd60d78cbbf2",
+    "actual_file_digest": "sha256:73a54dd608cd7d2c3725fdd86f18caa838425a3e2b6b8fb98815d46efa4395f4",
+    "classification": "measurement-enforcement-counterexample"
+  },
+  "custom_firmware_loaded": false,
+  "application_identity_established": false,
+  "limits": [
+    "Provider firmware, not the restricted OVMF candidate.",
+    "PCR23 authenticates the digest supplied to the provider, not file immutability.",
+    "No native-SNP provisioning acceptance or protected model execution is established.",
+    "This diagnostic does not check certificate revocation."
+  ]
+}
