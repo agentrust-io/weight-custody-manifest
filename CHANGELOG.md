@@ -6,6 +6,10 @@ uses semantic-ish versioning while pre-1.0.
 
 ## Unreleased
 
+Add a source-pinned composed software harness and CI for provisioning, diagnostic
+model computation, mediated tools, authenticated peer responses and exact-output
+disclosure. Attestation is synthetic; process isolation remains separate.
+
 Document provisioning lifecycle and recovery, with software controls for lost
 HTTP acknowledgements, pending installation failures, owner restart, storage
 rollback assumptions and retirement followed by local worker shutdown. Reuse

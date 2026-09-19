@@ -156,3 +156,13 @@ Live lifecycle acceptance remains dependent on measured application identity
 [#144](https://github.com/agentrust-io/weight-custody-manifest/issues/144), the
 controlled host in [#149](https://github.com/agentrust-io/weight-custody-manifest/issues/149),
 and protected execution [#146](https://github.com/agentrust-io/weight-custody-manifest/issues/146).
+
+## Composed software development slice
+
+The source-pinned harness in `python/composed/` continues from installation
+through deterministic model computation, a real cMCP tool subprocess, cA2A
+HTTP response authentication and exact-output disclosure. Its workflow retains
+separate state and boundary observations plus six deliberate weakening controls.
+Attestation is synthetic and the host/controller is trusted. No agent confinement,
+protected model execution or complete integrations#199 acceptance is claimed.
+See `python/composed/README.md` for pins, commands and remaining controls.
