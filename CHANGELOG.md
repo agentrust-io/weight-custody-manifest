@@ -83,6 +83,24 @@ capture settles that: its PCK intermediate expires 2033-05-21 and its leaf
 
 
 
+**[conformance]** A fifth vendor-vector binding kind, `nonce-echo` (issue #128).
+`nonce-digest` is defined as `REPORT_DATA == sha256(nonce)`; NVIDIA device
+reports carry no `REPORT_DATA` and echo the raw nonce at offset 4. Declaring
+that as `nonce-digest` verified correctly, which is the problem: the label named
+a mechanism not in those bytes, and a closed vocabulary exists to stop that.
+
+Named for what the bytes do rather than for the vendor, since any platform
+echoing a nonce verbatim belongs in it, with the offset declared per capture so
+a second such platform needs a value and not a branch. The runner checks the
+declared offset against the report format, and refuses `nonce_offset` on any
+kind that binds a digest, because a digest has no offset to declare.
+
+The offset is mandatory and must be a non-negative integer, without coercion.
+Both the schema and runner enforce report-format compatibility: NVIDIA requires
+`nonce-echo`; SEV-SNP and TDX reject it. A mislabelled capture cannot pass by
+relying on the verifier's implicit binding behavior.
+
+
 **[conformance]** A vector format for captures taken from real vendor silicon
 (`kind: vendor`, issue #116). The existing quote vectors use a synthetic PKI, so
 an implementation can satisfy `accept-cryptographically-verified-quote` without

@@ -251,6 +251,7 @@ what its `REPORT_DATA` is bound to:
 | --- | --- |
 | `nonce-digest` | `REPORT_DATA` equals `sha256(nonce)` |
 | `nonce-and-transport` | `sha256(nonce \|\| transport key)`, which is what stops relay |
+| `nonce-echo` | the nonce appears **verbatim** in the report at `nonce_offset`, rather than as a digest of it |
 | `attestation-key` | bound to a platform key, as on the Azure SEV-SNP vTPM path; no caller freshness |
 | `none` | signature and chain only, and nothing about freshness |
 
@@ -260,6 +261,23 @@ understand reports a pass it never performed.
 
 `none` earns its place: some real captures prove only that a chip signed
 something, and a format that cannot say so will have a nonce invented for it.
+
+`nonce-echo` earns its place for the opposite reason. NVIDIA device reports
+carry no `REPORT_DATA` and echo the raw nonce at offset 4. Declaring that as
+`nonce-digest` verifies correctly, which is the problem: the label names a
+mechanism that is not in those bytes, and a closed vocabulary exists to stop
+exactly that. It is named for what the bytes do rather than for the vendor,
+because any platform echoing a nonce verbatim belongs in it, and `nonce_offset`
+is a field rather than a constant so a second such platform needs a value and
+not a branch. The runner checks the declared offset against the report format
+before verifying, and refuses `nonce_offset` on any kind that binds a digest,
+since a digest has no offset to declare.
+
+The offset is required and must be a non-negative integer; the runner does not
+supply a default or coerce strings or fractional values. With the currently
+supported report formats, NVIDIA requires `nonce-echo`, while SEV-SNP and TDX
+reject it. The schema and runner both enforce this compatibility. An echo
+binding cannot also claim a transport-key binding.
 
 ### Expiry
 
