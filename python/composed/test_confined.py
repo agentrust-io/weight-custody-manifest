@@ -1,4 +1,5 @@
 """The same full software path, with an adversarial agent at the tool boundary."""
+import json
 import os
 
 import pytest
@@ -21,6 +22,10 @@ def test_confined_composition(prepared, tmp_path, monkeypatch, mutation):  # noq
     assert result['failure'] is None
     assert result['states']['delivery'] == 'acknowledged'
     assert len(result['tool_receipts']) == len(result['peer_receipts']) == len(result['deliveries']) == 1
+    expected = {'transaction': tx, 'value': 23}
+    assert json.loads(result['tool_receipts'][0]['arguments']['value']) == expected
+    assert json.loads(result['peer_receipts'][0]) == expected
+    assert json.loads(result['deliveries'][0]) == expected
     assert observed['stats']['allowed'] == observed['stats']['denied'] == 1
     assert observed['stats']['stderr_bytes'] > 0
     assert not observed['running']
