@@ -1,4 +1,4 @@
-"""Source-pinned software composition; no hardware or agent isolation claim."""
+"""Source-pinned software composition; synthetic attestation with optional confined agent mediation."""
 from __future__ import annotations
 
 import asyncio
@@ -32,6 +32,10 @@ class Refused(Exception):
     """An observed boundary refused; never include protected content."""
 
 
+def decrypt_model(key, artifact, tx):
+    return AESGCM(key).decrypt(artifact[:12], artifact[12:], tx.encode())
+
+
 def model_artifact():
     """Nonsecret affine model; binds a fresh transaction into authenticated data."""
     tx = uuid4().hex
@@ -39,8 +43,6 @@ def model_artifact():
     nonce = os.urandom(12)
     artifact = nonce + AESGCM(b'x' * 32).encrypt(nonce, plain, tx.encode())
     return tx, plain, artifact
-
-
 
 
 def require_transaction(payload, tx):
@@ -84,7 +86,7 @@ def delegate(payload, tx, observed, *, capability='read', hardware=False):
 
 
 def compose(setup, artifact, tx, root, provision, workload_evidence, monkeypatch,
-            *, fault='none'):
+            *, fault='none', mediator=None):
     """Execute real component APIs; observers are distinct, not independent operators.
 
     The test owns synthetic signing roots. The trusted controller connects stages;
@@ -108,10 +110,10 @@ def compose(setup, artifact, tx, root, provision, workload_evidence, monkeypatch
             evidence.cpu.quote_b64 = None
         if fault == 'key':
             from wcm import generate_transport_keypair
-            evidence.cpu.transport_public_key = generate_transport_keypair()[1]
+            private, evidence.cpu.transport_public_key = generate_transport_keypair()
         if fault == 'configuration':
             manifest = manifest.model_copy(deep=True)
-            manifest.weights_hash = 'sha256:' + '99' * 32
+            manifest.release_terms.permitted_environments = ['unapproved-environment']
         decision = receiver.verify_and_release(manifest, evidence)
         if not decision.released:
             raise Refused()
@@ -120,7 +122,7 @@ def compose(setup, artifact, tx, root, provision, workload_evidence, monkeypatch
         stage = 'model'
         if fault == 'model':
             artifact = artifact[:-1] + bytes([artifact[-1] ^ 1])
-        plain = AESGCM(key).decrypt(artifact[:12], artifact[12:], tx.encode())
+        plain = decrypt_model(key, artifact, tx)
         if 'sha256:' + hashlib.sha256(plain).hexdigest() != manifest.weights_hash:
             raise Refused()
         model = json.loads(plain)
@@ -135,7 +137,7 @@ def compose(setup, artifact, tx, root, provision, workload_evidence, monkeypatch
             changed = json.loads(payload)
             changed['transaction'] = uuid4().hex
             payload = json.dumps(changed).encode()
-        result = asyncio.run(mediate(sink, payload, tool))
+        result = asyncio.run((mediator or mediate)(sink, payload, tool))
         if not result['allowed']:
             raise Refused()
         # Use the actual tool return, not the controller's original input.
@@ -175,10 +177,12 @@ def compose(setup, artifact, tx, root, provision, workload_evidence, monkeypatch
 
         authority = ReleaseAuthority(owner_key.public_key(), frozenset({tx}),
                                      frozenset({'recipient'}), frozenset({'review'}))
+        if fault == 'revoked':
+            authority = replace(authority, recipients=frozenset())
         gate = DisclosureGate(policy_version='composition-v1', source_scopes=frozenset({tx}),
                 sensitivity_order={'public': 0, 'confidential': 2},
                 recipients={'recipient': ReleaseRecipient('public', 'external', deliver)},
-                authorities={} if fault == 'revoked' else {'owner': authority},
+                authorities={'owner': authority},
                 replay_store=ReplayStore(root / 'replay.sqlite'), now=lambda: 100)
         request = ReleaseRequest(returned, 'synthetic-workload', tx, ('confidential',),
                                  'recipient', 'review', 'composition-v1')

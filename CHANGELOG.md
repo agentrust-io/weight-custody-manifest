@@ -8,7 +8,8 @@ uses semantic-ish versioning while pre-1.0.
 
 Add a source-pinned composed software harness and CI for provisioning, diagnostic
 model computation, mediated tools, authenticated peer responses and exact-output
-disclosure. Attestation is synthetic; process isolation remains separate.
+disclosure. Add native Docker agent egress probes and causal controls for every
+named portable scenario. Attestation is synthetic and the host remains trusted.
 
 Document provisioning lifecycle and recovery, with software controls for lost
 HTTP acknowledgements, pending installation failures, owner restart, storage

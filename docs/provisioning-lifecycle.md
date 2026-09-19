@@ -162,7 +162,8 @@ and protected execution [#146](https://github.com/agentrust-io/weight-custody-ma
 The source-pinned harness in `python/composed/` continues from installation
 through deterministic model computation, a real cMCP tool subprocess, cA2A
 HTTP response authentication and exact-output disclosure. Its workflow retains
-separate state and boundary observations plus six deliberate weakening controls.
-Attestation is synthetic and the host/controller is trusted. No agent confinement,
-protected model execution or complete integrations#199 acceptance is claimed.
+separate state and boundary observations plus targeted weakening controls.
+Attestation is synthetic and the host/controller is trusted. An optional native-Linux profile inserts an adversarial confined agent at the
+tool boundary and observes selected forbidden exits. It does not protect model
+execution from the host or complete integrations#199 acceptance.
 See `python/composed/README.md` for pins, commands and remaining controls.

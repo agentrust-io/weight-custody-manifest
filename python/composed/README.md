@@ -65,11 +65,43 @@ authority; changed approved output; reopened replay storage; and callback failur
 before versus after receipt. Both callback failures preserve unknown delivery and
 consume the request before the attempt. Neither retries.
 
-Six test-only weakenings must expose delivery that the normal oracle forbids:
-workload measurement appraisal, tool ceiling, response MAC, output commitment,
-transaction check and replay consumption. They modify functions only within
-pytest's monkeypatch scope; production source bytes are unchanged. Other refusal
-cases are regression controls and do not yet have their own causal mutation.
+Sixteen portable test-only weakenings cover each named refusal, replay and
+unknown-outcome case. Each must change its required observation: unsafe delivery,
+replay or an acknowledged outcome where delivery must remain unknown. The runner
+checks that the named scenario set and mutation-target set are equal. This is
+coverage of these scenarios, not every protocol gate or input shape.
+
+The manifest-policy case changes an allowed-environment term while retaining the
+model digest and key label, avoiding unrelated missing-key checks. The key case
+substitutes an attacker-owned key, so removing quote binding exposes actual key
+opening and downstream delivery. The model control removes GCM finalization while
+retaining real decryption, exposing unauthenticated plaintext from a changed tag.
+
+## Native confined-agent profile
+
+The hosted job also checks out cMCP confinement source
+`bad751becca0ec5c42d70062e5c9fe5ee1380e85`, including the bounded-ack watchdog fix.
+It builds `python/composed/Dockerfile` against its pinned base image and supplies
+the immutable local image ID in `COMPOSED_AGENT_IMAGE`. Run the same command above
+with `--confinement-source confinement` to include this profile. It requires a
+native Linux Docker daemon and a non-piped host core-dump policy; the workflow
+changes/restores that policy only on its disposable runner. The harness refuses
+unsupported hosts instead of treating skipped Linux probes as a confined result.
+
+The agent receives the already computed model-derived bytes inside the checked
+container, tries IPv4/IPv6 TCP, UDP, a filesystem export and stderr, then asks for
+one permitted and one forbidden tool. The host bridge routes those calls through
+real cMCP. The actual permitted tool return continues through the same cA2A and
+disclosure stages. The host observes network sockets, the stopped container's
+filesystem/logs, process state, the tool subprocess, peer and final recipient.
+
+Three native mutations enable host networking, writable filesystem or persistent
+logging. Normal profile inspection must first reject each weakening. Only then
+does the test disable that inspection and require the independent sink to detect
+the resulting leak. No mutant is offered as a runnable production configuration.
+The allowed final disclosure remains successful in these controls: a final
+success cannot hide an earlier forbidden exit. No container remains running
+when the composed run proceeds beyond this mediation adapter.
 
 ## Evidence and limits
 
@@ -80,10 +112,12 @@ expected oracle outcomes. It excludes payloads, model keys, raw reports and thei
 content digests. Test failures may print synthetic fixtures in `pytest.log`;
 never replace these fixtures with confidential production material.
 
-There is no agent process confinement in this composition. Direct network or
-filesystem bypass remains untested here; cMCP's separate confinement suite does
-not automatically compose with these observations. Attestation is synthetic,
-keys and model plaintext reside in ordinary host Python, peer evidence has no
-hardware assurance, and no independent-operator/hardware/GPU/erasure claim follows.
-Future work is a confined agent adapter, complete per-gate mutation coverage,
-released-package packaging and the controlled-host live milestone.
+The portable profile has no agent isolation. The native profile establishes only
+the listed agent egress controls with a trusted host, kernel, Docker daemon,
+bridge, broker, model computation, tool and peer. It does not hide plaintext from
+the operator or establish confinement of those other processes. The affine model
+runs on the host before its output reaches the agent. The native suite does not
+repeat every watchdog/bridge crash scenario from cMCP's separate lifecycle suite.
+Attestation remains synthetic; no independently operated peer, hardware/GPU
+execution, erasure or unrestricted leakage claim follows. Released-package
+integration and controlled-host hardware acceptance remain open.

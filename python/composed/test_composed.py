@@ -21,6 +21,9 @@ def verify_import_sources():
                                 ('ca2a', 'ca2a_runtime.response')]:
             actual = Path(importlib.import_module(name).__file__).resolve()
             assert actual.is_relative_to(Path(roots[component]).resolve())
+        if 'confinement' in roots:
+            actual = Path(importlib.import_module('examples.confinement.adapter').__file__).resolve()
+            assert actual.is_relative_to(Path(roots['confinement']).resolve())
 
 
 @pytest.fixture
@@ -41,11 +44,17 @@ def retain(result):
         public = {key: result[key] for key in ('transaction', 'fault', 'states', 'failure')}
         public['observations'] = {key: len(result[key]) for key in
                                   ('tool_receipts', 'peer_receipts', 'deliveries')}
+        if 'confinement' in result:
+            public['confinement'] = result['confinement']
+        if 'mutation_target' in result:
+            public['mutation_target'] = result['mutation_target']
         public['oracle'] = 'passed'
-        public['expected'] = ('unsafe delivery exposes weakened gate' if result['fault'].startswith('mutation-')
+        public['expected'] = ('weakening changes the required boundary observation' if result['fault'].startswith('mutation-')
                               else 'unknown delivery, no retry' if result['fault'].startswith('timeout')
                               else 'one authorized delivery, replay refused' if result['fault'] == 'none'
                               else 'no final disclosure')
+        if result['fault'].startswith('confined-'):
+            public['expected'] = 'authorized final delivery and observed isolation' if result['fault'] == 'confined-positive' else 'weakened isolation is detected by an external sink'
         public['evidence_class'] = 'synthetic-attestation/local-software'
         with Path(path).open('a', encoding='utf-8') as stream:
             stream.write(json.dumps(public) + '\n')
@@ -109,6 +118,10 @@ def test_ack_loss_preserves_unknown_and_consumption(prepared, tmp_path, monkeypa
 @pytest.mark.parametrize('mutation,fault', [
     ('workload', 'workload'), ('sink', 'forbidden-tool'), ('mac', 'response'),
     ('output', 'output'), ('transaction', 'transaction'), ('replay', 'none'),
+    ('key', 'key'), ('configuration', 'configuration'), ('missing-evidence', 'missing-evidence'),
+    ('model', 'model'), ('scope', 'scope'), ('downgrade', 'downgrade'),
+    ('missing-approval', 'missing-approval'), ('revoked', 'revoked'),
+    ('timeout', 'timeout'), ('timeout-before', 'timeout-before'),
 ])
 def test_gate_mutation_is_detected(prepared, tmp_path, monkeypatch, mutation, fault):
     """Weaken real gates in memory; require the intended no-delivery oracle to fail."""
@@ -117,11 +130,24 @@ def test_gate_mutation_is_detected(prepared, tmp_path, monkeypatch, mutation, fa
     import textwrap
     from dataclasses import replace
 
+    from ca2a_runtime.policy import LocalPolicy
     from ca2a_runtime.response import PendingResponse
+    from ca2a_runtime.transport import client
     from cmcp_runtime import disclosure
     from cmcp_runtime.sink_policy import SinkPolicy
     from composed import harness
+    from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+    from wcm._quote_verify import QuoteVerifier
     from wcm.broker_receiver import _NativeWorkloadVerifier, parse_snp_report
+    from wcm.kbs import CheckResult, KeyBrokerService
+
+    def rewrite(target, attribute, needle, replacement):
+        original = getattr(target, attribute)
+        source = textwrap.dedent(inspect.getsource(original))
+        assert source.count(needle) == 1
+        scope = dict(original.__globals__)
+        exec(source.replace(needle, replacement), scope)  # noqa: S102 - exact test-only source
+        monkeypatch.setattr(target, attribute, scope[original.__name__])
 
     if mutation == 'workload':
         verify = _NativeWorkloadVerifier.verify
@@ -150,12 +176,52 @@ def test_gate_mutation_is_detected(prepared, tmp_path, monkeypatch, mutation, fa
         monkeypatch.setattr(disclosure, '_approval_input', unbound)
     elif mutation == 'transaction':
         monkeypatch.setattr(harness, 'require_transaction', lambda *args: None)
+    elif mutation == 'key':
+        rewrite(QuoteVerifier, 'verify', 'if actual != expected:', 'if False:')
+    elif mutation == 'configuration':
+        rewrite(KeyBrokerService, 'verify_and_release',
+                'pinned = manifest_hash in self._trusted_manifest_identities', 'pinned = True')
+    elif mutation == 'missing-evidence':
+        check = KeyBrokerService._check_cpu_quote
+        def allow_absent(self, evidence, nonce, binding):
+            if evidence.cpu.quote_b64 is None:
+                return CheckResult('cpu_quote_verified', True)
+            return check(self, evidence, nonce, binding)
+        monkeypatch.setattr(KeyBrokerService, '_check_cpu_quote', allow_absent)
+    elif mutation == 'model':
+        def unauthenticated(key, artifact, tx):
+            # GCM update returns plaintext before tag authentication at finalize.
+            decryptor = Cipher(algorithms.AES(key), modes.GCM(artifact[:12])).decryptor()
+            decryptor.authenticate_additional_data(tx.encode())
+            return decryptor.update(artifact[12:-16])
+        monkeypatch.setattr(harness, 'decrypt_model', unauthenticated)
+    elif mutation == 'scope':
+        monkeypatch.setattr(LocalPolicy, 'intersect', lambda self, delegated: delegated)
+    elif mutation == 'downgrade':
+        rewrite(client, 'verify_offer', 'if require_hardware:', 'if False:')
+    elif mutation == 'missing-approval':
+        rewrite(disclosure.DisclosureGate, 'release', 'if not within:',
+                'if not within and approval is not None:')
+    elif mutation == 'revoked':
+        rewrite(disclosure.DisclosureGate, 'release',
+                "if (request.source_scope not in authority.source_scopes\n"
+                "                or request.recipient not in authority.recipients\n"
+                "                or request.purpose not in authority.purposes):",
+                'if False:')
+    elif mutation in {'timeout', 'timeout-before'}:
+        rewrite(disclosure.DisclosureGate, 'release',
+                'return ReleaseObservation(disposition, "delivery_unknown", "unknown")',
+                'return ReleaseObservation(disposition, "adapter_acknowledged", "acknowledged")')
     else:
         monkeypatch.setattr(disclosure.ReplayStore, 'consume', lambda *args: True)
     r = run(prepared, tmp_path, monkeypatch, fault)
     assert r['failure'] is None, r['failure']
-    assert len(r['deliveries']) == 1
-    if mutation == 'replay':
+    assert len(r['deliveries']) == (0 if mutation == 'timeout-before' else 1)
+    if mutation in {'timeout', 'timeout-before'}:
+        assert r['states']['delivery'] == 'acknowledged'
+        with pytest.raises(AssertionError):
+            assert r['states']['delivery'] == 'unknown'
+    elif mutation == 'replay':
         again = r['gate'].release(r['request'], r['approval'])
         assert again.delivery == 'acknowledged'
         with pytest.raises(AssertionError):
@@ -163,5 +229,6 @@ def test_gate_mutation_is_detected(prepared, tmp_path, monkeypatch, mutation, fa
     else:
         with pytest.raises(AssertionError):
             assert r['deliveries'] == []
+    r['mutation_target'] = fault
     r['fault'] = 'mutation-' + mutation
     retain(r)
