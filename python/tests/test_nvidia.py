@@ -211,6 +211,7 @@ def test_kbs_releases_with_verified_gpu(example_manifest):
         {example_manifest.weights_hash: b"KEY"},
         now=lambda: NOW,
         gpu_report_verifier=build_gpu_verifier(_pem(pki.root)),
+        require_gpu_report_verification=True,
         trusted_manifest_identities={manifest_identity(example_manifest)},
     )
     challenge = kbs.issue_challenge()

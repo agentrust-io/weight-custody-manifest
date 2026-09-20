@@ -53,6 +53,37 @@ Do not advertise a composite hardware result if any of these applies:
 
 ## 3. NVIDIA verification sequence
 
+For the narrower paired-report and sealed-test-key check, supply relying-party
+trust inputs before the run. Obtain the roots and approved manifest digest through
+an authenticated owner channel, not from the host being evaluated:
+
+```bash
+PYTHONPATH=python/src python python/tools/paired_hardware_release.py \
+  --cpu-root owner/amd-ark.pem \
+  --gpu-root owner/nvidia-device-root.pem \
+  --manifest owner/approved-manifest.json \
+  --manifest-sha256 "$APPROVED_MANIFEST_SHA256" \
+  --serving-image "$APPROVED_SERVING_IMAGE" \
+  --release-candidate "$REVIEWED_REVISION" \
+  --out validation/paired-release.json
+```
+
+The runner verifies the exact manifest bytes against the supplied digest, requires
+the selected serving image to be current in that manifest, and compares observed
+GPU identity against the already approved value. It does not learn a root from
+THIM or rewrite the manifest to accept the observed GPU. Endorsements can still
+arrive with the report; only the externally supplied root establishes trust.
+
+The v2 receipt states `confidential_inference_validated: false`,
+`cpu_gpu_protected_path_validated: false`, and `gpu_firmware_rim_appraised: false`.
+`passed` covers report authentication, manifest-gated sealed release of a public
+test key, and the listed substitution controls. It does not mean the full
+sequence below passed. The broker runs in the test process, not in an independently
+protected owner-provisioned service. PCR binding also depends on a trusted
+measurement producer; passing a claimed image digest to a collector does not
+prove that those image bytes are what it executes. Device identifiers in the
+receipt require review before sharing.
+
 1. Pin the host inventory from preflight.
 2. Configure the reviewed `wcm-nvat-adapter` and device trust root.
 3. Generate a fresh WCM challenge and in-workload transport key.

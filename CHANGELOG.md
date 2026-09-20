@@ -6,6 +6,59 @@ uses semantic-ish versioning while pre-1.0.
 
 ## Unreleased
 
+Add a source-pinned offline SNP prediction tool with complete kernel/initrd/
+command-line hash-table comparison, explicit vCPU/features and substitution
+tests. Record the OVMF/QEMU source review and hardware acceptance procedure.
+Prediction and firmware metadata do not establish firmware enforcement or
+agreement with a genuine report; both remain provisional.
+
+Add checksum-pinned kernel construction and QEMU TCG boot validation for the
+provisional loader. The unchanged production image must refuse a non-SNP VM;
+separately identified test-device images exercise kernel-to-broker startup,
+read-only enforcement, configuration failures and fresh unprovisioned starts.
+No attestation is fabricated, and no new hardware assurance is established.
+
+Add a provisional x86-64 initramfs builder and fixed native broker loader.
+Packaging checks reject ambiguous paths, links, device entries and privilege
+bits; owners can independently rebuild and compare runtime containment. The
+loader uses read-only mounts, a restricted device set, cleared capabilities,
+UID 10001 and a fixed isolated Python entry point. Inline configuration is data
+and must match the effective receiver digest. Dedicated Linux tests exercise
+the handoff and deliberate weakening. Full kernel/firmware boot coverage and
+SNP hardware validation remain outstanding; assurance receipts stay unchanged.
+
+**[security]** Require cryptographic GPU report verification in the environment-built
+key-release server. Add an owner-side SNP key-provisioning reference with explicit
+image, configuration, epoch, guest-policy and TCB checks. Require independently
+pinned roots and manifest bytes in the paired-hardware test runner. Add a
+provision-once broker receiver that hashes its actual immutable verifier inputs,
+generates a fresh boot key, installs an owner-authenticated envelope and permits
+only strict attested release until retirement. Add an optional SQLite owner
+epoch guard that rejects policy rollback and stale concurrent owner processes.
+Add a runnable native-SNP receiver HTTP service without plaintext model-key
+configuration, plus an owner client that independently verifies the returned
+report before sending a signed sealed envelope. The client requires HTTPS by
+default and a persistent owner epoch store; an explicit loopback-only HTTP
+option supports development. Synthetic-signed evidence tests include a real
+loopback HTTP exchange. Measured-image packaging, protected memory,
+trusted nonsnapshot owner storage, GPU firmware appraisal and protected CPU/GPU
+inference remain deployment requirements, without new live hardware validation.
+
+Add an explicit `provisioned` container target while preserving the default
+mounted-key entry point. CI exercises the installed provisioned image without
+hardware under read-only/non-root/capability restrictions. Image comparison now
+fails on export errors and includes ownership, link targets, extended metadata
+and runtime configuration; its versioned digest is build evidence, not a hardware
+launch measurement. Both target snapshots are retained by CI.
+
+Add a deterministic owner-side deployment approval record and predeployment
+artifact checks. Optional pinned approvals constrain provisioning to the exact
+launch/configuration/policy tuple and reject mismatches before broker contact.
+The platform-neutral contract and provisional SNP direct-boot adapter specify
+the remaining measured-loader and live validation work. Approval consistency is
+not execution evidence; receipts explicitly report application identity as not
+established in this software slice.
+
 **[docs]** Clarify the release-authority trust boundary: a customer who can read
 broker keys or replace verification and policy can bypass workload attestation.
 Distinguish the attested self-custody design from the reference server's mounted
@@ -29,6 +82,45 @@ capture settles that: its PCK intermediate expires 2033-05-21 and its leaf
 2033-05-27.
 
 
+
+**[sdk]** Expose the TDX platform floor (issue #117). `snp.py` parsed the fields
+a firmware-floor appraisal needs and `tdx.py` stopped at `report_data` and
+`mrtd`, so a caller wanting the same floor on Intel had to index into `raw` or
+skip the appraisal. `TdxReport` now carries `TEE_TCB_SVN` and `TDATTRIBUTES`,
+parsed once alongside `mrtd`, with offsets validated against a real GCP c3 TDX
+quote and cross-checked against this parser's own output on those bytes.
+
+Only byte 0 of `TEE_TCB_SVN`, the SEAM module SVN, is appraised, and only bit 0
+of `TDATTRIBUTES`. The rest of both fields is carried and not judged: this
+repository holds two captures reporting `0d 01 08` and `0d 01 04`, the same SEAM
+SVN 13 with a different byte 2, so anything comparing the array whole would order
+them on a byte nobody can name. A test edits each carried byte and asserts the
+verdict does not move.
+
+A new `PlatformFloor` is caller-supplied, as SEV-SNP's already is, with
+`forbid_debug` shared across vendors because it is one operator intent expressed
+twice. Construction rejects invalid configuration with `ValueError`: `seam_svn`
+accepts `None` or a non-boolean integer from 0 through 255, and `forbid_debug`
+requires a boolean. Results have three states, and `not_evaluated` always names
+its reason, so an unappraisable platform cannot read as green to anyone aggregating. There is no
+VMPL analogue on TDX and none is invented. Floor staleness is reported beside the
+verdict and never inside it, as a stateless per-appraisal observation
+(`{"floor", "reported", "floor_behind"}`) with no watermark kept, because a
+stored high-water mark needs somewhere to live and gives an attacker something to
+move.
+
+**[fixtures]** A third Intel TDX capture (issue #117), contributed externally
+and labelled as such. `tdx_quote_gcp_seam15.json` is a genuine DCAP v4 quote from
+a GCP c3-standard-4 confidential VM, taken through configfs TSM directly rather
+than through a provider, with its kernel, instance type, zone, date and method
+recorded in the fixture and the run log beside it.
+
+It reports `TEE_TCB_SVN` `0f 01 0a`: SEAM SVN 15 against 13 on both existing
+captures, with byte 1 unchanged at 1 and byte 2 at 10 against their 8 and 4.
+The existing captures share byte 0 while differing in byte 2; the third capture
+changes both values, so these observations do not establish independent movement
+of byte 0. No appraisal threshold is taken from this capture, and a test asserts
+nothing else in the suite references it.
 
 **[conformance]** A fifth vendor-vector binding kind, `nonce-echo` (issue #128).
 `nonce-digest` is defined as `REPORT_DATA == sha256(nonce)`; NVIDIA device
@@ -114,6 +206,34 @@ tool. Public release instructions describe the enforced approval requirements.
 
 **[security]** Add Python and GitHub Actions CodeQL analysis. Security reporting
 explicitly covers dependency, build and publication vulnerabilities affecting WCM.
+
+**[feature]** `apply_renewal` distinguishes an authenticated denial from a
+malformed decision. A decision that verifies and reports `renewed: false` now
+raises `RenewalDenied` carrying the signed failed gates, instead of collapsing
+into the same `ValueError` a truncated or unverifiable decision produces; the
+distinction was already on the wire and was being discarded. `RenewalDenied`
+subclasses `ValueError`, so existing handlers are unaffected. A denial still
+cannot move the deadline, so exposure remains one cadence window, and mapping a
+denial to immediate termination stays deployment policy until the decision
+carries a signed disposition field.
+
+**[feature]** `EnclaveSession` accepts an `on_stop` hook so a lapsed lease can stop
+serving from an already-decrypted model, and `ServingShutdown` sequences the
+measured runtime's admission stop, in-flight cancellation, weight cleanup and
+worker termination. Termination is attempted even when earlier steps fail, buffer
+cleanup is skipped when in-flight work cannot be quiesced, teardown runs once, and
+a failed hook cannot restore custody. `session.monitor()` checks the deadline while
+idle; cancellation and clock failure also stop serving. A denied, invalid or
+unreachable renewal still never extends the lease. These are integration hooks, not
+a trusted watchdog or proof of memory erasure: hardware teardown primitives, stop
+latency and receipt capture remain the protected-runtime evidence in issue #78.
+A session given no adapter reports `stop_floor` as `none`, so an absent teardown
+path is disclosed rather than silent, as `none-best-effort` is for trusted time.
+
+**[change]** The lease deadline is now inclusive: custody ends at `now >= deadline`
+rather than strictly after it. This fails closed at the exact boundary instant and
+lets an idle monitor settle on the deadline instead of spinning. The frozen L3
+vectors are unaffected, as each lapse case advances past the deadline.
 
 **[docs]** The NVIDIA GPU path is recorded as validated rather than pending.
 `NvidiaGpuVerifier` has verified a live H100 capture since it shipped, and

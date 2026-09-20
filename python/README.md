@@ -96,6 +96,17 @@ Wipe-on-lapse (runtime custody):
   opens the key once, `authorize_operation()` applies the same lease and budget
   checks to later inference operations without returning another key copy. The
   initial `use_key()` call and every authorization each count as one operation.
+  Set `on_stop=ServingShutdown(...)` to connect lease expiry or explicit
+  zeroization to admission stop, in-flight cancellation, model cleanup, and
+  worker termination. Run `session.monitor()` as a supervised asyncio task to
+  check idle leases; cancellation also stops custody. Failed renewals never
+  extend the deadline, and `apply_renewal()` separates the two ways one fails: a
+  verified decision refusing renewal raises `RenewalDenied` with the signed gate
+  results, while an unverifiable or self-contradictory one raises plain
+  `ValueError`. `stop_floor` discloses whether a teardown adapter was supplied at
+  all. These are reference integration hooks, not a hardware
+  watchdog or proof of memory erasure; see the
+  [shutdown integration contract](../docs/protected-runtime-evidence.md#serving-shutdown-integration).
 - **`memory_sweep.py`** - full-range write/readback with nonce-derived page
   values and permutations, controlled alias detection, a signed transcript, and
   fail-closed verification against a policy-pinned protected-runtime key.
