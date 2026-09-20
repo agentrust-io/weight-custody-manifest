@@ -120,6 +120,45 @@ capture settles that: its PCK intermediate expires 2033-05-21 and its leaf
 
 
 
+**[sdk]** Expose the TDX platform floor (issue #117). `snp.py` parsed the fields
+a firmware-floor appraisal needs and `tdx.py` stopped at `report_data` and
+`mrtd`, so a caller wanting the same floor on Intel had to index into `raw` or
+skip the appraisal. `TdxReport` now carries `TEE_TCB_SVN` and `TDATTRIBUTES`,
+parsed once alongside `mrtd`, with offsets validated against a real GCP c3 TDX
+quote and cross-checked against this parser's own output on those bytes.
+
+Only byte 0 of `TEE_TCB_SVN`, the SEAM module SVN, is appraised, and only bit 0
+of `TDATTRIBUTES`. The rest of both fields is carried and not judged: this
+repository holds two captures reporting `0d 01 08` and `0d 01 04`, the same SEAM
+SVN 13 with a different byte 2, so anything comparing the array whole would order
+them on a byte nobody can name. A test edits each carried byte and asserts the
+verdict does not move.
+
+A new `PlatformFloor` is caller-supplied, as SEV-SNP's already is, with
+`forbid_debug` shared across vendors because it is one operator intent expressed
+twice. Construction rejects invalid configuration with `ValueError`: `seam_svn`
+accepts `None` or a non-boolean integer from 0 through 255, and `forbid_debug`
+requires a boolean. Results have three states, and `not_evaluated` always names
+its reason, so an unappraisable platform cannot read as green to anyone aggregating. There is no
+VMPL analogue on TDX and none is invented. Floor staleness is reported beside the
+verdict and never inside it, as a stateless per-appraisal observation
+(`{"floor", "reported", "floor_behind"}`) with no watermark kept, because a
+stored high-water mark needs somewhere to live and gives an attacker something to
+move.
+
+**[fixtures]** A third Intel TDX capture (issue #117), contributed externally
+and labelled as such. `tdx_quote_gcp_seam15.json` is a genuine DCAP v4 quote from
+a GCP c3-standard-4 confidential VM, taken through configfs TSM directly rather
+than through a provider, with its kernel, instance type, zone, date and method
+recorded in the fixture and the run log beside it.
+
+It reports `TEE_TCB_SVN` `0f 01 0a`: SEAM SVN 15 against 13 on both existing
+captures, with byte 1 unchanged at 1 and byte 2 at 10 against their 8 and 4.
+The existing captures share byte 0 while differing in byte 2; the third capture
+changes both values, so these observations do not establish independent movement
+of byte 0. No appraisal threshold is taken from this capture, and a test asserts
+nothing else in the suite references it.
+
 **[conformance]** A vector format for captures taken from real vendor silicon
 (`kind: vendor`, issue #116). The existing quote vectors use a synthetic PKI, so
 an implementation can satisfy `accept-cryptographically-verified-quote` without
