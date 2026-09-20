@@ -209,13 +209,16 @@ def test_an_unrecognised_evidence_format_is_a_hard_failure(snp_store) -> None:
     assert "some-future-vendor" in str(exc.value) or "format" in str(exc.value)
 
 
-def test_the_four_kinds_include_none() -> None:
-    """``none`` earns its place. Some real captures prove only that a chip
+def test_the_vocabulary_is_closed_and_covers_the_real_mechanisms() -> None:
+    """``none`` earns its place: some real captures prove only that a chip
     signed something, and a format that cannot say so will have a nonce
-    invented for it."""
+    invented for it. ``nonce-echo`` earns its place for the opposite reason:
+    NVIDIA does bind a caller nonce, verbatim rather than as a digest, and
+    labelling that ``nonce-digest`` names a mechanism not in those bytes."""
     assert BINDING_KINDS == {
         "nonce-digest",
         "nonce-and-transport",
+        "nonce-echo",
         "attestation-key",
         "none",
     }
@@ -511,7 +514,13 @@ def _gpu_vector(stage: Path) -> dict:
                 "chain rather than from a published distribution"
             ),
         },
-        "binding": {"kind": "nonce-digest", "nonce_hex": doc["nonce"]},
+        # The report echoes the nonce verbatim at offset 4, so it declares the
+        # kind that says so rather than one that claims a digest.
+        "binding": {
+            "kind": "nonce-echo",
+            "nonce_hex": doc["nonce"],
+            "nonce_offset": 4,
+        },
         "validity": {
             "now": max(_load(pem).not_valid_before_utc for pem in certs).isoformat(),
             "not_after": min(_load(pem).not_valid_after_utc for pem in certs).isoformat(),
@@ -747,6 +756,132 @@ def test_the_schema_also_refuses_a_reject_vector(snp_store) -> None:
     vector["expect"] = "reject"
     with pytest.raises(jsonschema.ValidationError):
         jsonschema.validate(vector, vendor_vector_schema())
+
+
+# ---- the fifth kind: the nonce appears verbatim (#128) ---------------
+
+
+@pytest.mark.parametrize("offset", [None, -1, True, False, 4.5, "4", [], {}])
+def test_nonce_echo_offset_must_be_explicit_and_integral(stage: Path, offset: object) -> None:
+    import jsonschema
+    from wcm.schema import vendor_vector_schema
+
+    vector = _gpu_vector(stage)
+    store = load_root_store(extra_dirs=[stage])
+    jsonschema.validate(vector, vendor_vector_schema())
+    assert evaluate_vendor(vector, store=store).verified
+    if offset is None:
+        del vector["binding"]["nonce_offset"]
+    else:
+        vector["binding"]["nonce_offset"] = offset
+    with pytest.raises(jsonschema.ValidationError):
+        jsonschema.validate(vector, vendor_vector_schema())
+    with pytest.raises(VendorVectorError, match="nonce_offset"):
+        evaluate_vendor(vector, store=store)
+
+
+@pytest.mark.parametrize("kind", ["nonce-digest", "nonce-and-transport", "attestation-key", "none"])
+def test_gpu_rejects_a_binding_it_does_not_implement(stage: Path, kind: str) -> None:
+    import jsonschema
+    from wcm.schema import vendor_vector_schema
+
+    vector = _gpu_vector(stage)
+    store = load_root_store(extra_dirs=[stage])
+    assert evaluate_vendor(vector, store=store).verified
+    nonce = vector["binding"]["nonce_hex"]
+    vector["binding"] = {"kind": kind}
+    if kind in {"nonce-digest", "nonce-and-transport"}:
+        vector["binding"]["nonce_hex"] = nonce
+    if kind == "nonce-and-transport":
+        vector["binding"]["transport_public_key_b64url"] = "YQ"
+    with pytest.raises(jsonschema.ValidationError):
+        jsonschema.validate(vector, vendor_vector_schema())
+    with pytest.raises(VendorVectorError, match="requires binding kind 'nonce-echo'"):
+        evaluate_vendor(vector, store=store)
+
+
+@pytest.mark.parametrize("make_vector", [_snp_vector, _tdx_vector])
+def test_digest_report_cannot_be_relabelled_nonce_echo(stage: Path, make_vector) -> None:
+    import jsonschema
+    from wcm.schema import vendor_vector_schema
+
+    vector = make_vector(stage)
+    store = load_root_store(extra_dirs=[stage])
+    jsonschema.validate(vector, vendor_vector_schema())
+    assert evaluate_vendor(vector, store=store).verified
+    vector["binding"]["kind"] = "nonce-echo"
+    vector["binding"]["nonce_offset"] = 4
+    vector["binding"].pop("transport_public_key_b64url", None)
+    vector["binding"].setdefault("nonce_hex", "ab" * 32)
+    with pytest.raises(jsonschema.ValidationError):
+        jsonschema.validate(vector, vendor_vector_schema())
+    with pytest.raises(VendorVectorError, match="incompatible"):
+        evaluate_vendor(vector, store=store)
+
+
+def test_nonce_echo_cannot_claim_a_transport_binding(stage: Path) -> None:
+    import jsonschema
+    from wcm.schema import vendor_vector_schema
+
+    vector = _gpu_vector(stage)
+    store = load_root_store(extra_dirs=[stage])
+    assert evaluate_vendor(vector, store=store).verified
+    vector["binding"]["transport_public_key_b64url"] = "YQ"
+    with pytest.raises(jsonschema.ValidationError):
+        jsonschema.validate(vector, vendor_vector_schema())
+    with pytest.raises(VendorVectorError, match="does not bind a transport key"):
+        evaluate_vendor(vector, store=store)
+
+
+def test_the_gpu_capture_declares_the_mechanism_in_its_bytes(stage: Path) -> None:
+    """nonce-digest says REPORT_DATA equals sha256(nonce). NVIDIA reports have
+    no REPORT_DATA and echo the nonce verbatim, so that label named something
+    that is not there. It verified either way, which is exactly why a closed
+    vocabulary is the only thing that catches it."""
+    vector = _gpu_vector(stage)
+    assert vector["binding"]["kind"] == "nonce-echo"
+    assert vector["binding"]["nonce_offset"] == 4
+    assert evaluate_vendor(vector, store=load_root_store(extra_dirs=[stage])).verified
+
+
+def test_the_offset_is_checked_against_the_report_format(stage: Path) -> None:
+    """A capture declaring an offset its report does not use is describing a
+    mechanism it does not have, which is the whole reason this kind exists."""
+    vector = _gpu_vector(stage)
+    vector["binding"]["nonce_offset"] = 8
+    outcome = evaluate_vendor(vector, store=load_root_store(extra_dirs=[stage]))
+    assert not outcome.verified
+    assert "offset 8" in outcome.reason and "echoes it at 4" in outcome.reason
+
+
+def test_an_offset_is_refused_on_a_kind_that_binds_a_digest(snp_store) -> None:
+    """A digest has no offset to declare, so the field describes nothing."""
+    vector, store = snp_store
+    vector["binding"] = {
+        "kind": "nonce-digest",
+        "nonce_hex": "ab" * 32,
+        "nonce_offset": 4,
+    }
+    with pytest.raises(VendorVectorError) as exc:
+        evaluate_vendor(vector, store=store)
+    assert "nonce_offset belongs to 'nonce-echo'" in str(exc.value)
+
+
+def test_the_new_kind_is_named_for_the_bytes_not_the_vendor() -> None:
+    """Any platform echoing a nonce verbatim belongs in it, so the name says
+    what happens rather than who does it."""
+    assert "nonce-echo" in BINDING_KINDS
+    assert not any(
+        v in kind for kind in BINDING_KINDS for v in ("nvidia", "amd", "intel", "gpu")
+    )
+
+
+def test_a_nonce_echo_capture_must_carry_a_nonce(snp_store) -> None:
+    vector, store = snp_store
+    vector["binding"] = {"kind": "nonce-echo", "nonce_offset": 4}
+    with pytest.raises(VendorVectorError) as exc:
+        evaluate_vendor(vector, store=store)
+    assert "requires nonce_hex" in str(exc.value)
 
 
 # ---- the recorded horizon is derived, not taken (#127) ---------------
