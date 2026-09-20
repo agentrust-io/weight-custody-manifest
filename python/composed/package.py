@@ -41,11 +41,18 @@ def main():
     harness = sorted((root / "python/composed").glob("*.py")) + [
         root / "python/composed/Dockerfile"
     ]
-    expected_files = {p.name: hashlib.sha256(p.read_bytes()).hexdigest() for p in harness}
+    expected_files = {
+        p.name: hashlib.sha256(p.read_bytes()).hexdigest() for p in harness
+    }
     if evidence.get("harness_files") != expected_files:
         raise SystemExit("reference evidence must cover the current harness bytes")
-    if evidence["sources"].get("confinement") != "bad751becca0ec5c42d70062e5c9fe5ee1380e85":
-        raise SystemExit("reference evidence must include the reviewed confined profile")
+    if (
+        evidence["sources"].get("confinement")
+        != "bad751becca0ec5c42d70062e5c9fe5ee1380e85"
+    ):
+        raise SystemExit(
+            "reference evidence must include the reviewed confined profile"
+        )
     observed = sorted(evidence["dependencies"], key=lambda row: row["name"].lower())
     installed = sorted(
         [
@@ -73,6 +80,7 @@ def main():
         "requirements.txt": ("\n".join(requirements) + "\n").encode(),
         "README.md": (root / "python/composed/BUNDLE.md").read_bytes(),
     }
+    files.update({name: (root / name).read_bytes() for name in ("LICENSE", "NOTICE")})
     manifest = {
         "format": "wcm-composed-source-bundle-v1",
         "sources": {

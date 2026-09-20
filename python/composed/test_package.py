@@ -23,6 +23,8 @@ def bundle(tmp_path):
         "reproduce.py": b"launcher",
         "requirements.txt": b"pytest==8.0.0",
         "README.md": b"limits",
+        "LICENSE": b"license",
+        "NOTICE": b"notice",
     }
     manifest = {
         "format": "wcm-composed-source-bundle-v1",
@@ -42,7 +44,9 @@ def test_bundle_identity_and_files(bundle):
     assert reproduce.validate_bundle(root) == expected
 
 
-@pytest.mark.parametrize("name", ["reproduce.py", "requirements.txt", "README.md"])
+@pytest.mark.parametrize(
+    "name", ["reproduce.py", "requirements.txt", "README.md", "LICENSE", "NOTICE"]
+)
 def test_modified_bundle_file_is_refused(bundle, name):
     root, _ = bundle
     (root / name).write_bytes(b"changed")
@@ -74,6 +78,8 @@ def evaluated_checkout(tmp_path):
     harness.mkdir(parents=True)
     (root / ".gitignore").write_text("__pycache__/\n", encoding="utf-8")
     original = Path(__file__).parent
+    for name in ("LICENSE", "NOTICE"):
+        (root / name).write_bytes((original.parents[1] / name).read_bytes())
     for name in ["package.py", "reproduce.py", "run.py", "BUNDLE.md", "Dockerfile"]:
         (harness / name).write_bytes((original / name).read_bytes())
     for command in [

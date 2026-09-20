@@ -35,7 +35,13 @@ def validate_bundle(root):
     for name, revision in manifest["sources"].items():
         if not re.fullmatch(r"[0-9a-f]{40}", revision):
             raise ValueError(f"{name}: expected immutable Git revision")
-    if set(manifest["files"]) != {"reproduce.py", "requirements.txt", "README.md"}:
+    if set(manifest["files"]) != {
+        "reproduce.py",
+        "requirements.txt",
+        "README.md",
+        "LICENSE",
+        "NOTICE",
+    }:
         raise ValueError("unexpected bundle files")
     for name, digest in manifest["files"].items():
         if hashlib.sha256((root / name).read_bytes()).hexdigest() != digest:
