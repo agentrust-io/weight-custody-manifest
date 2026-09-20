@@ -1,4 +1,5 @@
 """Bundle corruption and ambiguous source identities must fail before fetching."""
+
 import hashlib
 import importlib.util
 import json
@@ -6,18 +7,26 @@ from pathlib import Path
 
 import pytest
 
-spec = importlib.util.spec_from_file_location("reproduce", Path(__file__).with_name("reproduce.py"))
+spec = importlib.util.spec_from_file_location(
+    "reproduce", Path(__file__).with_name("reproduce.py")
+)
 reproduce = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(reproduce)
 
 
 @pytest.fixture
 def bundle(tmp_path):
-    files = {"reproduce.py": b"launcher", "requirements.txt": b"pytest==8.0.0", "README.md": b"limits"}
+    files = {
+        "reproduce.py": b"launcher",
+        "requirements.txt": b"pytest==8.0.0",
+        "README.md": b"limits",
+    }
     manifest = {
         "format": "wcm-composed-source-bundle-v1",
         "sources": {name: "a" * 40 for name in reproduce.REPOSITORIES},
-        "files": {name: hashlib.sha256(data).hexdigest() for name, data in files.items()},
+        "files": {
+            name: hashlib.sha256(data).hexdigest() for name, data in files.items()
+        },
     }
     for name, data in files.items():
         (tmp_path / name).write_bytes(data)

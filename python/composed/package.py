@@ -1,14 +1,15 @@
 """Build a small research reproduction ZIP from a successfully evaluated checkout."""
+
 from __future__ import annotations
 
 import argparse
 import hashlib
 import importlib.metadata
 import json
-from pathlib import Path
 import re
 import subprocess
 import zipfile
+from pathlib import Path
 
 from run import PINS
 
@@ -21,8 +22,12 @@ def main():
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
     root = Path(__file__).resolve().parents[2]
-    revision = subprocess.check_output(["git", "-C", str(root), "rev-parse", "HEAD"], text=True).strip()
-    dirty = subprocess.check_output(["git", "-C", str(root), "status", "--porcelain"], text=True)
+    revision = subprocess.check_output(
+        ["git", "-C", str(root), "rev-parse", "HEAD"], text=True
+    ).strip()
+    dirty = subprocess.check_output(
+        ["git", "-C", str(root), "status", "--porcelain"], text=True
+    )
     if dirty:
         raise SystemExit("package only a clean committed checkout")
     evidence = json.loads((args.evidence / "manifest.json").read_text(encoding="utf-8"))
@@ -32,16 +37,25 @@ def main():
         if evidence["sources"].get(name) != pin:
             raise SystemExit(f"{name}: evidence differs from reviewed pin")
     observed = sorted(evidence["dependencies"], key=lambda row: row["name"].lower())
-    installed = sorted([{"name": d.metadata["Name"], "version": d.version}
-                        for d in importlib.metadata.distributions()], key=lambda row: row["name"].lower())
+    installed = sorted(
+        [
+            {"name": d.metadata["Name"], "version": d.version}
+            for d in importlib.metadata.distributions()
+        ],
+        key=lambda row: row["name"].lower(),
+    )
     if observed != installed:
-        raise SystemExit("build in the same dependency environment as the successful run")
+        raise SystemExit(
+            "build in the same dependency environment as the successful run"
+        )
     requirements = []
     for distribution in installed:
         name, version = distribution["name"], distribution["version"]
         if re.sub(r"[-_.]+", "-", name).lower() in CORE:
             continue
-        if not re.fullmatch(r"[A-Za-z0-9_.-]+", name) or not re.fullmatch(r"[A-Za-z0-9_.+!-]+", version):
+        if not re.fullmatch(r"[A-Za-z0-9_.-]+", name) or not re.fullmatch(
+            r"[A-Za-z0-9_.+!-]+", version
+        ):
             raise SystemExit("dependency cannot be represented as a pinned version")
         requirements.append(f"{name}=={version}")
     files = {
@@ -51,17 +65,26 @@ def main():
     }
     manifest = {
         "format": "wcm-composed-source-bundle-v1",
-        "sources": {"wcm": revision, **PINS,
-                    "confinement": "bad751becca0ec5c42d70062e5c9fe5ee1380e85"},
+        "sources": {
+            "wcm": revision,
+            **PINS,
+            "confinement": "bad751becca0ec5c42d70062e5c9fe5ee1380e85",
+        },
         "evidence_class": "synthetic-attestation/local-software",
         "evaluated_profile": evidence["profile"],
-        "reference_manifest_sha256": hashlib.sha256((args.evidence / "manifest.json").read_bytes()).hexdigest(),
-        "files": {name: hashlib.sha256(data).hexdigest() for name, data in files.items()},
-        "limits": ["source-based research package; not a released integration",
-                   "network required for GitHub, PyPI and optional Docker base image",
-                   "runtime versions pinned; dependencies and build tools not hash locked",
-                   "bundle hashes detect modification; they are not independent provenance",
-                   "synthetic attestation, same operator, host-side diagnostic model"],
+        "reference_manifest_sha256": hashlib.sha256(
+            (args.evidence / "manifest.json").read_bytes()
+        ).hexdigest(),
+        "files": {
+            name: hashlib.sha256(data).hexdigest() for name, data in files.items()
+        },
+        "limits": [
+            "source-based research package; not a released integration",
+            "network required for GitHub, PyPI and optional Docker base image",
+            "runtime versions pinned; dependencies and build tools not hash locked",
+            "bundle hashes detect modification; they are not independent provenance",
+            "synthetic attestation, same operator, host-side diagnostic model",
+        ],
     }
     files["bundle.json"] = (json.dumps(manifest, indent=2) + "\n").encode()
     args.output.parent.mkdir(parents=True, exist_ok=True)
@@ -73,7 +96,8 @@ def main():
             archive.writestr(info, data)
     digest = hashlib.sha256(args.output.read_bytes()).hexdigest()
     args.output.with_suffix(args.output.suffix + ".sha256").write_text(
-        f"{digest}  {args.output.name}\n", encoding="utf-8")
+        f"{digest}  {args.output.name}\n", encoding="utf-8"
+    )
     print(digest, args.output)
 
 

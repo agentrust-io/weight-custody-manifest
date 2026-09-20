@@ -1,19 +1,22 @@
 """Run a reviewed source-based research bundle in a new workspace."""
+
 from __future__ import annotations
 
 import argparse
 import hashlib
 import json
 import os
-from pathlib import Path
 import platform
 import re
 import subprocess
 import sys
 import venv
+from pathlib import Path
 
 REPOSITORIES = {
-    "wcm": "weight-custody-manifest", "cmcp": "cmcp", "ca2a": "ca2a",
+    "wcm": "weight-custody-manifest",
+    "cmcp": "cmcp",
+    "ca2a": "ca2a",
     "confinement": "cmcp",
 }
 
@@ -42,10 +45,17 @@ def validate_bundle(root):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--workspace", type=Path, required=True,
-                        help="new directory; existing paths are refused")
-    parser.add_argument("--confined", action="store_true",
-                        help="also run the native Linux Docker profile")
+    parser.add_argument(
+        "--workspace",
+        type=Path,
+        required=True,
+        help="new directory; existing paths are refused",
+    )
+    parser.add_argument(
+        "--confined",
+        action="store_true",
+        help="also run the native Linux Docker profile",
+    )
     args = parser.parse_args()
     bundle = Path(__file__).resolve().parent
     manifest = validate_bundle(bundle)
@@ -66,11 +76,22 @@ def main():
             continue
         source = workspace / name
         run(["git", "init", source], env=env)
-        run(["git", "-C", source, "fetch", "--depth=1",
-             f"https://github.com/agentrust-io/{REPOSITORIES[name]}.git", revision], env=env)
+        run(
+            [
+                "git",
+                "-C",
+                source,
+                "fetch",
+                "--depth=1",
+                f"https://github.com/agentrust-io/{REPOSITORIES[name]}.git",
+                revision,
+            ],
+            env=env,
+        )
         run(["git", "-C", source, "checkout", "--detach", "FETCH_HEAD"], env=env)
         actual = subprocess.check_output(
-            ["git", "-C", str(source), "rev-parse", "HEAD"], text=True, env=env).strip()
+            ["git", "-C", str(source), "rev-parse", "HEAD"], text=True, env=env
+        ).strip()
         if actual != revision:
             raise RuntimeError(f"{name}: fetched source differs from bundle")
         sources[name] = source
@@ -81,18 +102,38 @@ def main():
     # Runtime versions come from the evaluated environment. Core code stays at
     # exact source revisions; build-backend dependencies are not hash locked.
     for name, suffix in (("wcm", "python"), ("cmcp", ""), ("ca2a", "")):
-        run([python, "-m", "pip", "install", "--no-deps", "-e", sources[name] / suffix], env=env)
+        run(
+            [python, "-m", "pip", "install", "--no-deps", "-e", sources[name] / suffix],
+            env=env,
+        )
     run([python, "-m", "pip", "check"], env=env)
-    command = [python, sources["wcm"] / "python/composed/run.py",
-               "--cmcp-source", sources["cmcp"], "--ca2a-source", sources["ca2a"],
-               "--output", workspace / "evidence"]
+    command = [
+        python,
+        sources["wcm"] / "python/composed/run.py",
+        "--cmcp-source",
+        sources["cmcp"],
+        "--ca2a-source",
+        sources["ca2a"],
+        "--output",
+        workspace / "evidence",
+    ]
     if args.confined:
         image_id = workspace / "agent-image.txt"
-        run(["docker", "build", "--iidfile", image_id,
-             sources["wcm"] / "python/composed"], env=env)
+        run(
+            [
+                "docker",
+                "build",
+                "--iidfile",
+                image_id,
+                sources["wcm"] / "python/composed",
+            ],
+            env=env,
+        )
         env["COMPOSED_AGENT_IMAGE"] = image_id.read_text(encoding="utf-8").strip()
         command += ["--confinement-source", sources["confinement"]]
-    result = subprocess.run(list(map(str, command)), cwd=workspace, env=env, check=False)
+    result = subprocess.run(
+        list(map(str, command)), cwd=workspace, env=env, check=False
+    )
     evidence = workspace / "evidence"
     if evidence.exists():
         (evidence / "bundle.json").write_bytes((bundle / "bundle.json").read_bytes())
