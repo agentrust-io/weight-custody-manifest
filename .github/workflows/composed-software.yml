@@ -1,0 +1,54 @@
+name: composed-software
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  composed-software:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: wcm
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: agentrust-io/cmcp
+          ref: 2cdb168ce52020406ff0ef6cbc34447f0ea55aee
+          path: cmcp
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: agentrust-io/ca2a
+          ref: fc22c644846111c7f375446399e9097a73f93214
+          path: ca2a
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: agentrust-io/cmcp
+          ref: bad751becca0ec5c42d70062e5c9fe5ee1380e85
+          path: confinement
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.12'
+      - name: Install core source snapshots and test dependencies
+        run: python -m pip install -e './wcm/python[dev]' -e ./cmcp -e ./ca2a
+      - name: Build the synthetic adversarial agent
+        run: |
+          docker build --iidfile /tmp/composed-agent-image wcm/python/composed
+          echo "COMPOSED_AGENT_IMAGE=$(cat /tmp/composed-agent-image)" >> "$GITHUB_ENV"
+      - name: Compose with native agent isolation and causal controls
+        shell: bash
+        run: |
+          original=$(cat /proc/sys/kernel/core_pattern)
+          trap 'sudo sysctl -w "kernel.core_pattern=$original"' EXIT
+          sudo sysctl -w kernel.core_pattern=core
+          python wcm/python/composed/run.py --cmcp-source cmcp --ca2a-source ca2a --confinement-source confinement --output evidence
+          docker version > evidence/docker-version.txt
+          uname -a > evidence/kernel.txt
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: composed-software-evidence
+          path: evidence
+          if-no-files-found: error

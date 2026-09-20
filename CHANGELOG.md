@@ -6,6 +6,43 @@ uses semantic-ish versioning while pre-1.0.
 
 ## Unreleased
 
+Add a read-only native-SNP host preflight and partner execution packet. Missing
+or unavailable prerequisites require host review; successful observations never
+claim hardware acceptance. No VM launch or host configuration change is performed.
+
+Predict the actual built firmware/kernel/broker initramfs in CI, repeat the
+baseline and require seven launch-input substitutions to change the digest.
+Retain exact artifact identities and candidate launch parameters. This is
+software prediction evidence; matching hardware and firmware approval remain open.
+
+Record real GCP native-SNP report controls and owner-side verification. A fresh
+report retains its launch measurement after an application probe file changes.
+The native provisioning collector binds supplied bytes; protected broker
+identity, custom firmware and key custody remain unvalidated by this run.
+
+Add a live Azure SNP/vTPM diagnostic with independently supplied roots and
+owner nonces. Real-hardware controls reject six evidence substitutions and
+reproduce the caller-supplied PCR23 digest limitation after a probe file changes.
+This does not validate the custom firmware or native-SNP broker provisioning.
+
+Add an experimental restricted edk2 build profile: require the complete launch
+hash table, reject named and IGVM boot blobs, and stop before generic BDS boot
+options if the verified kernel fails or returns. Remove GRUB and shell payloads.
+Native C controls, repeated candidate builds and separately instrumented
+complete-image TCG controls run in Linux CI. Test firmware injects synthetic
+launch state and is explicitly unsuitable for custody. This is not
+production firmware approval or SNP hardware validation.
+
+Add a source-pinned composed software harness and CI for provisioning, diagnostic
+model computation, mediated tools, authenticated peer responses and exact-output
+disclosure. Add native Docker agent egress probes and causal controls for every
+named portable scenario. Attestation is synthetic and the host remains trusted.
+
+Document provisioning lifecycle and recovery, with software controls for lost
+HTTP acknowledgements, pending installation failures, owner restart, storage
+rollback assumptions and retirement followed by local worker shutdown. Reuse
+the existing custody monitor and stop adapter; no hardware claim is added.
+
 Add a source-pinned offline SNP prediction tool with complete kernel/initrd/
 command-line hash-table comparison, explicit vCPU/features and substitution
 tests. Record the OVMF/QEMU source review and hardware acceptance procedure.

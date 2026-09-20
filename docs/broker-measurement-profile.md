@@ -4,6 +4,13 @@ The offline predictor derives a candidate digest from owner-selected bytes.
 It does not approve firmware, authenticate a report or establish application
 identity. No matching genuine SNP report has been validated for this profile.
 
+The [restricted firmware candidate](broker-restricted-firmware.md) provides an
+exact-source patch and build procedure for the named-blob and fallback gates
+identified below. Source controls are not firmware or hardware acceptance.
+
+For partner execution, begin with the read-only
+[host preflight and validation packet](partner-hardware-validation.md).
+
 ## Source review and coverage contract
 
 This bounded source review uses edk2 `edk2-stable202608`, commit
@@ -93,6 +100,22 @@ an independent hardware oracle. The hash-table encoder and PAGE_INFO check
 are independent implementations; the complete VMSA/launch-digest calculation
 still relies on VirTEE. CI runs the pinned tool in a dedicated job.
 
+The `firmware-vm` job also runs `python/boot/prediction_controls.py` against the
+actual production-candidate `OVMF.fd`, built kernel and broker initramfs from
+that workflow. It repeats the baseline prediction in fresh isolated processes
+and requires seven substitutions to change the digest: firmware, kernel,
+initramfs, command line, vCPU count, CPU signature and guest features. Each
+receipt retains artifact hashes, parameters and the resulting digest; a changed
+receipt with an unchanged digest fails. The `built-launch-prediction` artifact
+contains the baseline, controls and exact command line.
+
+CI selects `EPYC-v4`, one vCPU and features `0x1` as a reproducible candidate
+profile. These parameters are not inferred from the cloud reports or approved
+for a deployment. Byte substitutions test predictor sensitivity and need not be
+bootable. Firmware enforcement and the independently authenticated hardware
+match remain separate acceptance requirements. This control shares the pinned
+predictor with the baseline and cannot detect a consistent predictor error.
+
 Existing Azure paired-release and PCR 23 validation packs describe a different
 vTPM-backed deployment. They do not retain the exact OVMF/kernel/initrd/vCPU
 inputs for this profile and cannot validate its prediction. Genuine signatures
@@ -125,3 +148,60 @@ Retain sanitized results for:
 A predictor/report match alone does not test these enforcement paths. Keep
 the firmware, application-identity and installation claims provisional until
 the relevant acceptance evidence exists.
+
+## Managed-cloud hardware diagnostics
+
+The restricted OVMF profile requires control of the firmware and direct boot
+inputs. A managed confidential VM's genuine attestation does not establish that
+it launched this candidate. Google documents its [provider-managed firmware and
+signed launch endorsements](https://docs.cloud.google.com/confidential-computing/confidential-vm/docs/verify-firmware).
+Azure's [vTPM architecture](https://learn.microsoft.com/en-us/azure/confidential-computing/virtual-tpms-in-azure-confidential-vm)
+uses a separate freshness path from native guest-controlled SNP REPORT_DATA.
+
+`python/tools/azure_attestation_controls.py` tests the Azure adapter on an
+isolated disposable confidential VM. Supply an independently retrieved AMD root
+and two distinct owner-generated nonces. The tool changes application-owned
+PCR23; do not run it against a shared application relying on that PCR.
+
+```bash
+python python/tools/azure_attestation_controls.py \
+  --root amd-root.pem --nonce "$OWNER_NONCE" --second-nonce "$SECOND_OWNER_NONCE" \
+  --output /tmp/wcm-azure-diagnostic
+```
+
+The September 18, 2026 run on a DC2as_v5 guest passed one positive and six
+rejection controls: wrong nonce, transport key and workload digest, modified
+TPM signature and SNP body, and an untrusted root. It also reproduced a
+counterexample: after changing a nonsecret application probe file, asking the
+provider to quote the old caller-supplied digest still produces an accepted
+fresh quote. PCR23 authenticates that supplied value; this API does not establish
+file immutability or bind the running broker to a precomputed application image.
+
+The tested guest exposed `/dev/tpmrm0`, but neither `/dev/sev-guest`, `/dev/sev`
+nor `/dev/kvm`. A native provisioning-report request failed without software
+fallback. This host therefore did not validate native-SNP provisioning or the
+custom OVMF launch. Preserve those unsupported results rather than relabeling
+the vTPM quote as native evidence. Raw bundles contain device identifiers and
+remain private; the committed summary contains hashes and bounded outcomes.
+
+The same day's GCP N2D SEV-SNP diagnostic used a pinned Ubuntu 24.04 image,
+Secure Boot, no service account and SDK commit `af5468e`. The owner machine
+verified two fresh reports against owner-generated nonces, a supplied transport
+binding and an independently fetched, pinned AMD Milan root. Five substitutions
+were rejected: wrong nonce, wrong transport binding, modified signed measurement,
+modified signature and an untrusted root. A separate native
+`SevSnpProvider.provisioning_report()` request returned a valid signed report
+with the exact caller-selected 64-byte binding; a different binding did not match.
+This exercised the collector, not protected broker provisioning or key custody.
+
+After the diagnostic changed a nonsecret application file, the second fresh
+report retained the first report's launch measurement. That measurement was
+observed, not independently predicted or approved. It did not identify the
+installed application. The guest exposed `/dev/sev-guest` and `/dev/tpmrm0`,
+but neither `/dev/sev` nor `/dev/kvm`; the restricted OVMF was not launched.
+The report carried policy `0x30000`, VMPL 0 and PLATFORM_INFO `0x25`. This run
+verified report bindings, not satisfaction of a production platform policy.
+Certificate revocation was not checked; the VCEK produced a cryptography
+deprecation warning for its nonpositive serial number. The temporary VM and
+boot disk were deleted and absence confirmed. The sanitized receipt is
+[`gcp-native-snp-2026-09-18/summary.json`](https://github.com/agentrust-io/weight-custody-manifest/blob/621e9d68d4702480c40da87723c4d21fedd85dd6/python/tests/fixtures/live-validation/weight-custody-manifest/gcp-native-snp-2026-09-18/summary.json).

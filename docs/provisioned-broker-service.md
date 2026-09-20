@@ -138,3 +138,7 @@ retirement or configuration-mutation endpoint is exposed.
 
 Tests use `TestClient` and synthetic signed SNP reports. They establish the HTTP
 and receiver behavior without a new live hardware claim.
+
+See [Provisioning lifecycle and recovery](provisioning-lifecycle.md) for the
+restart, uncertain-outcome, storage and worker-stop contract and executable
+software controls.

@@ -112,9 +112,12 @@ nav:
       - Reference KBS image: reference-kbs.md
       - Provisioned receiver service: provisioned-broker-service.md
       - Owner provisioning client: owner-provisioning-client.md
+      - Provisioning lifecycle: provisioning-lifecycle.md
       - Broker deployment identity: broker-deployment-identity.md
       - Provisional boot loader: broker-boot-loader.md
       - Provisional measurement profile: broker-measurement-profile.md
+      - Restricted firmware candidate: broker-restricted-firmware.md
+      - Partner hardware validation: partner-hardware-validation.md
       - Protected-runtime evidence: protected-runtime-evidence.md
       - Runnable examples: https://github.com/agentrust-io/examples/tree/main/weight-custody-manifest
   - Project:

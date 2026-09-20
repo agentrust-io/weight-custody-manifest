@@ -1,0 +1,76 @@
+{
+  "kind": "wcm-gcp-native-snp-diagnostic/v1",
+  "captured_at": "2026-09-18T23:27:48.786990+00:00",
+  "sdk_commit": "af5468e70964278ef6d119c300e0907421f95eb1",
+  "kernel": "7.0.0-1011-gcp",
+  "owner_root_der_sha256": "69d063b45344d26a2e94e1f4210de49ef555308287d4c174445c95639a540bcd",
+  "devices": {
+    "sev-guest": true,
+    "sev": false,
+    "kvm": false,
+    "tpmrm0": true
+  },
+  "controls": [
+    {
+      "case": "positive",
+      "verified": true,
+      "reason": null,
+      "passed": true
+    },
+    {
+      "case": "wrong_nonce",
+      "verified": false,
+      "reason": "REPORT_DATA does not bind the challenge nonce and transport key (possible relay)",
+      "passed": true
+    },
+    {
+      "case": "wrong_transport_key",
+      "verified": false,
+      "reason": "REPORT_DATA does not bind the challenge nonce and transport key (possible relay)",
+      "passed": true
+    },
+    {
+      "case": "changed_signed_measurement",
+      "verified": false,
+      "reason": "report signature does not verify under the leaf key",
+      "passed": true
+    },
+    {
+      "case": "changed_signature",
+      "verified": false,
+      "reason": "report signature does not verify under the leaf key",
+      "passed": true
+    },
+    {
+      "case": "untrusted_root",
+      "verified": false,
+      "reason": "does not chain to a trusted root",
+      "passed": true
+    },
+    {
+      "case": "fresh_after_file_change",
+      "verified": true,
+      "reason": null,
+      "passed": true
+    }
+  ],
+  "provisioning_report_signature_verified": true,
+  "provisioning_binding_matches": true,
+  "wrong_provisioning_binding_matches": false,
+  "launch_measurement_unchanged_after_file_change": true,
+  "measurement_expectation_source": "Observed first report; not independently predicted or approved",
+  "application_identity_established": false,
+  "custom_firmware_loaded": false,
+  "protected_broker_provisioning_tested": false,
+  "certificate_revocation_checked": false,
+  "report_sha256": {
+    "first": "c16dd6434dbfa23f2b07a34f8e67c21765139120a718e775e3ab0e5591db2bbb",
+    "second": "cfc96075e3295ac86e3bae2b723282f2ddb630ac7e6f5b0b2797eb7aeb4b5fad",
+    "provisioning": "156211f307fcbed10b1f7fb2cbeb2beb2bb4217a63d30db11ddc4737203d082e"
+  },
+  "platform_info": "0x25",
+  "policy": "0x30000",
+  "vmpl": 0,
+  "approved_file_sha256": "d714cdd51ef211a59aacde59fab5fc2bc8e592c58cba755c3d29cd60d78cbbf2",
+  "modified_file_sha256": "73a54dd608cd7d2c3725fdd86f18caa838425a3e2b6b8fb98815d46efa4395f4"
+}
