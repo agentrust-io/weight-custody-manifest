@@ -6,6 +6,11 @@ uses semantic-ish versioning while pre-1.0.
 
 ## Unreleased
 
+Package the composed research harness with a standalone launcher, immutable
+source revisions and evaluated dependency versions. CI repeats all 36 cases
+from the extracted ZIP in a fresh environment. This remains a source-based
+software evaluation while the required protocol package releases are pending.
+
 Add a read-only native-SNP host preflight and partner execution packet. Missing
 or unavailable prerequisites require host review; successful observations never
 claim hardware acceptance. No VM launch or host configuration change is performed.
