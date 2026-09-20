@@ -62,6 +62,12 @@ jobs:
           python-version: '3.12'
       - run: sudo apt-get update && sudo apt-get install -y gcc libc6-dev cpio qemu-system-x86 flex bison bc libelf-dev libssl-dev
       - run: python -m pip install -e './python[dev]'
+      - name: Record ordinary-runner host prerequisites without launching a VM
+        run: |
+          status=0
+          python python/boot/host_preflight.py > host-preflight.json || status=$?
+          test "$status" -eq 0 -o "$status" -eq 2
+          python -c 'import json; r=json.load(open("host-preflight.json")); assert r["hardware_acceptance"] == "not-tested"'
       - name: Exercise native handoff and deliberate weakening
         working-directory: python
         env:
@@ -99,6 +105,7 @@ jobs:
         with:
           name: boot-loader-results
           path: |
+            host-preflight.json
             python/boot-loader-results.xml
             python/boot-digests.txt
             ${{ runner.temp }}/boot-kernel/kernel.config

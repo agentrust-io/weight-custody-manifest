@@ -6,6 +6,10 @@ uses semantic-ish versioning while pre-1.0.
 
 ## Unreleased
 
+Add a read-only native-SNP host preflight and partner execution packet. Missing
+or unavailable prerequisites require host review; successful observations never
+claim hardware acceptance. No VM launch or host configuration change is performed.
+
 Predict the actual built firmware/kernel/broker initramfs in CI, repeat the
 baseline and require seven launch-input substitutions to change the digest.
 Retain exact artifact identities and candidate launch parameters. This is

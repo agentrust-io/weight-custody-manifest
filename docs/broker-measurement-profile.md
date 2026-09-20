@@ -8,6 +8,9 @@ The [restricted firmware candidate](broker-restricted-firmware.md) provides an
 exact-source patch and build procedure for the named-blob and fallback gates
 identified below. Source controls are not firmware or hardware acceptance.
 
+For partner execution, begin with the read-only
+[host preflight and validation packet](partner-hardware-validation.md).
+
 ## Source review and coverage contract
 
 This bounded source review uses edk2 `edk2-stable202608`, commit
@@ -201,4 +204,4 @@ verified report bindings, not satisfaction of a production platform policy.
 Certificate revocation was not checked; the VCEK produced a cryptography
 deprecation warning for its nonpositive serial number. The temporary VM and
 boot disk were deleted and absence confirmed. The sanitized receipt is
-[`gcp-native-snp-2026-09-18/summary.json`](../python/tests/fixtures/live-validation/weight-custody-manifest/gcp-native-snp-2026-09-18/summary.json).
+[`gcp-native-snp-2026-09-18/summary.json`](https://github.com/agentrust-io/weight-custody-manifest/blob/621e9d68d4702480c40da87723c4d21fedd85dd6/python/tests/fixtures/live-validation/weight-custody-manifest/gcp-native-snp-2026-09-18/summary.json).
