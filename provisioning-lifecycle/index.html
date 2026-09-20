@@ -6,17 +6,17 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="This software slice of #144 adds deterministic initramfs assembly and a fixed Linux x86-64 loader. It is">
+        <meta name="description" content="The reference provisioning service separates owner authorization, envelope delivery, receiver installation and workload execution.">
       
       
       
-        <link rel="canonical" href="https://wcm.agentrust-io.com/broker-boot-loader/">
+        <link rel="canonical" href="https://wcm.agentrust-io.com/provisioning-lifecycle/">
       
       
-        <link rel="prev" href="../broker-deployment-identity/">
+        <link rel="prev" href="../owner-provisioning-client/">
       
       
-        <link rel="next" href="../broker-measurement-profile/">
+        <link rel="next" href="../broker-deployment-identity/">
       
       
         
@@ -26,7 +26,7 @@
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
     
     
-  <title>Provisional boot loader - Weight Custody Manifest</title>
+  <title>Provisioning lifecycle - Weight Custody Manifest</title>
 
     
       <link rel="stylesheet" href="../assets/stylesheets/main.ec1eaa64.min.css">
@@ -64,9 +64,9 @@
 
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="AgenTrust">
-  <meta property="og:title" content="Provisional boot loader - Weight Custody Manifest">
-  <meta property="og:description" content="This software slice of #144 adds deterministic initramfs assembly and a fixed Linux x86-64 loader. It is">
-  <meta property="og:url" content="https://wcm.agentrust-io.com/broker-boot-loader/">
+  <meta property="og:title" content="Provisioning lifecycle - Weight Custody Manifest">
+  <meta property="og:description" content="The reference provisioning service separates owner authorization, envelope delivery, receiver installation and workload execution.">
+  <meta property="og:url" content="https://wcm.agentrust-io.com/provisioning-lifecycle/">
   <meta property="og:locale" content="en_US">
   <meta property="og:image" content="https://wcm.agentrust-io.com/assets/og.png">
   <meta property="og:image:width" content="1200">
@@ -74,8 +74,8 @@
   <meta property="og:image:alt" content="Weight Custody Manifest: release model weights only to an attested runtime">
 
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Provisional boot loader - Weight Custody Manifest">
-  <meta name="twitter:description" content="This software slice of #144 adds deterministic initramfs assembly and a fixed Linux x86-64 loader. It is">
+  <meta name="twitter:title" content="Provisioning lifecycle - Weight Custody Manifest">
+  <meta name="twitter:description" content="The reference provisioning service separates owner authorization, envelope delivery, receiver installation and workload execution.">
   <meta name="twitter:image" content="https://wcm.agentrust-io.com/assets/og.png">
 
   <script type="application/ld+json">
@@ -107,11 +107,11 @@
       },
       {
         "@type": "TechArticle",
-        "@id": "https://wcm.agentrust-io.com/broker-boot-loader/#page",
-        "url": "https://wcm.agentrust-io.com/broker-boot-loader/",
-        "name": "Provisional boot loader - Weight Custody Manifest",
-        "headline": "Provisional boot loader - Weight Custody Manifest",
-        "description": "This software slice of #144 adds deterministic initramfs assembly and a fixed Linux x86-64 loader. It is",
+        "@id": "https://wcm.agentrust-io.com/provisioning-lifecycle/#page",
+        "url": "https://wcm.agentrust-io.com/provisioning-lifecycle/",
+        "name": "Provisioning lifecycle - Weight Custody Manifest",
+        "headline": "Provisioning lifecycle - Weight Custody Manifest",
+        "description": "The reference provisioning service separates owner authorization, envelope delivery, receiver installation and workload execution.",
         "inLanguage": "en",
         "isPartOf": { "@id": "https://wcm.agentrust-io.com/#website" },
         "publisher": { "@id": "https://agentrust-io.com/#organization" }
@@ -120,7 +120,7 @@
         "@type": "BreadcrumbList",
         "itemListElement": [
           { "@type": "ListItem", "position": 1, "name": "Weight Custody Manifest", "item": "https://wcm.agentrust-io.com/" },
-          { "@type": "ListItem", "position": 2, "name": "Provisional boot loader - Weight Custody Manifest", "item": "https://wcm.agentrust-io.com/broker-boot-loader/" }
+          { "@type": "ListItem", "position": 2, "name": "Provisioning lifecycle - Weight Custody Manifest", "item": "https://wcm.agentrust-io.com/provisioning-lifecycle/" }
         ]
       }
     ]
@@ -146,7 +146,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#provisional-broker-boot-builder-and-loader" class="md-skip">
+        <a href="#provisioning-lifecycle-and-recovery" class="md-skip">
           Skip to content
         </a>
       
@@ -182,7 +182,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Provisional boot loader
+              Provisioning lifecycle
             
           </span>
         </div>
@@ -977,10 +977,37 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../provisioning-lifecycle/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Provisioning lifecycle
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -996,6 +1023,103 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#states-and-observations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        States and observations
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#unknown-outcomes-and-recovery" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Unknown outcomes and recovery
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#authoritative-owner-state" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Authoritative owner state
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#clocks-idle-time-and-suspendresume" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Clocks, idle time and suspend/resume
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#already-loaded-workers-and-serving-stop" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Already-loaded workers and serving stop
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#reproduce-the-software-controls" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Reproduce the software controls
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#composed-software-development-slice" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Composed software development slice
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -1033,37 +1157,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Provisional boot loader
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../broker-boot-loader/" class="md-nav__link">
         
   
   
@@ -1079,87 +1176,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#build-and-independently-check-containment" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Build and independently check containment
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#fixed-guest-handoff" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Fixed guest handoff
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#configuration-is-data" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Configuration is data
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#validation-and-limits" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Validation and limits
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Validation and limits">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#full-software-vm-boot" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Full software VM boot
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -1566,10 +1582,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#build-and-independently-check-containment" class="md-nav__link">
+  <a href="#states-and-observations" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Build and independently check containment
+        States and observations
       
     </span>
   </a>
@@ -1577,10 +1593,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#fixed-guest-handoff" class="md-nav__link">
+  <a href="#unknown-outcomes-and-recovery" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Fixed guest handoff
+        Unknown outcomes and recovery
       
     </span>
   </a>
@@ -1588,10 +1604,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#configuration-is-data" class="md-nav__link">
+  <a href="#authoritative-owner-state" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Configuration is data
+        Authoritative owner state
       
     </span>
   </a>
@@ -1599,30 +1615,46 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#validation-and-limits" class="md-nav__link">
+  <a href="#clocks-idle-time-and-suspendresume" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Validation and limits
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Validation and limits">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#full-software-vm-boot" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Full software VM boot
+        Clocks, idle time and suspend/resume
       
     </span>
   </a>
   
 </li>
-        
-      </ul>
-    </nav>
+      
+        <li class="md-nav__item">
+  <a href="#already-loaded-workers-and-serving-stop" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Already-loaded workers and serving stop
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#reproduce-the-software-controls" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Reproduce the software controls
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#composed-software-development-slice" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Composed software development slice
+      
+    </span>
+  </a>
   
 </li>
       
@@ -1694,184 +1726,206 @@
   
 
 
-<h1 id="provisional-broker-boot-builder-and-loader">Provisional broker boot builder and loader<a class="headerlink" href="#provisional-broker-boot-builder-and-loader" title="Permanent link">&para;</a></h1>
-<p>This software slice of <a href="https://github.com/agentrust-io/weight-custody-manifest/issues/144">#144</a>
-adds deterministic initramfs assembly and a fixed Linux x86-64 loader. It is
-<strong>provisional</strong>: software boot tests do not establish SNP launch coverage or
-resistance to a malicious host. The production image refuses a VM without native
-SNP; positive emulated boots use an explicitly modified test-only image. Owner
-receipts continue to report <code>application_identity_established: false</code>.</p>
-<h2 id="build-and-independently-check-containment">Build and independently check containment<a class="headerlink" href="#build-and-independently-check-containment" title="Permanent link">&para;</a></h2>
-<p>On a trusted Linux build host with Docker, a C compiler and the WCM SDK installed,
-run from the repository root:</p>
-<div class="highlight"><pre><span></span><code>bash<span class="w"> </span>python/boot/build-runtime.sh<span class="w"> </span>/absolute/path/to/new-build
-python<span class="w"> </span>-m<span class="w"> </span>wcm.boot_bundle<span class="w"> </span>/absolute/path/to/new-build/runtime.tar<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>/absolute/path/to/new-build/init<span class="w"> </span>--verify<span class="w"> </span>/absolute/path/to/new-build/initrd.cpio
-</code></pre></div>
-<p>The shell recipe reuses the digest-pinned Python image and hash-locked WCM
-dependency installation. It exports the interpreter, Python/dependency libraries,
-native libraries, loader cache and the canonical CA certificate bundle. Individual
-CA aliases are omitted because their names need not fit the restricted archive
-path format. Dereferencing occurs inside
-that container, never against host paths. No host directory is mounted into it.
-The native loader is compiled statically. The local compiler/libc are additional
-build inputs: record their versions and independently compare their outputs.
-This is not a hermetic or cross-toolchain reproducibility claim.</p>
-<p>The Python builder emits uncompressed Linux <code>newc</code> CPIO with fixed owners,
-timestamps, ordering and permissions. It reads TAR input without filesystem
-extraction. Only ordinary files/directories with canonical relative ASCII paths
-are accepted; links, device nodes, duplicate paths, conflicting parents, writable
-group/other permissions, privilege bits and reserved mount paths are rejected.
-Input size and entry count are bounded. It checks that the loader is an x86-64
-ELF executable without dynamic/interpreter segments, not that arbitrary supplied
-loader bytes implement the reviewed source. Review and pin the compiled loader.</p>
-<p>Use <code>runtime.tar</code> as the deployment approval's <code>application</code> artifact and the
-exact <code>initrd.cpio</code> as <code>initrd</code>. The comparison command binds every runtime file
-and the loader to the generated initramfs bytes, including rejection of appended
-archives. Run it before the separate approval generator; legacy approval records
-do not automatically invoke this check. No launch measurement is calculated.</p>
-<p>The recipe includes transitive Python packages, some of which contain tooling.
-Only the fixed broker entry point is started. Package minimization and dependency
-review remain necessary; packaging cannot prove the absence of exploitable code.</p>
-<h2 id="fixed-guest-handoff">Fixed guest handoff<a class="headerlink" href="#fixed-guest-handoff" title="Permanent link">&para;</a></h2>
-<p>The kernel executes the static <code>/init</code>. It refuses execution unless it is root
-and PID 1, mounts private sysfs/devtmpfs, and requires the actual character device
-<code>/dev/sev-guest</code>. There is no attestation fallback. It reads at most 1 MiB from:</p>
-<div class="highlight"><pre><span></span><code>/sys/firmware/qemu_fw_cfg/by_name/opt/wcm/config/raw
-</code></pre></div>
-<p>The loader snapshots this public configuration into a private tmpfs and remounts
-it read-only, no-exec and nodev. It creates a separate read-only device mount
-containing only null, urandom and the native SNP device. The report device is
-readable only by UID 10001. The runtime gets a read-only, nosuid, nodev bind mount.</p>
-<p>Before executing the broker, the loader chroots into that runtime, removes
-supplementary groups, drops all capability bounding entries and switches all
-UID/GID values to 10001. It sets no-new-privileges, disables core files with a hard
-zero core limit, closes every inherited descriptor and connects standard I/O to
-null. It supplies only a fixed locale environment and executes:</p>
-<div class="highlight"><pre><span></span><code>/usr/local/bin/python3 -I -B -m wcm.guest_broker
-</code></pre></div>
-<p>No shell, external executable disk, user-selected entry point, package download,
-reload worker or administrative service is started. Procfs/sysfs and the original
-initramfs paths are inaccessible after handoff. Failure exits PID 1; there is no
-recovery shell. Network and ingress restrictions still require deployment
-configuration. The service binds guest port 8080 without proxy-header trust.</p>
-<h2 id="configuration-is-data">Configuration is data<a class="headerlink" href="#configuration-is-data" title="Permanent link">&para;</a></h2>
-<p>Supply QEMU's <code>opt/wcm/config</code> fw_cfg entry as a public JSON document. It has
-exactly <code>configuration</code> and <code>policy</code> objects. The policy has the same fields as
-the <a href="../owner-provisioning-client/">owner provisioning policy</a>. Configuration
-uses inline certificate/key material, with these fields:</p>
+<h1 id="provisioning-lifecycle-and-recovery">Provisioning lifecycle and recovery<a class="headerlink" href="#provisioning-lifecycle-and-recovery" title="Permanent link">&para;</a></h1>
+<p>The reference provisioning service separates owner authorization, envelope
+delivery, receiver installation and workload execution. This guide records its
+software transitions and recovery requirements for
+<a href="https://github.com/agentrust-io/weight-custody-manifest/issues/145">#145</a>.
+It does not establish protected restart, trusted time or secure erasure.</p>
+<h2 id="states-and-observations">States and observations<a class="headerlink" href="#states-and-observations" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
-<th>Field</th>
-<th>Value</th>
+<th>Component / state</th>
+<th>Event</th>
+<th>Result</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>cpu_root_pem</td>
-<td>Independently approved CPU root certificate</td>
+<td>Owner / policy admitted</td>
+<td>Issue challenge</td>
+<td>Fresh nonce kept in this owner process; the durable database stores only the policy floor.</td>
 </tr>
 <tr>
-<td>cpu_vcek_pem</td>
-<td>Broker verifier's CPU leaf certificate</td>
+<td>Owner / challenge pending</td>
+<td>Authenticate report and seal key</td>
+<td>Challenge consumed; one envelope bound to policy, nonce and receiver boot key. Failed attempts also consume the challenge after the epoch guard admits the operation.</td>
 </tr>
 <tr>
-<td>cpu_intermediates_pem</td>
-<td>Array of intermediate PEM strings</td>
+<td>Owner / any state</td>
+<td>Restart</td>
+<td>Pending nonces are lost. Admission checks the configured durable floor; a new challenge is required.</td>
 </tr>
 <tr>
-<td>trusted_manifest_identities</td>
-<td>Array of approved manifest identities</td>
+<td>Owner / policy admitted</td>
+<td>Advance policy</td>
+<td>Higher epoch required; local pending challenges discarded. Other owners sharing the database reject stale operations. Previously produced envelopes remain usable at their original receiver within its pending window.</td>
 </tr>
 <tr>
-<td>owner_public_key_hex</td>
-<td>32-byte owner public key, lowercase hexadecimal</td>
+<td>Receiver / fresh boot</td>
+<td>Request native report</td>
+<td>Fresh boot key and locally computed configuration bind the report. One pending installation slot is set.</td>
 </tr>
 <tr>
-<td>gpu_root_pem</td>
-<td>Optional approved GPU root PEM</td>
+<td>Receiver / pending</td>
+<td>Request another report</td>
+<td>New nonce replaces the pending slot. Reusing a nonce in the same boot is refused.</td>
+</tr>
+<tr>
+<td>Receiver / pending</td>
+<td>Install envelope</td>
+<td>Pending slot consumed before signature verification. Correct owner, policy, boot key, nonce and time are required. Success enables workload release and drops the provisioning private-key reference.</td>
+</tr>
+<tr>
+<td>Receiver / pending</td>
+<td>Invalid, expired or clock-failed install</td>
+<td>No workload release; pending slot consumed. An old attempt against a replaced slot also consumes that newer slot. Recovery needs a fresh challenge.</td>
+</tr>
+<tr>
+<td>Receiver / installed</td>
+<td>Provision again</td>
+<td>Refused; no overwrite or rekey operation exists.</td>
+</tr>
+<tr>
+<td>Receiver / any state</td>
+<td>Retire</td>
+<td>Permanently deny report, install, challenge and release on that object; discard key references.</td>
+</tr>
+<tr>
+<td>Receiver / any state</td>
+<td>New process</td>
+<td>Fresh key and unprovisioned state. Old envelopes cannot install under the new boot key. This describes a fresh process, not restoration of a memory snapshot.</td>
+</tr>
+<tr>
+<td>Worker / key received</td>
+<td>Broker retires or owner advances policy</td>
+<td>Its previously received key and loaded weights are unaffected. Local custody and serving controls remain necessary.</td>
+</tr>
+<tr>
+<td>Worker / holding</td>
+<td>Local lease reaches deadline</td>
+<td><code>EnclaveSession</code> ends authorization at <code>now &gt;= deadline</code>, wipes its own mutable key buffer, then invokes the configured stop adapter once.</td>
 </tr>
 </tbody>
 </table>
-<p>Duplicate or additional fields, paths, interpreter options and configuration
-digest mismatches fail before the receiver starts. The receiver then creates its
-fresh transport key and binds its actual effective inputs and policy to report
-data. The owner must independently authenticate that report and policy before
-sealing a model key. An attacker can replace all public configuration and cause
-denial or start an unapproved receiver; this does not authorize release by the
-legitimate owner.</p>
-<p>The final launch measurement stays in this later data document, avoiding a
-circular dependency between the measurement and the initramfs it measures.
-The loader never treats fw_cfg data as an executable filesystem.</p>
-<h2 id="validation-and-limits">Validation and limits<a class="headerlink" href="#validation-and-limits" title="Permanent link">&para;</a></h2>
-<p>The dedicated Linux job compiles the actual loader with warnings as errors,
-checks its archive with GNU cpio, and invokes its unchanged mount/handoff
-functions in disposable mount/PID/network namespaces. A test executable observes
-credentials, capabilities, mounts, descriptor closure, fixed arguments and
-environment, configuration readability, denied writes and denied privilege
-recovery. Deliberately removing restrictions must cause that same probe to fail.
-The probe uses a synthetic character device and is never shipped in a runtime.</p>
-<p>CI also builds the actual broker runtime twice, compares runtime/loader/initramfs
-bytes on the same runner, extracts it and imports the installed broker with
-isolated Python inside a chroot. This validates dependency availability.</p>
-<h3 id="full-software-vm-boot">Full software VM boot<a class="headerlink" href="#full-software-vm-boot" title="Permanent link">&para;</a></h3>
-<p><code>python/boot/build-kernel.sh</code> builds a test kernel from Linux 6.12.110, with its
-source archive pinned to SHA-256
-<code>8cee19e1839bb6ff4d5254d761933ae6ab670492d5ed030e09a80538320d5c4c</code>
-from the <a href="https://cdn.kernel.org/pub/linux/kernel/v6.x/sha256sums.asc">kernel.org checksum manifest</a>.
-The script checks required drivers are built in and forbids modules, external
-helper startup, core dumps, swap and selected debug interfaces. The resolved
-configuration, kernel hash and compiler/linker versions are retained by CI.
-This is a software-test kernel, not an approved hardware deployment profile.</p>
-<p>The QEMU TCG harness in <code>python/boot/qemu_smoke.py</code> uses no KVM/SNP hardware and
-requires no privileged host access. It uses direct kernel boot, a fixed command
-line, fw_cfg public data, a restricted user network and a loopback-only forwarded
-port. QEMU's default PC firmware is not the proposed measured OVMF chain.</p>
-<p>The unchanged production loader must reach PID 1 and stop with status 111 when
-the SNP device is absent. For positive boot cases, the harness separately
-compiles a <strong>test-only</strong> loader changing exactly the initial device lookup from
-<code>/dev/sev-guest</code> to <code>/dev/urandom</code>. No fallback is added to production source,
-and the broker's real SNP ioctl remains unchanged. Test and production loader
-and image hashes are distinct and recorded.</p>
-<p>The probe boots through the actual kernel, fw_cfg channel, mounts, privilege
-drop and exec. Its exit status comes from the observed restrictions. A variant
-with the read-only runtime restriction removed must fail that same probe.
-Missing/oversized configuration must terminate before handoff; changed effective
-policy must terminate the real broker. An unrelated panic or timeout never
-counts as successful rejection: each expected exit requires the kernel's
-PID 1 execution marker and exact exit status.</p>
-<p>Two fresh boots of the actual broker runtime with the test-only loader must
-return health 200, refuse pre-provisioning admission with 409, and return 503
-for a native report request. No report is fabricated, no owner/model key is
-provided and no release is authorized. Serial/QEMU logs and structured outcomes
-are retained; this establishes startup and fail-closed behavior in emulation,
-not protected restart, transport-key uniqueness or firmware measurement coverage.</p>
-<p>Run after the normal runtime build on a Linux host with QEMU and kernel build
-tools installed:</p>
-<div class="highlight"><pre><span></span><code>bash<span class="w"> </span>python/boot/build-kernel.sh<span class="w"> </span>/absolute/path/to/test-kernel
-python<span class="w"> </span>python/boot/qemu_smoke.py<span class="w"> </span>/absolute/path/to/test-kernel/bzImage<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>/absolute/path/to/new-build/runtime.tar<span class="w"> </span>/absolute/path/to/new-build/initrd.cpio<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>/absolute/path/to/new-vm-evidence
+<p>Cryptographic authorization to release an envelope does not show that it was
+delivered. Sending the POST does not show that it installed. Even an
+<code>{"installed":true}</code> response is an ordinary HTTP acknowledgement: the owner
+receipt retains <code>installation_proven: false</code>. The tests include an intermediary
+that acknowledges without installing. Neither acknowledgement nor successful
+local installation establishes that a model executed.</p>
+<p>The reference receiver exposes no authenticated installation proof, remote
+retirement or recovery API. Health is an availability response, not lifecycle
+evidence. There is no persistent owner delivery journal or exactly-once network
+transaction. <code>OwnerEpochStore</code> must not be used as an installation ledger.</p>
+<h2 id="unknown-outcomes-and-recovery">Unknown outcomes and recovery<a class="headerlink" href="#unknown-outcomes-and-recovery" title="Permanent link">&para;</a></h2>
+<p>The owner client performs one report request and one installation request,
+without redirects or automatic retry. A dropped connection after the POST can
+mean either that installation did not happen or that installation succeeded
+and the acknowledgement was lost. Both cases fail at the client; they cannot
+be distinguished from that failure alone. Malformed or unsuccessful responses
+also must not be treated as evidence that no key was installed.</p>
+<p>After an uncertain outcome, preserve the protected deployment's identity and
+reconcile through a separately authenticated control plane. Do not have a job
+runner blindly rerun the CLI or restart the receiver. The no-retry behavior is
+per invocation; it does not prevent a supervisor or operator from invoking the
+client again. A replacement receiver is a new instance, not proof that the old
+one or its workers stopped.</p>
+<p>Recovery requires the operator to establish which old receiver and workers
+remain active, stop them under the deployment's policy, and authorize a fresh
+instance and challenge. If that cannot be established, retain an unknown state
+and withhold another release under that recovery procedure. This is an external
+operational requirement; the reference service cannot enforce it. Restoring an
+owner process does not recover its old pending challenge; restoring a receiver
+memory snapshot is outside the fresh-process restart guarantee.</p>
+<h2 id="authoritative-owner-state">Authoritative owner state<a class="headerlink" href="#authoritative-owner-state" title="Permanent link">&para;</a></h2>
+<p>Use a single owner-controlled database and stable namespace for each broker
+policy lineage, including key rotations. Protect the database, its parent path,
+namespace, policy files and signing keys from substitution, deletion and
+rollback. Reopening the same protected database preserves the epoch floor and
+rejects lower epochs and changed policy at the same epoch.</p>
+<p><code>BEGIN IMMEDIATE</code> serializes admission and envelope construction for owners
+sharing that database. A failed guarded operation rolls back its database
+changes. The lock ends before the CLI's installation POST: a concurrent policy
+advance cannot retract an envelope that another owner already sealed. A lock
+timeout fails the operation; it is not permission to bypass the guard.</p>
+<p>SQLite does not establish storage identity or freshness. The test suite
+explicitly demonstrates that restoring an old database, deleting it and
+reinitializing, substituting a database with no matching namespace, changing
+namespace, or using an old clone permits old admission. These are expected
+counterexamples to an anti-rollback claim. Concurrent owners on separate clones
+do not share a floor. Production recovery needs an external authoritative,
+rollback-resistant store and control of namespace selection. The constructor's
+creation of a missing database is bootstrap behavior, not safe automatic
+recovery after unexplained storage loss.</p>
+<h2 id="clocks-idle-time-and-suspendresume">Clocks, idle time and suspend/resume<a class="headerlink" href="#clocks-idle-time-and-suspendresume" title="Permanent link">&para;</a></h2>
+<p>Owner challenges default to aware system UTC and a 60-second TTL. The receiver
+uses its own system UTC and caps a pending installation at the earlier of the
+offered expiry and 60 seconds after report request. The current provisioning
+checks reject times strictly <strong>after</strong> expiry; equality is accepted. This
+differs from the inclusive worker custody deadline. Receiver installation
+rechecks time even if no traffic arrived while pending. A clock exception during
+installation consumes that pending attempt without installing a key.</p>
+<p>Worker custody uses the injected clock or system UTC. Run and supervise
+<code>EnclaveSession.monitor()</code> independently of inference traffic. The existing
+monitor ends custody on expiry, cancellation or a clock exception. On simulated
+resume with a clock advanced beyond the deadline it stops on its first check;
+this is not a real suspend/resume experiment. A stalled or rewound system clock
+can extend apparent time, and a blocked event loop can delay the monitor.
+Selecting a <code>trusted_time_source</code> label does not validate the supplied clock.
+The default <code>TimeFloor.none</code> discloses the absence of a real-time bound.</p>
+<p>A deployment claiming a wall-time stop bound needs trusted time that accounts
+for suspension, an independently enforced watchdog, and bounded worker-stop
+operations. It must validate those properties on the target platform. Software
+tests here establish state transitions against the clock supplied to them.</p>
+<h2 id="already-loaded-workers-and-serving-stop">Already-loaded workers and serving stop<a class="headerlink" href="#already-loaded-workers-and-serving-stop" title="Permanent link">&para;</a></h2>
+<p>Reuse <code>EnclaveSession</code>, <code>ServingShutdown</code> and the serving-stop contract in
+<a href="https://github.com/agentrust-io/weight-custody-manifest/blob/main/SPEC.md">SPEC §3.2</a>; do not substitute broker retirement for worker shutdown.
+The integration tests open an actual software release envelope, create a
+custody session and attach a fake loaded worker through the existing adapter.
+They show that broker retirement denies future release while the loaded worker
+remains authorized until its own local stop. No model or GPU executes in these
+tests.</p>
+<p>The adapter calls stop-admission, cancel-inflight, unload-weights and terminate
+in that order, once. If cancellation fails, it skips memory release and still
+attempts termination; cleanup failure never restores session authorization.
+The existing custody suite covers those failures. These callbacks must be
+implemented and bounded by the protected runtime. Without an adapter,
+<code>stop_floor</code> is <code>none</code>: session key wiping does not stop loaded weights.</p>
+<p>Failed renewal must not extend the lease. The existing <code>RenewalDenied</code> result
+exposes an authenticated refusal; controller policy must stop admission and
+classify revocation-class reasons for immediate teardown. The session library
+does not implement that controller policy or a remote revocation channel.</p>
+<p>Dropping Python references is not secure erasure. Other key copies, decrypted
+host weights, GPU buffers, in-flight kernels and restored snapshots require
+separate controls. Owner policy advancement and receiver retirement do not
+revoke material already delivered to another component.</p>
+<h2 id="reproduce-the-software-controls">Reproduce the software controls<a class="headerlink" href="#reproduce-the-software-controls" title="Permanent link">&para;</a></h2>
+<p>From <code>python/</code> after installing <code>.[dev]</code>:</p>
+<div class="highlight"><pre><span></span><code>python<span class="w"> </span>-m<span class="w"> </span>pytest<span class="w"> </span>-q<span class="w"> </span>tests/test_provisioning_lifecycle.py<span class="w"> </span>tests/test_provisioning_state.py<span class="w"> </span>tests/test_broker_receiver.py<span class="w"> </span>tests/test_owner_provision.py<span class="w"> </span>tests/test_custody.py
 </code></pre></div>
-<p>Before live validation, pin and review the kernel configuration, firmware/QEMU
-combination, command line, toolchain and launch prediction tool. Required kernel
-facilities must be built in: initramfs, devtmpfs, tmpfs, proc-independent runtime,
-fw_cfg sysfs, native SNP guest support and the selected network driver/configuration.
-No module loader runs. Disable debug interfaces, external root/swap, kernel core
-pipes and automatic helper paths; include and review networking parameters in the
-approved command line. Confirm firmware actually enforces kernel/initrd hashes.</p>
-<p>A compromised kernel, firmware or broker process is outside the filesystem
-immutability claim. There is no seccomp syscall policy, arbitrary code-execution
-resistance, secure memory erasure, rollback-resistant guest state or protected
-GPU claim. The loader's restricted device access does not isolate the report key
-from vulnerabilities in the approved broker. Production SNP/OVMF boot,
-native-SNP prediction/report comparison, live post-appraisal substitution and
-protected restart tests
-remain open in #144 and #145.</p>
-<p>Format references:
-<a href="https://docs.kernel.org/driver-api/early-userspace/buffer-format.html">Linux initramfs buffer format</a>
-and <a href="https://docs.kernel.org/filesystems/ramfs-rootfs-initramfs.html">Linux initramfs execution</a>.</p>
+<p>The lifecycle suite adds real loopback HTTP acknowledgement loss, false
+acknowledgement, owner restart, pending-install failure/recovery, delayed
+delivery after policy advancement, storage counterexamples, and the
+release-to-worker-stop path. The existing suites supply fresh receiver restart,
+same-epoch substitution, concurrent shared-store admission, signature rejection
+and teardown-failure controls. All reports use synthetic signing keys; tests
+share the existing report fixtures and SDK implementation. They do not provide
+an independent protocol implementation or new hardware evidence.</p>
+<p>Live lifecycle acceptance remains dependent on measured application identity
+<a href="https://github.com/agentrust-io/weight-custody-manifest/issues/144">#144</a>, the
+controlled host in <a href="https://github.com/agentrust-io/weight-custody-manifest/issues/149">#149</a>,
+and protected execution <a href="https://github.com/agentrust-io/weight-custody-manifest/issues/146">#146</a>.</p>
+<h2 id="composed-software-development-slice">Composed software development slice<a class="headerlink" href="#composed-software-development-slice" title="Permanent link">&para;</a></h2>
+<p>The source-pinned harness in <code>python/composed/</code> continues from installation
+through deterministic model computation, a real cMCP tool subprocess, cA2A
+HTTP response authentication and exact-output disclosure. Its workflow retains
+separate state and boundary observations plus targeted weakening controls.
+Attestation is synthetic and the host/controller is trusted. An optional native-Linux profile inserts an adversarial confined agent at the
+tool boundary and observes selected forbidden exits. It does not protect model
+execution from the host or complete integrations#199 acceptance.
+See <code>python/composed/README.md</code> for pins, commands and remaining controls.</p>
 
 
 

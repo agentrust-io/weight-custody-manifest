@@ -6,17 +6,17 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="This software slice of #144 adds deterministic initramfs assembly and a fixed Linux x86-64 loader. It is">
+        <meta name="description" content="This experimental profile narrows edk2's AmdSev direct-boot path.">
       
       
       
-        <link rel="canonical" href="https://wcm.agentrust-io.com/broker-boot-loader/">
+        <link rel="canonical" href="https://wcm.agentrust-io.com/broker-restricted-firmware/">
       
       
-        <link rel="prev" href="../broker-deployment-identity/">
+        <link rel="prev" href="../broker-measurement-profile/">
       
       
-        <link rel="next" href="../broker-measurement-profile/">
+        <link rel="next" href="../partner-hardware-validation/">
       
       
         
@@ -26,7 +26,7 @@
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
     
     
-  <title>Provisional boot loader - Weight Custody Manifest</title>
+  <title>Restricted firmware candidate - Weight Custody Manifest</title>
 
     
       <link rel="stylesheet" href="../assets/stylesheets/main.ec1eaa64.min.css">
@@ -64,9 +64,9 @@
 
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="AgenTrust">
-  <meta property="og:title" content="Provisional boot loader - Weight Custody Manifest">
-  <meta property="og:description" content="This software slice of #144 adds deterministic initramfs assembly and a fixed Linux x86-64 loader. It is">
-  <meta property="og:url" content="https://wcm.agentrust-io.com/broker-boot-loader/">
+  <meta property="og:title" content="Restricted firmware candidate - Weight Custody Manifest">
+  <meta property="og:description" content="This experimental profile narrows edk2&#39;s AmdSev direct-boot path.">
+  <meta property="og:url" content="https://wcm.agentrust-io.com/broker-restricted-firmware/">
   <meta property="og:locale" content="en_US">
   <meta property="og:image" content="https://wcm.agentrust-io.com/assets/og.png">
   <meta property="og:image:width" content="1200">
@@ -74,8 +74,8 @@
   <meta property="og:image:alt" content="Weight Custody Manifest: release model weights only to an attested runtime">
 
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Provisional boot loader - Weight Custody Manifest">
-  <meta name="twitter:description" content="This software slice of #144 adds deterministic initramfs assembly and a fixed Linux x86-64 loader. It is">
+  <meta name="twitter:title" content="Restricted firmware candidate - Weight Custody Manifest">
+  <meta name="twitter:description" content="This experimental profile narrows edk2&#39;s AmdSev direct-boot path.">
   <meta name="twitter:image" content="https://wcm.agentrust-io.com/assets/og.png">
 
   <script type="application/ld+json">
@@ -107,11 +107,11 @@
       },
       {
         "@type": "TechArticle",
-        "@id": "https://wcm.agentrust-io.com/broker-boot-loader/#page",
-        "url": "https://wcm.agentrust-io.com/broker-boot-loader/",
-        "name": "Provisional boot loader - Weight Custody Manifest",
-        "headline": "Provisional boot loader - Weight Custody Manifest",
-        "description": "This software slice of #144 adds deterministic initramfs assembly and a fixed Linux x86-64 loader. It is",
+        "@id": "https://wcm.agentrust-io.com/broker-restricted-firmware/#page",
+        "url": "https://wcm.agentrust-io.com/broker-restricted-firmware/",
+        "name": "Restricted firmware candidate - Weight Custody Manifest",
+        "headline": "Restricted firmware candidate - Weight Custody Manifest",
+        "description": "This experimental profile narrows edk2\u0027s AmdSev direct-boot path.",
         "inLanguage": "en",
         "isPartOf": { "@id": "https://wcm.agentrust-io.com/#website" },
         "publisher": { "@id": "https://agentrust-io.com/#organization" }
@@ -120,7 +120,7 @@
         "@type": "BreadcrumbList",
         "itemListElement": [
           { "@type": "ListItem", "position": 1, "name": "Weight Custody Manifest", "item": "https://wcm.agentrust-io.com/" },
-          { "@type": "ListItem", "position": 2, "name": "Provisional boot loader - Weight Custody Manifest", "item": "https://wcm.agentrust-io.com/broker-boot-loader/" }
+          { "@type": "ListItem", "position": 2, "name": "Restricted firmware candidate - Weight Custody Manifest", "item": "https://wcm.agentrust-io.com/broker-restricted-firmware/" }
         ]
       }
     ]
@@ -146,7 +146,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#provisional-broker-boot-builder-and-loader" class="md-skip">
+        <a href="#restricted-firmware-candidate" class="md-skip">
           Skip to content
         </a>
       
@@ -182,7 +182,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Provisional boot loader
+              Restricted firmware candidate
             
           </span>
         </div>
@@ -1033,37 +1033,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Provisional boot loader
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../broker-boot-loader/" class="md-nav__link">
         
   
   
@@ -1079,87 +1052,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#build-and-independently-check-containment" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Build and independently check containment
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#fixed-guest-handoff" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Fixed guest handoff
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#configuration-is-data" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Configuration is data
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#validation-and-limits" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Validation and limits
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Validation and limits">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#full-software-vm-boot" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Full software VM boot
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -1197,10 +1089,37 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../broker-restricted-firmware/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Restricted firmware candidate
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -1216,6 +1135,76 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#enforced-source-changes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Enforced source changes
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#build-and-executable-checks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Build and executable checks
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Build and executable checks">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#complete-image-tcg-controls" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Complete-image TCG controls
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#acceptance-still-required" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Acceptance still required
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -1566,10 +1555,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#build-and-independently-check-containment" class="md-nav__link">
+  <a href="#enforced-source-changes" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Build and independently check containment
+        Enforced source changes
       
     </span>
   </a>
@@ -1577,44 +1566,22 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#fixed-guest-handoff" class="md-nav__link">
+  <a href="#build-and-executable-checks" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Fixed guest handoff
+        Build and executable checks
       
     </span>
   </a>
   
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#configuration-is-data" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Configuration is data
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#validation-and-limits" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Validation and limits
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Validation and limits">
+    <nav class="md-nav" aria-label="Build and executable checks">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#full-software-vm-boot" class="md-nav__link">
+  <a href="#complete-image-tcg-controls" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Full software VM boot
+        Complete-image TCG controls
       
     </span>
   </a>
@@ -1623,6 +1590,17 @@
         
       </ul>
     </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#acceptance-still-required" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Acceptance still required
+      
+    </span>
+  </a>
   
 </li>
       
@@ -1694,184 +1672,101 @@
   
 
 
-<h1 id="provisional-broker-boot-builder-and-loader">Provisional broker boot builder and loader<a class="headerlink" href="#provisional-broker-boot-builder-and-loader" title="Permanent link">&para;</a></h1>
-<p>This software slice of <a href="https://github.com/agentrust-io/weight-custody-manifest/issues/144">#144</a>
-adds deterministic initramfs assembly and a fixed Linux x86-64 loader. It is
-<strong>provisional</strong>: software boot tests do not establish SNP launch coverage or
-resistance to a malicious host. The production image refuses a VM without native
-SNP; positive emulated boots use an explicitly modified test-only image. Owner
-receipts continue to report <code>application_identity_established: false</code>.</p>
-<h2 id="build-and-independently-check-containment">Build and independently check containment<a class="headerlink" href="#build-and-independently-check-containment" title="Permanent link">&para;</a></h2>
-<p>On a trusted Linux build host with Docker, a C compiler and the WCM SDK installed,
-run from the repository root:</p>
-<div class="highlight"><pre><span></span><code>bash<span class="w"> </span>python/boot/build-runtime.sh<span class="w"> </span>/absolute/path/to/new-build
-python<span class="w"> </span>-m<span class="w"> </span>wcm.boot_bundle<span class="w"> </span>/absolute/path/to/new-build/runtime.tar<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>/absolute/path/to/new-build/init<span class="w"> </span>--verify<span class="w"> </span>/absolute/path/to/new-build/initrd.cpio
+<h1 id="restricted-firmware-candidate">Restricted firmware candidate<a class="headerlink" href="#restricted-firmware-candidate" title="Permanent link">&para;</a></h1>
+<p>This experimental profile narrows edk2's AmdSev direct-boot path. It does not
+establish production firmware approval, a complete boot-chain audit or matching
+SNP hardware evidence. Application identity and installation claims stay false.</p>
+<h2 id="enforced-source-changes">Enforced source changes<a class="headerlink" href="#enforced-source-changes" title="Permanent link">&para;</a></h2>
+<p><code>python/boot/firmware_profile.py</code> applies only to the five exact upstream files
+listed in <code>firmware-source.json</code>, at edk2 commit
+<code>2970e5699ba6267f3384ffab20f96647578aebc8</code>. It validates every input before writing
+any file and rejects a second application or changed source.</p>
+<ul>
+<li>The hash-table constructor requires all three entries in QEMU order:
+  command line, initrd, kernel. Header/entry lengths, GUIDs and bounds must match.
+  Missing, duplicate, reordered and malformed entries stop execution. Unknown
+  blobs, failed hashing, failed fetches and mismatched hashes also stop.</li>
+<li>The kernel-loader filesystem rejects every <code>etc/boot/</code> named payload, including
+  named kernel overrides and shim. Directory scanning is bounded to 4096 entries
+  and does not allocate an attacker-sized directory. Unrelated fw_cfg data,
+  including the broker configuration, remains available.</li>
+<li>IGVM data HOBs are rejected. Upstream otherwise registers those blobs and can
+  skip the normal fw_cfg verification path.</li>
+<li><code>PlatformBootManagerBeforeConsole</code> performs root-bridge/ACPI initialization,
+  signals the platform events and attempts only the QEMU kernel. If loading
+  fails or the kernel returns, it stops. It does not return to generic BDS
+  hotkeys, DriverOrder, BootNext, BootOrder or recovery processing. The later
+  platform hooks stop defensively as well.</li>
+<li>GRUB's prebuild/payload, shell components, UiApp and BootManagerMenuApp are removed
+  from the build description/firmware volume. The build disables source debug,
+  shell selection and memory debugging explicitly.</li>
+</ul>
+<p>The expected hash table still comes from the SNP launch page. There is no test
+hash-table injection or non-SNP fallback in the candidate firmware.</p>
+<h2 id="build-and-executable-checks">Build and executable checks<a class="headerlink" href="#build-and-executable-checks" title="Permanent link">&para;</a></h2>
+<p>On Linux with a C compiler, OpenSSL development files, make, NASM, UUID development
+files and ACPICA tools, use a new output directory:</p>
+<div class="highlight"><pre><span></span><code>bash<span class="w"> </span>python/boot/build-firmware.sh<span class="w"> </span>/tmp/wcm-firmware-candidate
 </code></pre></div>
-<p>The shell recipe reuses the digest-pinned Python image and hash-locked WCM
-dependency installation. It exports the interpreter, Python/dependency libraries,
-native libraries, loader cache and the canonical CA certificate bundle. Individual
-CA aliases are omitted because their names need not fit the restricted archive
-path format. Dereferencing occurs inside
-that container, never against host paths. No host directory is mounted into it.
-The native loader is compiled statically. The local compiler/libc are additional
-build inputs: record their versions and independently compare their outputs.
-This is not a hermetic or cross-toolchain reproducibility claim.</p>
-<p>The Python builder emits uncompressed Linux <code>newc</code> CPIO with fixed owners,
-timestamps, ordering and permissions. It reads TAR input without filesystem
-extraction. Only ordinary files/directories with canonical relative ASCII paths
-are accepted; links, device nodes, duplicate paths, conflicting parents, writable
-group/other permissions, privilege bits and reserved mount paths are rejected.
-Input size and entry count are bounded. It checks that the loader is an x86-64
-ELF executable without dynamic/interpreter segments, not that arbitrary supplied
-loader bytes implement the reviewed source. Review and pin the compiled loader.</p>
-<p>Use <code>runtime.tar</code> as the deployment approval's <code>application</code> artifact and the
-exact <code>initrd.cpio</code> as <code>initrd</code>. The comparison command binds every runtime file
-and the loader to the generated initramfs bytes, including rejection of appended
-archives. Run it before the separate approval generator; legacy approval records
-do not automatically invoke this check. No launch measurement is calculated.</p>
-<p>The recipe includes transitive Python packages, some of which contain tooling.
-Only the fixed broker entry point is started. Package minimization and dependency
-review remain necessary; packaging cannot prove the absence of exploitable code.</p>
-<h2 id="fixed-guest-handoff">Fixed guest handoff<a class="headerlink" href="#fixed-guest-handoff" title="Permanent link">&para;</a></h2>
-<p>The kernel executes the static <code>/init</code>. It refuses execution unless it is root
-and PID 1, mounts private sysfs/devtmpfs, and requires the actual character device
-<code>/dev/sev-guest</code>. There is no attestation fallback. It reads at most 1 MiB from:</p>
-<div class="highlight"><pre><span></span><code>/sys/firmware/qemu_fw_cfg/by_name/opt/wcm/config/raw
-</code></pre></div>
-<p>The loader snapshots this public configuration into a private tmpfs and remounts
-it read-only, no-exec and nodev. It creates a separate read-only device mount
-containing only null, urandom and the native SNP device. The report device is
-readable only by UID 10001. The runtime gets a read-only, nosuid, nodev bind mount.</p>
-<p>Before executing the broker, the loader chroots into that runtime, removes
-supplementary groups, drops all capability bounding entries and switches all
-UID/GID values to 10001. It sets no-new-privileges, disables core files with a hard
-zero core limit, closes every inherited descriptor and connects standard I/O to
-null. It supplies only a fixed locale environment and executes:</p>
-<div class="highlight"><pre><span></span><code>/usr/local/bin/python3 -I -B -m wcm.guest_broker
-</code></pre></div>
-<p>No shell, external executable disk, user-selected entry point, package download,
-reload worker or administrative service is started. Procfs/sysfs and the original
-initramfs paths are inaccessible after handoff. Failure exits PID 1; there is no
-recovery shell. Network and ingress restrictions still require deployment
-configuration. The service binds guest port 8080 without proxy-header trust.</p>
-<h2 id="configuration-is-data">Configuration is data<a class="headerlink" href="#configuration-is-data" title="Permanent link">&para;</a></h2>
-<p>Supply QEMU's <code>opt/wcm/config</code> fw_cfg entry as a public JSON document. It has
-exactly <code>configuration</code> and <code>policy</code> objects. The policy has the same fields as
-the <a href="../owner-provisioning-client/">owner provisioning policy</a>. Configuration
-uses inline certificate/key material, with these fields:</p>
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Value</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>cpu_root_pem</td>
-<td>Independently approved CPU root certificate</td>
-</tr>
-<tr>
-<td>cpu_vcek_pem</td>
-<td>Broker verifier's CPU leaf certificate</td>
-</tr>
-<tr>
-<td>cpu_intermediates_pem</td>
-<td>Array of intermediate PEM strings</td>
-</tr>
-<tr>
-<td>trusted_manifest_identities</td>
-<td>Array of approved manifest identities</td>
-</tr>
-<tr>
-<td>owner_public_key_hex</td>
-<td>32-byte owner public key, lowercase hexadecimal</td>
-</tr>
-<tr>
-<td>gpu_root_pem</td>
-<td>Optional approved GPU root PEM</td>
-</tr>
-</tbody>
-</table>
-<p>Duplicate or additional fields, paths, interpreter options and configuration
-digest mismatches fail before the receiver starts. The receiver then creates its
-fresh transport key and binds its actual effective inputs and policy to report
-data. The owner must independently authenticate that report and policy before
-sealing a model key. An attacker can replace all public configuration and cause
-denial or start an unapproved receiver; this does not authorize release by the
-legitimate owner.</p>
-<p>The final launch measurement stays in this later data document, avoiding a
-circular dependency between the measurement and the initramfs it measures.
-The loader never treats fw_cfg data as an executable filesystem.</p>
-<h2 id="validation-and-limits">Validation and limits<a class="headerlink" href="#validation-and-limits" title="Permanent link">&para;</a></h2>
-<p>The dedicated Linux job compiles the actual loader with warnings as errors,
-checks its archive with GNU cpio, and invokes its unchanged mount/handoff
-functions in disposable mount/PID/network namespaces. A test executable observes
-credentials, capabilities, mounts, descriptor closure, fixed arguments and
-environment, configuration readability, denied writes and denied privilege
-recovery. Deliberately removing restrictions must cause that same probe to fail.
-The probe uses a synthetic character device and is never shipped in a runtime.</p>
-<p>CI also builds the actual broker runtime twice, compares runtime/loader/initramfs
-bytes on the same runner, extracts it and imports the installed broker with
-isolated Python inside a chroot. This validates dependency availability.</p>
-<h3 id="full-software-vm-boot">Full software VM boot<a class="headerlink" href="#full-software-vm-boot" title="Permanent link">&para;</a></h3>
-<p><code>python/boot/build-kernel.sh</code> builds a test kernel from Linux 6.12.110, with its
-source archive pinned to SHA-256
-<code>8cee19e1839bb6ff4d5254d761933ae6ab670492d5ed030e09a80538320d5c4c</code>
-from the <a href="https://cdn.kernel.org/pub/linux/kernel/v6.x/sha256sums.asc">kernel.org checksum manifest</a>.
-The script checks required drivers are built in and forbids modules, external
-helper startup, core dumps, swap and selected debug interfaces. The resolved
-configuration, kernel hash and compiler/linker versions are retained by CI.
-This is a software-test kernel, not an approved hardware deployment profile.</p>
-<p>The QEMU TCG harness in <code>python/boot/qemu_smoke.py</code> uses no KVM/SNP hardware and
-requires no privileged host access. It uses direct kernel boot, a fixed command
-line, fw_cfg public data, a restricted user network and a loopback-only forwarded
-port. QEMU's default PC firmware is not the proposed measured OVMF chain.</p>
-<p>The unchanged production loader must reach PID 1 and stop with status 111 when
-the SNP device is absent. For positive boot cases, the harness separately
-compiles a <strong>test-only</strong> loader changing exactly the initial device lookup from
-<code>/dev/sev-guest</code> to <code>/dev/urandom</code>. No fallback is added to production source,
-and the broker's real SNP ioctl remains unchanged. Test and production loader
-and image hashes are distinct and recorded.</p>
-<p>The probe boots through the actual kernel, fw_cfg channel, mounts, privilege
-drop and exec. Its exit status comes from the observed restrictions. A variant
-with the read-only runtime restriction removed must fail that same probe.
-Missing/oversized configuration must terminate before handoff; changed effective
-policy must terminate the real broker. An unrelated panic or timeout never
-counts as successful rejection: each expected exit requires the kernel's
-PID 1 execution marker and exact exit status.</p>
-<p>Two fresh boots of the actual broker runtime with the test-only loader must
-return health 200, refuse pre-provisioning admission with 409, and return 503
-for a native report request. No report is fabricated, no owner/model key is
-provided and no release is authorized. Serial/QEMU logs and structured outcomes
-are retained; this establishes startup and fail-closed behavior in emulation,
-not protected restart, transport-key uniqueness or firmware measurement coverage.</p>
-<p>Run after the normal runtime build on a Linux host with QEMU and kernel build
-tools installed:</p>
-<div class="highlight"><pre><span></span><code>bash<span class="w"> </span>python/boot/build-kernel.sh<span class="w"> </span>/absolute/path/to/test-kernel
-python<span class="w"> </span>python/boot/qemu_smoke.py<span class="w"> </span>/absolute/path/to/test-kernel/bzImage<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>/absolute/path/to/new-build/runtime.tar<span class="w"> </span>/absolute/path/to/new-build/initrd.cpio<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>/absolute/path/to/new-vm-evidence
-</code></pre></div>
-<p>Before live validation, pin and review the kernel configuration, firmware/QEMU
-combination, command line, toolchain and launch prediction tool. Required kernel
-facilities must be built in: initramfs, devtmpfs, tmpfs, proc-independent runtime,
-fw_cfg sysfs, native SNP guest support and the selected network driver/configuration.
-No module loader runs. Disable debug interfaces, external root/swap, kernel core
-pipes and automatic helper paths; include and review networking parameters in the
-approved command line. Confirm firmware actually enforces kernel/initrd hashes.</p>
-<p>A compromised kernel, firmware or broker process is outside the filesystem
-immutability claim. There is no seccomp syscall policy, arbitrary code-execution
-resistance, secure memory erasure, rollback-resistant guest state or protected
-GPU claim. The loader's restricted device access does not isolate the report key
-from vulnerabilities in the approved broker. Production SNP/OVMF boot,
-native-SNP prediction/report comparison, live post-appraisal substitution and
-protected restart tests
-remain open in #144 and #145.</p>
-<p>Format references:
-<a href="https://docs.kernel.org/driver-api/early-userspace/buffer-format.html">Linux initramfs buffer format</a>
-and <a href="https://docs.kernel.org/filesystems/ramfs-rootfs-initramfs.html">Linux initramfs execution</a>.</p>
+<p>The script fetches the pinned edk2 revision and required submodule commits,
+runs the C controls, applies the source profile and builds the complete 4 MiB
+RELEASE firmware. It cleans the firmware build and repeats it at the same path,
+requiring byte equality. A fixed SOURCE_DATE_EPOCH reduces timestamp variation.
+Output includes the firmware, source diff and hashes, native observations,
+resolved library/PCD report and toolchain inventory. Compiler, linker and system
+packages are recorded, not yet hermetically pinned. Same-runner repetition is
+narrower than independently reproducible builds.</p>
+<p><code>firmware_controls.py</code> compiles the actual upstream verifier as a baseline and
+the patched verifier with simulated UEFI services. The baseline permits a
+missing kernel entry; the restricted constructor must stop. Positive cases
+check all three recognized blobs. Negative cases exercise missing/duplicate/
+malformed entries, fetch failure, unknown blobs, hash failure and tampering.</p>
+<p>The harness also compiles the actual patched named-blob, IGVM and boot-manager
+functions. Tests place a forbidden name at every position in a three-entry
+directory, exercise empty/unrelated entries and excessive counts, and cover
+kernel transfer, error and return. Removing each named-blob, IGVM or terminal
+boot control must make its original oracle fail.</p>
+<p>These are native C control-flow tests with stubs for platform services. They do
+not execute a UEFI guest, verify actual firmware event ordering, or test PCI
+enumeration, ACPI consumers, option ROM policy, S3/resume, firmware variables,
+DXE dispatch and kernel handoff as a whole. The earlier TCG tests boot PC firmware
+and do not validate this OVMF candidate. Full-image compilation is a build check.</p>
+<h3 id="complete-image-tcg-controls">Complete-image TCG controls<a class="headerlink" href="#complete-image-tcg-controls" title="Permanent link">&para;</a></h3>
+<p>After preserving and repeating <code>OVMF.fd</code>, the builder creates two separate
+<strong>test-only, insecure images</strong>: <code>TEST-ONLY.fd</code> and <code>WEAKENED-TEST-ONLY.fd</code>.
+<code>firmware_vm_fixture.py</code> first checks the candidate's patched-source hashes.
+It then supplies a synthetic hash table through fw_cfg and adds diagnostic I/O
+at existing stop points. The weakened image additionally bypasses the hash
+comparison. Their separate hashes and complete diffs are retained. Neither
+image may be used for custody or as an approved launch identity.</p>
+<p>QEMU's non-SEV Linux loader rewrites setup-header bytes; its SEV path preserves
+the input file (<a href="https://github.com/qemu/qemu/blob/v8.2.2/hw/i386/x86.c#L1100">QEMU 8.2.2 source</a>).
+The test fixture restores only that bounded setup prefix from the actual
+supplied test kernel before hashing. This emulates SEV transport under TCG;
+it is another test-only input path, absent from the production candidate.
+The first VM run detected this mismatch by rejecting the positive control.</p>
+<p><code>firmware_vm.py</code> boots those complete images under QEMU TCG. Its positive
+control must reach the unchanged production Linux PID1 and its expected
+non-SNP refusal (exit 111). Negative controls require specific firmware exit
+codes, absence of that Linux marker, and a named-payload marker where applicable.
+Timeouts and unrelated failures fail the test. A changed command line must
+reach Linux only in the deliberately weakened firmware control.</p>
+<p>This matrix exercises missing/malformed tables, all three changed boot inputs
+and a named shim. The hash-table encoder is shared with the offline predictor;
+it is not an independent implementation. These instrumented images do not
+prove enforcement by the exact production bytes, hardware-authenticated table
+placement, IGVM injection, alternate-device boot or every pre-hook DXE path.</p>
+<h2 id="acceptance-still-required">Acceptance still required<a class="headerlink" href="#acceptance-still-required" title="Permanent link">&para;</a></h2>
+<p>Review the resolved full image and all pre-hook execution paths, especially
+root-bridge connection, firmware event callbacks and option ROM handling.
+Exercise the complete firmware in a VM with adversarial boot inputs and verify
+that stopping occurs for the intended reason. A timeout alone is not evidence
+of a security rejection.</p>
+<p>Then freeze the complete build/launch inputs, independently predict the SNP
+measurement and compare it with a fresh authenticated report. Run the remaining
+application/configuration, post-appraisal mutation, key-export and protected
+restart controls from issue #144. Source hardening and green CI do not close
+those acceptance gates.</p>
 
 
 

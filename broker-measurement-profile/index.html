@@ -16,7 +16,7 @@
         <link rel="prev" href="../broker-boot-loader/">
       
       
-        <link rel="next" href="../protected-runtime-evidence/">
+        <link rel="next" href="../broker-restricted-firmware/">
       
       
         
@@ -980,6 +980,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../provisioning-lifecycle/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Provisioning lifecycle
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../broker-deployment-identity/" class="md-nav__link">
         
   
@@ -1139,10 +1167,77 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#managed-cloud-hardware-diagnostics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Managed-cloud hardware diagnostics
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
       
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../broker-restricted-firmware/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Restricted firmware candidate
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../partner-hardware-validation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Partner hardware validation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
     </li>
   
 
@@ -1508,6 +1603,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#managed-cloud-hardware-diagnostics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Managed-cloud hardware diagnostics
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1580,6 +1686,11 @@
 <p>The offline predictor derives a candidate digest from owner-selected bytes.
 It does not approve firmware, authenticate a report or establish application
 identity. No matching genuine SNP report has been validated for this profile.</p>
+<p>The <a href="../broker-restricted-firmware/">restricted firmware candidate</a> provides an
+exact-source patch and build procedure for the named-blob and fallback gates
+identified below. Source controls are not firmware or hardware acceptance.</p>
+<p>For partner execution, begin with the read-only
+<a href="../partner-hardware-validation/">host preflight and validation packet</a>.</p>
 <h2 id="source-review-and-coverage-contract">Source review and coverage contract<a class="headerlink" href="#source-review-and-coverage-contract" title="Permanent link">&para;</a></h2>
 <p>This bounded source review uses edk2 <code>edk2-stable202608</code>, commit
 <code>2970e5699ba6267f3384ffab20f96647578aebc8</code>, and QEMU <code>v10.1.0</code>, commit
@@ -1675,6 +1786,20 @@ from the same upstream predictor project, so it is a compatibility check, not
 an independent hardware oracle. The hash-table encoder and PAGE_INFO check
 are independent implementations; the complete VMSA/launch-digest calculation
 still relies on VirTEE. CI runs the pinned tool in a dedicated job.</p>
+<p>The <code>firmware-vm</code> job also runs <code>python/boot/prediction_controls.py</code> against the
+actual production-candidate <code>OVMF.fd</code>, built kernel and broker initramfs from
+that workflow. It repeats the baseline prediction in fresh isolated processes
+and requires seven substitutions to change the digest: firmware, kernel,
+initramfs, command line, vCPU count, CPU signature and guest features. Each
+receipt retains artifact hashes, parameters and the resulting digest; a changed
+receipt with an unchanged digest fails. The <code>built-launch-prediction</code> artifact
+contains the baseline, controls and exact command line.</p>
+<p>CI selects <code>EPYC-v4</code>, one vCPU and features <code>0x1</code> as a reproducible candidate
+profile. These parameters are not inferred from the cloud reports or approved
+for a deployment. Byte substitutions test predictor sensitivity and need not be
+bootable. Firmware enforcement and the independently authenticated hardware
+match remain separate acceptance requirements. This control shares the pinned
+predictor with the baseline and cannot detect a consistent predictor error.</p>
 <p>Existing Azure paired-release and PCR 23 validation packs describe a different
 vTPM-backed deployment. They do not retain the exact OVMF/kernel/initrd/vCPU
 inputs for this profile and cannot validate its prediction. Genuine signatures
@@ -1703,6 +1828,54 @@ measurement and call that report authentication.</p>
 <p>A predictor/report match alone does not test these enforcement paths. Keep
 the firmware, application-identity and installation claims provisional until
 the relevant acceptance evidence exists.</p>
+<h2 id="managed-cloud-hardware-diagnostics">Managed-cloud hardware diagnostics<a class="headerlink" href="#managed-cloud-hardware-diagnostics" title="Permanent link">&para;</a></h2>
+<p>The restricted OVMF profile requires control of the firmware and direct boot
+inputs. A managed confidential VM's genuine attestation does not establish that
+it launched this candidate. Google documents its <a href="https://docs.cloud.google.com/confidential-computing/confidential-vm/docs/verify-firmware">provider-managed firmware and
+signed launch endorsements</a>.
+Azure's <a href="https://learn.microsoft.com/en-us/azure/confidential-computing/virtual-tpms-in-azure-confidential-vm">vTPM architecture</a>
+uses a separate freshness path from native guest-controlled SNP REPORT_DATA.</p>
+<p><code>python/tools/azure_attestation_controls.py</code> tests the Azure adapter on an
+isolated disposable confidential VM. Supply an independently retrieved AMD root
+and two distinct owner-generated nonces. The tool changes application-owned
+PCR23; do not run it against a shared application relying on that PCR.</p>
+<div class="highlight"><pre><span></span><code>python<span class="w"> </span>python/tools/azure_attestation_controls.py<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--root<span class="w"> </span>amd-root.pem<span class="w"> </span>--nonce<span class="w"> </span><span class="s2">"</span><span class="nv">$OWNER_NONCE</span><span class="s2">"</span><span class="w"> </span>--second-nonce<span class="w"> </span><span class="s2">"</span><span class="nv">$SECOND_OWNER_NONCE</span><span class="s2">"</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--output<span class="w"> </span>/tmp/wcm-azure-diagnostic
+</code></pre></div>
+<p>The September 18, 2026 run on a DC2as_v5 guest passed one positive and six
+rejection controls: wrong nonce, transport key and workload digest, modified
+TPM signature and SNP body, and an untrusted root. It also reproduced a
+counterexample: after changing a nonsecret application probe file, asking the
+provider to quote the old caller-supplied digest still produces an accepted
+fresh quote. PCR23 authenticates that supplied value; this API does not establish
+file immutability or bind the running broker to a precomputed application image.</p>
+<p>The tested guest exposed <code>/dev/tpmrm0</code>, but neither <code>/dev/sev-guest</code>, <code>/dev/sev</code>
+nor <code>/dev/kvm</code>. A native provisioning-report request failed without software
+fallback. This host therefore did not validate native-SNP provisioning or the
+custom OVMF launch. Preserve those unsupported results rather than relabeling
+the vTPM quote as native evidence. Raw bundles contain device identifiers and
+remain private; the committed summary contains hashes and bounded outcomes.</p>
+<p>The same day's GCP N2D SEV-SNP diagnostic used a pinned Ubuntu 24.04 image,
+Secure Boot, no service account and SDK commit <code>af5468e</code>. The owner machine
+verified two fresh reports against owner-generated nonces, a supplied transport
+binding and an independently fetched, pinned AMD Milan root. Five substitutions
+were rejected: wrong nonce, wrong transport binding, modified signed measurement,
+modified signature and an untrusted root. A separate native
+<code>SevSnpProvider.provisioning_report()</code> request returned a valid signed report
+with the exact caller-selected 64-byte binding; a different binding did not match.
+This exercised the collector, not protected broker provisioning or key custody.</p>
+<p>After the diagnostic changed a nonsecret application file, the second fresh
+report retained the first report's launch measurement. That measurement was
+observed, not independently predicted or approved. It did not identify the
+installed application. The guest exposed <code>/dev/sev-guest</code> and <code>/dev/tpmrm0</code>,
+but neither <code>/dev/sev</code> nor <code>/dev/kvm</code>; the restricted OVMF was not launched.
+The report carried policy <code>0x30000</code>, VMPL 0 and PLATFORM_INFO <code>0x25</code>. This run
+verified report bindings, not satisfaction of a production platform policy.
+Certificate revocation was not checked; the VCEK produced a cryptography
+deprecation warning for its nonpositive serial number. The temporary VM and
+boot disk were deleted and absence confirmed. The sanitized receipt is
+<a href="https://github.com/agentrust-io/weight-custody-manifest/blob/621e9d68d4702480c40da87723c4d21fedd85dd6/python/tests/fixtures/live-validation/weight-custody-manifest/gcp-native-snp-2026-09-18/summary.json"><code>gcp-native-snp-2026-09-18/summary.json</code></a>.</p>
 
 
 

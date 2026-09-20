@@ -6,17 +6,17 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="This software slice of #144 adds deterministic initramfs assembly and a fixed Linux x86-64 loader. It is">
+        <meta name="description" content="This packet starts the controlled-host work tracked in #149.">
       
       
       
-        <link rel="canonical" href="https://wcm.agentrust-io.com/broker-boot-loader/">
+        <link rel="canonical" href="https://wcm.agentrust-io.com/partner-hardware-validation/">
       
       
-        <link rel="prev" href="../broker-deployment-identity/">
+        <link rel="prev" href="../broker-restricted-firmware/">
       
       
-        <link rel="next" href="../broker-measurement-profile/">
+        <link rel="next" href="../protected-runtime-evidence/">
       
       
         
@@ -26,7 +26,7 @@
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
     
     
-  <title>Provisional boot loader - Weight Custody Manifest</title>
+  <title>Partner hardware validation - Weight Custody Manifest</title>
 
     
       <link rel="stylesheet" href="../assets/stylesheets/main.ec1eaa64.min.css">
@@ -64,9 +64,9 @@
 
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="AgenTrust">
-  <meta property="og:title" content="Provisional boot loader - Weight Custody Manifest">
-  <meta property="og:description" content="This software slice of #144 adds deterministic initramfs assembly and a fixed Linux x86-64 loader. It is">
-  <meta property="og:url" content="https://wcm.agentrust-io.com/broker-boot-loader/">
+  <meta property="og:title" content="Partner hardware validation - Weight Custody Manifest">
+  <meta property="og:description" content="This packet starts the controlled-host work tracked in #149.">
+  <meta property="og:url" content="https://wcm.agentrust-io.com/partner-hardware-validation/">
   <meta property="og:locale" content="en_US">
   <meta property="og:image" content="https://wcm.agentrust-io.com/assets/og.png">
   <meta property="og:image:width" content="1200">
@@ -74,8 +74,8 @@
   <meta property="og:image:alt" content="Weight Custody Manifest: release model weights only to an attested runtime">
 
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Provisional boot loader - Weight Custody Manifest">
-  <meta name="twitter:description" content="This software slice of #144 adds deterministic initramfs assembly and a fixed Linux x86-64 loader. It is">
+  <meta name="twitter:title" content="Partner hardware validation - Weight Custody Manifest">
+  <meta name="twitter:description" content="This packet starts the controlled-host work tracked in #149.">
   <meta name="twitter:image" content="https://wcm.agentrust-io.com/assets/og.png">
 
   <script type="application/ld+json">
@@ -107,11 +107,11 @@
       },
       {
         "@type": "TechArticle",
-        "@id": "https://wcm.agentrust-io.com/broker-boot-loader/#page",
-        "url": "https://wcm.agentrust-io.com/broker-boot-loader/",
-        "name": "Provisional boot loader - Weight Custody Manifest",
-        "headline": "Provisional boot loader - Weight Custody Manifest",
-        "description": "This software slice of #144 adds deterministic initramfs assembly and a fixed Linux x86-64 loader. It is",
+        "@id": "https://wcm.agentrust-io.com/partner-hardware-validation/#page",
+        "url": "https://wcm.agentrust-io.com/partner-hardware-validation/",
+        "name": "Partner hardware validation - Weight Custody Manifest",
+        "headline": "Partner hardware validation - Weight Custody Manifest",
+        "description": "This packet starts the controlled-host work tracked in #149.",
         "inLanguage": "en",
         "isPartOf": { "@id": "https://wcm.agentrust-io.com/#website" },
         "publisher": { "@id": "https://agentrust-io.com/#organization" }
@@ -120,7 +120,7 @@
         "@type": "BreadcrumbList",
         "itemListElement": [
           { "@type": "ListItem", "position": 1, "name": "Weight Custody Manifest", "item": "https://wcm.agentrust-io.com/" },
-          { "@type": "ListItem", "position": 2, "name": "Provisional boot loader - Weight Custody Manifest", "item": "https://wcm.agentrust-io.com/broker-boot-loader/" }
+          { "@type": "ListItem", "position": 2, "name": "Partner hardware validation - Weight Custody Manifest", "item": "https://wcm.agentrust-io.com/partner-hardware-validation/" }
         ]
       }
     ]
@@ -146,7 +146,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#provisional-broker-boot-builder-and-loader" class="md-skip">
+        <a href="#partner-hardware-validation-first-execution-packet" class="md-skip">
           Skip to content
         </a>
       
@@ -182,7 +182,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Provisional boot loader
+              Partner hardware validation
             
           </span>
         </div>
@@ -1033,37 +1033,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Provisional boot loader
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../broker-boot-loader/" class="md-nav__link">
         
   
   
@@ -1079,87 +1052,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#build-and-independently-check-containment" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Build and independently check containment
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#fixed-guest-handoff" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Fixed guest handoff
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#configuration-is-data" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Configuration is data
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#validation-and-limits" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Validation and limits
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Validation and limits">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#full-software-vm-boot" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Full software VM boot
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -1225,10 +1117,37 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../partner-hardware-validation/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Partner hardware validation
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -1244,6 +1163,70 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#what-is-already-tested" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What is already tested
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#initial-request-to-the-lab-operator" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Initial request to the lab operator
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#next-experiment-after-the-environment-is-confirmed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Next experiment after the environment is confirmed
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#interpretation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Interpretation
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -1566,10 +1549,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#build-and-independently-check-containment" class="md-nav__link">
+  <a href="#what-is-already-tested" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Build and independently check containment
+        What is already tested
       
     </span>
   </a>
@@ -1577,10 +1560,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#fixed-guest-handoff" class="md-nav__link">
+  <a href="#initial-request-to-the-lab-operator" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Fixed guest handoff
+        Initial request to the lab operator
       
     </span>
   </a>
@@ -1588,10 +1571,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#configuration-is-data" class="md-nav__link">
+  <a href="#next-experiment-after-the-environment-is-confirmed" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Configuration is data
+        Next experiment after the environment is confirmed
       
     </span>
   </a>
@@ -1599,30 +1582,13 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#validation-and-limits" class="md-nav__link">
+  <a href="#interpretation" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Validation and limits
+        Interpretation
       
     </span>
   </a>
-  
-    <nav class="md-nav" aria-label="Validation and limits">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#full-software-vm-boot" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Full software VM boot
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
@@ -1694,184 +1660,111 @@
   
 
 
-<h1 id="provisional-broker-boot-builder-and-loader">Provisional broker boot builder and loader<a class="headerlink" href="#provisional-broker-boot-builder-and-loader" title="Permanent link">&para;</a></h1>
-<p>This software slice of <a href="https://github.com/agentrust-io/weight-custody-manifest/issues/144">#144</a>
-adds deterministic initramfs assembly and a fixed Linux x86-64 loader. It is
-<strong>provisional</strong>: software boot tests do not establish SNP launch coverage or
-resistance to a malicious host. The production image refuses a VM without native
-SNP; positive emulated boots use an explicitly modified test-only image. Owner
-receipts continue to report <code>application_identity_established: false</code>.</p>
-<h2 id="build-and-independently-check-containment">Build and independently check containment<a class="headerlink" href="#build-and-independently-check-containment" title="Permanent link">&para;</a></h2>
-<p>On a trusted Linux build host with Docker, a C compiler and the WCM SDK installed,
-run from the repository root:</p>
-<div class="highlight"><pre><span></span><code>bash<span class="w"> </span>python/boot/build-runtime.sh<span class="w"> </span>/absolute/path/to/new-build
-python<span class="w"> </span>-m<span class="w"> </span>wcm.boot_bundle<span class="w"> </span>/absolute/path/to/new-build/runtime.tar<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>/absolute/path/to/new-build/init<span class="w"> </span>--verify<span class="w"> </span>/absolute/path/to/new-build/initrd.cpio
+<h1 id="partner-hardware-validation-first-execution-packet">Partner hardware validation: first execution packet<a class="headerlink" href="#partner-hardware-validation-first-execution-packet" title="Permanent link">&para;</a></h1>
+<p>This packet starts the controlled-host work tracked in #149. It checks whether
+an operator can support the provisional Linux/QEMU native-SNP launch profile.
+It does not launch a VM or establish hardware-backed application identity.</p>
+<h2 id="what-is-already-tested">What is already tested<a class="headerlink" href="#what-is-already-tested" title="Permanent link">&para;</a></h2>
+<p>The restricted firmware candidate has software boot controls and offline
+measurement prediction with seven launch-input substitutions. Separate Azure and
+GCP captures exercised real attestation verification, but neither launched this
+firmware or established the identity of the running broker application.</p>
+<p>The composed software development harness in PR #150 joins provisioning,
+diagnostic model computation, agent mediation, peer authentication and disclosure.
+Its 36-case hosted result uses synthetic attestation and trusts the host. That
+result is a separate source snapshot, not a hardware acceptance result for this
+branch. The affine model executes before its output reaches the confined agent.</p>
+<h2 id="initial-request-to-the-lab-operator">Initial request to the lab operator<a class="headerlink" href="#initial-request-to-the-lab-operator" title="Permanent link">&para;</a></h2>
+<p>Confirm permission to select guest firmware, kernel, initramfs/application image
+and QEMU launch parameters on an AMD SEV-SNP host. CPU-only capacity is enough.
+Host administrators can run this packet themselves; external administrative access
+is not required. Agree on the access window, any spending limit and cleanup owner
+before launch. A managed service with another boot chain needs its own validated
+adapter; failure of this particular preflight is not a verdict on that service.</p>
+<p>From an authorized checkout of the reviewed WCM source, with Python 3.11 or later:</p>
+<div class="highlight"><pre><span></span><code>git<span class="w"> </span>rev-parse<span class="w"> </span>HEAD
+python3<span class="w"> </span>python/boot/host_preflight.py<span class="w"> </span>&gt;<span class="w"> </span>host-preflight.json
 </code></pre></div>
-<p>The shell recipe reuses the digest-pinned Python image and hash-locked WCM
-dependency installation. It exports the interpreter, Python/dependency libraries,
-native libraries, loader cache and the canonical CA certificate bundle. Individual
-CA aliases are omitted because their names need not fit the restricted archive
-path format. Dereferencing occurs inside
-that container, never against host paths. No host directory is mounted into it.
-The native loader is compiled statically. The local compiler/libc are additional
-build inputs: record their versions and independently compare their outputs.
-This is not a hermetic or cross-toolchain reproducibility claim.</p>
-<p>The Python builder emits uncompressed Linux <code>newc</code> CPIO with fixed owners,
-timestamps, ordering and permissions. It reads TAR input without filesystem
-extraction. Only ordinary files/directories with canonical relative ASCII paths
-are accepted; links, device nodes, duplicate paths, conflicting parents, writable
-group/other permissions, privilege bits and reserved mount paths are rejected.
-Input size and entry count are bounded. It checks that the loader is an x86-64
-ELF executable without dynamic/interpreter segments, not that arbitrary supplied
-loader bytes implement the reviewed source. Review and pin the compiled loader.</p>
-<p>Use <code>runtime.tar</code> as the deployment approval's <code>application</code> artifact and the
-exact <code>initrd.cpio</code> as <code>initrd</code>. The comparison command binds every runtime file
-and the loader to the generated initramfs bytes, including rejection of appended
-archives. Run it before the separate approval generator; legacy approval records
-do not automatically invoke this check. No launch measurement is calculated.</p>
-<p>The recipe includes transitive Python packages, some of which contain tooling.
-Only the fixed broker entry point is started. Package minimization and dependency
-review remain necessary; packaging cannot prove the absence of exploitable code.</p>
-<h2 id="fixed-guest-handoff">Fixed guest handoff<a class="headerlink" href="#fixed-guest-handoff" title="Permanent link">&para;</a></h2>
-<p>The kernel executes the static <code>/init</code>. It refuses execution unless it is root
-and PID 1, mounts private sysfs/devtmpfs, and requires the actual character device
-<code>/dev/sev-guest</code>. There is no attestation fallback. It reads at most 1 MiB from:</p>
-<div class="highlight"><pre><span></span><code>/sys/firmware/qemu_fw_cfg/by_name/opt/wcm/config/raw
-</code></pre></div>
-<p>The loader snapshots this public configuration into a private tmpfs and remounts
-it read-only, no-exec and nodev. It creates a separate read-only device mount
-containing only null, urandom and the native SNP device. The report device is
-readable only by UID 10001. The runtime gets a read-only, nosuid, nodev bind mount.</p>
-<p>Before executing the broker, the loader chroots into that runtime, removes
-supplementary groups, drops all capability bounding entries and switches all
-UID/GID values to 10001. It sets no-new-privileges, disables core files with a hard
-zero core limit, closes every inherited descriptor and connects standard I/O to
-null. It supplies only a fixed locale environment and executes:</p>
-<div class="highlight"><pre><span></span><code>/usr/local/bin/python3 -I -B -m wcm.guest_broker
-</code></pre></div>
-<p>No shell, external executable disk, user-selected entry point, package download,
-reload worker or administrative service is started. Procfs/sysfs and the original
-initramfs paths are inaccessible after handoff. Failure exits PID 1; there is no
-recovery shell. Network and ingress restrictions still require deployment
-configuration. The service binds guest port 8080 without proxy-header trust.</p>
-<h2 id="configuration-is-data">Configuration is data<a class="headerlink" href="#configuration-is-data" title="Permanent link">&para;</a></h2>
-<p>Supply QEMU's <code>opt/wcm/config</code> fw_cfg entry as a public JSON document. It has
-exactly <code>configuration</code> and <code>policy</code> objects. The policy has the same fields as
-the <a href="../owner-provisioning-client/">owner provisioning policy</a>. Configuration
-uses inline certificate/key material, with these fields:</p>
+<p>The second command returns 0 only when all named prerequisites were observed,
+or 2 when something is absent or unavailable. Keep the JSON even with exit 2.
+Use <code>--qemu /operator/approved/qemu-system-x86_64</code> if the trusted executable is
+outside PATH. The script invokes only QEMU property help, with a ten-second
+timeout. It reads device metadata, access permissions and the KVM SNP module
+parameter. It does not open devices, issue ioctls, contact a network, install
+packages, change configuration or start a guest.</p>
 <table>
 <thead>
 <tr>
-<th>Field</th>
-<th>Value</th>
+<th>Observation</th>
+<th>Why it matters</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>cpu_root_pem</td>
-<td>Independently approved CPU root certificate</td>
+<td>Linux x86-64</td>
+<td>The current adapter targets this host platform.</td>
 </tr>
 <tr>
-<td>cpu_vcek_pem</td>
-<td>Broker verifier's CPU leaf certificate</td>
+<td><code>/dev/sev</code> and <code>/dev/kvm</code> character devices, readable/writable by the invoking account</td>
+<td>Host launch interfaces are required. <code>/dev/sev-guest</code> alone is insufficient. Permission checks do not exercise the interfaces.</td>
 </tr>
 <tr>
-<td>cpu_intermediates_pem</td>
-<td>Array of intermediate PEM strings</td>
+<td><code>/sys/module/kvm_amd/parameters/sev_snp</code> enabled</td>
+<td>The local kernel reports SNP host support enabled. Missing or unreadable is unavailable.</td>
 </tr>
 <tr>
-<td>trusted_manifest_identities</td>
-<td>Array of approved manifest identities</td>
-</tr>
-<tr>
-<td>owner_public_key_hex</td>
-<td>32-byte owner public key, lowercase hexadecimal</td>
-</tr>
-<tr>
-<td>gpu_root_pem</td>
-<td>Optional approved GPU root PEM</td>
+<td>QEMU exposes <code>sev-snp-guest</code> and its <code>kernel-hashes</code> property</td>
+<td>The selected QEMU binary advertises the required launch interface. Help output does not prove a working launch.</td>
 </tr>
 </tbody>
 </table>
-<p>Duplicate or additional fields, paths, interpreter options and configuration
-digest mismatches fail before the receiver starts. The receiver then creates its
-fresh transport key and binds its actual effective inputs and policy to report
-data. The owner must independently authenticate that report and policy before
-sealing a model key. An attacker can replace all public configuration and cause
-denial or start an unapproved receiver; this does not authorize release by the
-legitimate owner.</p>
-<p>The final launch measurement stays in this later data document, avoiding a
-circular dependency between the measurement and the initramfs it measures.
-The loader never treats fw_cfg data as an executable filesystem.</p>
-<h2 id="validation-and-limits">Validation and limits<a class="headerlink" href="#validation-and-limits" title="Permanent link">&para;</a></h2>
-<p>The dedicated Linux job compiles the actual loader with warnings as errors,
-checks its archive with GNU cpio, and invokes its unchanged mount/handoff
-functions in disposable mount/PID/network namespaces. A test executable observes
-credentials, capabilities, mounts, descriptor closure, fixed arguments and
-environment, configuration readability, denied writes and denied privilege
-recovery. Deliberately removing restrictions must cause that same probe to fail.
-The probe uses a synthetic character device and is never shipped in a runtime.</p>
-<p>CI also builds the actual broker runtime twice, compares runtime/loader/initramfs
-bytes on the same runner, extracts it and imports the installed broker with
-isolated Python inside a chroot. This validates dependency availability.</p>
-<h3 id="full-software-vm-boot">Full software VM boot<a class="headerlink" href="#full-software-vm-boot" title="Permanent link">&para;</a></h3>
-<p><code>python/boot/build-kernel.sh</code> builds a test kernel from Linux 6.12.110, with its
-source archive pinned to SHA-256
-<code>8cee19e1839bb6ff4d5254d761933ae6ab670492d5ed030e09a80538320d5c4c</code>
-from the <a href="https://cdn.kernel.org/pub/linux/kernel/v6.x/sha256sums.asc">kernel.org checksum manifest</a>.
-The script checks required drivers are built in and forbids modules, external
-helper startup, core dumps, swap and selected debug interfaces. The resolved
-configuration, kernel hash and compiler/linker versions are retained by CI.
-This is a software-test kernel, not an approved hardware deployment profile.</p>
-<p>The QEMU TCG harness in <code>python/boot/qemu_smoke.py</code> uses no KVM/SNP hardware and
-requires no privileged host access. It uses direct kernel boot, a fixed command
-line, fw_cfg public data, a restricted user network and a loopback-only forwarded
-port. QEMU's default PC firmware is not the proposed measured OVMF chain.</p>
-<p>The unchanged production loader must reach PID 1 and stop with status 111 when
-the SNP device is absent. For positive boot cases, the harness separately
-compiles a <strong>test-only</strong> loader changing exactly the initial device lookup from
-<code>/dev/sev-guest</code> to <code>/dev/urandom</code>. No fallback is added to production source,
-and the broker's real SNP ioctl remains unchanged. Test and production loader
-and image hashes are distinct and recorded.</p>
-<p>The probe boots through the actual kernel, fw_cfg channel, mounts, privilege
-drop and exec. Its exit status comes from the observed restrictions. A variant
-with the read-only runtime restriction removed must fail that same probe.
-Missing/oversized configuration must terminate before handoff; changed effective
-policy must terminate the real broker. An unrelated panic or timeout never
-counts as successful rejection: each expected exit requires the kernel's
-PID 1 execution marker and exact exit status.</p>
-<p>Two fresh boots of the actual broker runtime with the test-only loader must
-return health 200, refuse pre-provisioning admission with 409, and return 503
-for a native report request. No report is fabricated, no owner/model key is
-provided and no release is authorized. Serial/QEMU logs and structured outcomes
-are retained; this establishes startup and fail-closed behavior in emulation,
-not protected restart, transport-key uniqueness or firmware measurement coverage.</p>
-<p>Run after the normal runtime build on a Linux host with QEMU and kernel build
-tools installed:</p>
-<div class="highlight"><pre><span></span><code>bash<span class="w"> </span>python/boot/build-kernel.sh<span class="w"> </span>/absolute/path/to/test-kernel
-python<span class="w"> </span>python/boot/qemu_smoke.py<span class="w"> </span>/absolute/path/to/test-kernel/bzImage<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>/absolute/path/to/new-build/runtime.tar<span class="w"> </span>/absolute/path/to/new-build/initrd.cpio<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>/absolute/path/to/new-vm-evidence
-</code></pre></div>
-<p>Before live validation, pin and review the kernel configuration, firmware/QEMU
-combination, command line, toolchain and launch prediction tool. Required kernel
-facilities must be built in: initramfs, devtmpfs, tmpfs, proc-independent runtime,
-fw_cfg sysfs, native SNP guest support and the selected network driver/configuration.
-No module loader runs. Disable debug interfaces, external root/swap, kernel core
-pipes and automatic helper paths; include and review networking parameters in the
-approved command line. Confirm firmware actually enforces kernel/initrd hashes.</p>
-<p>A compromised kernel, firmware or broker process is outside the filesystem
-immutability claim. There is no seccomp syscall policy, arbitrary code-execution
-resistance, secure memory erasure, rollback-resistant guest state or protected
-GPU claim. The loader's restricted device access does not isolate the report key
-from vulnerabilities in the approved broker. Production SNP/OVMF boot,
-native-SNP prediction/report comparison, live post-appraisal substitution and
-protected restart tests
-remain open in #144 and #145.</p>
-<p>Format references:
-<a href="https://docs.kernel.org/driver-api/early-userspace/buffer-format.html">Linux initramfs buffer format</a>
-and <a href="https://docs.kernel.org/filesystems/ramfs-rootfs-initramfs.html">Linux initramfs execution</a>.</p>
+<p>Return the JSON, the WCM commit identifier, whether custom launch artifacts are
+permitted, and who can perform the launch. The JSON omits hostnames, IP addresses,
+account names, raw command output and hardware identifiers. Review it before
+sharing. Raw attestation reports and certificate bundles belong in the agreed
+private evidence channel, not a public issue or blog.</p>
+<h2 id="next-experiment-after-the-environment-is-confirmed">Next experiment after the environment is confirmed<a class="headerlink" href="#next-experiment-after-the-environment-is-confirmed" title="Permanent link">&para;</a></h2>
+<ol>
+<li>Freeze the firmware, kernel, initramfs, command-line bytes, vCPU model/count,
+   guest features, QEMU build and platform policy. Use the production candidate,
+   never the instrumented TCG firmware. The existing
+   <a href="../broker-measurement-profile/">build and prediction instructions</a> record the
+   source pins and input format; <a href="../broker-restricted-firmware/">firmware controls</a>
+   describe the remaining firmware-review limits.</li>
+<li>On the owner build machine, predict and approve the expected measurement
+   before collecting the guest report. Independently supply the accepted AMD
+   roots and platform policy. A value copied from the first report is not an
+   independent prediction. The CI example parameters are not deployment approval.</li>
+<li>On the agreed host, launch exactly those artifacts, obtain a fresh report
+   bound to the provisioning receiver key and owner challenge, and verify the
+   signature, trust chain, security state, measurement and binding on the owner
+   side. Resolve predictor/launch disagreement before releasing model keys.</li>
+<li>Repeat with substituted launch inputs against the unchanged original
+   approval. Observe key release, receipt and installation separately. Distinguish
+   a firmware refusal from owner-side appraisal refusal; neither may silently
+   fall back to a different image or software evidence.</li>
+<li>Only after identity validation, test protected model-key handling,
+   decryption/load/computation and lifecycle controls. Termination does not
+   establish secure erasure. Independently operated peers and GPU transport
+   remain separate milestones.</li>
+<li>Retain source/artifact identities, exact commands, policy, evidence class and
+   boundary observations. Stop/remove experimental guests and agree which private
+   evidence must be retained. Record cleanup observations and unavailable checks.</li>
+</ol>
+<p>The actual launch command must be reviewed against the confirmed host and agreed
+security policy; this packet intentionally does not invent host-specific values.
+A partner-run result has a separate operator but still requires appraisal under
+independently controlled owner policy. It does not itself establish adversarial
+independence or complete confidential execution.</p>
+<h2 id="interpretation">Interpretation<a class="headerlink" href="#interpretation" title="Permanent link">&para;</a></h2>
+<p><code>prerequisites-observed</code> means only that the local observations above succeeded.
+The host can fabricate them. The report always says <code>hardware_acceptance:
+not-tested</code>; it is not attestation, deployment approval or a custody certificate.
+Missing permissions, an unfamiliar help format, missing module state and tool
+failure all require review rather than a success inference.</p>
+<p>References: <a href="https://www.qemu.org/docs/master/system/i386/amd-memory-encryption.html">QEMU AMD memory encryption</a>,
+<a href="https://docs.kernel.org/virt/kvm/x86/amd-memory-encryption.html">Linux host SEV interfaces</a>,
+and <a href="https://docs.kernel.org/virt/coco/sev-guest.html">Linux guest report interface</a>.</p>
 
 
 
