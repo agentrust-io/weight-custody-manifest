@@ -33,6 +33,16 @@ complete-image TCG controls run in Linux CI. Test firmware injects synthetic
 launch state and is explicitly unsuitable for custody. This is not
 production firmware approval or SNP hardware validation.
 
+Add a source-pinned composed software harness and CI for provisioning, diagnostic
+model computation, mediated tools, authenticated peer responses and exact-output
+disclosure. Add native Docker agent egress probes and causal controls for every
+named portable scenario. Attestation is synthetic and the host remains trusted.
+
+Document provisioning lifecycle and recovery, with software controls for lost
+HTTP acknowledgements, pending installation failures, owner restart, storage
+rollback assumptions and retirement followed by local worker shutdown. Reuse
+the existing custody monitor and stop adapter; no hardware claim is added.
+
 Add a source-pinned offline SNP prediction tool with complete kernel/initrd/
 command-line hash-table comparison, explicit vCPU/features and substitution
 tests. Record the OVMF/QEMU source review and hardware acceptance procedure.
