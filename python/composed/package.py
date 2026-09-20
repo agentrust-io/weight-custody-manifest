@@ -36,6 +36,16 @@ def main():
     for name, pin in PINS.items():
         if evidence["sources"].get(name) != pin:
             raise SystemExit(f"{name}: evidence differs from reviewed pin")
+    if evidence.get("wcm_tracked_diff_sha256") != hashlib.sha256(b"").hexdigest():
+        raise SystemExit("reference evidence includes tracked WCM edits")
+    harness = sorted((root / "python/composed").glob("*.py")) + [
+        root / "python/composed/Dockerfile"
+    ]
+    expected_files = {p.name: hashlib.sha256(p.read_bytes()).hexdigest() for p in harness}
+    if evidence.get("harness_files") != expected_files:
+        raise SystemExit("reference evidence must cover the current harness bytes")
+    if evidence["sources"].get("confinement") != "bad751becca0ec5c42d70062e5c9fe5ee1380e85":
+        raise SystemExit("reference evidence must include the reviewed confined profile")
     observed = sorted(evidence["dependencies"], key=lambda row: row["name"].lower())
     installed = sorted(
         [

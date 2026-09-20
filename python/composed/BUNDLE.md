@@ -4,7 +4,8 @@ This bundle fetches immutable WCM, cMCP and cA2A source revisions, creates a fre
 virtual environment and runs the composed acceptance harness. No existing
 checkout or project environment is needed. Python 3.12, Git, network access to
 GitHub and PyPI, and enough disk space for those sources and dependencies are
-required. The reference environment is Ubuntu 24.04.
+required. The reference environment is Ubuntu 24.04. The version list is captured on
+Linux; installation on other operating systems has not been evaluated.
 
 After extracting the ZIP, run:
 
