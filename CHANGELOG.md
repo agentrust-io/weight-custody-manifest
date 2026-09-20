@@ -109,6 +109,19 @@ verdict and never inside it, as a stateless per-appraisal observation
 stored high-water mark needs somewhere to live and gives an attacker something to
 move.
 
+**[fixtures]** A third Intel TDX capture (issue #117), contributed externally
+and labelled as such. `tdx_quote_gcp_seam15.json` is a genuine DCAP v4 quote from
+a GCP c3-standard-4 confidential VM, taken through configfs TSM directly rather
+than through a provider, with its kernel, instance type, zone, date and method
+recorded in the fixture and the run log beside it.
+
+It reports `TEE_TCB_SVN` `0f 01 0a`: SEAM SVN 15 against 13 on both existing
+captures, with byte 1 unchanged at 1 and byte 2 at 10 against their 8 and 4.
+The existing captures share byte 0 while differing in byte 2; the third capture
+changes both values, so these observations do not establish independent movement
+of byte 0. No appraisal threshold is taken from this capture, and a test asserts
+nothing else in the suite references it.
+
 **[conformance]** A vector format for captures taken from real vendor silicon
 (`kind: vendor`, issue #116). The existing quote vectors use a synthetic PKI, so
 an implementation can satisfy `accept-cryptographically-verified-quote` without

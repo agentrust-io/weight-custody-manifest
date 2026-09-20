@@ -1,0 +1,32 @@
+TD quote capture
+============================================================
+date        : 2026-09-12T19:37:42+00:00
+kernel      : 7.0.0-1011-gcp
+instance    : c3-standard-4 in us-central1-a
+method      : configfs TSM directly (/sys/kernel/config/tsm/report)
+tsm provider: tdx_guest
+quote bytes : 8000
+
+dmesg:
+[    0.000000] tdx: Guest detected
+[    0.000000] tdx: Attributes: SEPT_VE_DISABLE
+[    0.000000] tdx: TD_CTLS: PENDING_VE_DISABLE ENUM_TOPOLOGY VIRT_CPUID2 REDUCE_VE
+[    1.542044] process: using TDX aware idle routine
+[    1.542044] Memory Encryption Features active: Intel TDX
+[    1.542044] smpboot: CPU0: Intel TDX (family: 0x6, model: 0x8f, stepping: 0x8)
+
+lscpu:
+Model name:                              Intel TDX
+BIOS Model name:                           CPU @ 2.0GHz
+
+parsed from the TD report body at the offsets this issue is about:
+  TEE_TCB_SVN   [0, 16)   : 0f 01 0a 00 00 00 00 00 00 00 00 00 00 00 00 00
+    byte 0 (SEAM SVN)     : 15
+    byte 2                : 10
+  TDATTRIBUTES  [120, 128): 00 00 00 10 00 00 00 00
+    bit 0 (debug)         : False
+
+cross-check against the layout the SDK already assumes:
+  MRTD          [136, 184): c1ee9c16e3afc506cfe042c5b846a368528f3b37618eafb27469bc114cf914e9222c91618470e7f2b28ac360968270a5
+  REPORTDATA    [520, 584) binds sha256(nonce): True
+  nonce                   : 5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e
