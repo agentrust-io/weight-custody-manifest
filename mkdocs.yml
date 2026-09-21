@@ -127,3 +127,9 @@ nav:
       - Sponsors: sponsors.md
       - Contributing: contributing.md
       - Changelog: changelog.md
+
+extra:
+  social:
+    - icon: fontawesome/brands/linkedin
+      link: https://www.linkedin.com/company/agentrust-io/
+      name: AgenTrust on LinkedIn
