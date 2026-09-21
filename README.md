@@ -1,5 +1,7 @@
 # Weight Custody Manifest (WCM)
 
+Community updates and contributor highlights: [AgenTrust on LinkedIn](https://www.linkedin.com/company/agentrust-io/).
+
 An open specification for protecting model weights when a builder deploys them into a customer's own or sovereign infrastructure.
 
 > **Status: pre-1.0 public review release.** The protocol and SDK are ready for independent review and interoperability work; production deployments still require the limits in `LIMITATIONS.md` and `THREAT-MODEL.md` to be accepted.
