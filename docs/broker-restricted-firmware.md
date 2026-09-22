@@ -15,6 +15,11 @@ any file and rejects a second application or changed source.
   command line, initrd, kernel. Header/entry lengths, GUIDs and bounds must match.
   Missing, duplicate, reordered and malformed entries stop execution. Unknown
   blobs, failed hashing, failed fetches and mismatched hashes also stop.
+- Before allocating or reading a traditional blob, the loader checks each
+  host-supplied chunk size against the remaining `UINT32` capacity. A wrapping
+  setup/kernel sum returns `EFI_BAD_BUFFER_SIZE` before any allocation or payload
+  read. Representable sizes still follow the normal allocation-failure path;
+  this check does not introduce a boot-artifact size policy.
 - The kernel-loader filesystem rejects every `etc/boot/` named payload, including
   named kernel overrides and shim. Directory scanning is bounded to 4096 entries
   and does not allocate an attacker-sized directory. Unrelated fw_cfg data,
@@ -56,6 +61,15 @@ the patched verifier with simulated UEFI services. The baseline permits a
 missing kernel entry; the restricted constructor must stop. Positive cases
 check all three recognized blobs. Negative cases exercise missing/duplicate/
 malformed entries, fetch failure, unknown blobs, hash failure and tampering.
+
+The harness compiles the actual upstream and patched `QemuKernelFetchBlob`.
+Baseline controls observe a sum wrapping to zero and a read exceeding the
+allocated buffer; the read stub records the request without performing an
+out-of-bounds copy. Five overflow cases must be rejected before allocation,
+payload reads or blob registration, including prefilled chunk sizes. Controls
+also check exact normal copying, zero sizes, representable boundary sums and
+allocation failures. Removing the guard must make all five overflow oracles
+fail. These observations do not establish exploitation on a real UEFI guest.
 
 The harness also compiles the actual patched named-blob, IGVM and boot-manager
 functions. Tests place a forbidden name at every position in a three-entry

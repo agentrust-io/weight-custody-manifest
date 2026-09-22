@@ -95,6 +95,26 @@ IGVM = r'''
   return EFI_SUCCESS;
 '''
 
+FETCH_SIZE_GUARD = r'''
+    // fw_cfg sizes are host-controlled; reject a wrapping UINT32 sum before
+    // allocating the blob or reading any payload into the resulting buffer.
+    if (BlobItems->FwCfgItem[Idx].Size > MAX_UINT32 - Size) {
+      return EFI_BAD_BUFFER_SIZE;
+    }
+
+'''
+
+
+def checked_blob_sizes(source):
+    start, _, end = function_span(source, "QemuKernelFetchBlob")
+    function = source[start:end]
+    addition = "    Size += BlobItems->FwCfgItem[Idx].Size;"
+    if function.count(addition) != 1:
+        raise ValueError("expected one pinned blob-size accumulation")
+    function = function.replace(addition, FETCH_SIZE_GUARD.lstrip("\n") + addition)
+    return source[:start] + function + source[end:]
+
+
 BEFORE = r'''
   // Transfer before generic BDS hotkeys, DriverOrder, BootNext or BootOrder.
   VisitAllInstancesOfProtocol (
@@ -128,7 +148,7 @@ def transform(sources):
     result[VERIFIER] = result[VERIFIER].replace(
         "This blob will not be measured, but at least one blob must be.",
         "Every admitted blob must have an authenticated table entry.")
-    result[LOADER] = body(body(result[LOADER], "QemuKernelFetchNamedBlobs", NAMED),
+    result[LOADER] = body(body(checked_blob_sizes(result[LOADER]), "QemuKernelFetchNamedBlobs", NAMED),
                           "QemuKernelRegisterIgvmBlobs", IGVM)
     result[MANAGER] = body(result[MANAGER], "PlatformBootManagerBeforeConsole", BEFORE)
     result[MANAGER] = result[MANAGER].replace('#include "BdsPlatform.h"',

@@ -11,6 +11,11 @@ source revisions and evaluated dependency versions. CI repeats all 36 cases
 from the extracted ZIP in a fresh environment. This remains a source-based
 software evaluation while the required protocol package releases are pending.
 
+Reject overflowing host-supplied chunk-size sums in the restricted firmware's
+`QemuKernelFetchBlob` before allocation or payload reads. Compile the actual
+upstream and patched C for boundary, failure and mutation controls. This hardens
+the provisional source profile; firmware and SNP hardware acceptance stay open.
+
 Add a read-only native-SNP host preflight and partner execution packet. Missing
 or unavailable prerequisites require host review; successful observations never
 claim hardware acceptance. No VM launch or host configuration change is performed.

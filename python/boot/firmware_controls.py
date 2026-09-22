@@ -136,6 +136,137 @@ int main(int argc,char **argv){
 '''
 
 
+FETCH_HEADER = r'''
+#define MAX_UINT32 UINT32_MAX
+#define ARRAY_SIZE(a) (sizeof(a)/sizeof((a)[0]))
+#define EFI_BAD_BUFFER_SIZE 2
+#define EFI_OUT_OF_RESOURCES 3
+#define ASSERT(x) do {if(!(x))exit(92);} while(0)
+typedef struct {UINT32 SizeKey,DataKey,Size;} BLOB_ITEM;
+typedef struct {CHAR16 Name[48]; BLOB_ITEM FwCfgItem[2];} KERNEL_BLOB_ITEMS;
+typedef struct KERNEL_BLOB KERNEL_BLOB;
+struct KERNEL_BLOB {CHAR16 Name[48]; UINT32 Size; UINT8 *Data; KERNEL_BLOB *Next;};
+static KERNEL_BLOB *mKernelBlobs;
+static UINTN mKernelBlobCount;
+static UINT64 mTotalBlobBytes;
+static UINT32 sizes[2],selected;
+static unsigned allocations,frees,reads,fail_allocation;
+static UINT8 *payload;
+static size_t payload_size;
+static void *allocated[2];
+static void QemuFwCfgSelectItem(UINT32 key){selected=key;}
+static UINT32 QemuFwCfgRead32(void){
+  ASSERT(selected>=1 && selected<=2);return sizes[selected-1];
+}
+static void *AllocatePool(UINTN size){
+  allocations++;ASSERT(allocations<=2);
+  // Keep boundary tests bounded; exercise the real allocation-failure path.
+  if(size>1024 || allocations==fail_allocation)return NULL;
+  void *p=calloc(1,size);ASSERT(p!=NULL);allocated[allocations-1]=p;
+  if(allocations==2){payload=p;payload_size=size;}return p;
+}
+static void FreePool(void *p){
+  frees++;for(int i=0;i<2;i++)if(allocated[i]==p)allocated[i]=NULL;free(p);
+}
+static void ZeroMem(void *p,UINTN size){memset(p,0,size);}
+static EFI_STATUS StrCpyS(CHAR16 *to,UINTN cap,const CHAR16 *from){
+  UINTN n=0;while(from[n]){ASSERT(n+1<cap);to[n]=from[n];n++;}
+  to[n]=0;return EFI_SUCCESS;
+}
+static void QemuKernelChunkedRead(UINT8 *to,UINTN size){
+  reads++;
+  UINTN offset=(UINTN)to-(UINTN)payload;
+  // Observe an unsafe request without actually copying outside the allocation.
+  if(offset>payload_size || size>payload_size-offset)longjmp(jump,1);
+  ASSERT(selected==3 || selected==4);
+  memset(to,selected==3?'A':'B',size);
+}
+'''
+
+FETCH_MAIN = r'''
+int main(int argc,char **argv){
+  if(argc!=2)return 90;const char *mode=argv[1];
+  KERNEL_BLOB_ITEMS items={{'k','e','r','n','e','l',0},{{1,3,0},{2,4,0}}};
+  sizes[0]=3;sizes[1]=5;
+  if(!strcmp(mode,"wrap-zero")){sizes[0]=MAX_UINT32;sizes[1]=1;}
+  if(!strcmp(mode,"wrap-small")){sizes[0]=MAX_UINT32;sizes[1]=2;}
+  if(!strcmp(mode,"wrap-reversed")){sizes[0]=2;sizes[1]=MAX_UINT32;}
+  if(!strcmp(mode,"wrap-large")){sizes[0]=0x80000000U;sizes[1]=0x80000001U;}
+  if(!strcmp(mode,"preset-wrap")){
+    items.FwCfgItem[0].SizeKey=items.FwCfgItem[1].SizeKey=0;
+    items.FwCfgItem[0].Size=MAX_UINT32;items.FwCfgItem[1].Size=2;
+  }
+  if(!strcmp(mode,"maximum")){sizes[0]=MAX_UINT32-1;sizes[1]=1;}
+  if(!strcmp(mode,"single-maximum")){sizes[0]=MAX_UINT32;sizes[1]=0;}
+  if(!strcmp(mode,"zero")){sizes[0]=sizes[1]=0;}
+  if(!strcmp(mode,"empty-setup"))sizes[0]=0;
+  if(!strcmp(mode,"empty-kernel"))sizes[1]=0;
+  if(!strcmp(mode,"metadata-failure"))fail_allocation=1;
+  if(!strcmp(mode,"payload-failure"))fail_allocation=2;
+  if(setjmp(jump)){
+    ASSERT(allocations==2 && reads==1 && mKernelBlobs==NULL);
+    puts("OVERSIZED_READ");
+  }else{
+    EFI_STATUS status=QemuKernelFetchBlob(&items);
+    if(status==EFI_BAD_BUFFER_SIZE){
+      ASSERT(allocations==0 && reads==0 && frees==0);
+      ASSERT(mKernelBlobs==NULL && mKernelBlobCount==0 && mTotalBlobBytes==0);
+      puts("DENY_BEFORE_ALLOCATION");
+    }else if(status==EFI_OUT_OF_RESOURCES){
+      ASSERT(reads==0 && mKernelBlobs==NULL && mKernelBlobCount==0 && mTotalBlobBytes==0);
+      ASSERT(allocations==(fail_allocation==1?1:2));
+      ASSERT(frees==(fail_allocation==1?0:1));
+      puts("ALLOCATION_REFUSED");
+    }else{
+      ASSERT(status==EFI_SUCCESS);
+      if(allocations==0){
+        ASSERT(reads==0 && mKernelBlobs==NULL && mKernelBlobCount==0 && mTotalBlobBytes==0);
+        puts("EMPTY");
+      }else{
+        ASSERT(allocations==2 && reads==2 && mKernelBlobCount==1 && mKernelBlobs!=NULL);
+        ASSERT(mKernelBlobs->Size==(UINT64)sizes[0]+sizes[1]);
+        ASSERT(mTotalBlobBytes==mKernelBlobs->Size && mKernelBlobs->Next==NULL);
+        for(UINTN i=0;i<mKernelBlobs->Size;i++)ASSERT(payload[i]==(i<sizes[0]?'A':'B'));
+        puts("COPIED_EXACTLY");
+      }
+    }
+  }
+  for(int i=0;i<2;i++)free(allocated[i]);return 0;
+}
+'''
+
+
+def check_blob_sizes(directory, originals, patched, rows):
+    upstream = extract(originals[profile.LOADER], "QemuKernelFetchBlob", "static EFI_STATUS")
+    restricted = extract(patched[profile.LOADER], "QemuKernelFetchBlob", "static EFI_STATUS")
+    original = compile_c(directory, "upstream-fetch", HEADER + FETCH_HEADER + upstream + FETCH_MAIN)
+    check(original, "normal", "COPIED_EXACTLY", rows)
+    check(original, "wrap-zero", "EMPTY", rows)
+    check(original, "wrap-small", "OVERSIZED_READ", rows)
+    candidate = compile_c(directory, "restricted-fetch", HEADER + FETCH_HEADER + restricted + FETCH_MAIN)
+    for scenario in ("normal", "empty-setup", "empty-kernel"):
+        check(candidate, scenario, "COPIED_EXACTLY", rows)
+    check(candidate, "zero", "EMPTY", rows)
+    overflowing = ("wrap-zero", "wrap-small", "wrap-reversed", "wrap-large", "preset-wrap")
+    for scenario in overflowing:
+        check(candidate, scenario, "DENY_BEFORE_ALLOCATION", rows)
+    for scenario in ("maximum", "single-maximum", "metadata-failure", "payload-failure"):
+        check(candidate, scenario, "ALLOCATION_REFUSED", rows)
+    # Remove only this guard; each rejection oracle must then catch the defect.
+    guard = profile.FETCH_SIZE_GUARD.lstrip("\n")
+    if restricted.count(guard) != 1:
+        raise AssertionError("expected one checked-size guard")
+    mutant = compile_c(directory, "weakened-fetch",
+                       HEADER + FETCH_HEADER + restricted.replace(guard, "") + FETCH_MAIN)
+    for scenario in overflowing:
+        try:
+            check(mutant, scenario, "DENY_BEFORE_ALLOCATION", [])
+        except AssertionError:
+            rows.append({"mutation": "blob-size-guard", "case": scenario, "detected": True})
+        else:
+            raise AssertionError("blob-size mutation survived: " + scenario)
+
+
 def extract(source, name, result_type):
     start, _, end = profile.function_span(source, name)
     return result_type + "\n" + source[start:end] + "\n"
@@ -174,6 +305,7 @@ def run(source, output):
             target.write_bytes((source / name).read_bytes())
         profile.apply(candidate)
         patched = {name: (candidate / name).read_text(encoding="utf-8") for name in originals}
+        check_blob_sizes(directory, originals, patched, rows)
         verifier = compile_c(directory, "restricted-verifier", HEADER + strip_headers(patched[profile.VERIFIER]) + VERIFIER_MAIN)
         for scenario in ("kernel", "initrd", "cmdline"):
             check(verifier, scenario, "ALLOW", rows)
@@ -211,7 +343,7 @@ def run(source, output):
                 raise AssertionError("mutation survived: " + name)
         output.write_text(json.dumps({"hardware_validated": False, "uefi_services_simulated": True,
                                       "observations": rows}, indent=2) + "\n")
-        print(f"{len(rows)} native observations passed, including upstream counterexample and three mutations")
+        print(f"{len(rows)} native observations passed, including upstream counterexamples and mutation controls")
 
 
 if __name__ == "__main__":
