@@ -8,11 +8,12 @@ permissions:
 jobs:
   composed-software:
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           path: wcm
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: agentrust-io/cmcp
@@ -33,6 +34,8 @@ jobs:
           python-version: '3.12'
       - name: Install core source snapshots and test dependencies
         run: python -m pip install -e './wcm/python[dev]' -e ./cmcp -e ./ca2a
+      - name: Test bundle refusals
+        run: python -m pytest -q -o addopts= wcm/python/composed/test_package.py
       - name: Build the synthetic adversarial agent
         run: |
           docker build --iidfile /tmp/composed-agent-image wcm/python/composed
@@ -51,4 +54,22 @@ jobs:
         with:
           name: composed-software-evidence
           path: evidence
+          if-no-files-found: error
+      - name: Build source reproduction bundle from evaluated dependencies
+        run: python wcm/python/composed/package.py --evidence evidence --output bundle/composed-reproduction.zip
+      - name: Reproduce from the extracted bundle in a fresh workspace
+        shell: bash
+        run: |
+          python -m zipfile -e bundle/composed-reproduction.zip extracted
+          original=$(cat /proc/sys/kernel/core_pattern)
+          trap 'sudo sysctl -w "kernel.core_pattern=$original"' EXIT
+          sudo sysctl -w kernel.core_pattern=core
+          python extracted/reproduce.py --workspace "$RUNNER_TEMP/composed-bundle-reproduction" --confined
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: composed-reproduction-bundle
+          path: |
+            bundle/
+            ${{ runner.temp }}/composed-bundle-reproduction/evidence/
           if-no-files-found: error

@@ -27,6 +27,27 @@ and tracked edits, records the WCM revision/diff and harness hashes, and exports
 installed package versions. Dependencies are recorded per run, not a complete
 hash-locked environment. The hosted workflow repeats this command on native Linux.
 
+## Standalone research bundle
+
+The `composed-software` workflow now builds `composed-reproduction.zip` after
+successful evaluation, then extracts it and repeats all 36 cases in a fresh
+workspace and virtual environment. Download the `composed-reproduction-bundle`
+artifact from the reviewed run. Its ZIP contains a Python launcher, the source
+revision manifest, evaluated runtime dependency versions and usage instructions.
+See [BUNDLE.md](BUNDLE.md) for prerequisites and limitations.
+
+To build the same ZIP from a clean committed checkout, in the environment that
+produced the successful evidence:
+
+```sh
+python wcm/python/composed/package.py --evidence evidence --output bundle/composed-reproduction.zip
+```
+
+This removes manual checkout/setup steps for reviewers. It still consumes
+source snapshots and retains the fixture dependencies in their owning core
+repository. A released-package integration remains waiting on the required API
+releases and a separate package-only evaluation.
+
 ## Actual path and transaction binding
 
 The existing WCM fixtures generate synthetic SNP signatures against test-owned

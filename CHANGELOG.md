@@ -6,6 +6,11 @@ uses semantic-ish versioning while pre-1.0.
 
 ## Unreleased
 
+Package the composed research harness with a standalone launcher, immutable
+source revisions and evaluated dependency versions. CI repeats all 36 cases
+from the extracted ZIP in a fresh environment. This remains a source-based
+software evaluation while the required protocol package releases are pending.
+
 Reject overflowing host-supplied chunk-size sums in the restricted firmware's
 `QemuKernelFetchBlob` before allocation or payload reads. Compile the actual
 upstream and patched C for boundary, failure and mutation controls. This hardens
