@@ -70,6 +70,7 @@ class SoftwareProvider(AttestationProvider):
         gpu_measurement: Optional[str] = None,
         include_gpu: bool = True,
         break_gpu_binding: bool = False,
+        gpu_cc_mode: Optional[bool] = True,
         include_memory_fingerprint: bool = False,
         aliasing_detected: bool = False,
         attestation_key_id: str = "vcek-mock-0001",
@@ -95,6 +96,7 @@ class SoftwareProvider(AttestationProvider):
             gpu = GpuReport(
                 platform=gpu_platform,
                 measurement=gpu_measurement,
+                cc_mode=gpu_cc_mode,
                 nonce_echo=("tampered-" + nonce if break_gpu_binding else nonce),
             )
 

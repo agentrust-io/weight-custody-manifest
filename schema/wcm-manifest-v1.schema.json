@@ -733,6 +733,18 @@
           "title": "Rim Pin",
           "type": "string"
         },
+        "require_cc_mode": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Require Cc Mode"
+        },
         "note": {
           "anyOf": [
             {

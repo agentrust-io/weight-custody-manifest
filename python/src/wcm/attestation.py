@@ -49,7 +49,10 @@ class GpuReport(_Strict):
 
     platform: str  # e.g. "nvidia-cc-gpu"
     measurement: str  # matches release_policy.required_gpu_measurement.rim_pin
-    cc_mode: bool = True
+    # Confidential-compute mode as the GPU evidence states it. None means the
+    # evidence did not say, and the gate treats that the same as off: a key is
+    # never released on an assumed mode (SPEC 3.2).
+    cc_mode: Optional[bool] = None
     nonce_echo: str  # MUST equal the CPU quote's nonce_echo (composite binding)
     quote_b64: Optional[str] = None
 

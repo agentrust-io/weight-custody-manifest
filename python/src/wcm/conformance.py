@@ -158,6 +158,7 @@ CODES: dict[str, str] = {
     "WCM-L2-0015": "GPU measurement does not match required_gpu_measurement.rim_pin",
     "WCM-L2-0016": "the attestation key is listed as revoked",
     "WCM-L2-0017": "no key is held for this weights_hash",
+    "WCM-L2-0018": "GPU confidential-compute mode is off or absent while required",
     # L3, runtime custody
     "WCM-L3-0001": "key was usable after the attestation lease lapsed (must be zeroized, not suspended)",
     "WCM-L3-0002": "operation budget was exhausted without requiring re-attestation",
@@ -487,6 +488,7 @@ _GATE_CODES: tuple[tuple[str, tuple[str, ...], str], ...] = (
     ("gpu", ("absent",), "WCM-L2-0007"),
     ("gpu", ("nonce echo",), "WCM-L2-0008"),
     ("gpu", ("rim_pin",), "WCM-L2-0015"),
+    ("gpu", ("confidential-compute mode",), "WCM-L2-0018"),
     ("memory_fingerprint", (), "WCM-L2-0009"),
     ("attestation_revocation", ("is revoked",), "WCM-L2-0016"),
     ("attestation_revocation", ("cache",), "WCM-L2-0010"),

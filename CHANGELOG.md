@@ -6,6 +6,14 @@ uses semantic-ish versioning while pre-1.0.
 
 ## Unreleased
 
+**Security (GHSA-j665-99rh-w85h).** Key release now requires the GPU report to
+state confidential-compute mode on. Before this, no gate read `cc_mode`, so a
+CC-capable GPU with the mode off passed all 13 checks and received the key. A
+missing or non-boolean `cc_mode` is now unknown, not on, and is denied
+(`WCM-L2-0018`). `required_gpu_measurement.require_cc_mode: false` waives the
+check; the field is optional, so existing signed manifests keep their pre-image.
+SPEC 3.2 gains the matching failure row. Reported by Zoheb Shaik.
+
 Package the composed research harness with a standalone launcher, immutable
 source revisions and evaluated dependency versions. CI repeats all 36 cases
 from the extracted ZIP in a fresh environment. This remains a source-based
