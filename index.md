@@ -4,7 +4,7 @@
 
 WCM is an open, pre-1.0 specification that binds encrypted weights to a signed release policy, so a key broker releases the decryption key only to a workload whose attestation matches the manifest.
 
-[Run the 91 conformance vectors](#try-it) [What this proves, and what it does not](https://wcm.agentrust-io.com/limitations/index.md)
+[Run the 94 conformance vectors](#try-it) [What this proves, and what it does not](https://wcm.agentrust-io.com/limitations/index.md)
 
 TL;DR
 
@@ -73,7 +73,7 @@ The [RAND weight-security report](https://www.rand.org/pubs/research_reports/RRA
 
 ## What is checked today
 
-The reference implementation ships **91 portable conformance vectors**: 32 at L1, 37 at L2, 12 at L3, and 10 at L4. Run them yourself with `wcm conformance`.
+The reference implementation ships **94 portable conformance vectors**: 32 at L1, 40 at L2, 12 at L3, and 10 at L4. Run them yourself with `wcm conformance`.
 
 This is the reference implementation's self-test, not independent certification and not a hardware deployment test. CPU quote vectors use synthetic certificate roots, GPU cryptographic verification is not covered by them, and the runner prints its uncovered cases. See [Schema and conformance](https://wcm.agentrust-io.com/conformance/index.md).
 
