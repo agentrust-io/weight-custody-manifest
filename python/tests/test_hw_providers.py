@@ -169,6 +169,21 @@ def test_nvidia_report_parses_tool_output(monkeypatch):
     assert report.cc_mode is True
 
 
+@pytest.mark.parametrize(
+    "tool_output, expected",
+    [({}, None), ({"cc_mode": "false"}, None), ({"cc_mode": "true"}, None),
+     ({"cc_mode": 1}, None), ({"cc_mode": False}, False), ({"cc_mode": True}, True)],
+)
+def test_nvidia_cc_mode_is_never_assumed(monkeypatch, tool_output, expected):
+    # A missing or non-boolean cc_mode stays unknown; the gate denies unknown.
+    monkeypatch.setenv("WCM_NVIDIA_ATTESTATION_CMD", "python")
+    p = NvidiaCcProvider()
+    p._run_tool = lambda nonce_hex: {  # type: ignore[method-assign]
+        "measurement": "nvidia-rim:x", **tool_output
+    }
+    assert p.gpu_report(_challenge()).cc_mode is expected
+
+
 def test_nvidia_missing_command_raises():
     p = NvidiaCcProvider()  # env not set (autouse fixture cleared it)
     with pytest.raises(AttestationUnavailableError):

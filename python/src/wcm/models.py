@@ -228,6 +228,10 @@ class Provenance(_Strict):
 
 class RequiredGpuMeasurement(_Strict):
     rim_pin: str
+    # Whether the GPU must report confidential-compute mode on. Absent means
+    # required; only an explicit false waives it. Optional rather than a True
+    # default so an existing signed manifest's pre-image does not change.
+    require_cc_mode: Optional[bool] = None
     note: Optional[str] = None
 
 

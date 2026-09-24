@@ -518,3 +518,66 @@ def test_unparseable_retire_after_fails_closed(example_dict, bad):
     )
     assert not decision.released
     assert "not a parseable timestamp" in (check.detail or "")
+
+
+# SPEC 3.2: the GPU must report confidential-compute mode on. GHSA-j665-99rh-w85h.
+
+
+@pytest.mark.parametrize("cc_mode", [False, None])
+def test_gpu_cc_mode_off_or_absent_denied(example_manifest, cc_mode):
+    kbs = _kbs(example_manifest)
+    current, _, _, rim = _measurements(example_manifest)
+    challenge = kbs.issue_challenge()
+    ev = SoftwareProvider().produce(
+        challenge, serving_image_measurement=current, gpu_measurement=rim, gpu_cc_mode=cc_mode
+    )
+    decision = kbs.verify_and_release(example_manifest, ev)
+    assert not decision.released
+    assert decision.key is None
+    gpu = [c for c in decision.checks if c.name == "gpu"][0]
+    assert not gpu.passed
+    assert "confidential-compute mode" in (gpu.detail or "")
+
+
+def test_gpu_cc_mode_on_releases_and_says_unsigned(example_manifest):
+    kbs = _kbs(example_manifest)
+    current, _, _, rim = _measurements(example_manifest)
+    challenge = kbs.issue_challenge()
+    ev = SoftwareProvider().produce(
+        challenge, serving_image_measurement=current, gpu_measurement=rim, gpu_cc_mode=True
+    )
+    decision = kbs.verify_and_release(example_manifest, ev)
+    assert decision.released
+    gpu = [c for c in decision.checks if c.name == "gpu"][0]
+    assert "unsigned" in (gpu.detail or "")
+
+
+def test_gpu_cc_mode_waived_only_by_explicit_false(example_dict):
+    d = copy.deepcopy(example_dict)
+    d["release_policy"]["required_gpu_measurement"]["require_cc_mode"] = False
+    manifest = WeightCustodyManifest.model_validate(d)
+    kbs = KeyBrokerService(
+        {manifest.weights_hash: KEY},
+        now=_now_after_retire(),
+        trusted_manifest_identities={manifest_identity(manifest)},
+    )
+    current, _, _, rim = _measurements(manifest)
+    ev = SoftwareProvider().produce(
+        kbs.issue_challenge(),
+        serving_image_measurement=current,
+        gpu_measurement=rim,
+        gpu_cc_mode=False,
+    )
+    decision = kbs.verify_and_release(manifest, ev)
+    assert decision.released
+    gpu = [c for c in decision.checks if c.name == "gpu"][0]
+    assert "waived" in (gpu.detail or "")
+
+
+def test_require_cc_mode_absent_keeps_existing_preimage(example_dict, example_manifest):
+    # The field is Optional so a manifest signed before it existed keeps the
+    # same pre-image, and therefore the same signatures and identity.
+    assert "require_cc_mode" not in example_dict["release_policy"]["required_gpu_measurement"]
+    assert "require_cc_mode" not in (
+        example_manifest.unsigned_dict()["release_policy"]["required_gpu_measurement"]
+    )

@@ -140,6 +140,10 @@ def adapt(
     measurement = f"nvidia-rim:arch={arch};driver={driver};vbios={vbios}"
     return {
         "measurement": measurement,
+        # Asserted, not read from the device: none of the appraisal claims
+        # checked above states the confidential-compute mode, so this adapter
+        # only emits evidence for a GPU its operator has put in CC mode. The
+        # KBS gate reports the value as unsigned (GHSA-j665-99rh-w85h).
         "cc_mode": True,
         "report_b64": quote_b64,
         "appraisal": "nvidia-local",

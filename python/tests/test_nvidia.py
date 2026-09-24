@@ -192,7 +192,8 @@ def _evidence(nonce, *, gpu_quote_b64, current, rim):
             attestation_key_id="vcek:test",
         ),
         gpu=GpuReport(
-            platform="nvidia-cc-gpu", measurement=rim, nonce_echo=nonce, quote_b64=gpu_quote_b64
+            platform="nvidia-cc-gpu", measurement=rim, cc_mode=True, nonce_echo=nonce,
+            quote_b64=gpu_quote_b64,
         ),
     )
 

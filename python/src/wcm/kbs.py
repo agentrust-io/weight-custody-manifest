@@ -358,7 +358,19 @@ class KeyBrokerService:
             )
         if gpu.measurement != req.rim_pin:
             return CheckResult("gpu", False, "GPU measurement does not match rim_pin")
-        return CheckResult("gpu", True)
+        if req.require_cc_mode is False:
+            return CheckResult(
+                "gpu", True, "confidential-compute mode waived by require_cc_mode: false"
+            )
+        if gpu.cc_mode is not True:
+            state = "unstated" if gpu.cc_mode is None else "off"
+            return CheckResult(
+                "gpu", False, f"GPU confidential-compute mode is {state} but required"
+            )
+        # cc_mode comes from the evidence's structured field, not from bytes the
+        # GPU report signature covers, so this catches a misconfigured GPU, not
+        # a lying adapter.
+        return CheckResult("gpu", True, "confidential-compute mode on (unsigned field)")
 
     def _check_memory_fingerprint(
         self,

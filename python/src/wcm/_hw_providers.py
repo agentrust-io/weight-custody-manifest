@@ -587,7 +587,9 @@ class NvidiaCcProvider:
         return GpuReport(
             platform=self.platform,
             measurement=str(data["measurement"]),
-            cc_mode=bool(data.get("cc_mode", True)),
+            # Strict: only a JSON boolean counts. bool("false") is True, and a
+            # missing field must stay unknown rather than become on.
+            cc_mode=data["cc_mode"] if isinstance(data.get("cc_mode"), bool) else None,
             nonce_echo=challenge.nonce,
             quote_b64=data.get("report_b64"),
         )
