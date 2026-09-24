@@ -6,6 +6,11 @@ uses semantic-ish versioning while pre-1.0.
 
 ## Unreleased
 
+## 0.28.4 - 2026-09-24
+
+The v0.28.3 tag points at a commit before the version bump and was never
+published; 0.28.4 is the first release carrying this section.
+
 **Security (GHSA-j665-99rh-w85h).** Key release now requires the GPU report to
 state confidential-compute mode on. Before this, no gate read `cc_mode`, so a
 CC-capable GPU with the mode off passed all 13 checks and received the key. A
