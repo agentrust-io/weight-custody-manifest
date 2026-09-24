@@ -41,3 +41,11 @@ WCM is part of the agentrust-io family (alongside TRACE, cMCP, Agent Manifest, c
 The project may accept financial, engineering, infrastructure, or other support from sponsors listed in [SPONSORS.md](SPONSORS.md). Sponsorship and contributor affiliations are informational. They do not confer ownership of the project, additional decision rights, preferential treatment in specification or conformance decisions, or endorsement of a sponsor's implementation.
 
 Maintainers and the Project Lead participate in their project roles as individuals. They must disclose a material conflict of interest and recuse from a decision when their employer, sponsor, or commercial interest would prevent impartial project judgment.
+
+## Disclosures
+
+Mohammed Zoheb Shaik (@zohebk8s) has disclosed that he builds Custodian, a key broker for model weights that uses the Weight Custody Manifest SDK as a dependency rather than a fork.
+
+He will note this interest on relevant proposals and reviews, recuse where Custodian's own design is the question, and update the disclosure if the interest changes materially. Custodian is neither endorsed by this project nor its reference implementation. This disclosure does not grant a project role or change existing decision rights or conflict-of-interest requirements.
+
+Source: [commercial-interest disclosure](https://github.com/agentrust-io/weight-custody-manifest/issues/116#issuecomment-5608765441).
