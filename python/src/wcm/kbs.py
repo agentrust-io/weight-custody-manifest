@@ -27,6 +27,7 @@ from ._challenge import Challenge, ChallengeError, ChallengeStore
 from ._quote_verify import QuoteFormatError, QuoteVerifier
 from ._seal import seal_to_public_key
 from .nvidia import NvidiaGpuVerifier
+from .gpu_revocation import NvidiaOcspClient, chain_from_evidence, check_chain
 from .attestation import CompositeEvidence
 from .models import (
     MemoryFingerprintChallenge,
@@ -82,6 +83,11 @@ class ReleaseDecision:
     released: bool
     key: Optional[bytes]
     checks: list[CheckResult] = field(default_factory=list)
+    #: The instant the revocation evidence behind this release stops being
+    #: valid, or None when nothing time-bounded was consulted. A permission
+    #: window granted on this decision must not extend past it. Not part of
+    #: the signed renewal payload; it bounds that payload's expiry instead.
+    evidence_not_after: "Optional[datetime]" = None
     # When channel binding is required, the key is returned only as bytes sealed
     # to the enclave's attested transport key (``_seal``); ``key`` is None so no
     # raw key ever crosses the channel, and only the enclave can open this
@@ -106,6 +112,7 @@ class KeyBrokerService:
         now: Optional[Callable[[], datetime]] = None,
         revoked_attestation_keys: Optional[Iterable[str]] = None,
         max_attestation_cache_age_seconds: int = 600,
+        gpu_revocation_client: "Optional[NvidiaOcspClient]" = None,
         cpu_quote_verifier: Optional[QuoteVerifier] = None,
         gpu_report_verifier: Optional[NvidiaGpuVerifier] = None,
         require_channel_binding: bool = False,
@@ -125,6 +132,10 @@ class KeyBrokerService:
         self._challenges = ChallengeStore(ttl_seconds=challenge_ttl_seconds, now=self._now)
         self._revoked = set(revoked_attestation_keys or ())
         self._max_cache = max_attestation_cache_age_seconds
+        # When set, attestation_revocation stops being a set-membership test and
+        # becomes a live, nonce-bound question put to NVIDIA per release, failing
+        # closed when it cannot be answered (see wcm.gpu_revocation).
+        self._gpu_revocation = gpu_revocation_client
         # When set, the CPU quote's raw bytes are cryptographically verified
         # (signature + cert chain + nonce binding). When None, the gate trusts
         # the structured fields only, and says so in the check detail.
@@ -152,9 +163,15 @@ class KeyBrokerService:
         return self._challenges.issue()
 
     def verify_and_release(
-        self, manifest: WeightCustodyManifest, evidence: CompositeEvidence
+        self, manifest: WeightCustodyManifest, evidence: CompositeEvidence,
+        *, renewal: bool = False,
     ) -> ReleaseDecision:
         """Run composite verification and release the key iff every check passes.
+
+        ``renewal`` marks a re-attestation inside a window that was already
+        granted. It changes exactly one thing: a live revocation check may ride
+        out a responder outage on an answer it verified earlier. A first release
+        has no window to protect and must have a fresh answer.
 
         The presented nonce is consumed on first use whatever the outcome, so a
         failed attempt cannot be retried with the same nonce.
@@ -235,7 +252,10 @@ class KeyBrokerService:
         checks.append(self._check_platform_integrity(manifest, evidence))
 
         # 7. Attestation-key revocation freshness (v0.8) when required.
-        checks.append(self._check_attestation_revocation(manifest, evidence))
+        revocation_check, evidence_not_after = self._check_attestation_revocation(
+            manifest, evidence, renewal
+        )
+        checks.append(revocation_check)
 
         # 7b. Cryptographic quote verification (signature + cert chain + nonce +
         #     transport-key binding) when a verifier is configured.
@@ -278,15 +298,22 @@ class KeyBrokerService:
             sealed_key=sealed_key,
             manifest_hash=manifest_hash,
             renewal_public_key_b64url=renewal_public_key(self._renewal_signing_key),
+            evidence_not_after=evidence_not_after,
         )
 
     def verify_for_renewal(
         self, manifest: WeightCustodyManifest, evidence: CompositeEvidence
     ) -> RenewalDecision:
         """Re-run the release gate and return a short-lived signed keyless decision."""
-        decision = self.verify_and_release(manifest, evidence)
+        decision = self.verify_and_release(manifest, evidence, renewal=True)
         issued = self._now()
         expires = issued + timedelta(seconds=self._renewal_ttl)
+        # Limiting how old a reused answer may be is not enough on its own: if
+        # reuse still grants another full window, a 14 minute old answer buys
+        # another 15 minutes on a 15 minute promise. The window ends where the
+        # evidence ends, so reuse never restarts the clock.
+        if decision.evidence_not_after is not None:
+            expires = min(expires, decision.evidence_not_after)
         return sign_renewal_decision(
             signing_key=self._renewal_signing_key,
             renewed=decision.released,
@@ -294,6 +321,10 @@ class KeyBrokerService:
             evidence=evidence,
             issued_at=issued.isoformat().replace("+00:00", "Z"),
             expires_at=expires.isoformat().replace("+00:00", "Z"),
+            evidence_expires_at=(
+                decision.evidence_not_after.isoformat().replace("+00:00", "Z")
+                if decision.evidence_not_after is not None else None
+            ),
             checks=(asdict(check) for check in decision.checks),
         )
 
@@ -580,19 +611,57 @@ class KeyBrokerService:
         return CheckResult("platform_integrity", True)
 
     def _check_attestation_revocation(
-        self, manifest: WeightCustodyManifest, evidence: CompositeEvidence
-    ) -> CheckResult:
+        self, manifest: WeightCustodyManifest, evidence: CompositeEvidence,
+        renewal: bool = False,
+    ) -> tuple[CheckResult, Optional[datetime]]:
+        """The configured set, and then NVIDIA, when a client is configured.
+
+        Returns the verdict and the instant the evidence behind it expires, so
+        a permission window granted on this release cannot outlive it.
+        """
         if manifest.release_policy.attestation_revocation_check is None:
-            return CheckResult("attestation_revocation", True, "not required")
+            return CheckResult("attestation_revocation", True, "not required"), None
         key_id = evidence.cpu.attestation_key_id
         if key_id in self._revoked:
             return CheckResult(
                 "attestation_revocation", False, f"attestation key '{key_id}' is revoked"
-            )
+            ), None
         if evidence.cpu.attestation_key_cache_age_seconds > self._max_cache:
             return CheckResult(
                 "attestation_revocation",
                 False,
                 "revocation status cache is staler than the allowed window",
-            )
-        return CheckResult("attestation_revocation", True)
+            ), None
+        if self._gpu_revocation is None:
+            # Say what this rested on. The set is empty unless an operator fills
+            # it and every provider reports its own cache age, so a pass here is
+            # a pass that cannot fail; a console showing a bare tick would be
+            # overstating it.
+            return CheckResult(
+                "attestation_revocation",
+                True,
+                "configured revoked-key set only; no vendor revocation service was asked",
+            ), None
+        gpu = evidence.gpu
+        if gpu is None or not gpu.quote_b64:
+            return CheckResult(
+                "attestation_revocation",
+                False,
+                "a live GPU revocation check is required and the evidence carries no "
+                "GPU certificate chain to ask about",
+            ), None
+        try:
+            chain = chain_from_evidence(gpu.quote_b64)
+        except Exception as exc:  # noqa: BLE001 - unreadable evidence is a refusal
+            return CheckResult(
+                "attestation_revocation",
+                False,
+                f"the GPU certificate chain could not be read: {str(exc)[:120]}",
+            ), None
+        # Only a renewal may ride out an outage on an earlier answer. A first
+        # release has no window to protect, so it has nothing to fall back to.
+        result = check_chain(chain, self._gpu_revocation, self._now(), allow_reuse=renewal)
+        return (
+            CheckResult("attestation_revocation", result.passed, result.detail),
+            result.not_after if result.passed else None,
+        )
