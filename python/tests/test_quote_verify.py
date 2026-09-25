@@ -270,20 +270,20 @@ def _measurements(m):
     return current, rim
 
 
-def test_kbs_releases_with_verified_quote(example_manifest):
+def test_kbs_releases_with_verified_quote(structural_manifest):
     pki = Pki()
-    current, rim = _measurements(example_manifest)
+    current, rim = _measurements(structural_manifest)
     kbs = KeyBrokerService(
-        {example_manifest.weights_hash: b"KEY"},
+        {structural_manifest.weights_hash: b"KEY"},
         now=lambda: NOW,
         cpu_quote_verifier=_verifier(pki),
-        trusted_manifest_identities={manifest_identity(example_manifest)},
+        trusted_manifest_identities={manifest_identity(structural_manifest)},
     )
     challenge = kbs.issue_challenge()
     q = _container(pki, _report_body(challenge.nonce))
     ev = _evidence(challenge.nonce, quote_b64=q, current=current, rim=rim)
 
-    decision = kbs.verify_and_release(example_manifest, ev)
+    decision = kbs.verify_and_release(structural_manifest, ev)
     assert decision.released
     assert any(c.name == "cpu_quote_verified" and c.passed for c in decision.checks)
 
@@ -323,17 +323,17 @@ def test_kbs_denies_when_verifier_set_but_no_quote(example_manifest):
     assert any(c.name == "cpu_quote_verified" and not c.passed for c in decision.checks)
 
 
-def test_kbs_without_verifier_notes_structural_only(example_manifest):
-    current, rim = _measurements(example_manifest)
+def test_kbs_without_verifier_notes_structural_only(structural_manifest):
+    current, rim = _measurements(structural_manifest)
     kbs = KeyBrokerService(
-        {example_manifest.weights_hash: b"KEY"},
+        {structural_manifest.weights_hash: b"KEY"},
         now=lambda: NOW,
-        trusted_manifest_identities={manifest_identity(example_manifest)},
+        trusted_manifest_identities={manifest_identity(structural_manifest)},
     )
     challenge = kbs.issue_challenge()
     ev = _evidence(challenge.nonce, quote_b64=None, current=current, rim=rim)
 
-    decision = kbs.verify_and_release(example_manifest, ev)
+    decision = kbs.verify_and_release(structural_manifest, ev)
     assert decision.released
     chk = [c for c in decision.checks if c.name == "cpu_quote_verified"][0]
     assert chk.passed and "structural trust only" in (chk.detail or "")
@@ -364,7 +364,7 @@ def test_verifier_binds_transport_key_into_report_data():
 KEY32 = b"the-weight-decryption-key-32byte"
 
 
-def test_relayed_release_is_denied_and_yields_only_ciphertext(example_manifest):
+def test_relayed_release_is_denied_and_yields_only_ciphertext(structural_manifest):
     """Core CVE-2026-33697 fix.
 
     A valid quote binds the enclave's transport key into REPORT_DATA under the
@@ -374,13 +374,13 @@ def test_relayed_release_is_denied_and_yields_only_ciphertext(example_manifest):
     verification fails and nothing is released.
     """
     pki = Pki()
-    current, rim = _measurements(example_manifest)
+    current, rim = _measurements(structural_manifest)
     kbs = KeyBrokerService(
-        {example_manifest.weights_hash: KEY32},
+        {structural_manifest.weights_hash: KEY32},
         now=lambda: NOW,
         cpu_quote_verifier=_verifier(pki),
         require_channel_binding=True,
-        trusted_manifest_identities={manifest_identity(example_manifest)},
+        trusted_manifest_identities={manifest_identity(structural_manifest)},
     )
 
     # Legitimate enclave: transport key bound into REPORT_DATA under the nonce.
@@ -393,7 +393,7 @@ def test_relayed_release_is_denied_and_yields_only_ciphertext(example_manifest):
     ev = _evidence(challenge.nonce, quote_b64=q, current=current, rim=rim)
     ev.cpu.transport_public_key = enclave_pub
 
-    decision = kbs.verify_and_release(example_manifest, ev)
+    decision = kbs.verify_and_release(structural_manifest, ev)
     assert decision.released
     # No raw key ever crosses the channel; only the enclave transport key opens it.
     assert decision.key is None and decision.sealed_key is not None
@@ -409,7 +409,7 @@ def test_relayed_release_is_denied_and_yields_only_ciphertext(example_manifest):
     q2 = _container(pki, _report_body_cb(challenge2.nonce, cb))  # still the enclave binding
     relayed = _evidence(challenge2.nonce, quote_b64=q2, current=current, rim=rim)
     relayed.cpu.transport_public_key = attacker_pub  # diverted target
-    d2 = kbs.verify_and_release(example_manifest, relayed)
+    d2 = kbs.verify_and_release(structural_manifest, relayed)
     assert not d2.released
     assert any(c.name == "cpu_quote_verified" and not c.passed for c in d2.checks)
 
@@ -518,24 +518,24 @@ def test_path_length_constraint_is_honoured():
     assert verify_cert_chain(_cert("leaf", "a", leaf_key, a_key), [a], ts, NOW) is None
 
 
-def test_low_order_transport_key_is_a_denial_not_an_exception(example_manifest):
+def test_low_order_transport_key_is_a_denial_not_an_exception(structural_manifest):
     # The quote genuinely binds a low-order "transport key"; sealing to it
     # raised out of verify_and_release. It must deny and release nothing.
     pki = Pki()
-    current, rim = _measurements(example_manifest)
+    current, rim = _measurements(structural_manifest)
     kbs = KeyBrokerService(
-        {example_manifest.weights_hash: KEY32},
+        {structural_manifest.weights_hash: KEY32},
         now=lambda: NOW,
         cpu_quote_verifier=_verifier(pki),
         require_channel_binding=True,
-        trusted_manifest_identities={manifest_identity(example_manifest)},
+        trusted_manifest_identities={manifest_identity(structural_manifest)},
     )
     low_order = "00" * 32
     challenge = kbs.issue_challenge()
     q = _container(pki, _report_body_cb(challenge.nonce, bytes.fromhex(low_order)))
     ev = _evidence(challenge.nonce, quote_b64=q, current=current, rim=rim)
     ev.cpu.transport_public_key = low_order
-    decision = kbs.verify_and_release(example_manifest, ev)
+    decision = kbs.verify_and_release(structural_manifest, ev)
     assert not decision.released
     assert decision.key is None and decision.sealed_key is None
     assert any(c.name == "key_sealed" and not c.passed for c in decision.checks)

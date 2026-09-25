@@ -75,6 +75,39 @@ driver or host configuration reports.
   has no freshness binding; the docstrings that said it did are corrected, and
   `LIMITATIONS.md` says so.
 
+**Changed (behaviour, breaking for unverified deployments).** A manifest now
+requires cryptographic evidence verification unless it says otherwise (#159).
+New optional field `release_policy.require_evidence_verification`: absent or
+`true` means the KBS must verify the CPU quote and, when one is presented, the
+GPU report; only an explicit `false` waives it. A KBS with no verifier for
+evidence the manifest requires now refuses (`WCM-L2-0019`) where it used to
+pass with "structural trust only". The operator flags
+`require_cpu_quote_verification` and `require_gpu_report_verification` still
+exist and can only add to what the manifest requires. The field is `Optional`,
+so an existing signed manifest's pre-image and identity do not change, but its
+meaning does: a manifest signed before this release that is silent on the
+field now requires verification.
+
+`required_gpu_measurement.require_cc_mode` is now met only by a GPU report the
+KBS verified cryptographically. No signed NVIDIA evidence states the mode, so
+WCM treats a verified report as establishing it, an assumption SPEC 3.2 states
+together with the two-device evidence it rests on and what was not tested. With
+a GPU verifier configured, a release through `tools/nvat_adapter.py` no longer
+needs the `require_cc_mode: false` waiver described above.
+
+**Deprecated.** `GpuReport.cc_mode`. It is still accepted, and an explicit
+`False` still denies, but `True` and `None` are ignored. It will be removed in
+a later release.
+
+To keep a deployment that runs on mock or unverified evidence releasing, set
+both waivers in the manifest and re-sign it:
+`release_policy.require_evidence_verification: false` and, if a GPU is
+required, `required_gpu_measurement.require_cc_mode: false`. `wcm gate` now
+reports the checks mock evidence cannot satisfy as `SKIP` rather than `FAIL`.
+Ten gate vectors gained these explicit waivers, and two were added:
+`deny-evidence-verification-required-without-verifier` and
+`deny-gpu-cc-mode-asserted-but-unverified`.
+
 ## 0.28.4 - 2026-09-24
 
 The v0.28.3 tag points at a commit before the version bump and was never

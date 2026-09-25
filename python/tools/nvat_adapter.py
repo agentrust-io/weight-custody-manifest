@@ -13,9 +13,12 @@ required NVIDIA appraisal claims pass. It is suitable for a manifest
 ``required_gpu_measurement.rim_pin``.
 
 ``cc_mode`` is emitted as ``None``, because no signed NVIDIA evidence states
-it. A release therefore fails closed unless the manifest waives the check with
-``required_gpu_measurement.require_cc_mode: false``, which is a decision for
-whoever signs the manifest rather than for this adapter.
+it, and the field is deprecated. The KBS meets ``require_cc_mode`` only when it
+cryptographically verifies the raw report this adapter carries in
+``report_b64`` (SPEC 3.2, which states the assumption that rests on). Without a
+GPU verifier configured, a release fails closed unless the manifest waives the
+check with ``required_gpu_measurement.require_cc_mode: false``, which is a
+decision for whoever signs the manifest rather than for this adapter.
 """
 from __future__ import annotations
 
@@ -177,8 +180,8 @@ def adapt(
     measurement = f"nvidia-rim:arch={arch};driver={driver};vbios={vbios}"
     return {
         "measurement": measurement,
-        # The gate denies an unstated mode, which is the correct outcome for
-        # a value nothing this adapter receives establishes.
+        # Nothing this adapter receives establishes the mode. The gate takes
+        # it from a verified report instead, never from this field.
         "cc_mode": _CC_MODE_UNSTATED,
         "report_b64": quote_b64,
         "appraisal": "nvidia-local",

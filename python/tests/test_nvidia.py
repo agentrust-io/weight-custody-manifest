@@ -23,6 +23,7 @@ from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives.asymmetric.utils import decode_dss_signature
 from cryptography.x509.oid import NameOID
+from tests.conftest import waive
 from wcm.renewal import manifest_identity
 
 from wcm import (
@@ -206,6 +207,12 @@ def _measurements(m):
 
 
 def test_kbs_releases_with_verified_gpu(example_manifest):
+    """A verified GPU report meets require_cc_mode on its own (SPEC 3.2 assumption).
+
+    Only CPU verification is waived: the manifest still requires the mode, and
+    nothing states it except the report having verified.
+    """
+    example_manifest = waive(example_manifest, cc_mode=False)
     pki = _Pki()
     current, rim = _measurements(example_manifest)
     kbs = KeyBrokerService(
@@ -220,6 +227,8 @@ def test_kbs_releases_with_verified_gpu(example_manifest):
     decision = kbs.verify_and_release(example_manifest, ev)
     assert decision.released
     assert any(c.name == "gpu_report_verified" and c.passed for c in decision.checks)
+    gpu = [c for c in decision.checks if c.name == "gpu"][0]
+    assert "inferred from a verified GPU report" in (gpu.detail or "")
 
 
 def test_kbs_denies_untrusted_gpu(example_manifest):
@@ -253,16 +262,16 @@ def test_kbs_denies_gpu_verifier_set_but_no_quote(example_manifest):
     assert any(c.name == "gpu_report_verified" and not c.passed for c in decision.checks)
 
 
-def test_kbs_without_gpu_verifier_notes_structural_only(example_manifest):
-    current, rim = _measurements(example_manifest)
+def test_kbs_without_gpu_verifier_notes_structural_only(structural_manifest):
+    current, rim = _measurements(structural_manifest)
     kbs = KeyBrokerService(
-        {example_manifest.weights_hash: b"KEY"},
+        {structural_manifest.weights_hash: b"KEY"},
         now=lambda: NOW,
-        trusted_manifest_identities={manifest_identity(example_manifest)},
+        trusted_manifest_identities={manifest_identity(structural_manifest)},
     )
     challenge = kbs.issue_challenge()
     ev = _evidence(challenge.nonce, gpu_quote_b64=None, current=current, rim=rim)
-    decision = kbs.verify_and_release(example_manifest, ev)
+    decision = kbs.verify_and_release(structural_manifest, ev)
     assert decision.released
     chk = [c for c in decision.checks if c.name == "gpu_report_verified"][0]
     assert chk.passed and "structural trust only" in (chk.detail or "")

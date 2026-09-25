@@ -228,6 +228,17 @@ def test_gate_conformant_releases(capsys, example_dict, tmp_path):
     assert rc == 0
     assert "released        : True" in out
     assert "[PASS] serving_image" in out
+    # Mock evidence cannot be verified; the diagnostic says so rather than
+    # reporting a refusal a KBS with verifiers would not make.
+    for name in ("cpu_quote_verified", "gpu_report_verified", "gpu"):
+        assert f"[SKIP] {name}" in out
+
+
+def test_gate_skip_does_not_hide_a_gpu_failure(capsys, example_dict, tmp_path):
+    rc = main(["gate", _manifest_file(tmp_path, example_dict), "--gpu-measurement", "wrong"])
+    out = capsys.readouterr().out
+    assert rc == 1
+    assert "[FAIL] gpu" in out
 
 
 def test_gate_bad_serving_image_refuses(capsys, example_dict, tmp_path):

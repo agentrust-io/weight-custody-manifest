@@ -21,15 +21,15 @@ KEY = b"served-decryption-key-32bytes-xx"
 
 
 @pytest.fixture
-def client_and_manifest(example_manifest):
+def client_and_manifest(structural_manifest):
     # The reference server requires channel binding (SPEC 3.2): the key leaves
     # only sealed to the enclave's attested transport key.
     kbs = KeyBrokerService(
-        {example_manifest.weights_hash: KEY},
+        {structural_manifest.weights_hash: KEY},
         require_channel_binding=True,
-        trusted_manifest_identities={manifest_identity(example_manifest)},
+        trusted_manifest_identities={manifest_identity(structural_manifest)},
     )
-    return TestClient(create_app(kbs)), kbs, example_manifest
+    return TestClient(create_app(kbs)), kbs, structural_manifest
 
 
 def _measurements(m):
@@ -220,26 +220,26 @@ def test_env_server_loads_gpu_root(monkeypatch):
     assert isinstance(build_kbs_from_env()._gpu_report_verifier, NvidiaGpuVerifier)
 
 
-def test_required_gpu_verification_rejects_structural_claim(example_manifest):
+def test_required_gpu_verification_rejects_structural_claim(structural_manifest):
     # Every other gate passes: this must fail specifically at GPU verification.
-    current, rim = _measurements(example_manifest)
+    current, rim = _measurements(structural_manifest)
     kbs = KeyBrokerService(
-        {example_manifest.weights_hash: KEY},
+        {structural_manifest.weights_hash: KEY},
         require_gpu_report_verification=True,
-        trusted_manifest_identities={manifest_identity(example_manifest)},
+        trusted_manifest_identities={manifest_identity(structural_manifest)},
     )
     evidence = SoftwareProvider().produce(
         kbs.issue_challenge(), serving_image_measurement=current, gpu_measurement=rim
     )
-    decision = kbs.verify_and_release(example_manifest, evidence)
+    decision = kbs.verify_and_release(structural_manifest, evidence)
     assert not decision.released
     assert [c.name for c in decision.checks if not c.passed] == ["gpu_report_verified"]
 
 
-def test_required_gpu_verification_allows_cpu_only_manifest(example_manifest):
-    manifest = example_manifest.model_copy(deep=True)
+def test_required_gpu_verification_allows_cpu_only_manifest(structural_manifest):
+    manifest = structural_manifest.model_copy(deep=True)
     manifest.release_policy.required_gpu_measurement = None
-    current, _ = _measurements(example_manifest)
+    current, _ = _measurements(structural_manifest)
     kbs = KeyBrokerService(
         {manifest.weights_hash: KEY},
         require_gpu_report_verification=True,

@@ -19,6 +19,8 @@ from wcm import (
     run_memory_sweep,
 )
 
+from tests.conftest import waive
+
 KEY = b"decryption-key-for-these-weights"
 
 
@@ -50,14 +52,14 @@ def _measurements(example_manifest):
     return current, retiring, revoked, rim
 
 
-def test_happy_path_releases_key(example_manifest):
-    kbs = _kbs(example_manifest)
-    current, _, _, rim = _measurements(example_manifest)
+def test_happy_path_releases_key(structural_manifest):
+    kbs = _kbs(structural_manifest)
+    current, _, _, rim = _measurements(structural_manifest)
     challenge = kbs.issue_challenge()
     evidence = SoftwareProvider().produce(
         challenge, serving_image_measurement=current, gpu_measurement=rim
     )
-    decision = kbs.verify_and_release(example_manifest, evidence)
+    decision = kbs.verify_and_release(structural_manifest, evidence)
     assert decision.released
     assert decision.key == KEY
     assert not decision.failures
@@ -96,16 +98,16 @@ def test_attacker_manifest_for_same_weights_is_rejected_by_exact_pin(example_man
     assert not check.passed
 
 
-def test_replayed_nonce_denied(example_manifest):
-    kbs = _kbs(example_manifest)
-    current, _, _, rim = _measurements(example_manifest)
+def test_replayed_nonce_denied(structural_manifest):
+    kbs = _kbs(structural_manifest)
+    current, _, _, rim = _measurements(structural_manifest)
     challenge = kbs.issue_challenge()
     ev = SoftwareProvider().produce(
         challenge, serving_image_measurement=current, gpu_measurement=rim
     )
-    assert kbs.verify_and_release(example_manifest, ev).released
+    assert kbs.verify_and_release(structural_manifest, ev).released
     # Same evidence (same nonce) again: replay.
-    second = kbs.verify_and_release(example_manifest, ev)
+    second = kbs.verify_and_release(structural_manifest, ev)
     assert not second.released
     assert second.failures[0].name == "nonce_fresh"
 
@@ -271,7 +273,7 @@ def _hostile_manifest(example_dict) -> WeightCustodyManifest:
     example_dict["release_policy"]["physical_hardening"] = (
         "tamper-evident-enclosure+access-control+chain-of-custody"
     )
-    return WeightCustodyManifest.model_validate(example_dict)
+    return waive(WeightCustodyManifest.model_validate(example_dict))
 
 
 def test_memory_fingerprint_required_but_absent_denied(example_dict):
@@ -369,22 +371,22 @@ def test_memory_fingerprint_host_authored_and_replayed_results_are_denied(exampl
 # -- channel binding (SPEC 3.2, CVE-2026-33697 relay defense) ------------------
 
 
-def test_channel_binding_off_by_default_returns_raw_key(example_manifest):
+def test_channel_binding_off_by_default_returns_raw_key(structural_manifest):
     # Backward compatibility: no channel binding required, raw key as before.
-    kbs = _kbs(example_manifest)
-    current, _, _, rim = _measurements(example_manifest)
+    kbs = _kbs(structural_manifest)
+    current, _, _, rim = _measurements(structural_manifest)
     challenge = kbs.issue_challenge()
     ev = SoftwareProvider().produce(
         challenge, serving_image_measurement=current, gpu_measurement=rim
     )
-    decision = kbs.verify_and_release(example_manifest, ev)
+    decision = kbs.verify_and_release(structural_manifest, ev)
     assert decision.released
     assert decision.key == KEY and decision.sealed_key is None
 
 
-def test_channel_binding_required_seals_key_to_enclave(example_manifest):
-    kbs = _kbs(example_manifest, require_channel_binding=True)
-    current, _, _, rim = _measurements(example_manifest)
+def test_channel_binding_required_seals_key_to_enclave(structural_manifest):
+    kbs = _kbs(structural_manifest, require_channel_binding=True)
+    current, _, _, rim = _measurements(structural_manifest)
     challenge = kbs.issue_challenge()
     enclave_priv, enclave_pub = generate_transport_keypair()
     ev = SoftwareProvider().produce(
@@ -393,7 +395,7 @@ def test_channel_binding_required_seals_key_to_enclave(example_manifest):
         gpu_measurement=rim,
         transport_public_key=enclave_pub,
     )
-    decision = kbs.verify_and_release(example_manifest, ev)
+    decision = kbs.verify_and_release(structural_manifest, ev)
     assert decision.released
     # The raw key never crosses the channel; only the enclave transport key opens it.
     assert decision.key is None
@@ -453,7 +455,7 @@ def _retiring_only_manifest(example_dict, retire_after):
     rsi["accepted_measurements"] = [
         {"measurement": retiring, "status": "retiring", "retire_after": retire_after}
     ]
-    return WeightCustodyManifest.model_validate(doc), retiring
+    return waive(WeightCustodyManifest.model_validate(doc)), retiring
 
 
 def _decide(manifest, measurement, *, now):
@@ -539,22 +541,31 @@ def test_gpu_cc_mode_off_or_absent_denied(example_manifest, cc_mode):
     assert "confidential-compute mode" in (gpu.detail or "")
 
 
-def test_gpu_cc_mode_on_releases_and_says_unsigned(example_manifest):
-    kbs = _kbs(example_manifest)
-    current, _, _, rim = _measurements(example_manifest)
+def test_gpu_cc_mode_true_from_an_adapter_is_not_evidence(example_manifest):
+    """An adapter's cc_mode=True no longer satisfies require_cc_mode (#159).
+
+    Evidence verification is waived here so the only thing refusing is the
+    mode: with no GPU verifier, nothing has established it.
+    """
+    manifest = waive(example_manifest, cc_mode=False)
+    kbs = _kbs(manifest)
+    current, _, _, rim = _measurements(manifest)
     challenge = kbs.issue_challenge()
     ev = SoftwareProvider().produce(
         challenge, serving_image_measurement=current, gpu_measurement=rim, gpu_cc_mode=True
     )
-    decision = kbs.verify_and_release(example_manifest, ev)
-    assert decision.released
+    decision = kbs.verify_and_release(manifest, ev)
+    assert not decision.released
+    failed = [c.name for c in decision.checks if not c.passed]
+    assert failed == ["gpu"]
     gpu = [c for c in decision.checks if c.name == "gpu"][0]
-    assert "unsigned" in (gpu.detail or "")
+    assert "not established" in (gpu.detail or "")
 
 
 def test_gpu_cc_mode_waived_only_by_explicit_false(example_dict):
     d = copy.deepcopy(example_dict)
     d["release_policy"]["required_gpu_measurement"]["require_cc_mode"] = False
+    d["release_policy"]["require_evidence_verification"] = False
     manifest = WeightCustodyManifest.model_validate(d)
     kbs = KeyBrokerService(
         {manifest.weights_hash: KEY},
@@ -584,18 +595,18 @@ def test_require_cc_mode_absent_keeps_existing_preimage(example_dict, example_ma
 
 
 @pytest.mark.parametrize("where", ["manifest", "evidence"])
-def test_lone_surrogate_is_a_denial_and_does_not_burn_the_nonce(example_manifest, where):
+def test_lone_surrogate_is_a_denial_and_does_not_burn_the_nonce(structural_manifest, where):
     # json.loads accepts "\ud800"; the canonicalizer cannot encode it. That used
     # to raise out of verify_and_release after the nonce was already consumed.
-    kbs = _kbs(example_manifest)
-    current, _, _, rim = _measurements(example_manifest)
+    kbs = _kbs(structural_manifest)
+    current, _, _, rim = _measurements(structural_manifest)
     challenge = kbs.issue_challenge()
     evidence = SoftwareProvider().produce(
         challenge, serving_image_measurement=current, gpu_measurement=rim
     )
-    manifest = example_manifest
+    manifest = structural_manifest
     if where == "manifest":
-        manifest = example_manifest.model_copy(deep=True)
+        manifest = structural_manifest.model_copy(deep=True)
         manifest.release_terms.license = "terms \ud800"
     else:
         evidence = evidence.model_copy(deep=True)
@@ -611,4 +622,70 @@ def test_lone_surrogate_is_a_denial_and_does_not_burn_the_nonce(example_manifest
     clean = SoftwareProvider().produce(
         challenge, serving_image_measurement=current, gpu_measurement=rim
     )
-    assert kbs.verify_and_release(example_manifest, clean).released
+    assert kbs.verify_and_release(structural_manifest, clean).released
+
+
+# The manifest, not only the KBS operator, can demand cryptographic evidence
+# verification (#159). Absent means required.
+
+
+def test_manifest_silent_on_verification_requires_it(example_manifest):
+    """No verifier configured and no waiver: both evidence checks refuse."""
+    manifest = waive(example_manifest, evidence_verification=False)
+    kbs = _kbs(manifest)
+    current, _, _, rim = _measurements(manifest)
+    ev = SoftwareProvider().produce(
+        kbs.issue_challenge(), serving_image_measurement=current, gpu_measurement=rim
+    )
+    decision = kbs.verify_and_release(manifest, ev)
+    assert not decision.released
+    by_name = {c.name: c for c in decision.checks}
+    for name in ("cpu_quote_verified", "gpu_report_verified"):
+        assert not by_name[name].passed
+        assert "required by the manifest" in (by_name[name].detail or "")
+
+
+def test_explicit_false_waives_verification_and_says_so(structural_manifest):
+    kbs = _kbs(structural_manifest)
+    current, _, _, rim = _measurements(structural_manifest)
+    ev = SoftwareProvider().produce(
+        kbs.issue_challenge(), serving_image_measurement=current, gpu_measurement=rim
+    )
+    decision = kbs.verify_and_release(structural_manifest, ev)
+    assert decision.released
+    by_name = {c.name: c for c in decision.checks}
+    for name in ("cpu_quote_verified", "gpu_report_verified"):
+        assert "waived by require_evidence_verification: false" in (by_name[name].detail or "")
+
+
+def test_the_kbs_flag_cannot_loosen_what_the_manifest_waived_the_other_way(
+    structural_manifest,
+):
+    """The operator's require_*_verification flags only ever tighten.
+
+    A manifest that waives verification still refuses on a KBS whose operator
+    requires it, and nothing on the KBS side can waive a manifest's demand.
+    """
+    kbs = KeyBrokerService(
+        {structural_manifest.weights_hash: KEY},
+        now=_now_after_retire(),
+        trusted_manifest_identities={manifest_identity(structural_manifest)},
+        require_cpu_quote_verification=True,
+    )
+    current, _, _, rim = _measurements(structural_manifest)
+    ev = SoftwareProvider().produce(
+        kbs.issue_challenge(), serving_image_measurement=current, gpu_measurement=rim
+    )
+    decision = kbs.verify_and_release(structural_manifest, ev)
+    assert not decision.released
+    cpu = [c for c in decision.checks if c.name == "cpu_quote_verified"][0]
+    assert "verifier required but not configured" in (cpu.detail or "")
+
+
+def test_require_evidence_verification_absent_keeps_existing_preimage(
+    example_dict, example_manifest
+):
+    assert "require_evidence_verification" not in example_dict["release_policy"]
+    assert "require_evidence_verification" not in (
+        example_manifest.unsigned_dict()["release_policy"]
+    )

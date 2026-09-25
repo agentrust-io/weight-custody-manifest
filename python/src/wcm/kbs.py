@@ -241,7 +241,16 @@ class KeyBrokerService:
         checks.append(self._check_serving_image(manifest, evidence))
 
         # 5. GPU: separate chain, bound to the CPU quote by the shared nonce.
-        checks.append(self._check_gpu(manifest, evidence))
+        #    Confidential-compute mode is met only by a cryptographically
+        #    verified report, so the report is verified first; its check is still
+        #    reported at 7c, keeping the order of the decision's checks stable.
+        gpu_report_check = self._check_gpu_report(manifest, evidence, nonce)
+        gpu_verified = (
+            gpu_report_check.passed
+            and self._gpu_report_verifier is not None
+            and evidence.gpu is not None
+        )
+        checks.append(self._check_gpu(manifest, evidence, gpu_verified))
 
         # 6. Memory-fingerprint challenge (v0.8) when the posture requires it.
         checks.append(self._check_memory_fingerprint(manifest, evidence, nonce))
@@ -254,11 +263,11 @@ class KeyBrokerService:
 
         # 7b. Cryptographic quote verification (signature + cert chain + nonce +
         #     transport-key binding) when a verifier is configured.
-        checks.append(self._check_cpu_quote(evidence, nonce, channel_binding))
+        checks.append(self._check_cpu_quote(manifest, evidence, nonce, channel_binding))
 
         # 7c. Cryptographic GPU-report verification (signature + cert chain to
         #     NVIDIA's device root + nonce binding) when a verifier is configured.
-        checks.append(self._check_gpu_report(evidence, nonce))
+        checks.append(gpu_report_check)
 
         # 8. A key actually exists for this weights_hash.
         have_key = manifest.weights_hash in self._keystore
@@ -371,7 +380,10 @@ class KeyBrokerService:
         return CheckResult("serving_image", True)
 
     def _check_gpu(
-        self, manifest: WeightCustodyManifest, evidence: CompositeEvidence
+        self,
+        manifest: WeightCustodyManifest,
+        evidence: CompositeEvidence,
+        gpu_verified: bool,
     ) -> CheckResult:
         req = manifest.release_policy.required_gpu_measurement
         if req is None:
@@ -389,15 +401,29 @@ class KeyBrokerService:
             return CheckResult(
                 "gpu", True, "confidential-compute mode waived by require_cc_mode: false"
             )
-        if gpu.cc_mode is not True:
-            state = "unstated" if gpu.cc_mode is None else "off"
+        if gpu.cc_mode is False:
+            # Deprecated field, but evidence saying the mode is off is never a
+            # reason to release.
             return CheckResult(
-                "gpu", False, f"GPU confidential-compute mode is {state} but required"
+                "gpu", False, "GPU confidential-compute mode is off but required"
             )
-        # cc_mode comes from the evidence's structured field, not from bytes the
-        # GPU report signature covers, so this catches a misconfigured GPU, not
-        # a lying adapter.
-        return CheckResult("gpu", True, "confidential-compute mode on (unsigned field)")
+        if not gpu_verified:
+            # No signed NVIDIA evidence states the mode, so an adapter's True is
+            # an assertion, not evidence (#159). Only a verified report counts.
+            return CheckResult(
+                "gpu",
+                False,
+                "GPU confidential-compute mode is not established: the GPU report "
+                "was not cryptographically verified",
+            )
+        # SPEC 3.2 assumption: a device with the mode off produces no report to
+        # verify. Observed on two H100s, not documented by NVIDIA.
+        return CheckResult(
+            "gpu",
+            True,
+            "confidential-compute mode inferred from a verified GPU report "
+            "(SPEC 3.2 assumption)",
+        )
 
     def _check_memory_fingerprint(
         self,
@@ -482,7 +508,11 @@ class KeyBrokerService:
         return CheckResult("channel_binding", True), raw
 
     def _check_cpu_quote(
-        self, evidence: CompositeEvidence, nonce: str, channel_binding: bytes
+        self,
+        manifest: WeightCustodyManifest,
+        evidence: CompositeEvidence,
+        nonce: str,
+        channel_binding: bytes,
     ) -> CheckResult:
         if self._cpu_quote_verifier is None:
             if self._require_cpu_quote_verification:
@@ -491,10 +521,18 @@ class KeyBrokerService:
                     False,
                     "cryptographic CPU quote verifier required but not configured",
                 )
+            if manifest.release_policy.require_evidence_verification is not False:
+                return CheckResult(
+                    "cpu_quote_verified",
+                    False,
+                    "cryptographic CPU quote verification required by the manifest "
+                    "but no verifier is configured",
+                )
             return CheckResult(
                 "cpu_quote_verified",
                 True,
-                "not configured: structural trust only (no cryptographic quote verification)",
+                "waived by require_evidence_verification: false: structural trust "
+                "only (no cryptographic quote verification)",
             )
         quote_b64 = evidence.cpu.quote_b64
         if quote_b64 is None:
@@ -511,7 +549,7 @@ class KeyBrokerService:
         return CheckResult("cpu_quote_verified", result.verified, result.reason)
 
     def _check_gpu_report(
-        self, evidence: CompositeEvidence, nonce: str
+        self, manifest: WeightCustodyManifest, evidence: CompositeEvidence, nonce: str
     ) -> CheckResult:
         gpu = evidence.gpu
         if gpu is None:
@@ -524,10 +562,18 @@ class KeyBrokerService:
                     False,
                     "cryptographic GPU report verifier required but not configured",
                 )
+            if manifest.release_policy.require_evidence_verification is not False:
+                return CheckResult(
+                    "gpu_report_verified",
+                    False,
+                    "cryptographic GPU report verification required by the manifest "
+                    "but no verifier is configured",
+                )
             return CheckResult(
                 "gpu_report_verified",
                 True,
-                "not configured: structural trust only (no cryptographic GPU verification)",
+                "waived by require_evidence_verification: false: structural trust "
+                "only (no cryptographic GPU verification)",
             )
         if gpu.quote_b64 is None:
             return CheckResult(

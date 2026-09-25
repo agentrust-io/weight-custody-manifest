@@ -82,8 +82,10 @@ Layer 2 (release gate):
   cryptographic quote verification) and gated release.
 - **`_quote_verify.py`** - `QuoteVerifier`: X.509 cert-chain validation +
   report-signature check + nonce binding, with a pluggable `TrustStore` and
-  `QuoteParser`. Wire it into the KBS via `cpu_quote_verifier=`; when unset, the
-  gate says `structural trust only` in its check detail.
+  `QuoteParser`. Wire it into the KBS via `cpu_quote_verifier=`. When unset, the
+  gate refuses unless the manifest sets
+  `release_policy.require_evidence_verification: false`, and then says
+  `structural trust only` in its check detail.
 
 Wipe-on-lapse (runtime custody):
 

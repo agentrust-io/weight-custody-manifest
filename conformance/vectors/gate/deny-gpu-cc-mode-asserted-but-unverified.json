@@ -1,11 +1,11 @@
 {
-  "id": "deny-no-key-for-these-weights",
+  "id": "deny-gpu-cc-mode-asserted-but-unverified",
   "level": "L2",
   "kind": "gate",
-  "description": "Every policy check passes but the KBS holds no key for this weights_hash. The gate must report that rather than release something else or fail obscurely.",
+  "description": "The GPU evidence states confidential-compute mode on, but no GPU verifier checked the report. No signed NVIDIA evidence carries the mode, so an adapter's statement is not evidence of it; only a cryptographically verified report meets require_cc_mode. Evidence verification is waived here so the mode is the only thing refusing.",
   "expect": "reject",
-  "code": "WCM-L2-0017",
-  "reject_reason": "no key is held for this weights_hash",
+  "code": "WCM-L2-0018",
+  "reject_reason": "confidential-compute mode is stated but not established by a verified GPU report",
   "manifest": {
     "manifest_version": "1.0",
     "weights_hash": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
@@ -23,7 +23,8 @@
     "release_policy": {
       "required_assurance_tier": "hardware-attested",
       "required_hw_platform": [
-        "amd-sev-snp"
+        "amd-sev-snp",
+        "nvidia-cc-gpu"
       ],
       "required_serving_image": {
         "signer": "ed25519:builder-key",
@@ -34,6 +35,9 @@
             "status": "current"
           }
         ]
+      },
+      "required_gpu_measurement": {
+        "rim_pin": "nvidia-rim:golden-measurement-0001"
       },
       "require_evidence_verification": false
     },
@@ -50,7 +54,9 @@
   },
   "kbs": {
     "clock": "2026-01-01T00:00:00+00:00",
-    "keystore": {}
+    "keystore": {
+      "sha256:1111111111111111111111111111111111111111111111111111111111111111": "a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1"
+    }
   },
   "steps": [
     {
@@ -66,10 +72,16 @@
           "serving_image_measurement": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
           "nonce_echo": "$n1",
           "attestation_key_id": "vcek-mock-0001"
+        },
+        "gpu": {
+          "platform": "nvidia-cc-gpu",
+          "measurement": "nvidia-rim:golden-measurement-0001",
+          "cc_mode": true,
+          "nonce_echo": "$n1"
         }
       },
       "expect": "deny",
-      "code": "WCM-L2-0017"
+      "code": "WCM-L2-0018"
     }
   ]
 }
