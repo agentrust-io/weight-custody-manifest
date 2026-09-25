@@ -12,7 +12,7 @@ Weight Custody Manifest (WCM) is an open, pre-1.0 specification for releasing mo
 
 WCM is an open, pre-1.0 specification that binds encrypted weights to a signed release policy, so a key broker releases the decryption key only to a workload whose attestation matches the manifest.
 
-[Run the 94 conformance vectors](#try-it) [What this proves, and what it does not](https://wcm.agentrust-io.com/limitations/index.md)
+[Run the 95 conformance vectors](#try-it) [What this proves, and what it does not](https://wcm.agentrust-io.com/limitations/index.md)
 
 TL;DR
 
@@ -22,7 +22,7 @@ The reference SDK ([weight-custody-manifest](https://pypi.org/project/weight-cus
 
   ______________________________________________________________________
 
-  `wcm conformance` runs every level offline. The quote vectors use synthetic certificate roots.
+  `wcm conformance` runs every level offline. One vector uses a genuine AMD report and staged root; Intel and GPU vendor vectors remain open.
 
   [Try it](#try-it)
 
@@ -81,9 +81,9 @@ The [RAND weight-security report](https://www.rand.org/pubs/research_reports/RRA
 
 ## What is checked today
 
-The reference implementation ships **94 portable conformance vectors**: 32 at L1, 40 at L2, 12 at L3, and 10 at L4. Run them yourself with `wcm conformance`.
+The reference implementation ships **95 portable conformance vectors**: 32 at L1, 41 at L2, 12 at L3, and 10 at L4. Run them yourself with `wcm conformance`.
 
-This is the reference implementation's self-test, not independent certification and not a hardware deployment test. CPU quote vectors use synthetic certificate roots, GPU cryptographic verification is not covered by them, and the runner prints its uncovered cases. See [Schema and conformance](https://wcm.agentrust-io.com/conformance/index.md).
+This is the reference implementation's self-test, not independent certification and not a hardware deployment test. One L2 vector verifies genuine AMD SEV-SNP evidence against the staged AMD root; Intel vendor evidence and GPU cryptographic verification remain uncovered, and the runner prints those limits. See [Schema and conformance](https://wcm.agentrust-io.com/conformance/index.md).
 
 ## Try it
 
@@ -474,18 +474,18 @@ schema = manifest_schema()
 
 [`conformance/`](https://github.com/agentrust-io/weight-custody-manifest/tree/main/conformance) holds language-neutral JSON vectors and a scoring contract. Four levels are defined, matching the four protocol layers:
 
-| Level | Title                        | Vectors | Shape     |
-| ----- | ---------------------------- | ------- | --------- |
-| L1    | Manifest and joint signature | 32      | documents |
-| L2    | Attestation-gated release    | 37      | scenarios |
-| L3    | Runtime custody              | 12      | scenarios |
-| L4    | Derivative lineage           | 10      | documents |
+| Level | Title                        | Vectors | Shape                         |
+| ----- | ---------------------------- | ------- | ----------------------------- |
+| L1    | Manifest and joint signature | 32      | documents                     |
+| L2    | Attestation-gated release    | 41      | scenarios and vendor evidence |
+| L3    | Runtime custody              | 12      | scenarios                     |
+| L4    | Derivative lineage           | 10      | documents                     |
 
-91 vectors. All four levels are vectored and every reportable error code is exercised by at least one vector, which a test enforces. L1 and L4 ask a question about a document. L2 and L3 ask what a system does over *time*, so their vectors are ordered scenarios with an injected clock and named nonces: a nonce is single-use, a lease lapses, an operation budget runs down.
+95 vectors. All four levels are vectored and every reportable error code is exercised by at least one vector, which a test enforces. L1 and L4 ask a question about a document. Most L2 vectors and every L3 vector ask what a system does over *time*, so they are ordered scenarios with an injected clock and named nonces; L2 also carries vendor evidence.
 
 Two limits remain, and `wcm conformance` prints both on every full run rather than leaving a green result to be over-read:
 
-- **The quote vectors use a synthetic PKI**, not vendor roots. They prove an implementation verifies a certificate chain, a report signature and a `REPORT_DATA` nonce binding correctly. They do not prove it can parse a real AMD, Intel or NVIDIA quote, which is vendor-format work the SDK covers with committed real-silicon fixtures.
+- **The vendor corpus covers AMD SEV-SNP, but not Intel TDX.** The AMD vector verifies a genuine Azure report against the staged AMD Milan root and applies the mandatory refusal matrix. Intel remains covered by SDK fixtures, not a language-neutral vendor vector.
 - **GPU-side cryptographic verification is not vectored.** The quote vectors cover the CPU quote; the NVIDIA device chain is covered by the SDK's H100 fixture.
 
 Running it:
