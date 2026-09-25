@@ -5,7 +5,10 @@
 # same import surface a consumer gets.
 
 cd "$SRC/weight-custody-manifest/python"
-pip3 install --no-cache-dir .
+# Third-party dependencies from the hash-pinned lock, then the SDK itself with
+# --no-deps so nothing unpinned is resolved.
+pip3 install --no-cache-dir --require-hashes -r ../requirements/runtime.txt
+pip3 install --no-cache-dir --no-deps .
 
 # compile_python_fuzzer bundles each target with PyInstaller, which follows
 # static imports only. The cryptography and pydantic stacks reach email.mime

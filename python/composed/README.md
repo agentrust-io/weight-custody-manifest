@@ -18,14 +18,17 @@ From the directory containing the three checkouts:
 ```sh
 python -m venv .venv
 . .venv/bin/activate
-python -m pip install -e './wcm/python[dev]' -e ./cmcp -e ./ca2a
+python -m pip install --require-hashes -r wcm/requirements/composed.txt
+python -m pip install --no-deps -e ./wcm/python -e ./cmcp -e ./ca2a
 python wcm/python/composed/run.py --cmcp-source cmcp --ca2a-source ca2a --output evidence
 ```
 
 Use a fresh evidence directory. The runner rejects changed dependency revisions
 and tracked edits, records the WCM revision/diff and harness hashes, and exports
-installed package versions. Dependencies are recorded per run, not a complete
-hash-locked environment. The hosted workflow repeats this command on native Linux.
+installed package versions. Third-party dependencies come from the hash-locked
+`requirements/composed.txt`, which covers the pinned cMCP and cA2A revisions
+above; recompile it when either revision moves. The hosted workflow repeats
+these commands on native Linux.
 
 ## Standalone research bundle
 

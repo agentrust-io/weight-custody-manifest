@@ -23,7 +23,8 @@ PRs without DCO sign-off will not be merged.
 ```bash
 git clone https://github.com/agentrust-io/weight-custody-manifest
 cd weight-custody-manifest/python
-pip install -e ".[dev]"
+pip install --require-hashes -r ../requirements/dev.txt   # the lock CI installs
+pip install --no-deps -e .
 ```
 
 ```bash

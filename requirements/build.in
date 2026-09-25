@@ -1,0 +1,5 @@
+# Release tooling for the packaging checks and publish.yml. Compile with:
+#   uv pip compile requirements/build.in --generate-hashes --universal \
+#     --python-version 3.11 -o requirements/build.txt
+build
+twine

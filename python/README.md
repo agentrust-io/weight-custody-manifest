@@ -198,7 +198,9 @@ server requires it and returns only a key sealed to the attested transport key.
 ## Install
 
 ```bash
-pip install -e ".[dev]"    # from this python/ directory
+# from this python/ directory
+pip install --require-hashes -r ../requirements/dev.txt
+pip install --no-deps -e .
 ```
 
 ## Quickstart (CLI)
