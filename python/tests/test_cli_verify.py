@@ -18,6 +18,7 @@ from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.x509.oid import NameOID
 
+from wcm._vendor_vectors import roots_dir
 from wcm.cli import main
 
 FIXTURES = pathlib.Path(__file__).parent / "fixtures"
@@ -95,7 +96,16 @@ def test_vq_snp_azure_vtpm_rejects_nonconforming_certificate(capsys):
     # This sanitized genuine capture has a non-positive provider-certificate
     # serial. RFC 5280 disallows it and cryptography 51 refuses to parse it, so
     # WCM gives the same fail-closed verdict on cryptography 50.
-    assert main(["verify-quote", "--kind", "snp", str(FIXTURES / "snp_quote_azure.json")]) == 1
+    assert main(
+        [
+            "verify-quote",
+            "--kind",
+            "snp",
+            str(FIXTURES / "snp_quote_azure.json"),
+            "--root",
+            str(roots_dir() / "amd-ark-milan.pem"),
+        ]
+    ) == 1
     out = capsys.readouterr().out
     assert "verified  : False" in out
     assert "serial number must be positive" in out

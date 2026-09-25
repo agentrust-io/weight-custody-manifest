@@ -42,10 +42,10 @@ And cryptographic quote verification, through the reference JSON container:
 
 ## What is not covered
 
-- **A synthetic PKI, not vendor roots.** These vectors prove an implementation
+- **A synthetic PKI, not vendor roots.** These gate vectors prove an implementation
   verifies a chain, a signature and a nonce binding correctly. They do not prove it
-  can parse a real AMD, Intel or NVIDIA quote: that is vendor-format work, covered
-  by the SDK's committed real-silicon fixtures rather than by vectors.
+  can parse a real vendor quote. The sibling `vendor` corpus now covers AMD
+  SEV-SNP; Intel TDX remains covered only by SDK fixtures.
 - **GPU-side cryptographic verification.** The quote vectors verify the CPU quote.
   The NVIDIA path is a separate verifier over a real device chain with the raw nonce
   at offset 4, and the H100 fixture in the SDK's own tests covers it today.

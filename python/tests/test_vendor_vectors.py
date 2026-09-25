@@ -1,11 +1,9 @@
 """The vendor-evidence vector format, exercised against a real silicon capture.
 
-No vendor vectors are committed yet, by design: the format lands first and the
-captures follow. So these tests build vectors from the Azure SEV-SNP capture
-already in ``tests/fixtures`` rather than from anything synthetic. That matters
-more than it sounds. Every rule in this format exists because a synthetic chain
-satisfies it already, and a test suite that checked the rules against minted
-certificates would repeat exactly the mistake the format is for.
+These tests load the committed Azure SEV-SNP conformance vector rather than
+reconstructing it from a test-only fixture. That matters more than it sounds:
+the bytes an independent implementation consumes must be the bytes the reference
+runner and its refusal matrix exercise.
 
 Two mutations had to be told where to land, and both were found by running them
 against that capture. An SEV-SNP report carries reserved bytes after its
@@ -40,8 +38,22 @@ from wcm._vendor_vectors import (
 from wcm.conformance import evaluate
 
 FIXTURES = Path(__file__).parent / "fixtures"
-SNP = FIXTURES / "snp_quote_azure.json"
 MATRIX = list(REFUSAL_CASES)
+
+
+def _artifact(relative: Path) -> Path:
+    """Find a repo-root artifact in a checkout or an unpacked sdist."""
+    for parent in Path(__file__).resolve().parents:
+        candidate = parent / relative
+        if candidate.is_file():
+            return candidate
+    raise AssertionError(f"could not find {relative} above {__file__}")
+
+
+SNP = _artifact(
+    Path("conformance/vectors/vendor/accept-snp-azure-attestation-key.json")
+)
+AMD_ROOT = _artifact(Path("conformance/roots/amd-ark-milan.pem"))
 
 #: Substrings every vendor's refusal reason shares, so one declaration covers
 #: an AMD, an Intel and an NVIDIA capture. Substrings rather than exact
@@ -74,15 +86,8 @@ def _digest(pem: str) -> str:
 
 
 def _amd_root() -> str:
-    """AMD's ARK-Milan, the self-signed certificate in the committed chain."""
-    blob = (FIXTURES / "amd_milan_cert_chain.pem").read_bytes()
-    out, buf = [], b""
-    for line in blob.splitlines(True):
-        buf += line
-        if b"END CERTIFICATE" in line:
-            out.append(buf.decode())
-            buf = b""
-    return next(pem for pem in out if _load(pem).subject == _load(pem).issuer)
+    """AMD's independently staged ARK-Milan trust anchor."""
+    return AMD_ROOT.read_text(encoding="ascii")
 
 
 @pytest.fixture
@@ -92,50 +97,16 @@ def stage(tmp_path: Path) -> Path:
 
 
 def _snp_vector(stage: Path) -> dict:
-    """An Azure SEV-SNP capture, in the shape this format defines.
-
-    Its ``REPORT_DATA`` is paravisor-bound to the vTPM attestation key rather
-    than to a guest nonce, which is why the fixture's own ``expected_nonce`` is
-    null and why this vector declares the ``attestation-key`` binding.
-    """
+    """Load the committed vector and stage its independently named root."""
     doc = json.loads(SNP.read_text(encoding="utf-8"))
-    # The root is staged from amd_milan_cert_chain.pem rather than from the
-    # fixture's own root_pem. That field is what the fixture migration removes,
-    # and a format PR should not hold a dependency on a field the next PR
-    # deletes.
     root_pem = _amd_root()
     (stage / "amd-ark.pem").write_text(root_pem)
-    pems = [doc["vcek_pem"], *doc["intermediates_pem"], root_pem]
-    return {
-        "id": "accept-snp-azure-attestation-key",
-        "level": "L2",
-        "kind": "vendor",
-        "description": "An Azure SEV-SNP report whose REPORT_DATA binds the vTPM AK.",
-        "expect": "accept",
-        "capture": {
-            "vendor": "amd",
-            "technology": "sev-snp",
-            "part": "EPYC Milan",
-            "captured_at": "2026-01-01",
-            "source": "committed SDK fixture",
-        },
-        "evidence": {"format": "sev-snp-report", "report_b64": doc["report_b64"]},
-        "chain": {
-            "leaf_pem": doc["vcek_pem"],
-            "intermediates_pem": doc["intermediates_pem"],
-            "root": {"id": "amd-ark-milan", "der_sha256": _digest(root_pem)},
-            "root_source": "AMD KDS, staged by the runner",
-        },
-        "binding": {
-            "kind": "attestation-key",
-            "note": "the paravisor binds REPORT_DATA to the vTPM AK, not a guest nonce",
-        },
-        "validity": {
-            "now": "2026-01-01T00:00:00+00:00",
-            "not_after": min(_load(pem).not_valid_after_utc for pem in pems).isoformat(),
-        },
-        "refusals": {case: {"reason_contains": REASONS[case]} for case in MATRIX},
-    }
+    return doc
+
+
+def test_committed_root_matches_the_vector_identity() -> None:
+    vector = json.loads(SNP.read_text(encoding="utf-8"))
+    assert vector["chain"]["root"]["der_sha256"] == _digest(_amd_root())
 
 
 @pytest.fixture
@@ -159,7 +130,7 @@ def test_a_root_nobody_staged_fails_rather_than_being_fetched(stage: Path) -> No
     and staging a vendor root is a step every real implementer performs anyway.
     """
     vector = _snp_vector(stage)
-    (stage / "amd-ark.pem").unlink()
+    vector["chain"]["root"]["der_sha256"] = "sha256:" + "00" * 32
     with pytest.raises(VendorVectorError) as exc:
         evaluate_vendor(vector, store=load_root_store(extra_dirs=[stage]))
     assert "root not staged" in str(exc.value)
@@ -368,7 +339,7 @@ def test_a_vector_the_runner_cannot_use_fails_rather_than_being_skipped(
     import wcm._vendor_vectors as vv
 
     vector = _snp_vector(stage)
-    (stage / "amd-ark.pem").unlink()
+    vector["chain"]["root"]["der_sha256"] = "sha256:" + "00" * 32
     monkeypatch.setattr(
         vv, "load_root_store", lambda *a, **k: load_root_store(extra_dirs=[stage])
     )

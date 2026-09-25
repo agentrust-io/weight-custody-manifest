@@ -6,6 +6,14 @@ uses semantic-ish versioning while pre-1.0.
 
 ## Unreleased
 
+Add the first real-silicon vendor conformance vector: a genuine Azure SEV-SNP
+report verified against an independently staged AMD ARK-Milan root. The scored
+case declares the paravisor's vTPM-attestation-key binding and derives all six
+mandatory refusal mutations, so passing L2 now exercises real AMD report bytes
+rather than only the synthetic quote container. Intel TDX and GPU vendor vectors
+remain explicitly uncovered. The legacy SDK fixture no longer carries its own
+trust anchor; callers stage the same named root independently.
+
 ## 0.28.4 - 2026-09-24
 
 The v0.28.3 tag points at a commit before the version bump and was never
@@ -218,8 +226,8 @@ vector may not pin a digest of the report nor the full report bytes, which the
 format guarantees by leaving nowhere to put one. The conformance runner is the
 reference validator, `schema/wcm-vendor-vector-v1.schema.json` is the same rules
 published for implementations in other languages, and a test asserts the two
-accept and reject the same vectors. No captures are committed under the kind
-yet.
+accept and reject the same vectors. The format landed before the first capture,
+which is recorded separately above.
 
 
 **[spec/sdk]** Read and gate hardware-reported platform state. SEV-SNP

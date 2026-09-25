@@ -8,6 +8,7 @@ never carries the root itself, and nothing in the suite fetches one.
 
 | File | Subject | DER SHA-256 | Why it is here |
 | --- | --- | --- | --- |
+| `amd-ark-milan.pem` | `CN=ARK-Milan, O=Advanced Micro Devices` | `69d063b45344d26a2e94e1f4210de49ef555308287d4c174445c95639a540bcd` | Public AMD Milan root for the committed Azure SEV-SNP vendor vector; independently staged instead of carried by the vector. |
 | `out-of-chain-root.pem` | `CN=wcm-conformance-out-of-chain-root, O=WCM conformance suite` | `e2993cf147a1b4198a2cbe4d9e7517082773b0cbdcb5186099e7aafe3acbbdc2` | The untrusted anchor in the refusal matrix. Shipped so every runner fails that case for the same reason. |
 
 The out-of-chain root is a test certificate. It signs nothing, it anchors

@@ -179,7 +179,7 @@ def test_coverage_notes_exist_and_say_what_is_missing() -> None:
         assert len(note) > 80, f"too terse to be useful: {note!r}"
     joined = " ".join(COVERAGE_NOTES)
     assert "GPU" in joined
-    assert "synthetic PKI" in joined
+    assert "Intel TDX" in joined
 
 
 def test_every_level_is_vectored() -> None:
@@ -340,7 +340,9 @@ def test_vector_ids_are_globally_unique_and_match_filenames() -> None:
 
 def test_load_vectors_filters() -> None:
     assert load_vectors(level="L4") == load_vectors(kind="lineage")
-    assert load_vectors(level="L2") == load_vectors(kind="gate")
+    assert load_vectors(level="L2") == (
+        load_vectors(kind="gate") + load_vectors(kind="vendor")
+    )
     assert load_vectors(level="L3") == load_vectors(kind="custody")
     # L1 is the only level with two kinds.
     assert len(load_vectors(level="L1")) == len(

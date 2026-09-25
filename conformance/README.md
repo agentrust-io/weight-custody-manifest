@@ -13,24 +13,24 @@ gets scored.
 | Level | Title | Vectors | Shape |
 | --- | --- | --- | --- |
 | L1 | Manifest and joint signature | **32** | documents |
-| L2 | Attestation-gated release | **40** | scenarios |
+| L2 | Attestation-gated release | **41** | scenarios and vendor evidence |
 | L3 | Runtime custody | **12** | scenarios |
 | L4 | Derivative lineage | **10** | documents |
 
-94 vectors. All four levels are vectored and **every reportable error code is
+95 vectors. All four levels are vectored and **every reportable error code is
 exercised by at least one vector**, which a test enforces. L1 and L4 ask a question
-about a document. L2 and L3 ask what a system does over *time*, so their vectors
-are ordered scenarios (see [Scenario vectors](#scenario-vectors)).
+about a document. Most L2 vectors and every L3 vector ask what a system does over
+*time*, so they are ordered scenarios; L2 also carries vendor evidence (see
+[Scenario vectors](#scenario-vectors)).
 
 That is the point at which a pass gets over-read, so here is what it still does
 **not** mean. Both limits are printed by `wcm conformance` on every full run, from
 `COVERAGE_NOTES` in `wcm.conformance`:
 
-- **The quote vectors use a synthetic PKI, not vendor roots.** They prove an
-  implementation verifies a certificate chain, a report signature and a
-  `REPORT_DATA` nonce binding correctly. They do not prove it can parse a real AMD,
-  Intel or NVIDIA quote. That is vendor-format work, and the SDK covers it with
-  committed real-silicon fixtures rather than with vectors.
+- **The vendor corpus covers AMD SEV-SNP, but not Intel TDX.** The AMD vector
+  verifies a genuine Azure report against the staged AMD Milan root and applies
+  all six refusal mutations. Intel remains covered only by SDK fixtures and the
+  synthetic quote vectors do not prove an implementation can parse real TDX bytes.
 - **GPU-side cryptographic verification is not vectored.** The L2 quote vectors
   verify the CPU quote. The NVIDIA path is a separate verifier over a real device
   chain with a raw nonce at offset 4, and the H100 fixture in the SDK's own tests
@@ -416,9 +416,11 @@ the derived ones and could not be scored honestly either, since this kind has no
 The machine-readable form is
 [`schema/wcm-vendor-vector-v1.schema.json`](../schema/wcm-vendor-vector-v1.schema.json).
 
-No captures are committed under this kind yet. The format lands first so that
-captures fit the format rather than the format bending around whichever capture
-arrives first.
+The first committed capture is
+`vectors/vendor/accept-snp-azure-attestation-key.json`: a genuine Azure
+SEV-SNP report whose `REPORT_DATA` is bound by the paravisor to the vTPM
+attestation key, not to a caller nonce. Its AMD ARK-Milan anchor is staged in
+`roots/` and the runner derives all six refusal cases from the accepting capture.
 
 ## Vector format
 
