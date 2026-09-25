@@ -1,0 +1,8 @@
+# Third-party runtime dependencies, mirroring [project.dependencies] in
+# python/pyproject.toml. Installed with --require-hashes before the SDK goes in
+# with --no-deps, because pip cannot hash-pin a local install in the same
+# invocation. Used by the ClusterFuzzLite build. Compile with:
+#   uv pip compile requirements/runtime.in --generate-hashes --universal \
+#     --python-version 3.11 -o requirements/runtime.txt
+pydantic>=2.7,<3
+cryptography>=50,<51

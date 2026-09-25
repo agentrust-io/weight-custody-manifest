@@ -9,7 +9,7 @@ on:
       - "overrides/**"
       - "hooks/**"
       - "mkdocs.yml"
-      - "requirements-docs.txt"
+      - "requirements/docs.txt"
       - ".github/workflows/docs.yml"
   pull_request:
     paths:
@@ -17,7 +17,7 @@ on:
       - "overrides/**"
       - "hooks/**"
       - "mkdocs.yml"
-      - "requirements-docs.txt"
+      - "requirements/docs.txt"
       - ".github/workflows/docs.yml"
   workflow_dispatch:
 
@@ -40,7 +40,7 @@ jobs:
           python-version: "3.12"
           cache: pip
       - name: Install docs dependencies
-        run: pip install -r requirements-docs.txt
+        run: pip install --require-hashes -r requirements/docs.txt
       - name: Build (validate)
         run: mkdocs build
       - name: Configure git and deploy (main only)
