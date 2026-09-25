@@ -21,11 +21,10 @@ injected clock and named nonces (see ``_eval_gate`` / ``_eval_custody``).
 Honest scope, since a green run should not be read as more than it is: L2 covers
 the **policy gate** (nonce freshness and single use, platform, tier, serving-image
 status and prefer-current, composite CPU-to-GPU binding, memory fingerprint,
-revocation freshness, channel binding, key availability). It does **not** yet
-cover cryptographic quote verification, signature and certificate chain against a
-vendor root, which needs raw hardware evidence and trust anchors rather than the
-declarative evidence these vectors carry. Those two codes are listed in
-``NOT_YET_VECTORED_CODES`` so the gap is visible rather than merely absent.
+revocation freshness, channel binding, key availability), synthetic quote
+verification, and one genuine AMD SEV-SNP report against the staged AMD root.
+Intel TDX and NVIDIA vendor vectors remain uncovered and are printed as coverage
+notes rather than hidden behind a green score.
 """
 from __future__ import annotations
 
@@ -86,7 +85,7 @@ LEVELS: dict[str, Level] = {
             "chain, and channel binding so the released key is sealed to the "
             "attested transport key rather than returned on the channel."
         ),
-        kinds=("gate",),
+        kinds=("gate", "vendor"),
     ),
     "L3": Level(
         id="L3",
@@ -203,10 +202,10 @@ COVERAGE_NOTES: tuple[str, ...] = (
     "device chain, and the H100 fixture in the SDK's own tests is what covers it "
     "today; a vector would need the device chain and the raw-nonce-at-offset-4 "
     "convention expressed in the corpus.",
-    "Quote vectors use a synthetic PKI, not vendor roots. They prove an "
-    "implementation verifies a chain, a signature and a nonce binding correctly. "
-    "They do NOT prove it can parse a real AMD, Intel or NVIDIA quote, which is "
-    "vendor-format work the SDK covers with committed real-silicon fixtures.",
+    "The vendor corpus covers one real AMD SEV-SNP report and its full refusal "
+    "matrix. Intel TDX is not yet represented by a vendor vector, so the synthetic "
+    "quote vectors still do not prove an implementation can parse real Intel "
+    "evidence.",
 )
 
 

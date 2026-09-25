@@ -14,7 +14,7 @@ WCM is an open, pre-1.0 specification that binds encrypted weights to a signed
 release policy, so a key broker releases the decryption key only to a workload
 whose attestation matches the manifest.
 
-[Run the 94 conformance vectors](#try-it){ .md-button .md-button--primary }
+[Run the 95 conformance vectors](#try-it){ .md-button .md-button--primary }
 [What this proves, and what it does not](limitations.md){ .md-button }
 
 !!! tip "TL;DR"
@@ -31,8 +31,8 @@ whose attestation matches the manifest.
 
     ---
 
-    `wcm conformance` runs every level offline. The quote vectors use synthetic
-    certificate roots.
+    `wcm conformance` runs every level offline. One vector uses a genuine AMD
+    report and staged root; Intel and GPU vendor vectors remain open.
 
     [Try it](#try-it)
 
@@ -115,13 +115,14 @@ reference suite does not assign a deployment an attacker-resistance tier.
 
 ## What is checked today
 
-The reference implementation ships **94 portable conformance vectors**: 32 at L1,
-40 at L2, 12 at L3, and 10 at L4. Run them yourself with `wcm conformance`.
+The reference implementation ships **95 portable conformance vectors**: 32 at L1,
+41 at L2, 12 at L3, and 10 at L4. Run them yourself with `wcm conformance`.
 
 This is the reference implementation's self-test, not independent certification
-and not a hardware deployment test. CPU quote vectors use synthetic certificate
-roots, GPU cryptographic verification is not covered by them, and the runner
-prints its uncovered cases. See [Schema and conformance](conformance.md).
+and not a hardware deployment test. One L2 vector verifies genuine AMD SEV-SNP
+evidence against the staged AMD root; Intel vendor evidence and GPU cryptographic
+verification remain uncovered, and the runner prints those limits. See
+[Schema and conformance](conformance.md).
 
 ## Try it
 

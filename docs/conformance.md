@@ -41,24 +41,23 @@ defined, matching the four protocol layers:
 | Level | Title | Vectors | Shape |
 | --- | --- | --- | --- |
 | L1 | Manifest and joint signature | 32 | documents |
-| L2 | Attestation-gated release | 37 | scenarios |
+| L2 | Attestation-gated release | 41 | scenarios and vendor evidence |
 | L3 | Runtime custody | 12 | scenarios |
 | L4 | Derivative lineage | 10 | documents |
 
-91 vectors. All four levels are vectored and every reportable error code is
+95 vectors. All four levels are vectored and every reportable error code is
 exercised by at least one vector, which a test enforces. L1 and L4 ask a question
-about a document. L2 and L3 ask what a system does over *time*, so their vectors are
-ordered scenarios with an injected clock and named nonces: a nonce is single-use, a
-lease lapses, an operation budget runs down.
+about a document. Most L2 vectors and every L3 vector ask what a system does over
+*time*, so they are ordered scenarios with an injected clock and named nonces; L2
+also carries vendor evidence.
 
 Two limits remain, and `wcm conformance` prints both on every full run rather than
 leaving a green result to be over-read:
 
-- **The quote vectors use a synthetic PKI**, not vendor roots. They prove an
-  implementation verifies a certificate chain, a report signature and a
-  `REPORT_DATA` nonce binding correctly. They do not prove it can parse a real AMD,
-  Intel or NVIDIA quote, which is vendor-format work the SDK covers with committed
-  real-silicon fixtures.
+- **The vendor corpus covers AMD SEV-SNP, but not Intel TDX.** The AMD vector
+  verifies a genuine Azure report against the staged AMD Milan root and applies
+  the mandatory refusal matrix. Intel remains covered by SDK fixtures, not a
+  language-neutral vendor vector.
 - **GPU-side cryptographic verification is not vectored.** The quote vectors cover
   the CPU quote; the NVIDIA device chain is covered by the SDK's H100 fixture.
 

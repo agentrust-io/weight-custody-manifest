@@ -51,7 +51,7 @@ def test_self_test_states_what_it_does_not_cover(capsys):
     out = capsys.readouterr().out
     assert out.count("NOT COVERED:") >= len(COVERAGE_NOTES)
     assert "GPU-side cryptographic verification is not vectored" in out
-    assert "synthetic PKI" in out
+    assert "Intel TDX is not yet represented by a vendor vector" in out
     for code in NOT_YET_VECTORED_CODES:
         assert code in out
 
