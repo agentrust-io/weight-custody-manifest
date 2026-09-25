@@ -73,7 +73,7 @@ The [RAND weight-security report](https://www.rand.org/pubs/research_reports/RRA
 
 ## What is checked today
 
-The reference implementation ships **95 portable conformance vectors**: 32 at L1, 41 at L2, 12 at L3, and 10 at L4. Run them yourself with `wcm conformance`.
+The reference implementation ships **97 portable conformance vectors**: 32 at L1, 43 at L2, 12 at L3, and 10 at L4. Run them yourself with `wcm conformance`.
 
 This is the reference implementation's self-test, not independent certification and not a hardware deployment test. One L2 vector verifies genuine AMD SEV-SNP evidence against the staged AMD root; Intel vendor evidence and GPU cryptographic verification remain uncovered, and the runner prints those limits. See [Schema and conformance](https://wcm.agentrust-io.com/conformance/index.md).
 

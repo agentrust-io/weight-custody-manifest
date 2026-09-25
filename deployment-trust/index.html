@@ -1953,8 +1953,11 @@ those brokers and enforcing workload key lifetimes are separate controls.</p>
 <h2 id="cpu-to-gpu-confidentiality-acceptance">CPU-to-GPU confidentiality acceptance<a class="headerlink" href="#cpu-to-gpu-confidentiality-acceptance" title="Permanent link">&para;</a></h2>
 <p>The reference HTTP server requires cryptographic GPU verification whenever GPU
 evidence is submitted, using <code>WCM_GPU_TRUST_ROOT_FILE</code>. This closes a structural
-evidence downgrade. The library retains an explicit development mode; callers
-requiring verified GPU reports must set <code>require_gpu_report_verification=True</code>.</p>
+evidence downgrade. In the library, a manifest requires cryptographic
+verification of the CPU quote and GPU report unless it sets
+<code>release_policy.require_evidence_verification: false</code>, so a KBS without a
+verifier refuses. The operator flags <code>require_cpu_quote_verification</code> and
+<code>require_gpu_report_verification</code> can only add to what the manifest requires.</p>
 <p>Shared challenge nonces establish freshness of two reports. They do not by
 themselves establish physical co-location or an authenticated encrypted data
 path between those devices. NVIDIA report signature verification also does not
