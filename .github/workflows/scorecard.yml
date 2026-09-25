@@ -1,0 +1,42 @@
+name: OpenSSF Scorecard
+
+on:
+  branch_protection_rule:
+  schedule:
+    - cron: '30 4 * * 1'
+  push:
+    branches:
+      - main
+
+permissions: read-all
+
+jobs:
+  scorecard:
+    runs-on: ubuntu-latest
+    # Scorecard requires a public repo; the guard keeps a private fork neutral.
+    if: github.event.repository.visibility == 'public'
+    permissions:
+      security-events: write
+      id-token: write
+      contents: read
+      actions: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Run Scorecard
+        uses: ossf/scorecard-action@2d1146689b8cda280b9bc96326124645441f03bc # v2.4.4
+        with:
+          results_file: scorecard-results.sarif
+          results_format: sarif
+          # The repo is public; publish results to the OpenSSF Scorecard API so
+          # the README badge resolves.
+          publish_results: true
+
+      - name: Upload SARIF
+        uses: github/codeql-action/upload-sarif@1c5b675653bb5c22dbe9b12b556ec555138e09fd # v4.38.1
+        with:
+          sarif_file: scorecard-results.sarif

@@ -9,7 +9,8 @@ DCAP v4) is a two-level structure, unlike SEV-SNP's single VCEK signature:
   3. the QE report is signed by the **PCK** leaf certificate; and
   4. the PCK chains PCK -> Intel SGX Processor/Platform CA -> Intel SGX Root CA.
 
-``verify_tdx_quote`` checks all four plus the nonce binding and returns the same
+``verify_tdx_quote`` checks all four, that the QE is Intel's TD Quoting Enclave,
+and the nonce binding, and returns the same
 ``QuoteVerification`` type the rest of the SDK uses. The generic
 ``QuoteVerifier``/``ParsedQuote`` path models a single leaf signature, which does
 not fit this two-level shape, so TDX has its own entry point rather than a
@@ -59,7 +60,27 @@ _SIGNED_LEN = _HEADER_LEN + _TD_REPORT_LEN  # bytes the attestation key signs
 
 # SGX QE report (384 bytes)
 _QE_REPORT_LEN = 384
+_OFF_QE_MISCSELECT = 16       # u32, little-endian
+_OFF_QE_ATTRIBUTES = 48       # 16 bytes
+_OFF_QE_MRSIGNER = 128        # 32 bytes
+_OFF_QE_ISVPRODID = 256       # u16, little-endian
 _OFF_QE_REPORT_DATA = 320     # 64 bytes, within the QE report
+
+# Intel's TD Quoting Enclave identity, from Intel PCS
+# /tdx/certification/v4/qe/identity (id "TD_QE"). The PCK signs a report for
+# any enclave the platform lets hold the provisioning key, and on a flexible
+# launch control host the platform owner decides that. Without this check an
+# owner-built enclave could certify its own attestation key and sign any TD
+# report it likes. Every captured quote in tests/fixtures (GCP and Azure)
+# carries exactly this signer and product id.
+INTEL_TD_QE_MRSIGNER = bytes.fromhex(
+    "dc9e2a7c6f948f17474e34a7fc43ed030f7c1563f1babddf6340c82e0e54a8c5"
+)
+INTEL_TD_QE_ISVPRODID = 2
+_INTEL_TD_QE_ATTRIBUTES = bytes.fromhex("11000000000000000000000000000000")
+_INTEL_TD_QE_ATTRIBUTES_MASK = bytes.fromhex("fbffffffffffffff0000000000000000")
+_INTEL_TD_QE_MISCSELECT = 0
+_INTEL_TD_QE_MISCSELECT_MASK = 0xFFFFFFFF
 
 _ECDSA_SIG_LEN = 64           # r(32) || s(32)
 _ECDSA_PUBKEY_LEN = 64        # x(32) || y(32)
@@ -198,6 +219,10 @@ def parse_tdx_quote(quote: bytes) -> TdxQuote:
     p = _QE_REPORT_LEN + _ECDSA_SIG_LEN
     qe_auth_size = _u16(cd, p)
     p += 2
+    # Both lengths below come from the quote itself, so bound them before
+    # reading past them: struct.error is not QuoteFormatError.
+    if p + qe_auth_size + 6 > len(cd):
+        raise QuoteFormatError("QE authentication data or PCK cert-data header truncated")
     qe_auth = cd[p:p + qe_auth_size]
     p += qe_auth_size
 
@@ -205,6 +230,8 @@ def parse_tdx_quote(quote: bytes) -> TdxQuote:
     pck_size = _u32(cd, p + 2)
     p += 6
     pck_blob = cd[p:p + pck_size]
+    if len(pck_blob) != pck_size:
+        raise QuoteFormatError("PCK cert chain truncated")
     if pck_type != _CERT_TYPE_PCK_CHAIN:
         raise QuoteFormatError(f"unexpected PCK cert-data type {pck_type} (want {_CERT_TYPE_PCK_CHAIN})")
     try:
@@ -229,6 +256,28 @@ def parse_tdx_quote(quote: bytes) -> TdxQuote:
     )
 
 
+def _qe_identity_error(qe_report: bytes) -> Optional[str]:
+    """Return why *qe_report* is not Intel's TD QE, or None if it is.
+
+    Matches the Intel PCS QE identity fields that do not move between TCB
+    recoveries: signer, product id, and the masked attributes and MISCSELECT.
+    The QE's ISVSVN is a TCB-level question for Intel collateral and is not
+    judged here.
+    """
+    mrsigner = qe_report[_OFF_QE_MRSIGNER:_OFF_QE_MRSIGNER + 32]
+    if mrsigner != INTEL_TD_QE_MRSIGNER:
+        return f"QE report is not from Intel's TD Quoting Enclave (MRSIGNER {mrsigner.hex()})"
+    if _u16(qe_report, _OFF_QE_ISVPRODID) != INTEL_TD_QE_ISVPRODID:
+        return "QE report product id is not Intel's TD Quoting Enclave"
+    attributes = qe_report[_OFF_QE_ATTRIBUTES:_OFF_QE_ATTRIBUTES + 16]
+    masked = bytes(a & m for a, m in zip(attributes, _INTEL_TD_QE_ATTRIBUTES_MASK))
+    if masked != _INTEL_TD_QE_ATTRIBUTES:
+        return "QE report attributes do not match Intel's TD Quoting Enclave (debug or unexpected flags)"
+    if _u32(qe_report, _OFF_QE_MISCSELECT) & _INTEL_TD_QE_MISCSELECT_MASK != _INTEL_TD_QE_MISCSELECT:
+        return "QE report MISCSELECT does not match Intel's TD Quoting Enclave"
+    return None
+
+
 def verify_tdx_quote(
     quote: bytes,
     trust_store: TrustStore,
@@ -241,14 +290,19 @@ def verify_tdx_quote(
 
     Checks, in order: the attestation-key signature over header+TD report; the
     attestation key's binding into the QE report; the QE report signature by the
-    PCK leaf; the PCK chain to a trusted Intel SGX root; and, when
-    *expected_nonce* is given, that the TD report's REPORT_DATA binds it.
+    PCK leaf; that the QE report is Intel's TD Quoting Enclave (Intel PCS QE
+    identity: signer, product id, masked attributes and MISCSELECT); the PCK
+    chain to a trusted Intel SGX root; and, when *expected_nonce* is given, that
+    the TD report's REPORT_DATA binds it. TCB status (PCK TCB levels, QE ISVSVN)
+    needs Intel collateral and is not evaluated here.
 
-    Pass ``expected_nonce=None`` on platforms where REPORT_DATA is not
-    guest-controlled: on the Azure vTPM path the paravisor binds it to the vTPM
-    attestation key, so freshness comes from the enclosing vTPM quote, not this
-    field, and checking it here would always fail. Bare-metal / configfs-tsm
-    guests do control REPORT_DATA, so pass the nonce there.
+    ``expected_nonce=None`` skips the only freshness check this function has,
+    so the result then says nothing about when the quote was produced and a
+    captured quote replays. On the Azure vTPM path REPORT_DATA is bound by the
+    paravisor to the HCL runtime data, not to a caller nonce, and
+    ``AzureTdxVtpmProvider`` does not capture a nonce-bound vTPM quote alongside
+    it, so no WCM verifier can establish freshness for that evidence today.
+    Bare-metal / configfs-tsm guests do control REPORT_DATA; pass the nonce there.
 
     ``channel_binding`` is the enclave's attested transport public key (raw
     bytes) when channel binding is in use, else empty; REPORT_DATA must then bind
@@ -274,7 +328,7 @@ def verify_tdx_quote(
     #    report's REPORT_DATA (sha256(att_pubkey || qe_auth), zero-padded).
     expect_binding = hashlib.sha256(q.attestation_pubkey + q.qe_auth_data).digest()
     qe_report_data = q.qe_report[_OFF_QE_REPORT_DATA:_OFF_QE_REPORT_DATA + 64]
-    if qe_report_data[:32] != expect_binding:
+    if qe_report_data[:32] != expect_binding or qe_report_data[32:] != bytes(32):
         return QuoteVerification(False, "attestation key not bound in the QE report")
 
     # 3. PCK leaf signs the QE report.
@@ -288,15 +342,19 @@ def verify_tdx_quote(
     except (InvalidSignature, ValueError):
         return QuoteVerification(False, "QE report signature does not verify under the PCK leaf")
 
+    # 3b. The enclave the PCK vouched for is Intel's TD Quoting Enclave.
+    qe_identity_error = _qe_identity_error(q.qe_report)
+    if qe_identity_error is not None:
+        return QuoteVerification(False, qe_identity_error)
+
     # 4. PCK chains to a trusted Intel SGX root.
     chain_error = verify_cert_chain(q.pck_leaf, q.pck_intermediates, trust_store, current)
     if chain_error is not None:
         return QuoteVerification(False, chain_error)
 
     # 5. Nonce binding (guest-controlled REPORT_DATA, e.g. bare-metal / configfs-tsm).
-    #    Skipped when expected_nonce is None: on the Azure vTPM path REPORT_DATA is
-    #    paravisor-bound to the vTPM AK, so freshness lives in the enclosing vTPM
-    #    quote, not here (see the docstring).
+    #    Skipped when expected_nonce is None, and then nothing here binds the
+    #    quote to a point in time (see the docstring for the Azure vTPM case).
     if expected_nonce is not None:
         expected = hashlib.sha256(bytes.fromhex(expected_nonce) + channel_binding).digest()
         if q.report.report_data[:32] != expected:

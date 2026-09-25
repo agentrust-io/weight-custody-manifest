@@ -581,3 +581,34 @@ def test_require_cc_mode_absent_keeps_existing_preimage(example_dict, example_ma
     assert "require_cc_mode" not in (
         example_manifest.unsigned_dict()["release_policy"]["required_gpu_measurement"]
     )
+
+
+@pytest.mark.parametrize("where", ["manifest", "evidence"])
+def test_lone_surrogate_is_a_denial_and_does_not_burn_the_nonce(example_manifest, where):
+    # json.loads accepts "\ud800"; the canonicalizer cannot encode it. That used
+    # to raise out of verify_and_release after the nonce was already consumed.
+    kbs = _kbs(example_manifest)
+    current, _, _, rim = _measurements(example_manifest)
+    challenge = kbs.issue_challenge()
+    evidence = SoftwareProvider().produce(
+        challenge, serving_image_measurement=current, gpu_measurement=rim
+    )
+    manifest = example_manifest
+    if where == "manifest":
+        manifest = example_manifest.model_copy(deep=True)
+        manifest.release_terms.license = "terms \ud800"
+    else:
+        evidence = evidence.model_copy(deep=True)
+        evidence.cpu.attestation_key_id = "key \ud800"
+
+    decision = kbs.verify_and_release(manifest, evidence)
+    assert not decision.released and decision.key is None
+    assert [c.name for c in decision.checks] == ["input_canonical"]
+    with pytest.raises(ValueError, match="canonicalize"):
+        kbs.verify_for_renewal(manifest, evidence)
+
+    # The same challenge still works for well-formed input.
+    clean = SoftwareProvider().produce(
+        challenge, serving_image_measurement=current, gpu_measurement=rim
+    )
+    assert kbs.verify_and_release(example_manifest, clean).released

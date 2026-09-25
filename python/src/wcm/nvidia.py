@@ -143,7 +143,7 @@ class NvidiaGpuVerifier:
             doc = json.loads(base64.b64decode(evidence_b64))
             report = base64.b64decode(doc["report_b64"])
             certs = load_pem_certificates(doc["cert_chain_pem"].encode())
-        except (KeyError, ValueError, TypeError, binascii.Error) as exc:
+        except (KeyError, ValueError, TypeError, AttributeError, binascii.Error) as exc:
             return QuoteVerification(False, f"unparseable GPU evidence: {exc}")
         if not certs:
             return QuoteVerification(False, "GPU evidence carries no certificate chain")

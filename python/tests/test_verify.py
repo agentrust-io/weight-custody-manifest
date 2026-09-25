@@ -119,3 +119,65 @@ def test_sovereign_requires_declared_signer(example_dict):
         ]
     )
     assert verify_manifest(right, ctx).ok
+
+
+def _relabel(block, role, signer):
+    # role and signer sit outside the signed pre-image, so relabelling a block
+    # leaves its signature valid.
+    return {**block, "role": role, "signer": signer}
+
+
+def test_one_key_cannot_sign_as_both_builder_and_custodian(example_manifest):
+    builder, custodian = generate_ed25519(), generate_ed25519()
+    ctx = VerificationContext()
+    ctx.add_key(builder.public_bytes)
+    ctx.add_key(custodian.public_bytes)
+    block = _sign(example_manifest, builder, "builder", "example-builder")
+    forged = example_manifest.with_signatures(
+        [block, _relabel(block, "custodian", "opaque-systems")]
+    )
+
+    result = verify_manifest(forged, ctx)
+    assert not result.ok
+    assert SignatureRole.custodian in result.missing_roles
+    assert any("its own key" in e for e in result.errors)
+
+
+def test_builder_key_cannot_stand_in_for_the_sovereign(example_dict):
+    from wcm import WeightCustodyManifest
+
+    example_dict["release_policy"]["sovereign_profile"]["enabled"] = True
+    example_dict["release_policy"]["sovereign_profile"]["sovereign_signer"] = "sov-team"
+    example_dict["release_policy"]["revocation_authority"] = "quorum"
+    manifest = WeightCustodyManifest.model_validate(example_dict)
+    builder, custodian, sovereign = (generate_ed25519() for _ in range(3))
+    ctx = VerificationContext()
+    for kp in (builder, custodian, sovereign):
+        ctx.add_key(kp.public_bytes)
+    b = _sign(manifest, builder, "builder", "example-builder")
+    forged = manifest.with_signatures(
+        [b, _sign(manifest, custodian, "custodian", "opaque-systems"),
+         _relabel(b, "sovereign", "sov-team")]
+    )
+
+    result = verify_manifest(forged, ctx)
+    assert not result.ok
+    assert SignatureRole.sovereign in result.missing_roles
+
+
+def test_byom_symmetric_single_identity_may_use_one_key(example_dict):
+    from wcm import WeightCustodyManifest
+
+    example_dict["deployment_model"] = "byom-symmetric"
+    example_dict["custody"]["custodian_type"] = "customer-self-custody"
+    example_dict["custody"]["custodian"] = example_dict["builder"]["identity"]
+    manifest = WeightCustodyManifest.model_validate(example_dict)
+    org = generate_ed25519()
+    ctx = VerificationContext()
+    ctx.add_key(org.public_bytes)
+    block = _sign(manifest, org, "builder", example_dict["builder"]["identity"])
+    signed = manifest.with_signatures(
+        [block, _relabel(block, "custodian", example_dict["builder"]["identity"])]
+    )
+
+    assert verify_manifest(signed, ctx).ok

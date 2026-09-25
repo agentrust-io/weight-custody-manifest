@@ -767,3 +767,15 @@ def test_renewal_refuses_expired_failed_and_post_wipe_decisions(example_manifest
     clock.advance(86401)
     with pytest.raises(KeyWipedError, match="already zeroized"):
         session.apply_renewal(example_manifest, fresh)
+
+
+def test_from_release_rejects_a_manifest_other_than_the_released_one(example_manifest):
+    # Cadence and the time floor are read from the manifest handed in, so a
+    # copy with a ten-year cadence must not ride on the pinned manifest's release.
+    clock = _clock()
+    decision = _released_decision(example_manifest, clock)
+    assert decision.released
+    stretched = example_manifest.model_copy(deep=True)
+    stretched.custody.attestation_cadence = "3650d"
+    with pytest.raises(ValueError, match="released against"):
+        EnclaveSession.from_release(stretched, decision, now=clock)

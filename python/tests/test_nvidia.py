@@ -286,3 +286,16 @@ def test_kbs_gpu_must_bind_this_nonce(example_manifest):
     decision = kbs.verify_and_release(example_manifest, ev)
     assert not decision.released
     assert any(c.name == "gpu_report_verified" and not c.passed for c in decision.checks)
+
+
+def test_non_string_cert_chain_is_a_denial_not_an_exception():
+    # cert_chain_pem as a JSON number raised AttributeError out of verify().
+    b = _real_bundle()
+    evidence = base64.b64encode(
+        json.dumps({"report_b64": b["report_b64"], "cert_chain_pem": 1}).encode()
+    ).decode()
+    result = build_gpu_verifier(_real_root_pem()).verify(
+        evidence, expected_nonce=b["nonce"], now=NOW
+    )
+    assert not result.verified
+    assert "unparseable GPU evidence" in (result.reason or "")

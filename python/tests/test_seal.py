@@ -66,3 +66,11 @@ def test_seal_rejects_bad_recipient_key():
         seal_to_public_key("not-hex", PAYLOAD)
     with pytest.raises(SealError):
         seal_to_public_key("00" * 8, PAYLOAD)  # wrong length for X25519
+
+
+@pytest.mark.parametrize("low_order", ["00" * 32, "01" + "00" * 31])
+def test_low_order_recipient_key_raises_seal_error(low_order):
+    # These points give an all-zero shared secret; cryptography's ValueError
+    # used to escape instead of the module's documented SealError.
+    with pytest.raises(SealError, match="low-order"):
+        seal_to_public_key(low_order, PAYLOAD)

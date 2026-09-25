@@ -115,6 +115,10 @@ def combine_shares(shares: list[Share]) -> bytes:
     if not shares:
         raise ValueError("need at least one share")
     xs = [s.x for s in shares]
+    # x=0 is the secret's own coordinate: a share there would dictate the
+    # output. Above 255 is outside GF(256).
+    if any(type(x) is not int or not 1 <= x <= 255 for x in xs):
+        raise ValueError("share x-coordinates must be integers in 1..255")
     if len(set(xs)) != len(xs):
         raise ValueError("shares must have distinct x-coordinates")
     length = len(shares[0].y)
