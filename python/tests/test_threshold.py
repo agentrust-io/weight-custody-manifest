@@ -84,3 +84,14 @@ def test_combine_rejects_mismatched_lengths():
 
     with pytest.raises(ValueError):
         combine_shares([Share(1, b"\x01\x02"), Share(2, b"\x03")])
+
+
+def test_combine_rejects_x_outside_gf256_nonzero():
+    # x=0 is the secret's own coordinate, so one share there would dictate the
+    # reconstructed key; x=256 is outside the field.
+    from wcm.threshold import Share
+
+    good = split_secret(b"\x42" * 16, threshold=2, shares=3)
+    for bad_x in (0, 256, -1):
+        with pytest.raises(ValueError, match="1..255"):
+            combine_shares([good[0], Share(x=bad_x, y=b"\x00" * 16)])

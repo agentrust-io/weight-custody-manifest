@@ -41,7 +41,9 @@ class HashValue(str):
     def _validate(cls, v: Any) -> "HashValue":
         if not isinstance(v, str):
             raise ValueError(f"HashValue must be a string, got {type(v).__name__}")
-        if not cls._PATTERN.match(v):
+        # fullmatch: re.match with ``$`` also accepts one trailing newline,
+        # which would give one digest two spellings.
+        if not cls._PATTERN.fullmatch(v):
             prefix = v.split(":")[0] if ":" in v else v[:10]
             raise ValueError(
                 f"Invalid hash value (prefix='{prefix}'). "

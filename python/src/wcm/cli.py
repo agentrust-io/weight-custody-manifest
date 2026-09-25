@@ -50,8 +50,14 @@ from .tdx import parse_tdx_quote, verify_tdx_quote
 # Pinned vendor roots (SHA-256 over the DER). When the root travels inside the
 # evidence chain (the TDX PCK chain, the NVIDIA device chain), pinning its
 # fingerprint is the out-of-band trust anchor a real verifier uses instead of
-# trusting whatever root the evidence happened to carry. AMD's root is carried in
-# the SNP bundle and pinned by the caller's own trust store there.
+# trusting whatever root the evidence happened to carry. The SNP bundle carries
+# AMD's ARK the same way, so it is pinned the same way: an ARK that is not one of
+# these needs an explicit --root. Fingerprints are of the ARKs AMD KDS serves at
+# /vcek/v1/{Milan,Genoa}/cert_chain; Milan matches conformance/roots.
+AMD_ARK_SHA256 = {
+    "69d063b45344d26a2e94e1f4210de49ef555308287d4c174445c95639a540bcd",  # ARK-Milan
+    "4c6598d19c18719c5dfd4a7d335f674e5bfe1d8f800cea2cf270c10d103db2f1",  # ARK-Genoa
+}
 INTEL_SGX_ROOT_CA_SHA256 = "44a0196b2b99f889b8e149e95b807a350e7424964399e885a7cbb8ccfab674d3"
 NVIDIA_DEVICE_ROOT_SHA256 = "102bf659d5419614c9d8e6aecebc80454eb26b1df6a769ac720b9a690b167b48"
 
@@ -258,11 +264,18 @@ def _verify_snp(bundle: dict[str, Any], args: argparse.Namespace) -> QuoteVerifi
         load_pem_certificate(p.encode())
         for p in bundle.get("intermediates_pem", [])
     ]
-    root = (
-        _load_root_pem(args.root)
-        if args.root
-        else load_pem_certificate(bundle["root_pem"].encode())
-    )
+    if args.root:
+        root = _load_root_pem(args.root)
+    else:
+        if "root_pem" not in bundle:
+            return QuoteVerification(False, "bundle carries no AMD root; pass --root")
+        root = load_pem_certificate(bundle["root_pem"].encode())
+        if _fp(root) not in AMD_ARK_SHA256:
+            return QuoteVerification(
+                False,
+                f"bundled root fingerprint {_fp(root)} is not a pinned AMD ARK; "
+                "pass --root to trust it explicitly",
+            )
     trust = TrustStore()
     trust.add_root(root)
     nonce = args.nonce or bundle.get("expected_nonce")
@@ -272,8 +285,9 @@ def _verify_snp(bundle: dict[str, Any], args: argparse.Namespace) -> QuoteVerifi
             bundle["report_b64"], expected_nonce=nonce
         )
     # Azure vTPM path: REPORT_DATA binds the vTPM AK, not our nonce, so verify the
-    # chain and report signature (genuine on Azure); freshness lives in the
-    # separate vTPM quote over the AK, one layer up.
+    # chain and report signature (genuine on Azure). Freshness lives in the
+    # separate vTPM quote over the AK (AzureSnpVtpmVerifier), which this command
+    # does not check, so this result says nothing about when the report was made.
     now = datetime.now(timezone.utc)
     chain_error = verify_cert_chain(vcek, inters, trust, now)
     if chain_error is not None:
@@ -299,8 +313,9 @@ def _verify_tdx(bundle: dict[str, Any], args: argparse.Namespace) -> QuoteVerifi
         root = next((c for c in chain if c.subject == c.issuer), None)
         if root is None:
             return QuoteVerification(False, "no self-signed root in the quote's PCK chain")
-        pinned = bundle.get("intel_sgx_root_ca_sha256") or INTEL_SGX_ROOT_CA_SHA256
-        if _fp(root) != pinned:
+        # The pin is ours, never the bundle's: a bundle that names its own
+        # fingerprint would pin whatever root it carries.
+        if _fp(root) != INTEL_SGX_ROOT_CA_SHA256:
             return QuoteVerification(
                 False,
                 f"PCK-chain root fingerprint {_fp(root)} does not match the pinned Intel SGX root",

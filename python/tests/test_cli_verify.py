@@ -63,14 +63,36 @@ def _manifest_file(tmp_path: pathlib.Path, doc: dict) -> str:
 # -- verify-quote: SNP ---------------------------------------------------------
 
 
-def test_vq_snp_synthetic_ok(capsys):
-    assert main(["verify-quote", "--kind", "snp", str(FIXTURES / "snp_quote_synthetic.json")]) == 0
+def _synthetic_snp_root(tmp_path: pathlib.Path) -> str:
+    # Trusting the synthetic ARK has to be an explicit caller decision.
+    bundle = json.loads((FIXTURES / "snp_quote_synthetic.json").read_text())
+    p = tmp_path / "synthetic-ark.pem"
+    p.write_text(bundle["root_pem"], encoding="utf-8")
+    return str(p)
+
+
+def test_vq_snp_synthetic_ok(capsys, tmp_path):
+    rc = main(
+        ["verify-quote", "--kind", "snp", str(FIXTURES / "snp_quote_synthetic.json"),
+         "--root", _synthetic_snp_root(tmp_path)]
+    )
+    assert rc == 0
     assert "verified  : True" in capsys.readouterr().out
 
 
-def test_vq_snp_wrong_nonce(capsys):
+def test_vq_snp_bundled_root_is_not_trusted_unless_pinned(capsys):
+    # The bundle is the evidence under test; the root it carries used to be
+    # trusted as is, so a fully self-made chain verified with exit code 0.
+    rc = main(["verify-quote", "--kind", "snp", str(FIXTURES / "snp_quote_synthetic.json")])
+    assert rc == 1
+    out = capsys.readouterr().out
+    assert "verified  : False" in out and "not a pinned AMD ARK" in out
+
+
+def test_vq_snp_wrong_nonce(capsys, tmp_path):
     rc = main(
-        ["verify-quote", "--kind", "snp", str(FIXTURES / "snp_quote_synthetic.json"), "--nonce", BAD_NONCE]
+        ["verify-quote", "--kind", "snp", str(FIXTURES / "snp_quote_synthetic.json"),
+         "--nonce", BAD_NONCE, "--root", _synthetic_snp_root(tmp_path)]
     )
     assert rc == 1
     out = capsys.readouterr().out
@@ -125,6 +147,29 @@ def test_vq_tdx_wrong_nonce(capsys):
     )
     assert rc == 1
     assert "verified  : False" in capsys.readouterr().out
+
+
+def test_vq_tdx_bundle_cannot_supply_its_own_root_pin(capsys, tmp_path):
+    import base64
+    import hashlib
+    import sys
+
+    sys.path.insert(0, str(pathlib.Path(__file__).parent))
+    from test_tdx import NONCE, build_quote
+
+    quote, root = build_quote()
+    bundle = {
+        "quote_b64": base64.b64encode(quote).decode(),
+        "expected_nonce": NONCE,
+        "intel_sgx_root_ca_sha256": hashlib.sha256(
+            root.public_bytes(serialization.Encoding.DER)
+        ).hexdigest(),
+    }
+    path = tmp_path / "self-pinned.json"
+    path.write_text(json.dumps(bundle), encoding="utf-8")
+    assert main(["verify-quote", "--kind", "tdx", str(path)]) == 1
+    out = capsys.readouterr().out
+    assert "verified  : False" in out and "pinned Intel SGX root" in out
 
 
 def test_vq_tdx_untrusted_root(capsys, tmp_path):

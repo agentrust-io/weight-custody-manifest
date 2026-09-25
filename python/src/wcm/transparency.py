@@ -145,10 +145,14 @@ def verify_inclusion(
         return False
     if proof.tree_size != sth.tree_size:
         return False
+    try:
+        expected_root = sth.root_bytes()
+    except (IndexError, ValueError):
+        return False  # a malformed root commits to nothing
     computed = compute_root_from_proof(
         leaf_hash, proof.leaf_index, proof.tree_size, proof.audit_path, _sha256
     )
-    return computed == sth.root_bytes()
+    return computed == expected_root
 
 
 def verify_log_consistency(

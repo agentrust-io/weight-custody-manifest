@@ -436,3 +436,59 @@ def test_snp_profile_rejects_non_p384_key():
     verifier = QuoteVerifier(JsonQuoteParser(report_signature_algorithm="ecdsa-p384-sha384"), _trust(pki))
     result = verifier.verify(_container(pki, _report_body(NONCE)), expected_nonce=NONCE, now=NOW)
     assert not result.verified and "signature" in result.reason
+
+
+def test_non_string_pem_in_container_is_a_denial_not_an_exception():
+    # A JSON number where a PEM string belongs raised AttributeError out of
+    # verify(), past the QuoteFormatError handling.
+    pki = Pki()
+    for change in ({"leaf_pem": 1}, {"intermediates_pem": [1]}):
+        doc = json.loads(base64.b64decode(_container(pki, _report_body(NONCE))))
+        doc.update(change)
+        quote = base64.b64encode(json.dumps(doc).encode()).decode()
+        result = _verifier(pki).verify(quote, expected_nonce=NONCE, now=NOW)
+        assert not result.verified
+        assert "unparseable quote container" in (result.reason or "")
+
+
+def test_end_entity_certificate_cannot_issue():
+    # A leaf under a trusted root (VCEK, PCK, GPU device leaf) must not be able
+    # to sign a further "leaf" for a key of its holder's choosing.
+    pki = Pki()
+    rogue_key = _key()
+    rogue = _cert("rogue", "attestation-key", rogue_key, pki.leaf_key)
+    reason = verify_cert_chain(rogue, [pki.leaf, pki.inter], _trust(pki), NOW)
+    assert reason is not None and "not a CA" in reason
+    # Same shape with the leaf directly under the root.
+    direct = _cert("rogue", "wcm-test-root", rogue_key, pki.root_key)
+    assert verify_cert_chain(direct, [], _trust(pki), NOW) is None  # control
+    rogue2 = _cert("rogue2", "rogue", _key(), rogue_key)
+    reason = verify_cert_chain(rogue2, [direct], _trust(pki), NOW)
+    assert reason is not None and "not a CA" in reason
+
+
+def test_path_length_constraint_is_honoured():
+    root_key, a_key, b_key, leaf_key = _key(), _key(), _key(), _key()
+
+    def ca(subject, issuer, key, issuer_key, path_length):
+        return (
+            x509.CertificateBuilder()
+            .subject_name(x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, subject)]))
+            .issuer_name(x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, issuer)]))
+            .public_key(key.public_key())
+            .serial_number(x509.random_serial_number())
+            .not_valid_before(NOW - timedelta(days=1))
+            .not_valid_after(NOW + timedelta(days=365))
+            .add_extension(x509.BasicConstraints(ca=True, path_length=path_length), critical=True)
+            .sign(issuer_key, hashes.SHA256())
+        )
+
+    root = ca("root", "root", root_key, root_key, None)
+    a = ca("a", "root", a_key, root_key, 0)  # may issue only end entities
+    b = ca("b", "a", b_key, a_key, None)
+    leaf = _cert("leaf", "b", leaf_key, b_key)
+    ts = TrustStore()
+    ts.add_root(root)
+    reason = verify_cert_chain(leaf, [b, a], ts, NOW)
+    assert reason is not None and "not a CA" in reason
+    assert verify_cert_chain(_cert("leaf", "a", leaf_key, a_key), [a], ts, NOW) is None

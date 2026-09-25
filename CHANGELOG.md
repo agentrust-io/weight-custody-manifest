@@ -32,6 +32,37 @@ and `tools/capture_gpu_cc_mode.py`. They establish that this adapter cannot
 read the mode from what it receives. They do not establish what every device,
 driver or host configuration reports.
 
+**Fixed (verification).** A sweep of the verifiers and the release path:
+
+- `verify_manifest` no longer lets one key satisfy two required roles. `role`
+  and `signer` sit outside the signed pre-image, so a builder's signature
+  relabelled as `custodian` (or `sovereign`) passed as a joint signature. Each
+  required role now needs its own trusted key; `byom-symmetric` with one
+  identity for builder and custodian keeps the single-key case SPEC 3.1 allows.
+- `verify_tdx_quote` checks that the QE report is Intel's TD Quoting Enclave
+  (Intel PCS QE identity: MRSIGNER, ISVPRODID 2, masked attributes and
+  MISCSELECT) and that the QE REPORT_DATA tail is zero. Before, any enclave the
+  PCK certified could vouch for an attestation key.
+- Certificate chains require every issuer to be a CA (`basicConstraints`,
+  `pathLenConstraint`, `keyCertSign`), so a leaf under a trusted root can no
+  longer issue.
+- `wcm verify-quote --kind snp` no longer trusts the AMD root carried in the
+  bundle unless it is a pinned ARK (Milan, Genoa) or passed with `--root`, and
+  `--kind tdx` no longer takes the Intel root pin from the bundle.
+- `EnclaveSession.from_release` refuses a manifest other than the one the key
+  was released against, since cadence and time floor are read from it.
+- `ChallengeStore` is thread-safe (two concurrent presentations of one nonce
+  both passed) and drops expired challenges instead of keeping every nonce ever
+  issued.
+- Malformed attacker bytes return a denial instead of raising from
+  `AzureSnpVtpmVerifier`, `parse_tdx_quote`, `JsonQuoteParser` and
+  `NvidiaGpuVerifier`.
+- `HashValue` rejects a trailing newline, Merkle inclusion rejects a leaf index
+  outside the tree, and `combine_shares` rejects share x outside 1..255.
+- Docs: the Azure TDX provider takes no nonce-bound vTPM quote, so its evidence
+  has no freshness binding; the docstrings that said it did are corrected, and
+  `LIMITATIONS.md` says so.
+
 ## 0.28.4 - 2026-09-24
 
 The v0.28.3 tag points at a commit before the version bump and was never

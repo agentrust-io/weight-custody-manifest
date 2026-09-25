@@ -94,7 +94,7 @@ class JsonQuoteParser:
                 report_data_offset=int(doc.get("report_data_offset", 0)),
                 report_signature_algorithm=self._report_signature_algorithm,
             )
-        except (KeyError, ValueError, TypeError) as exc:
+        except (KeyError, ValueError, TypeError, AttributeError) as exc:
             raise QuoteFormatError(f"unparseable quote container: {exc}") from exc
 
 
@@ -176,6 +176,30 @@ def _signed_by(cert: x509.Certificate, issuer: x509.Certificate) -> bool:
         return False
 
 
+def _may_issue(issuer: x509.Certificate, certs_below: int) -> bool:
+    """True if *issuer* is a CA allowed to sit *certs_below* CAs above a leaf.
+
+    RFC 5280 6.1.4: an issuing certificate must assert basicConstraints cA,
+    honour pathLenConstraint, and, when keyUsage is present, keyCertSign.
+    Without this any end-entity certificate under a trusted root (a VCEK, a
+    PCK, a GPU device leaf) could sign a further "leaf" for a key its holder
+    chose.
+    """
+    try:
+        bc = issuer.extensions.get_extension_for_class(x509.BasicConstraints).value
+    except x509.ExtensionNotFound:
+        return False
+    if not bc.ca:
+        return False
+    if bc.path_length is not None and certs_below > bc.path_length:
+        return False
+    try:
+        ku = issuer.extensions.get_extension_for_class(x509.KeyUsage).value
+    except x509.ExtensionNotFound:
+        return True
+    return bool(ku.key_cert_sign)
+
+
 def _valid_at(cert: x509.Certificate, now: datetime) -> bool:
     return cert.not_valid_before_utc <= now <= cert.not_valid_after_utc
 
@@ -193,13 +217,20 @@ def verify_cert_chain(
             return f"certificate outside validity window: {chain[i].subject.rfc4514_string()}"
         if not _signed_by(chain[i], chain[i + 1]):
             return "broken certificate chain (a link is not signed by the next)"
+        if not _may_issue(chain[i + 1], i):
+            return (
+                "certificate is not a CA permitted to issue at this depth: "
+                f"{chain[i + 1].subject.rfc4514_string()}"
+            )
     top = chain[-1]
     if not _valid_at(top, now):
         return f"certificate outside validity window: {top.subject.rfc4514_string()}"
     for root in trust_store.roots:
         if not _valid_at(root, now):
             continue
-        if top == root or _signed_by(top, root):
+        if top == root:
+            return None
+        if _signed_by(top, root) and _may_issue(root, len(chain) - 1):
             return None
     return "does not chain to a trusted root"
 
