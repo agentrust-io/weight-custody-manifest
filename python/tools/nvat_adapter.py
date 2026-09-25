@@ -11,6 +11,11 @@ The adapter deliberately composes two checks:
 The emitted ``measurement`` is a canonical identity derived only after the
 required NVIDIA appraisal claims pass. It is suitable for a manifest
 ``required_gpu_measurement.rim_pin``.
+
+``cc_mode`` is emitted as ``None``, because no signed NVIDIA evidence states
+it. A release therefore fails closed unless the manifest waives the check with
+``required_gpu_measurement.require_cc_mode: false``, which is a decision for
+whoever signs the manifest rather than for this adapter.
 """
 from __future__ import annotations
 
@@ -23,6 +28,38 @@ from typing import Any
 
 class NvatAdapterError(RuntimeError):
     pass
+
+
+# Why this adapter emits the confidential-compute mode as unknown.
+#
+# It used to emit ``cc_mode: True`` unconditionally, so the gate added in
+# GHSA-j665-99rh-w85h read an assertion from this file rather than evidence
+# from the device, and had no way to deny along this path.
+#
+# What this adapter is given does not carry the mode:
+#
+# * the NRAS v4 appraisal carried 22 detached claims, plus
+#   ``x-nvidia-overall-att-result`` and ``x-nvidia-ver``. None named the mode.
+#   Captured 19 September 2026 from an RTX PRO 6000 Blackwell.
+# * no opaque field in the signed report changed when the GPUs ready state was
+#   set on and then off, which is the only confidential-compute control a guest
+#   can operate. Captured 25 September 2026 from an H100 80GB HBM3, driver
+#   595.71.05, CC on, inside a TDX guest.
+# * the attestation certificate chain from that H100 carried device identity
+#   and a firmware measurement, and no configuration state.
+#
+# Two devices, two drivers and two host configurations. That establishes that
+# this adapter cannot read the mode from what it receives, which is all this
+# file claims. It does not establish what every NVIDIA device, driver or host
+# configuration reports, and in particular it does not establish that every
+# verified report implies confidential mode.
+#
+# The captures are under tests/fixtures/nvidia/cc-mode and are checked by
+# tests/test_gpu_cc_mode_captures.py rather than restated here.
+#
+# If NVIDIA exposes the mode, in an appraisal claim or a documented report
+# field, read it here and return the real value.
+_CC_MODE_UNSTATED = None
 
 
 def _jwt_payload(token: str) -> dict[str, Any]:
@@ -140,11 +177,9 @@ def adapt(
     measurement = f"nvidia-rim:arch={arch};driver={driver};vbios={vbios}"
     return {
         "measurement": measurement,
-        # Asserted, not read from the device: none of the appraisal claims
-        # checked above states the confidential-compute mode, so this adapter
-        # only emits evidence for a GPU its operator has put in CC mode. The
-        # KBS gate reports the value as unsigned (GHSA-j665-99rh-w85h).
-        "cc_mode": True,
+        # The gate denies an unstated mode, which is the correct outcome for
+        # a value nothing this adapter receives establishes.
+        "cc_mode": _CC_MODE_UNSTATED,
         "report_b64": quote_b64,
         "appraisal": "nvidia-local",
     }

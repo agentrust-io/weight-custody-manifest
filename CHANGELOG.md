@@ -14,6 +14,24 @@ rather than only the synthetic quote container. Intel TDX and GPU vendor vectors
 remain explicitly uncovered. The legacy SDK fixture no longer carries its own
 trust anchor; callers stage the same named root independently.
 
+**Changed (behaviour).** `tools/nvat_adapter.py` no longer asserts
+confidential-compute mode. It emitted `cc_mode: True` unconditionally, so the
+gate added in GHSA-j665-99rh-w85h read a constant from the adapter rather than
+evidence from the device and could not deny along that path. It now emits
+unknown, which the gate denies (`WCM-L2-0018`).
+
+A release through this adapter therefore fails closed. A deployment that
+accepts the risk can waive the check with
+`required_gpu_measurement.require_cc_mode: false`, which is the existing,
+explicit waiver and belongs to whoever signs the manifest. The adapter does not
+set it and nothing enables it automatically.
+
+Captures from an H100 with the mode on and off, the attestation certificate
+chain, and the capture tool are under `python/tests/fixtures/nvidia/cc-mode`
+and `tools/capture_gpu_cc_mode.py`. They establish that this adapter cannot
+read the mode from what it receives. They do not establish what every device,
+driver or host configuration reports.
+
 ## 0.28.4 - 2026-09-24
 
 The v0.28.3 tag points at a commit before the version bump and was never
