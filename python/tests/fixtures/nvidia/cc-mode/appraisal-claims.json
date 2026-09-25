@@ -1,0 +1,37 @@
+{
+  "label": "nras-v4-appraisal",
+  "device": "NVIDIA RTX PRO 6000 Blackwell",
+  "captured": "2026-09-19",
+  "endpoint": "https://nras.attestation.nvidia.com/v4/attest/gpu",
+  "policy_version": "4.0",
+  "overall_claims": [
+    "x-nvidia-overall-att-result",
+    "x-nvidia-ver"
+  ],
+  "detached_claims": [
+    "dbgstat",
+    "measres",
+    "secboot",
+    "x-nvidia-gpu-arch-check",
+    "x-nvidia-gpu-attestation-report-cert-chain",
+    "x-nvidia-gpu-attestation-report-cert-chain-fwid-match",
+    "x-nvidia-gpu-attestation-report-nonce-match",
+    "x-nvidia-gpu-attestation-report-parsed",
+    "x-nvidia-gpu-attestation-report-signature-verified",
+    "x-nvidia-gpu-driver-rim-cert-chain",
+    "x-nvidia-gpu-driver-rim-fetched",
+    "x-nvidia-gpu-driver-rim-measurements-available",
+    "x-nvidia-gpu-driver-rim-schema-validated",
+    "x-nvidia-gpu-driver-rim-signature-verified",
+    "x-nvidia-gpu-driver-rim-version-match",
+    "x-nvidia-gpu-vbios-index-no-conflict",
+    "x-nvidia-gpu-vbios-rim-cert-chain",
+    "x-nvidia-gpu-vbios-rim-fetched",
+    "x-nvidia-gpu-vbios-rim-measurements-available",
+    "x-nvidia-gpu-vbios-rim-schema-validated",
+    "x-nvidia-gpu-vbios-rim-signature-verified",
+    "x-nvidia-gpu-vbios-rim-version-match"
+  ],
+  "detached_claim_count": 22,
+  "note": "The claim names as returned. No claim concerns confidential-compute mode. The signed token and the request nonce are not kept: neither bears on which claims exist, and the token is tied to one session."
+}

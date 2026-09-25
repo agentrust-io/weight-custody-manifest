@@ -1,0 +1,38 @@
+{
+  "label": "cc-off-h100",
+  "device": "NVIDIA H100 80GB HBM3",
+  "driver": "580.126.09",
+  "conf_compute": {
+    "feature": "CC status: OFF",
+    "ready_state": "Confidential Compute GPUs Ready state: not-ready",
+    "memory": "",
+    "devtools": "",
+    "query": "CC State: OFF\nMulti-GPU Mode: None\nCPU CC Capabilities: None\nGPU CC Capabilities: CC Capable\nCC GPUs Ready State: Not Ready\nCC Environment: UNAVAILABLE"
+  },
+  "nvml_calls": {
+    "attestation_report": {
+      "answered": false,
+      "nvml_code": 999,
+      "error": "Unknown Error"
+    },
+    "gpu_certificate": {
+      "answered": false,
+      "nvml_code": 999,
+      "error": "Unknown Error"
+    },
+    "protected_memory": {
+      "answered": true
+    },
+    "mem_size_info": {
+      "answered": true
+    }
+  },
+  "device_nodes_present": [
+    "/dev/nvidiactl",
+    "/dev/nvidia3",
+    "/dev/nvidia-modeset",
+    "/dev/nvidia-uvm",
+    "/dev/nvidia-uvm-tools",
+    "/dev/nvidia-caps"
+  ]
+}

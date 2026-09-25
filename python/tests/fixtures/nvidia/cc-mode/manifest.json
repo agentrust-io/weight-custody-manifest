@@ -1,0 +1,22 @@
+{
+  "captured": "2026-09-25",
+  "purpose": "Whether nvat_adapter can establish GPU confidential-compute mode from what it receives.",
+  "written_by": "tools/capture_gpu_cc_mode.py, one file per device",
+  "files": {
+    "cc-on-h100.json": "H100 80GB HBM3, CC on, inside a TDX guest. The signed report's opaque fields, the attestation certificate chain, and a second report taken with the GPUs ready state off.",
+    "cc-off-h100.json": "H100 80GB HBM3 of the same model, CC off, on non-confidential infrastructure. Which confidential-compute NVML calls answer and which refuse, with the numeric return code.",
+    "blackwell-opaque-fields.json": "RTX PRO 6000 Blackwell with the mode on, for cross-device comparison of the opaque fields.",
+    "cc-on-h100-attestation-chain.pem": "cert_chain_b64 from cc-on-h100.json, decoded, for reading. Five certificates.",
+    "appraisal-claims.json": "The NRAS v4 appraisal claim names as returned, from a Blackwell device on 19 September 2026. No claim concerns confidential-compute mode."
+  },
+  "checked_by": "python/tests/test_gpu_cc_mode_captures.py reads these files and asserts the comparisons the change rests on, so the numbers are verified rather than asserted in prose.",
+  "what_this_establishes": "The adapter's inputs do not carry the mode. No appraisal claim named it, no opaque field moved with the one confidential-compute control a guest can operate, and the certificate chain carried identity and a firmware measurement only.",
+  "what_this_does_not_establish": [
+    "That every verified report implies confidential mode. Two devices on two drivers cannot support that, and the adapter does not claim it.",
+    "What a different driver version reports. 595.71.05 against 580.126.09.",
+    "What a confidential host with the GPU mode deliberately disabled reports. That configuration needs host-side control and was not tested."
+  ],
+  "reproduce": "python tools/capture_gpu_cc_mode.py --out <dir> --label <name>. Needs nvidia-ml-py and a GPU; makes no network requests.",
+  "note": "The ready-state transition was one way from inside the guest. Having set it off, both nvidia-smi and NVML refused to set it back and only a reboot restored it. Do not run the sweep on a machine that matters.",
+  "not_captured": "The endpoint-version probe. NRAS answered on v3 and v4 and returned 404 for v5 when checked on 25 September 2026, which is why the v4 claim set above is treated as current. No artefact of that probe was kept, so it is an observation rather than evidence in this directory."
+}
