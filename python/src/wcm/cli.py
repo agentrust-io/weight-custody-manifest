@@ -219,6 +219,13 @@ def cmd_gate(args: argparse.Namespace) -> int:
 
     from .renewal import manifest_identity
 
+    # Mock evidence cannot be verified cryptographically, so the checks that
+    # need it are waived for the diagnostic and reported as SKIP, rather than
+    # reported as a refusal a real KBS with verifiers would not make.
+    needs_real = _verification_requirements(m)
+    if needs_real:
+        m = _waived_for_diagnostic(m)
+
     kbs = KeyBrokerService(
         {m.weights_hash: b"diagnostic-placeholder-key-0000"},
         trusted_manifest_identities={manifest_identity(m)},
@@ -239,13 +246,48 @@ def cmd_gate(args: argparse.Namespace) -> int:
     print(f"  platform        : {platform}   serving-image: {serving[:23]}...")
     print("  checks:")
     for c in decision.checks:
+        # Only a passing check is shown as SKIP: a GPU measurement or binding
+        # failure still fails with the mode waived, and must read as FAIL.
+        if c.name in needs_real and c.passed:
+            print(f"    [SKIP] {c.name}  {needs_real[c.name]}")
+            continue
         mark = "PASS" if c.passed else "FAIL"
         detail = f"  {c.detail}" if c.detail else ""
         print(f"    [{mark}] {c.name}{detail}")
     print(f"  released        : {decision.released}")
     if not decision.released:
         print("  -> a KBS with this policy would REFUSE to release the key.")
+    elif needs_real:
+        print("  -> SKIP checks need real evidence and a configured verifier.")
     return 0 if decision.released else 1
+
+
+def _verification_requirements(m: WeightCustodyManifest) -> dict[str, str]:
+    """Checks the manifest requires that mock evidence cannot satisfy."""
+    rp = m.release_policy
+    out: dict[str, str] = {}
+    if rp.require_evidence_verification is not False:
+        reason = "the manifest requires cryptographic verification; mock evidence has none"
+        out["cpu_quote_verified"] = reason
+        if rp.required_gpu_measurement is not None:
+            out["gpu_report_verified"] = reason
+    gpu = rp.required_gpu_measurement
+    if gpu is not None and gpu.require_cc_mode is not False:
+        out["gpu"] = (
+            "confidential-compute mode is met only by a verified GPU report; "
+            "measurement and nonce binding are still checked"
+        )
+    return out
+
+
+def _waived_for_diagnostic(m: WeightCustodyManifest) -> WeightCustodyManifest:
+    rp = m.release_policy
+    update: dict[str, Any] = {"require_evidence_verification": False}
+    if rp.required_gpu_measurement is not None:
+        update["required_gpu_measurement"] = rp.required_gpu_measurement.model_copy(
+            update={"require_cc_mode": False}
+        )
+    return m.model_copy(update={"release_policy": rp.model_copy(update=update)})
 
 
 def _print_quote_result(kind: str, result: QuoteVerification) -> int:

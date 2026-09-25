@@ -34,7 +34,8 @@
             "status": "current"
           }
         ]
-      }
+      },
+      "require_evidence_verification": false
     },
     "custody": {
       "custodian": "example-custodian",

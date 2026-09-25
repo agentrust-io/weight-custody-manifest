@@ -1,11 +1,11 @@
 {
-  "id": "deny-no-key-for-these-weights",
+  "id": "deny-evidence-verification-required-without-verifier",
   "level": "L2",
   "kind": "gate",
-  "description": "Every policy check passes but the KBS holds no key for this weights_hash. The gate must report that rather than release something else or fail obscurely.",
+  "description": "A manifest silent on require_evidence_verification requires cryptographic verification of the CPU quote. A KBS with no verifier configured must refuse rather than fall back to trusting the evidence's structured fields, however well those fields match the policy.",
   "expect": "reject",
-  "code": "WCM-L2-0017",
-  "reject_reason": "no key is held for this weights_hash",
+  "code": "WCM-L2-0019",
+  "reject_reason": "the manifest requires cryptographic evidence verification and the KBS has no verifier",
   "manifest": {
     "manifest_version": "1.0",
     "weights_hash": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
@@ -34,8 +34,7 @@
             "status": "current"
           }
         ]
-      },
-      "require_evidence_verification": false
+      }
     },
     "custody": {
       "custodian": "example-custodian",
@@ -50,7 +49,9 @@
   },
   "kbs": {
     "clock": "2026-01-01T00:00:00+00:00",
-    "keystore": {}
+    "keystore": {
+      "sha256:1111111111111111111111111111111111111111111111111111111111111111": "a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1"
+    }
   },
   "steps": [
     {
@@ -69,7 +70,7 @@
         }
       },
       "expect": "deny",
-      "code": "WCM-L2-0017"
+      "code": "WCM-L2-0019"
     }
   ]
 }
