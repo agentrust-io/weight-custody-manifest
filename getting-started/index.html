@@ -1665,7 +1665,8 @@
 <h2 id="install">Install<a class="headerlink" href="#install" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/agentrust-io/weight-custody-manifest
 <span class="nb">cd</span><span class="w"> </span>weight-custody-manifest/python
-pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span><span class="s2">".[dev]"</span><span class="w">      </span><span class="c1"># add ".[server]" for the reference KBS server</span>
+pip<span class="w"> </span>install<span class="w"> </span>--require-hashes<span class="w"> </span>-r<span class="w"> </span>../requirements/dev.txt<span class="w">   </span><span class="c1"># includes the KBS server deps</span>
+pip<span class="w"> </span>install<span class="w"> </span>--no-deps<span class="w"> </span>-e<span class="w"> </span>.
 </code></pre></div>
 <h2 id="build-sign-verify-a-manifest">Build, sign, verify a manifest<a class="headerlink" href="#build-sign-verify-a-manifest" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">wcm</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>

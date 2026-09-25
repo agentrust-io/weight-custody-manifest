@@ -7,7 +7,8 @@ The reference SDK lives in [`python/`](https://github.com/agentrust-io/weight-cu
 ```
 git clone https://github.com/agentrust-io/weight-custody-manifest
 cd weight-custody-manifest/python
-pip install -e ".[dev]"      # add ".[server]" for the reference KBS server
+pip install --require-hashes -r ../requirements/dev.txt   # includes the KBS server deps
+pip install --no-deps -e .
 ```
 
 ## Build, sign, verify a manifest
