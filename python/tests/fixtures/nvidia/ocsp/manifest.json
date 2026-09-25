@@ -1,0 +1,104 @@
+{
+  "answers": [
+    {
+      "asked_common_name": "GH100 A01 GSP FMC LF",
+      "bytes": 5,
+      "file": "fmc_leaf_nonce.der",
+      "label": "fmc_leaf",
+      "nonce_sent": true,
+      "response_status": "UNAUTHORIZED",
+      "sha256": "bebe2853a3485d1c2e5c5be4249183e0ddaff9f87de71652371700a89d937128"
+    },
+    {
+      "asked_common_name": "GH100 A01 GSP FMC LF",
+      "bytes": 5,
+      "file": "fmc_leaf_nononce.der",
+      "label": "fmc_leaf",
+      "nonce_sent": false,
+      "response_status": "UNAUTHORIZED",
+      "sha256": "bebe2853a3485d1c2e5c5be4249183e0ddaff9f87de71652371700a89d937128"
+    },
+    {
+      "asked_common_name": "GH100 A01 GSP BROM",
+      "bytes": 1057,
+      "certificate_status": "GOOD",
+      "file": "brom_nonce.der",
+      "label": "brom",
+      "next_update": "2026-09-20T08:12:22+00:00",
+      "nonce_sent": true,
+      "responder_common_name": "NVIDIA OCSP Responder L3 GH100 ICA1 Identity",
+      "response_status": "SUCCESSFUL",
+      "sha256": "2e857f614b00a058051712c696f62cfaabbc6139435efb16d5dbfaf1085d3aee",
+      "this_update": "2026-09-19T08:12:22+00:00"
+    },
+    {
+      "asked_common_name": "GH100 A01 GSP BROM",
+      "bytes": 1004,
+      "certificate_status": "GOOD",
+      "file": "brom_nononce.der",
+      "label": "brom",
+      "next_update": "2026-09-20T08:12:22+00:00",
+      "nonce_sent": false,
+      "responder_common_name": "NVIDIA OCSP Responder L3 GH100 ICA1 Identity",
+      "response_status": "SUCCESSFUL",
+      "sha256": "ec3ff99ae005d9da2ef5481ce74106e06852615b244cabb8f564ba3d4bfefdbc",
+      "this_update": "2026-09-19T08:12:22+00:00"
+    },
+    {
+      "asked_common_name": "NVIDIA GH100 Provisioner ICA 1",
+      "bytes": 1038,
+      "certificate_status": "GOOD",
+      "file": "provisioner_ica_nonce.der",
+      "label": "provisioner_ica",
+      "next_update": "2026-09-20T08:12:23+00:00",
+      "nonce_sent": true,
+      "responder_common_name": "NVIDIA OCSP Responder L2 GH100 Identity",
+      "response_status": "SUCCESSFUL",
+      "sha256": "45b16e1f373a19e9be27fdd1df4133a9a17b1b041f843eff48d2b3921be0e22d",
+      "this_update": "2026-09-19T08:12:23+00:00"
+    },
+    {
+      "asked_common_name": "NVIDIA GH100 Provisioner ICA 1",
+      "bytes": 985,
+      "certificate_status": "GOOD",
+      "file": "provisioner_ica_nononce.der",
+      "label": "provisioner_ica",
+      "next_update": "2026-09-20T08:12:23+00:00",
+      "nonce_sent": false,
+      "responder_common_name": "NVIDIA OCSP Responder L2 GH100 Identity",
+      "response_status": "SUCCESSFUL",
+      "sha256": "357493c83b705c6746ebc4b4bebcea046573b2b6bc63ae830c9c79384e10299a",
+      "this_update": "2026-09-19T08:12:23+00:00"
+    },
+    {
+      "asked_common_name": "NVIDIA GH100 Identity",
+      "bytes": 1008,
+      "certificate_status": "GOOD",
+      "file": "identity_ca_nonce.der",
+      "label": "identity_ca",
+      "next_update": "2026-09-20T08:12:24+00:00",
+      "nonce_sent": true,
+      "responder_common_name": "NVIDIA OCSP Responder L1-A 02",
+      "response_status": "SUCCESSFUL",
+      "sha256": "f515c73491d140b553134398e902ae6e0ba1b6f654f5fcb554d2ad8f0972cc20",
+      "this_update": "2026-09-19T08:12:24+00:00"
+    },
+    {
+      "asked_common_name": "NVIDIA GH100 Identity",
+      "bytes": 954,
+      "certificate_status": "GOOD",
+      "file": "identity_ca_nononce.der",
+      "label": "identity_ca",
+      "next_update": "2026-09-20T08:12:24+00:00",
+      "nonce_sent": false,
+      "responder_common_name": "NVIDIA OCSP Responder L1-A 02",
+      "response_status": "SUCCESSFUL",
+      "sha256": "a6c1243c036af5589661d45787c9cddec5c80dc48e89ce5400f006f767865dd3",
+      "this_update": "2026-09-19T08:12:24+00:00"
+    }
+  ],
+  "captured_at": "2026-09-19T08:12:20.994609+00:00",
+  "certid_hash": "SHA384",
+  "responder": "http://ocsp.ndis.nvidia.com",
+  "source_attestation": "gpu_h100_attestation.json"
+}

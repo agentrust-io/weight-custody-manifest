@@ -430,7 +430,22 @@ class EnclaveSession:
         if renewal_id in self._used_renewals:
             raise ValueError("renewal decision was already applied")
         self._used_renewals.add(renewal_id)
-        self._deadline = current + timedelta(seconds=self._cadence)
+        # The cadence is the ceiling, not the answer. A decision that rested on
+        # evidence expiring sooner may not buy a window that outlives it: cache
+        # age alone is not enough if applying the decision still grants another
+        # full cadence. Reuse must not restart the clock.
+        deadline = current + timedelta(seconds=self._cadence)
+        if decision.evidence_expires_at is not None:
+            try:
+                bound = datetime.fromisoformat(
+                    decision.evidence_expires_at.replace("Z", "+00:00")
+                )
+            except (TypeError, ValueError) as exc:
+                raise ValueError("renewal decision evidence bound is invalid") from exc
+            if bound.tzinfo is None:
+                raise ValueError("renewal decision evidence bound is invalid")
+            deadline = min(deadline, bound)
+        self._deadline = deadline
         self._ops = 0
 
     def use_key(self, now: Optional[datetime] = None) -> bytes:

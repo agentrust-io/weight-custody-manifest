@@ -1,0 +1,228 @@
+{
+  "measured_at": "2026-09-24T09:12:19.854487+00:00",
+  "host": "confidential NVIDIA H100 guest, Intel TDX, CC on",
+  "responder": "http://ocsp.ndis.nvidia.com",
+  "requests": 30,
+  "answered": 20,
+  "failed": 10,
+  "failure_rate": 0.333,
+  "errors": {
+    "TimeoutError": 8,
+    "ConnectionResetError": 2
+  },
+  "median_success_seconds": 0.091,
+  "all_answers_good": true,
+  "note": "single attempt each, no retry; this is the per-request rate the client must survive",
+  "samples": [
+    {
+      "n": 1,
+      "link": "brom",
+      "ok": true,
+      "status": "GOOD",
+      "seconds": 0.124
+    },
+    {
+      "n": 2,
+      "link": "provisioner_ica",
+      "ok": true,
+      "status": "GOOD",
+      "seconds": 0.093
+    },
+    {
+      "n": 3,
+      "link": "identity_ca",
+      "ok": true,
+      "status": "GOOD",
+      "seconds": 0.087
+    },
+    {
+      "n": 4,
+      "link": "brom",
+      "ok": false,
+      "error": "TimeoutError",
+      "seconds": 8.02
+    },
+    {
+      "n": 5,
+      "link": "provisioner_ica",
+      "ok": true,
+      "status": "GOOD",
+      "seconds": 0.089
+    },
+    {
+      "n": 6,
+      "link": "identity_ca",
+      "ok": false,
+      "error": "TimeoutError",
+      "seconds": 8.02
+    },
+    {
+      "n": 7,
+      "link": "brom",
+      "ok": true,
+      "status": "GOOD",
+      "seconds": 0.089
+    },
+    {
+      "n": 8,
+      "link": "provisioner_ica",
+      "ok": false,
+      "error": "TimeoutError",
+      "seconds": 8.021
+    },
+    {
+      "n": 9,
+      "link": "identity_ca",
+      "ok": true,
+      "status": "GOOD",
+      "seconds": 0.094
+    },
+    {
+      "n": 10,
+      "link": "brom",
+      "ok": true,
+      "status": "GOOD",
+      "seconds": 0.086
+    },
+    {
+      "n": 11,
+      "link": "provisioner_ica",
+      "ok": false,
+      "error": "TimeoutError",
+      "seconds": 8.021
+    },
+    {
+      "n": 12,
+      "link": "identity_ca",
+      "ok": true,
+      "status": "GOOD",
+      "seconds": 0.091
+    },
+    {
+      "n": 13,
+      "link": "brom",
+      "ok": false,
+      "error": "ConnectionResetError",
+      "seconds": 0.233
+    },
+    {
+      "n": 14,
+      "link": "provisioner_ica",
+      "ok": true,
+      "status": "GOOD",
+      "seconds": 0.092
+    },
+    {
+      "n": 15,
+      "link": "identity_ca",
+      "ok": true,
+      "status": "GOOD",
+      "seconds": 0.105
+    },
+    {
+      "n": 16,
+      "link": "brom",
+      "ok": false,
+      "error": "ConnectionResetError",
+      "seconds": 0.241
+    },
+    {
+      "n": 17,
+      "link": "provisioner_ica",
+      "ok": false,
+      "error": "TimeoutError",
+      "seconds": 8.022
+    },
+    {
+      "n": 18,
+      "link": "identity_ca",
+      "ok": false,
+      "error": "TimeoutError",
+      "seconds": 8.023
+    },
+    {
+      "n": 19,
+      "link": "brom",
+      "ok": false,
+      "error": "TimeoutError",
+      "seconds": 8.021
+    },
+    {
+      "n": 20,
+      "link": "provisioner_ica",
+      "ok": true,
+      "status": "GOOD",
+      "seconds": 0.096
+    },
+    {
+      "n": 21,
+      "link": "identity_ca",
+      "ok": true,
+      "status": "GOOD",
+      "seconds": 0.091
+    },
+    {
+      "n": 22,
+      "link": "brom",
+      "ok": true,
+      "status": "GOOD",
+      "seconds": 0.088
+    },
+    {
+      "n": 23,
+      "link": "provisioner_ica",
+      "ok": true,
+      "status": "GOOD",
+      "seconds": 0.091
+    },
+    {
+      "n": 24,
+      "link": "identity_ca",
+      "ok": true,
+      "status": "GOOD",
+      "seconds": 0.096
+    },
+    {
+      "n": 25,
+      "link": "brom",
+      "ok": true,
+      "status": "GOOD",
+      "seconds": 0.088
+    },
+    {
+      "n": 26,
+      "link": "provisioner_ica",
+      "ok": true,
+      "status": "GOOD",
+      "seconds": 0.091
+    },
+    {
+      "n": 27,
+      "link": "identity_ca",
+      "ok": true,
+      "status": "GOOD",
+      "seconds": 0.089
+    },
+    {
+      "n": 28,
+      "link": "brom",
+      "ok": false,
+      "error": "TimeoutError",
+      "seconds": 8.021
+    },
+    {
+      "n": 29,
+      "link": "provisioner_ica",
+      "ok": true,
+      "status": "GOOD",
+      "seconds": 0.098
+    },
+    {
+      "n": 30,
+      "link": "identity_ca",
+      "ok": true,
+      "status": "GOOD",
+      "seconds": 0.088
+    }
+  ]
+}

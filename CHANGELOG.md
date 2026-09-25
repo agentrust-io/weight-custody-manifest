@@ -32,6 +32,39 @@ and `tools/capture_gpu_cc_mode.py`. They establish that this adapter cannot
 read the mode from what it receives. They do not establish what every device,
 driver or host configuration reports.
 
+**Added.** Live, nonce-bound OCSP for the NVIDIA GPU attestation chain, in
+`wcm.gpu_revocation`. `attestation_revocation_check` is specified as
+live-per-release with a short cache window, but the gate behind it compared a
+configured revoked-key set against a self-reported cache age. Nothing fills
+that set unless an operator does, and every provider reports its own age, so
+the check could not fail. `KeyBrokerService` takes an optional
+`gpu_revocation_client`; with one configured the check asks NVIDIA per release,
+with a fresh nonce per request, and fails closed when it cannot get an answer.
+Without one it still passes, but now says what it rested on.
+
+Answers are matched on the full CertID, serial plus issuer name hash plus
+issuer key hash, since a nonce ties an answer to a request and not to a
+certificate. A held answer lets a running deployment ride out an outage; a
+first release may not use one. It is bounded by both its own `nextUpdate` and
+the short window measured from when it was obtained, and is keyed on the same
+CertID so one issuer's answer is never served for another issuer's certificate
+carrying the same serial.
+
+The check never establishes the signing leaf's own revocation status: the GPU
+issues that certificate to itself and NVIDIA is not authoritative for it. That
+limit is in the detail string a caller sees and is pinned by a test.
+
+**Changed (signed payload).** `RenewalDecision` gains `evidence_expires_at`, so
+a permission window cannot outlive the evidence it rests on. Clamping the
+decision alone was not enough: `CustodySession.apply_renewal` set its deadline
+from the cadence and used the decision's expiry only as a validity gate, so a
+decision valid for one minute produced a custody deadline a day out. The field
+is optional and defaults to None, so a decision without one behaves as before,
+but it does change the signed bytes for decisions that carry it.
+
+Captured responder answers, both reachability datasets and
+`tools/capture_gpu_ocsp.py` are under `python/tests/fixtures/nvidia`.
+
 ## 0.28.4 - 2026-09-24
 
 The v0.28.3 tag points at a commit before the version bump and was never
