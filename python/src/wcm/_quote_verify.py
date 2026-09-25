@@ -72,15 +72,33 @@ class JsonQuoteParser:
     ``ecdsa-p384-sha384``, ``rsa-pss-sha256`` (32-byte salt),
     ``rsa-pkcs1-sha256``, or ``ed25519``. The input container cannot override it.
     Vendor parsers select the algorithm required by their report format.
+
+    ``report_data_offset`` is verifier configuration too. A container may still
+    carry the field, but it must equal the configured value. Letting the
+    evidence choose it would let a relay point the nonce comparison at any
+    signed 32 bytes, including fields a hostile host sets at launch (SEV-SNP
+    HOST_DATA, TDX MRCONFIGID), and so bind the nonce to its own transport key.
     """
 
-    def __init__(self, *, report_signature_algorithm: str = "ecdsa-sha256") -> None:
+    def __init__(
+        self,
+        *,
+        report_signature_algorithm: str = "ecdsa-sha256",
+        report_data_offset: int = 0,
+    ) -> None:
         # Configuration belongs to the verifier's parser, not the input JSON.
         self._report_signature_algorithm = report_signature_algorithm
+        self._report_data_offset = report_data_offset
 
     def parse(self, quote_b64: str) -> ParsedQuote:
         try:
             doc = json.loads(base64.b64decode(quote_b64))
+            claimed = doc.get("report_data_offset", self._report_data_offset)
+            if type(claimed) is not int or claimed != self._report_data_offset:
+                raise ValueError(
+                    f"report_data_offset {claimed!r} is not the configured "
+                    f"{self._report_data_offset}"
+                )
             leaf = load_pem_certificate(doc["leaf_pem"].encode())
             inters = [
                 load_pem_certificate(p.encode())
@@ -91,7 +109,7 @@ class JsonQuoteParser:
                 signature=base64.b64decode(doc["signature_b64"]),
                 leaf=leaf,
                 intermediates=inters,
-                report_data_offset=int(doc.get("report_data_offset", 0)),
+                report_data_offset=self._report_data_offset,
                 report_signature_algorithm=self._report_signature_algorithm,
             )
         except (KeyError, ValueError, TypeError, AttributeError) as exc:

@@ -179,8 +179,32 @@ def test_malformed_quote_fails():
 def test_offset_report_data():
     pki = Pki()
     q = _container(pki, _report_body(NONCE, offset=16), offset=16)
-    result = _verifier(pki).verify(q, expected_nonce=NONCE, now=NOW)
+    verifier = QuoteVerifier(JsonQuoteParser(report_data_offset=16), _trust(pki))
+    result = verifier.verify(q, expected_nonce=NONCE, now=NOW)
     assert result.verified
+
+
+def test_container_cannot_move_the_report_data_offset():
+    # A genuine report whose REPORT_DATA binds the enclave's own transport key,
+    # plus a second signed field (standing in for launch-time HOST_DATA set by a
+    # hostile host) that binds the nonce to the relay's key. Letting the
+    # container pick the offset let the relay aim the check at the second field.
+    pki = Pki()
+    enclave_key, relay_key = b"" * 32, b"" * 32
+    body = (
+        hashlib.sha256(bytes.fromhex(NONCE) + enclave_key).digest() + bytes(32)
+        + hashlib.sha256(bytes.fromhex(NONCE) + relay_key).digest()
+    )
+    relayed = _container(pki, body, offset=64)
+    result = _verifier(pki).verify(
+        relayed, expected_nonce=NONCE, channel_binding=relay_key, now=NOW
+    )
+    assert not result.verified
+    assert "report_data_offset" in (result.reason or "")
+    honest = _container(pki, body, offset=0)
+    assert _verifier(pki).verify(
+        honest, expected_nonce=NONCE, channel_binding=enclave_key, now=NOW
+    ).verified
 
 
 def test_rsa_pss_chain_verifies():
@@ -492,3 +516,26 @@ def test_path_length_constraint_is_honoured():
     reason = verify_cert_chain(leaf, [b, a], ts, NOW)
     assert reason is not None and "not a CA" in reason
     assert verify_cert_chain(_cert("leaf", "a", leaf_key, a_key), [a], ts, NOW) is None
+
+
+def test_low_order_transport_key_is_a_denial_not_an_exception(example_manifest):
+    # The quote genuinely binds a low-order "transport key"; sealing to it
+    # raised out of verify_and_release. It must deny and release nothing.
+    pki = Pki()
+    current, rim = _measurements(example_manifest)
+    kbs = KeyBrokerService(
+        {example_manifest.weights_hash: KEY32},
+        now=lambda: NOW,
+        cpu_quote_verifier=_verifier(pki),
+        require_channel_binding=True,
+        trusted_manifest_identities={manifest_identity(example_manifest)},
+    )
+    low_order = "00" * 32
+    challenge = kbs.issue_challenge()
+    q = _container(pki, _report_body_cb(challenge.nonce, bytes.fromhex(low_order)))
+    ev = _evidence(challenge.nonce, quote_b64=q, current=current, rim=rim)
+    ev.cpu.transport_public_key = low_order
+    decision = kbs.verify_and_release(example_manifest, ev)
+    assert not decision.released
+    assert decision.key is None and decision.sealed_key is None
+    assert any(c.name == "key_sealed" and not c.passed for c in decision.checks)

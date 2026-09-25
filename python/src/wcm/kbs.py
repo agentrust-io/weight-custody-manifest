@@ -25,7 +25,7 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
 from ._challenge import Challenge, ChallengeError, ChallengeStore
 from ._quote_verify import QuoteFormatError, QuoteVerifier
-from ._seal import seal_to_public_key
+from ._seal import SealError, seal_to_public_key
 from .nvidia import NvidiaGpuVerifier
 from .attestation import CompositeEvidence
 from .models import (
@@ -37,6 +37,7 @@ from .models import (
 from .snp import extract_snp_report_from_hcl, parse_snp_report
 from .renewal import (
     RenewalDecision,
+    evidence_identity,
     manifest_identity,
     renewal_public_key,
     sign_renewal_decision,
@@ -162,6 +163,21 @@ class KeyBrokerService:
         rp = manifest.release_policy
         nonce = evidence.cpu.nonce_echo
 
+        # 0. Both inputs must canonicalize before anything is decided. The
+        #    manifest identity and the renewal signature are computed over them,
+        #    and a string the canonicalizer cannot encode (a lone surrogate from
+        #    JSON) used to raise after the nonce below was already spent.
+        try:
+            manifest_hash = manifest_identity(manifest)
+            evidence_identity(evidence)
+        except (ValueError, TypeError) as exc:
+            return ReleaseDecision(
+                released=False,
+                key=None,
+                checks=[CheckResult("input_canonical", False, f"cannot canonicalize input: {exc}")],
+                renewal_public_key_b64url=renewal_public_key(self._renewal_signing_key),
+            )
+
         # 1. Nonce: issued by this KBS, unexpired, unused. A hard gate: if it
         #    fails there is nothing else to check.
         try:
@@ -171,7 +187,7 @@ class KeyBrokerService:
                 released=False,
                 key=None,
                 checks=[CheckResult("nonce_fresh", False, str(exc))],
-                manifest_hash=manifest_identity(manifest),
+                manifest_hash=manifest_hash,
                 renewal_public_key_b64url=renewal_public_key(self._renewal_signing_key),
             )
 
@@ -181,7 +197,6 @@ class KeyBrokerService:
         #     Accept only an exact manifest identity pinned by the KBS operator.
         #     The identity covers the complete authority-layer signing pre-image,
         #     without mistaking caller-provided keys or self-declared roles for trust.
-        manifest_hash = manifest_identity(manifest)
         pinned = manifest_hash in self._trusted_manifest_identities
         checks.append(
             CheckResult(
@@ -268,7 +283,12 @@ class KeyBrokerService:
             # are stripped under -O, and this is the release path).
             transport_public_key = evidence.cpu.transport_public_key
             if key is not None and transport_public_key is not None:
-                sealed_key = seal_to_public_key(transport_public_key, key)
+                try:
+                    sealed_key = seal_to_public_key(transport_public_key, key)
+                except SealError as exc:
+                    # Nothing can be sealed to this key, so nothing is released.
+                    checks.append(CheckResult("key_sealed", False, str(exc)))
+                    released = False
                 key = None
 
         return ReleaseDecision(
@@ -283,8 +303,15 @@ class KeyBrokerService:
     def verify_for_renewal(
         self, manifest: WeightCustodyManifest, evidence: CompositeEvidence
     ) -> RenewalDecision:
-        """Re-run the release gate and return a short-lived signed keyless decision."""
+        """Re-run the release gate and return a short-lived signed keyless decision.
+
+        Raises:
+            ValueError: the manifest or evidence does not canonicalize, so no
+                decision can be signed over it. The challenge is not consumed.
+        """
         decision = self.verify_and_release(manifest, evidence)
+        if any(c.name == "input_canonical" for c in decision.checks):
+            raise ValueError(decision.checks[0].detail or "input does not canonicalize")
         issued = self._now()
         expires = issued + timedelta(seconds=self._renewal_ttl)
         return sign_renewal_decision(

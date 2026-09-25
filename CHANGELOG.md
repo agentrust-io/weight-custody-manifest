@@ -59,6 +59,18 @@ driver or host configuration reports.
   `NvidiaGpuVerifier`.
 - `HashValue` rejects a trailing newline, Merkle inclusion rejects a leaf index
   outside the tree, and `combine_shares` rejects share x outside 1..255.
+- `JsonQuoteParser` takes `report_data_offset` from its own configuration
+  (new keyword, default 0). A container may still carry the field but must
+  match; before, the evidence chose which signed 32 bytes the nonce check read.
+- `verify_and_release` refuses input that does not canonicalize (a lone
+  surrogate) before consuming the nonce, instead of raising after it.
+  `verify_for_renewal` raises `ValueError` for that input.
+- `seal_to_public_key` raises `SealError` for a low-order X25519 key, and the
+  KBS turns that into a denial (`key_sealed`).
+- `artifact_digest` takes each file's size and bytes from one open handle and
+  raises if they disagree, and opens with `O_NOFOLLOW` where available.
+- `verify_log_consistency` takes an optional `log_public_key` and then requires
+  both heads to verify; a malformed root returns False.
 - Docs: the Azure TDX provider takes no nonce-bound vTPM quote, so its evidence
   has no freshness binding; the docstrings that said it did are corrected, and
   `LIMITATIONS.md` says so.

@@ -156,9 +156,26 @@ def verify_inclusion(
 
 
 def verify_log_consistency(
-    old: SignedTreeHead, new: SignedTreeHead, proof: list[bytes]
+    old: SignedTreeHead,
+    new: SignedTreeHead,
+    proof: list[bytes],
+    *,
+    log_public_key: Optional[bytes] = None,
 ) -> bool:
-    """Verify the log grew append-only from *old* to *new* (no history rewrite)."""
-    return verify_consistency(
-        old.root_bytes(), new.root_bytes(), old.tree_size, new.tree_size, proof
-    )
+    """Verify the log grew append-only from *old* to *new* (no history rewrite).
+
+    A consistency proof only relates two (size, root) pairs; it does not show
+    that the log signed either of them, and one proof can fit a different pair
+    of sizes than the heads claim. Pass ``log_public_key`` and both heads must
+    also verify under it (``verify_sth``). Without it, the result is only
+    meaningful for heads the caller has already verified.
+    """
+    if log_public_key is not None and not (
+        verify_sth(old, log_public_key) and verify_sth(new, log_public_key)
+    ):
+        return False
+    try:
+        old_root, new_root = old.root_bytes(), new.root_bytes()
+    except (IndexError, ValueError):
+        return False  # a malformed root commits to nothing
+    return verify_consistency(old_root, new_root, old.tree_size, new.tree_size, proof)

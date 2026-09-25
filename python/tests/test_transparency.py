@@ -121,3 +121,31 @@ def test_inclusion_rejects_a_leaf_index_outside_the_tree():
     assert not verify_inclusion({"n": 0}, EntryType.revocation, far, one.signed_tree_head())
     bad_root = SignedTreeHead(sth.tree_size, "sha256:zz", sth.signed_at, sth.key_id, sth.signature_b64)
     assert not verify_inclusion({"n": 3}, EntryType.manifest, proof, bad_root)
+
+
+def test_log_consistency_checks_head_signatures_when_given_the_log_key():
+    kp = generate_ed25519()
+    log = TransparencyLog(kp)
+    for i in range(3):
+        log.append({"n": i}, entry_type=EntryType.manifest)
+    old = log.signed_tree_head()
+    for i in range(3, 7):
+        log.append({"n": i}, entry_type=EntryType.manifest)
+    new = log.signed_tree_head()
+    proof = log.consistency_proof(old.tree_size)
+    assert verify_log_consistency(old, new, proof, log_public_key=kp.public_bytes)
+    # Genuine proof and roots, but heads the log never signed.
+    unsigned = new.__class__(
+        tree_size=new.tree_size, root=new.root, signed_at=new.signed_at,
+        key_id=new.key_id, signature_b64="AAAA",
+    )
+    assert not verify_log_consistency(old, unsigned, proof, log_public_key=kp.public_bytes)
+    assert not verify_log_consistency(
+        old, new, proof, log_public_key=generate_ed25519().public_bytes
+    )
+    # A malformed root is a refusal, not an exception.
+    broken = new.__class__(
+        tree_size=new.tree_size, root="sha256:zz", signed_at=new.signed_at,
+        key_id=new.key_id, signature_b64=new.signature_b64,
+    )
+    assert not verify_log_consistency(old, broken, proof)

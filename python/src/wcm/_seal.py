@@ -76,7 +76,12 @@ def seal_to_public_key(recipient_pub_hex: str, payload: bytes, aad: bytes = b"")
 
     eph = X25519PrivateKey.generate()
     eph_pub = eph.public_key().public_bytes_raw()
-    shared = eph.exchange(recipient)
+    try:
+        shared = eph.exchange(recipient)
+    except ValueError as exc:
+        # A low-order point yields an all-zero shared secret, which cryptography
+        # refuses; anyone could derive the key from it.
+        raise SealError("recipient transport public key is a low-order point") from exc
     key = _derive_key(shared, eph_pub, bytes.fromhex(recipient_pub_hex))
     nonce = os.urandom(_NONCE_LEN)
     ct = ChaCha20Poly1305(key).encrypt(nonce, payload, aad)
