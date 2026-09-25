@@ -44,6 +44,11 @@ def evidence(nonce: str, manifest) -> CompositeEvidence:
         gpu=GpuReport(
             platform="nvidia-cc-gpu",
             measurement=manifest.release_policy.required_gpu_measurement.rim_pin,
+            # Stated since GHSA-j665-99rh-w85h: cc_mode defaults to unknown and
+            # the gate denies an unstated mode, so evidence for a revocation
+            # test has to say the device was in confidential mode or every one
+            # of these fails on the mode instead of on revocation.
+            cc_mode=True,
             nonce_echo=nonce,
             quote_b64=gpu_evidence_b64(),
         ),
@@ -156,9 +161,10 @@ def test_reuse_during_an_outage_does_not_restart_the_clock(example_manifest):
     """The example Imran gave, at the scale of the fixtures.
 
     A first renewal is granted on a fresh answer. The responder then goes away
-    and a second renewal rides on the held answer. Both windows end at the same
-    instant, because that is when the evidence ends, so the second renewal buys
-    no time the first did not already have.
+    and a second renewal rides on the held answer. The second window cannot end
+    later than the first, so the second renewal buys no time the first did not
+    already have. It may end earlier, because a reused answer is also bounded by
+    the short window measured from when it was obtained.
     """
     manifest = requires_revocation(example_manifest)
     client = client_for()
@@ -174,7 +180,7 @@ def test_reuse_during_an_outage_does_not_restart_the_clock(example_manifest):
     second = kbs.verify_for_renewal(manifest, evidence(kbs.issue_challenge().nonce, manifest))
 
     assert second.renewed is True, second.checks
-    assert first.expires_at == second.expires_at, (
+    assert second.expires_at <= first.expires_at, (
         "reuse granted a fresh window instead of inheriting the evidence's bound"
     )
 

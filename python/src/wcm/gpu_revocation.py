@@ -63,7 +63,7 @@ import threading
 import time
 import urllib.request
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Callable, Optional, Sequence, cast
 
 from cryptography import x509
@@ -102,7 +102,13 @@ class Answer:
 
     status: str
     source: str
-    next_update: Optional[datetime]
+    not_after: Optional[datetime]
+    """The earlier of the answer's own nextUpdate and the short window.
+
+    Not nextUpdate: that is NVIDIA's bound and is typically a day out, while
+    the short window is the deployment's and is normally tighter. The caller
+    clamps custody on this, so it has to carry whichever limit binds first.
+    """
 
 
 @dataclass(frozen=True)
@@ -220,6 +226,25 @@ def _names(
         and response.issuer_key_hash == asked.issuer_key_hash
         and response.issuer_name_hash == asked.issuer_name_hash
     )
+
+
+def _held_key(
+    certificate: x509.Certificate, issuer: x509.Certificate
+) -> tuple[int, bytes, bytes]:
+    """What identifies a held answer: the CertID, not the serial alone.
+
+    Serial numbers are unique per issuer, not globally. Keyed on the serial
+    only, an outage would serve one issuer's held GOOD for a different issuer's
+    certificate that happens to carry the same serial. This is the same triple
+    RFC 6960 requires a response's CertID to match, so the thing the cache is
+    keyed on is the thing the answer was verified against.
+    """
+    asked = (
+        ocsp.OCSPRequestBuilder()
+        .add_certificate(certificate, issuer, hashes.SHA384())
+        .build()
+    )
+    return (asked.serial_number, asked.issuer_name_hash, asked.issuer_key_hash)
 
 
 def _verify_signature(
@@ -341,7 +366,9 @@ class NvidiaOcspClient:
         self._post = post or http_post
         self._nonce = nonce or (lambda: __import__("os").urandom(32))
         self.max_age_seconds = int(max_age_seconds)
-        self._held: dict[int, tuple[str, datetime, Optional[datetime]]] = {}
+        self._held: dict[
+            tuple[int, bytes, bytes], tuple[str, datetime, Optional[datetime]]
+        ] = {}
         self._lock = threading.Lock()
 
     def status(
@@ -374,7 +401,7 @@ class NvidiaOcspClient:
                     f"NVIDIA could not be reached ({str(exc)[:100]}) and a first release "
                     "may not rest on an earlier answer"
                 ) from exc
-            return self._reuse(certificate, now, exc)
+            return self._reuse(certificate, issuer, now, exc)
 
         if response.response_status == ocsp.OCSPResponseStatus.UNAUTHORIZED:
             # Not held: the responder is not authoritative, so there is nothing
@@ -393,16 +420,42 @@ class NvidiaOcspClient:
         with self._lock:
             # A verified revocation lands here and replaces any held GOOD, so
             # from this moment the reuse path can only serve the revocation.
-            self._held[certificate.serial_number] = (
+            self._held[_held_key(certificate, issuer)] = (
                 status, now, response.next_update_utc,
             )
+        # A fresh answer stands until its own nextUpdate. The short window
+        # bounds how stale a *reused* answer may be, which is a different
+        # question: applying it here would cap every release at the window and
+        # say nothing about staleness, because a fresh answer has none.
         return Answer(status, "fresh", response.next_update_utc)
 
+    def _bound(
+        self, fetched: datetime, next_update: Optional[datetime]
+    ) -> Optional[datetime]:
+        """How long a reused answer may be leaned on: the earlier of two limits.
+
+        ``nextUpdate`` is NVIDIA's own bound and is typically a day out. The
+        short window is the deployment's, measured from when the answer was
+        obtained, and for a reused answer it is normally the tighter one.
+        Returning only nextUpdate let a renewal taken at minute 14 of a 15
+        minute window carry custody to the next day, because the caller clamps
+        on what this returns.
+
+        Only reuse is bounded this way. A fresh answer has no staleness for the
+        window to limit, and capping it here would shorten every release to the
+        window for no reason.
+        """
+        short = fetched + timedelta(seconds=self.max_age_seconds)
+        if next_update is None:
+            return short
+        return min(short, next_update)
+
     def _reuse(
-        self, certificate: x509.Certificate, now: datetime, error: BaseException
+        self, certificate: x509.Certificate, issuer: x509.Certificate,
+        now: datetime, error: BaseException,
     ) -> Answer:
         with self._lock:
-            held = self._held.get(certificate.serial_number)
+            held = self._held.get(_held_key(certificate, issuer))
         if held is None:
             raise GpuRevocationUnavailable(
                 f"NVIDIA could not be reached ({str(error)[:100]}) and no earlier "
@@ -419,9 +472,13 @@ class NvidiaOcspClient:
             raise GpuRevocationUnavailable(
                 "NVIDIA could not be reached and the held answer is past its own nextUpdate"
             )
-        # Reuse does not restart any clock: the bound stays the one the original
-        # answer carried, so a permission window cannot outlive it.
-        return Answer(status, f"reused {age}s after it was obtained", next_update)
+        # Reuse does not restart any clock. The bound is measured from when the
+        # answer was obtained, not from now, so a permission window cannot
+        # outlive either limit.
+        return Answer(
+            status, f"reused {age}s after it was obtained",
+            self._bound(fetched, next_update),
+        )
 
 
 def check_chain(
@@ -463,9 +520,9 @@ def check_chain(
             return RevocationResult(
                 False, f"{label}: NVIDIA reports this certificate {answer.status}"
             )
-        if answer.next_update is not None:
-            not_after = (answer.next_update if not_after is None
-                         else min(not_after, answer.next_update))
+        if answer.not_after is not None:
+            not_after = (answer.not_after if not_after is None
+                         else min(not_after, answer.not_after))
         parts.append(f"{label} GOOD, {answer.source}")
     return RevocationResult(True, "NVIDIA OCSP, nonce-bound: " + "; ".join(parts), not_after)
 

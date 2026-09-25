@@ -15,7 +15,7 @@ from wcm.gpu_revocation import NvidiaOcspClient, check_chain
 from wcm.kbs import KeyBrokerService
 from wcm.renewal import manifest_identity
 
-from tests.test_gpu_revocation import WHEN, chain, client_for, nonce_of
+from tests.test_gpu_revocation import WHEN, chain, client_for, held_key, nonce_of
 from tests.test_gpu_revocation_gate import evidence, kbs_for, requires_revocation
 
 
@@ -145,9 +145,18 @@ def test_a_fourteen_minute_old_answer_does_not_grant_another_fifteen(example_man
     kbs = kbs_for(manifest, client, ttl=900)
     session = session_for(kbs, manifest, WHEN)
 
-    obtained_at, good_until = WHEN, WHEN + promised
-    for link in chain()[1:-1]:
-        client._held[link.serial_number] = ("GOOD", obtained_at, good_until)  # noqa: SLF001
+    # NVIDIA's nextUpdate is a day out, which is what it actually is. The
+    # short window is the tighter limit and the one the bound has to respect.
+    # Setting them equal, as this test once did, hides exactly the defect it
+    # is meant to catch.
+    links = chain()
+    obtained_at = WHEN
+    good_until = obtained_at + timedelta(hours=24)
+    short_window_ends = obtained_at + promised
+    for index in range(1, len(links) - 1):
+        client._held[held_key(links, index)] = (  # noqa: SLF001
+            "GOOD", obtained_at, good_until,
+        )
     client._post = offline  # noqa: SLF001
 
     fourteen = WHEN + timedelta(minutes=14)
@@ -158,8 +167,9 @@ def test_a_fourteen_minute_old_answer_does_not_grant_another_fifteen(example_man
 
     session.apply_renewal(manifest, decision, now=fourteen)
     granted = session._deadline - fourteen  # noqa: SLF001
-    assert session._deadline <= good_until, (  # noqa: SLF001
-        f"custody ran to {session._deadline}, past evidence good until {good_until}"  # noqa: SLF001
+    assert session._deadline <= short_window_ends, (  # noqa: SLF001
+        f"custody ran to {session._deadline}, past the short window ending "  # noqa: SLF001
+        f"{short_window_ends}"
     )
     assert granted <= timedelta(minutes=1), f"a 14 minute old answer bought {granted}"
 
@@ -177,9 +187,9 @@ def test_a_verified_revocation_overrides_a_cached_good_immediately(example_manif
     ).renewed is True
 
     links = chain()
-    serial = links[1].serial_number
-    assert client._held[serial][0] == "GOOD"  # noqa: SLF001
-    client._held[serial] = ("REVOKED", WHEN, WHEN + timedelta(hours=24))  # noqa: SLF001
+    key = held_key(links, 1)
+    assert client._held[key][0] == "GOOD"  # noqa: SLF001
+    client._held[key] = ("REVOKED", WHEN, WHEN + timedelta(hours=24))  # noqa: SLF001
     client._post = offline  # noqa: SLF001
 
     kbs._now = lambda: WHEN + timedelta(seconds=1)  # noqa: SLF001

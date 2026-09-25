@@ -70,6 +70,18 @@ def replay(*, nonce: bool = True, order: tuple[str, ...] = ASKED):
     return post
 
 
+def held_key(links, index: int):
+    """The cache key for one link: its CertID under its own issuer.
+
+    Tests used to index the cache by serial number. The client no longer does,
+    because a serial is unique per issuer and not globally, so tests must ask
+    for the same triple the client stores under.
+    """
+    from wcm.gpu_revocation import _held_key
+
+    return _held_key(links[index], links[index + 1])
+
+
 def client_for(order: tuple[str, ...] = ASKED, **kwargs) -> NvidiaOcspClient:
     """A client whose nonces are the ones the captured answers echo.
 
@@ -228,7 +240,12 @@ def test_a_long_outage_is_not():
 
 
 def test_reuse_does_not_move_the_bound_the_original_answer_carried():
-    """Reuse must not restart the clock, so the deadline is the first one."""
+    """Reuse must not restart the clock, so the deadline cannot move outwards.
+
+    It may move inwards. A reused answer is bounded by the short window as well
+    as by nextUpdate, so the second result is normally the tighter of the two.
+    What must never happen is the second buying time the first did not have.
+    """
     client = client_for()
     first = check_chain(chain(), client, WHEN, allow_reuse=True)
 
@@ -238,7 +255,8 @@ def test_reuse_does_not_move_the_bound_the_original_answer_carried():
     client._post = offline  # noqa: SLF001
     later = check_chain(chain(), client, WHEN + timedelta(seconds=60), allow_reuse=True)
     assert later.passed is True
-    assert later.not_after == first.not_after
+    assert later.not_after is not None and first.not_after is not None
+    assert later.not_after <= first.not_after
 
 
 def test_a_verified_revocation_replaces_a_held_good_at_once():
@@ -250,18 +268,20 @@ def test_a_verified_revocation_replaces_a_held_good_at_once():
     """
     client = client_for()
     links = chain()
-    serial = links[1].serial_number
+    key = held_key(links, 1)
     assert check_chain(links, client, WHEN, allow_reuse=True).passed is True
-    assert client._held[serial][0] == "GOOD"  # noqa: SLF001
+    assert client._held[key][0] == "GOOD"  # noqa: SLF001
 
     # Stand in for NVIDIA answering REVOKED, which is what status() would store.
-    client._held[serial] = ("REVOKED", WHEN, WHEN + timedelta(hours=24))  # noqa: SLF001
+    client._held[key] = ("REVOKED", WHEN, WHEN + timedelta(hours=24))  # noqa: SLF001
 
     def offline(url: str, body: bytes) -> bytes:
         raise OSError("responder down")
 
     client._post = offline  # noqa: SLF001
-    answer = client._reuse(links[1], WHEN + timedelta(seconds=30), OSError("down"))  # noqa: SLF001
+    answer = client._reuse(  # noqa: SLF001
+        links[1], links[2], WHEN + timedelta(seconds=30), OSError("down")
+    )
     assert answer.status == "REVOKED"
     result = check_chain(links, client, WHEN + timedelta(seconds=30), allow_reuse=True)
     assert result.passed is False
@@ -398,7 +418,7 @@ def test_a_held_answer_past_its_next_update_is_refused_inside_the_short_window()
     """
     links = chain()
     client = client_for()
-    client._held[links[1].serial_number] = (  # noqa: SLF001
+    client._held[held_key(links, 1)] = (  # noqa: SLF001
         "GOOD", WHEN, WHEN + timedelta(seconds=60),
     )
 
@@ -407,7 +427,9 @@ def test_a_held_answer_past_its_next_update_is_refused_inside_the_short_window()
 
     client._post = offline  # noqa: SLF001
     with pytest.raises(GpuRevocationUnavailable, match="past its own nextUpdate"):
-        client._reuse(links[1], WHEN + timedelta(seconds=120), OSError("down"))  # noqa: SLF001
+        client._reuse(  # noqa: SLF001
+            links[1], links[2], WHEN + timedelta(seconds=120), OSError("down")
+        )
 
 
 def test_an_answer_whose_signature_does_not_verify_is_refused():
@@ -456,7 +478,7 @@ def test_reuse_is_off_unless_the_caller_asks_for_it():
     """The default is the strict one, so a caller that forgets is not looser."""
     links = chain()
     client = client_for()
-    client._held[links[1].serial_number] = (  # noqa: SLF001
+    client._held[held_key(links, 1)] = (  # noqa: SLF001
         "GOOD", WHEN, WHEN + timedelta(hours=24),
     )
 
@@ -468,3 +490,109 @@ def test_reuse_is_off_unless_the_caller_asks_for_it():
         client.status(links[1], links[2], WHEN + timedelta(seconds=30))
     answer = client.status(links[1], links[2], WHEN + timedelta(seconds=30), allow_reuse=True)
     assert answer.status == "GOOD" and answer.source.startswith("reused")
+
+
+# ---- the cache key ---------------------------------------------------------
+
+def _same_serial_under_two_issuers():
+    """Two certificates sharing a serial number, signed by different issuers.
+
+    Serial numbers are unique per issuer, not globally, so this is a legitimate
+    pair rather than a forgery. Two independent CAs can each issue serial 1.
+    """
+    from cryptography.hazmat.primitives import hashes as _h
+    from cryptography.hazmat.primitives.asymmetric import ec as _ec
+
+    shared_serial = 0x5EC0DE
+
+    def key():
+        return _ec.generate_private_key(_ec.SECP384R1())
+
+    def cert(name, signer_key, issuer_name, public_key, serial):
+        return (
+            x509.CertificateBuilder()
+            .subject_name(x509.Name([x509.NameAttribute(x509.NameOID.COMMON_NAME, name)]))
+            .issuer_name(x509.Name([x509.NameAttribute(x509.NameOID.COMMON_NAME, issuer_name)]))
+            .public_key(public_key)
+            .serial_number(serial)
+            .not_valid_before(datetime(2026, 1, 1, tzinfo=timezone.utc))
+            .not_valid_after(datetime(2030, 1, 1, tzinfo=timezone.utc))
+            .sign(signer_key, _h.SHA384())
+        )
+
+    pairs = []
+    for label in ("One", "Two"):
+        issuer_key, subject_key = key(), key()
+        issuer_name = f"Synthetic Issuer {label}"
+        issuer = cert(issuer_name, issuer_key, issuer_name, issuer_key.public_key(),
+                      x509.random_serial_number())
+        subject = cert(f"Device under {label}", issuer_key, issuer_name,
+                       subject_key.public_key(), shared_serial)
+        pairs.append((subject, issuer))
+    return pairs
+
+
+def test_a_held_answer_is_not_served_for_a_different_issuers_certificate():
+    """The cache is keyed on the CertID, not on the serial number alone.
+
+    Keyed on the serial only, an outage served one issuer's held GOOD for a
+    different issuer's certificate carrying the same serial. That is the same
+    triple RFC 6960 makes a response's CertID match, so the key and the check
+    agree on what identifies a certificate.
+    """
+    from wcm.gpu_revocation import _held_key
+
+    (first, first_issuer), (second, second_issuer) = _same_serial_under_two_issuers()
+    assert first.serial_number == second.serial_number, "the premise of this test"
+
+    client = client_for()
+    client._held[_held_key(first, first_issuer)] = (  # noqa: SLF001
+        "GOOD", WHEN, WHEN + timedelta(hours=24),
+    )
+
+    def offline(url: str, body: bytes) -> bytes:
+        raise OSError("responder down")
+
+    client._post = offline  # noqa: SLF001
+
+    # The first certificate has an answer and may ride out the outage.
+    assert client.status(
+        first, first_issuer, WHEN + timedelta(seconds=30), allow_reuse=True
+    ).status == "GOOD"
+
+    # The second shares its serial and nothing else. It must not inherit it.
+    with pytest.raises(GpuRevocationUnavailable) as raised:
+        client.status(
+            second, second_issuer, WHEN + timedelta(seconds=30), allow_reuse=True
+        )
+    assert "no earlier answer about this certificate is held" in str(raised.value)
+
+
+def test_a_reused_answer_is_bounded_by_the_short_window_not_only_next_update():
+    """Both limits apply, and the short window is normally the tighter one.
+
+    NVIDIA's nextUpdate is a day out. Returning only that let a renewal taken
+    near the end of a short window carry custody to the next day, because the
+    caller clamps on what this returns.
+    """
+    from wcm.gpu_revocation import _held_key
+
+    links = chain()
+    client = client_for(max_age_seconds=900)
+    obtained = WHEN
+    client._held[_held_key(links[1], links[2])] = (  # noqa: SLF001
+        "GOOD", obtained, obtained + timedelta(hours=24),
+    )
+
+    def offline(url: str, body: bytes) -> bytes:
+        raise OSError("responder down")
+
+    client._post = offline  # noqa: SLF001
+    answer = client.status(
+        links[1], links[2], obtained + timedelta(minutes=14), allow_reuse=True
+    )
+
+    assert answer.status == "GOOD"
+    assert answer.not_after == obtained + timedelta(seconds=900), (
+        f"bounded at {answer.not_after}, expected the short window"
+    )
