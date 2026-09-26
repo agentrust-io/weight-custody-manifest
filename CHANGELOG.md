@@ -6,6 +6,8 @@ uses semantic-ish versioning while pre-1.0.
 
 ## Unreleased
 
+## 0.28.5 - 2026-09-26
+
 Add the first real-silicon vendor conformance vector: a genuine Azure SEV-SNP
 report verified against an independently staged AMD ARK-Milan root. The scored
 case declares the paravisor's vTPM-attestation-key binding and derives all six
@@ -107,6 +109,11 @@ reports the checks mock evidence cannot satisfy as `SKIP` rather than `FAIL`.
 Ten gate vectors gained these explicit waivers, and two were added:
 `deny-evidence-verification-required-without-verifier` and
 `deny-gpu-cc-mode-asserted-but-unverified`.
+
+**Build.** CI and the fuzz build install third-party dependencies from
+hash-locked files under `requirements/` (#164), and the contributor install
+instructions match. Workflow write permissions are scoped to the jobs that use
+them (#165). No change to the published package's dependencies.
 
 ## 0.28.4 - 2026-09-24
 
