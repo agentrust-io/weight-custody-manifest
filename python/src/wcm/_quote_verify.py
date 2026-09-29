@@ -72,15 +72,33 @@ class JsonQuoteParser:
     ``ecdsa-p384-sha384``, ``rsa-pss-sha256`` (32-byte salt),
     ``rsa-pkcs1-sha256``, or ``ed25519``. The input container cannot override it.
     Vendor parsers select the algorithm required by their report format.
+
+    ``report_data_offset`` is verifier configuration too. A container may still
+    carry the field, but it must equal the configured value. Letting the
+    evidence choose it would let a relay point the nonce comparison at any
+    signed 32 bytes, including fields a hostile host sets at launch (SEV-SNP
+    HOST_DATA, TDX MRCONFIGID), and so bind the nonce to its own transport key.
     """
 
-    def __init__(self, *, report_signature_algorithm: str = "ecdsa-sha256") -> None:
+    def __init__(
+        self,
+        *,
+        report_signature_algorithm: str = "ecdsa-sha256",
+        report_data_offset: int = 0,
+    ) -> None:
         # Configuration belongs to the verifier's parser, not the input JSON.
         self._report_signature_algorithm = report_signature_algorithm
+        self._report_data_offset = report_data_offset
 
     def parse(self, quote_b64: str) -> ParsedQuote:
         try:
             doc = json.loads(base64.b64decode(quote_b64))
+            claimed = doc.get("report_data_offset", self._report_data_offset)
+            if type(claimed) is not int or claimed != self._report_data_offset:
+                raise ValueError(
+                    f"report_data_offset {claimed!r} is not the configured "
+                    f"{self._report_data_offset}"
+                )
             leaf = load_pem_certificate(doc["leaf_pem"].encode())
             inters = [
                 load_pem_certificate(p.encode())
@@ -91,10 +109,10 @@ class JsonQuoteParser:
                 signature=base64.b64decode(doc["signature_b64"]),
                 leaf=leaf,
                 intermediates=inters,
-                report_data_offset=int(doc.get("report_data_offset", 0)),
+                report_data_offset=self._report_data_offset,
                 report_signature_algorithm=self._report_signature_algorithm,
             )
-        except (KeyError, ValueError, TypeError) as exc:
+        except (KeyError, ValueError, TypeError, AttributeError) as exc:
             raise QuoteFormatError(f"unparseable quote container: {exc}") from exc
 
 
@@ -176,6 +194,30 @@ def _signed_by(cert: x509.Certificate, issuer: x509.Certificate) -> bool:
         return False
 
 
+def _may_issue(issuer: x509.Certificate, certs_below: int) -> bool:
+    """True if *issuer* is a CA allowed to sit *certs_below* CAs above a leaf.
+
+    RFC 5280 6.1.4: an issuing certificate must assert basicConstraints cA,
+    honour pathLenConstraint, and, when keyUsage is present, keyCertSign.
+    Without this any end-entity certificate under a trusted root (a VCEK, a
+    PCK, a GPU device leaf) could sign a further "leaf" for a key its holder
+    chose.
+    """
+    try:
+        bc = issuer.extensions.get_extension_for_class(x509.BasicConstraints).value
+    except x509.ExtensionNotFound:
+        return False
+    if not bc.ca:
+        return False
+    if bc.path_length is not None and certs_below > bc.path_length:
+        return False
+    try:
+        ku = issuer.extensions.get_extension_for_class(x509.KeyUsage).value
+    except x509.ExtensionNotFound:
+        return True
+    return bool(ku.key_cert_sign)
+
+
 def _valid_at(cert: x509.Certificate, now: datetime) -> bool:
     return cert.not_valid_before_utc <= now <= cert.not_valid_after_utc
 
@@ -193,13 +235,20 @@ def verify_cert_chain(
             return f"certificate outside validity window: {chain[i].subject.rfc4514_string()}"
         if not _signed_by(chain[i], chain[i + 1]):
             return "broken certificate chain (a link is not signed by the next)"
+        if not _may_issue(chain[i + 1], i):
+            return (
+                "certificate is not a CA permitted to issue at this depth: "
+                f"{chain[i + 1].subject.rfc4514_string()}"
+            )
     top = chain[-1]
     if not _valid_at(top, now):
         return f"certificate outside validity window: {top.subject.rfc4514_string()}"
     for root in trust_store.roots:
         if not _valid_at(root, now):
             continue
-        if top == root or _signed_by(top, root):
+        if top == root:
+            return None
+        if _signed_by(top, root) and _may_issue(root, len(chain) - 1):
             return None
     return "does not chain to a trusted root"
 

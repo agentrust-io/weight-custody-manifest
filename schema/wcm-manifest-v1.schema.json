@@ -614,6 +614,18 @@
           ],
           "default": null
         },
+        "require_evidence_verification": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Require Evidence Verification"
+        },
         "tenancy": {
           "$ref": "#/$defs/Tenancy",
           "default": "shared"

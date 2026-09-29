@@ -35,8 +35,10 @@
         ]
       },
       "required_gpu_measurement": {
-        "rim_pin": "nvidia-rim:golden-measurement-0001"
-      }
+        "rim_pin": "nvidia-rim:golden-measurement-0001",
+        "require_cc_mode": false
+      },
+      "require_evidence_verification": false
     },
     "custody": {
       "custodian": "example-custodian",

@@ -17,6 +17,7 @@ adversary-owned silicon forged an attestation quote (open question 8.8).
 from __future__ import annotations
 
 import hashlib
+import itertools
 from dataclasses import dataclass, field
 from typing import Any, Optional, cast
 
@@ -117,6 +118,54 @@ def _required_roles(manifest: WeightCustodyManifest) -> list[SignatureRole]:
     if manifest.release_policy.sovereign_profile.enabled:
         roles.append(SignatureRole.sovereign)
     return roles
+
+
+def _roles_with_distinct_keys(
+    manifest: WeightCustodyManifest,
+    results: list[SignatureResult],
+    roles: list[SignatureRole],
+) -> set[SignatureRole]:
+    """The largest subset of *roles* that distinct trusted keys can cover.
+
+    ``role`` and ``signer`` sit in the signature block, outside the signed
+    pre-image, so they are claims rather than facts. Without this, one party's
+    key could sign once and be presented as builder and custodian (or as the
+    sovereign), and a joint signature would need only one signer. The single
+    exception is ``byom-symmetric`` with ``builder.identity`` equal to
+    ``custody.custodian``, where SPEC.md section 3.1 collapses those two roles
+    onto one party by design; the sovereign always needs its own key.
+    """
+    sovereign_signer = manifest.release_policy.sovereign_profile.sovereign_signer
+    candidates: dict[SignatureRole, list[Optional[str]]] = {}
+    for role in roles:
+        keys = sorted(
+            {
+                r.key_id
+                for r in results
+                if r.valid
+                and r.role is role
+                and (role is not SignatureRole.sovereign or r.signer == sovereign_signer)
+            }
+        )
+        # None last, so a tie keeps the earlier role (builder before custodian).
+        candidates[role] = [*keys, None]
+    shared_ok = (
+        manifest.deployment_model is DeploymentModel.byom_symmetric
+        and manifest.builder.identity == manifest.custody.custodian
+    )
+    collapsible = {SignatureRole.builder, SignatureRole.custodian}
+    best: set[SignatureRole] = set()
+    for combo in itertools.product(*(candidates[role] for role in roles)):
+        chosen = [(role, key) for role, key in zip(roles, combo) if key is not None]
+        if len(chosen) <= len(best):
+            continue
+        clash = any(
+            k1 == k2 and not (shared_ok and {r1, r2} == collapsible)
+            for (r1, k1), (r2, k2) in itertools.combinations(chosen, 2)
+        )
+        if not clash:
+            best = {role for role, _ in chosen}
+    return best
 
 
 def _verify_one(algo: str, material: object, unsigned: dict[str, Any], sig: Any) -> None:
@@ -279,6 +328,16 @@ def verify_manifest(
             )
 
     required = _required_roles(manifest)
+    distinct = _roles_with_distinct_keys(
+        manifest, results, [role for role in required if role in valid_roles]
+    )
+    for role in required:
+        if role in valid_roles and role not in distinct:
+            valid_roles.discard(role)
+            errors.append(
+                f"required role '{role.value}' is signed only by a key that already "
+                "signs as another required role; each required role needs its own key"
+            )
     missing = [role for role in required if role not in valid_roles]
 
     any_invalid = [r for r in results if not r.valid]

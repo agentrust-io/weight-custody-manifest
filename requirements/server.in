@@ -1,0 +1,8 @@
+# Runtime dependencies plus the [server] extra (reference KBS), mirroring
+# python/pyproject.toml. Used by the boot-loader firmware-vm job. Compile with:
+#   uv pip compile requirements/server.in --generate-hashes --universal \
+#     --python-version 3.11 -o requirements/server.txt
+pydantic>=2.7,<3
+cryptography>=50,<51
+fastapi>=0.111,<1
+uvicorn[standard]>=0.29

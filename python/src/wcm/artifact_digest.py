@@ -41,6 +41,8 @@ lets the covered bytes change without anything in the tree changing. Pass
 from __future__ import annotations
 
 import hashlib
+import os
+import stat
 from pathlib import Path
 from typing import Iterable, Optional, Sequence
 
@@ -151,11 +153,39 @@ def artifact_digest(
         relative = item.relative_to(root).as_posix().encode("utf-8")
         digest.update(len(relative).to_bytes(8, "big"))
         digest.update(relative)
-        # The size is bound as well as the contents. A truncated read would
-        # otherwise produce a digest indistinguishable from one over a genuinely
-        # shorter file.
-        digest.update(item.stat().st_size.to_bytes(8, "big"))
-        with item.open("rb") as handle:
-            for chunk in iter(lambda: handle.read(_CHUNK), b""):
-                digest.update(chunk)
+        _hash_file(digest, item, follow_symlinks=follow_symlinks)
     return HashValue("sha256:" + digest.hexdigest())
+
+
+def _hash_file(digest: "hashlib._Hash", item: Path, *, follow_symlinks: bool) -> None:
+    """Feed ``size || contents`` for one file, both taken from one open handle.
+
+    The size is bound as well as the contents, so a truncated read cannot pass
+    for a shorter file. Size and bytes come from the same descriptor, and the
+    read must end exactly at that size: a file that grows or shrinks while it is
+    hashed raises instead of producing a digest over bytes that never existed
+    together. Where the platform has ``O_NOFOLLOW``, a path swapped for a link
+    after the inventory was taken is refused at open.
+    """
+    flags = os.O_RDONLY | getattr(os, "O_BINARY", 0)
+    if not follow_symlinks:
+        flags |= getattr(os, "O_NOFOLLOW", 0)
+    try:
+        fd = os.open(item, flags)
+    except OSError as exc:
+        raise ArtifactDigestError(f"cannot open {item} for hashing: {exc}") from exc
+    with os.fdopen(fd, "rb") as handle:
+        info = os.fstat(handle.fileno())
+        if not stat.S_ISREG(info.st_mode):
+            raise ArtifactDigestError(f"{item} is no longer a regular file")
+        size = info.st_size
+        digest.update(size.to_bytes(8, "big"))
+        remaining = size
+        while remaining:
+            chunk = handle.read(min(_CHUNK, remaining))
+            if not chunk:
+                raise ArtifactDigestError(f"{item} shrank while it was being hashed")
+            digest.update(chunk)
+            remaining -= len(chunk)
+        if handle.read(1):
+            raise ArtifactDigestError(f"{item} grew while it was being hashed")

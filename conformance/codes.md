@@ -65,7 +65,8 @@ an implementation can rely on either.
 | `WCM-L2-0015` | GPU measurement does not match required_gpu_measurement.rim_pin |  |
 | `WCM-L2-0016` | the attestation key is listed as revoked |  |
 | `WCM-L2-0017` | no key is held for this weights_hash |  |
-| `WCM-L2-0018` | GPU confidential-compute mode is off or absent while required |  |
+| `WCM-L2-0018` | GPU confidential-compute mode is off, or not established by a verified GPU report, while required |  |
+| `WCM-L2-0019` | the manifest requires cryptographic evidence verification and the KBS has no verifier for it |  |
 
 ## L3 - Runtime custody
 

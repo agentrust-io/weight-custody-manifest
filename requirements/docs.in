@@ -1,0 +1,5 @@
+# MkDocs site build (docs.yml). Compile with:
+#   uv pip compile requirements/docs.in --generate-hashes --universal \
+#     --python-version 3.12 -o requirements/docs.txt
+mkdocs-material>=9.5
+mkdocs-llmstxt>=0.5,<1.0

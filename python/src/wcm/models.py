@@ -228,9 +228,11 @@ class Provenance(_Strict):
 
 class RequiredGpuMeasurement(_Strict):
     rim_pin: str
-    # Whether the GPU must report confidential-compute mode on. Absent means
-    # required; only an explicit false waives it. Optional rather than a True
-    # default so an existing signed manifest's pre-image does not change.
+    # Whether the GPU must be in confidential-compute mode. Absent means
+    # required; only an explicit false waives it. Met only by a GPU report the
+    # KBS verified cryptographically, on the assumption stated in SPEC 3.2.
+    # Optional rather than a True default so an existing signed manifest's
+    # pre-image does not change.
     require_cc_mode: Optional[bool] = None
     note: Optional[str] = None
 
@@ -327,6 +329,12 @@ class ReleasePolicy(_Strict):
     )
     required_hw_platform: list[str] = Field(min_length=1)
     required_gpu_measurement: Optional[RequiredGpuMeasurement] = None
+    # Whether the KBS must cryptographically verify the CPU quote and, when one
+    # is presented, the GPU report. Absent means required; only an explicit
+    # false waives it, which leaves the gate trusting the evidence's structured
+    # fields. Optional rather than a True default so an existing signed
+    # manifest's pre-image does not change (unsigned_dict excludes None).
+    require_evidence_verification: Optional[bool] = None
     tenancy: Tenancy = Tenancy.shared
     platform_integrity: Optional[PlatformIntegrity] = None
     required_serving_image: RequiredServingImage

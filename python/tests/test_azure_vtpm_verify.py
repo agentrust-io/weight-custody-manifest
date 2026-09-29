@@ -135,3 +135,41 @@ def test_azure_snp_vtpm_requires_policy_measurement():
     bundle, trust = _bundle()
     result = AzureSnpVtpmVerifier(trust).verify(bundle, expected_nonce=NONCE, channel_binding=BINDING, now=NOW)
     assert not result.verified and "release policy" in (result.reason or "")
+
+
+def _mutated(**changes):
+    bundle, trust = _bundle()
+    doc = json.loads(base64.b64decode(bundle))
+    doc.update(changes)
+    return base64.b64encode(json.dumps(doc).encode()).decode(), trust, doc
+
+
+def _verify(bundle, trust):
+    return AzureSnpVtpmVerifier(trust).verify(
+        bundle, expected_nonce=NONCE, channel_binding=BINDING,
+        expected_workload_measurement=MEASUREMENT, now=NOW,
+    )
+
+
+def test_azure_snp_vtpm_malformed_bundles_deny_instead_of_raising():
+    # Each of these used to raise out of verify() (AttributeError,
+    # QuoteFormatError, IndexError) instead of returning a denial.
+    _, _, doc = _mutated()
+    hcl = base64.b64decode(doc["hcl_b64"])
+    quote = base64.b64decode(doc["tpm_quote_b64"])
+    # Cut the quote inside its first TPMS_PCR_SELECTION.
+    cut = 6 + 2 + len(b"signer") + 2 + 32 + 25 + 4 + 1
+    cases = {
+        "ak_pem not a string": {"ak_pem": 1},
+        "not an HCL blob": {"hcl_b64": base64.b64encode(b"XXXX" + hcl[4:]).decode()},
+        "HCL shorter than an SNP report": {"hcl_b64": base64.b64encode(hcl[:100]).decode()},
+        "quote truncated in PCR selection": {
+            "tpm_quote_b64": base64.b64encode(quote[:cut]).decode()
+        },
+        "intermediate not a string": {"intermediates_pem": [7]},
+    }
+    for label, change in cases.items():
+        bundle, trust, _ = _mutated(**change)
+        result = _verify(bundle, trust)
+        assert not result.verified, label
+        assert result.reason, label

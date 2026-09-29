@@ -8,11 +8,11 @@ from datetime import datetime, timezone
 from typing import Any, Optional
 
 from cryptography import x509
-from cryptography.exceptions import InvalidSignature
+from cryptography.exceptions import InvalidSignature, UnsupportedAlgorithm
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import padding, rsa
 
-from ._quote_verify import QuoteVerification, TrustStore, verify_cert_chain
+from ._quote_verify import QuoteFormatError, QuoteVerification, TrustStore, verify_cert_chain
 from ._certificates import load_pem_certificate
 from .snp import extract_snp_report_from_hcl, parse_snp_report, verify_snp_report_signature
 
@@ -92,13 +92,17 @@ class AzureSnpVtpmVerifier:
                 load_pem_certificate(p.encode())
                 for p in doc["intermediates_pem"]
             ]
-        except (KeyError, ValueError, TypeError, json.JSONDecodeError) as exc:
+            report = extract_snp_report_from_hcl(hcl)
+            parsed = parse_snp_report(report)
+        except (
+            KeyError, ValueError, TypeError, AttributeError,
+            UnsupportedAlgorithm, QuoteFormatError,
+        ) as exc:
+            # The bundle is attacker-supplied: every malformed shape is a
+            # denial with a reason, never an exception out of the release path.
             return QuoteVerification(False, f"invalid Azure vTPM evidence: {exc}")
         if not isinstance(ak, rsa.RSAPublicKey):
             return QuoteVerification(False, "HCL AK is not RSA")
-
-        report = extract_snp_report_from_hcl(hcl)
-        parsed = parse_snp_report(report)
         current = now or datetime.now(timezone.utc)
         chain_error = verify_cert_chain(vcek, intermediates, self._trust, current)
         if chain_error:
@@ -132,13 +136,19 @@ class AzureSnpVtpmVerifier:
             _, offset = _take_u16(quote, 6)  # qualified signer
             extra_data, offset = _take_u16(quote, offset)
             offset += 25  # TPMS_CLOCK_INFO (17) + firmwareVersion (8)
+            if offset + 4 > len(quote):
+                raise ValueError("truncated TPM PCR selection")
             count = int.from_bytes(quote[offset : offset + 4], "big")
             offset += 4
             selected_pcr23 = False
             for _ in range(count):
+                if offset + 3 > len(quote):
+                    raise ValueError("truncated TPM PCR selection")
                 algorithm = int.from_bytes(quote[offset : offset + 2], "big")
                 size = quote[offset + 2]
                 selection = quote[offset + 3 : offset + 3 + size]
+                if len(selection) != size:
+                    raise ValueError("truncated TPM PCR selection")
                 offset += 3 + size
                 selected_pcr23 |= algorithm == 0x000B and size >= 3 and bool(selection[2] & 0x80)
             if not selected_pcr23:

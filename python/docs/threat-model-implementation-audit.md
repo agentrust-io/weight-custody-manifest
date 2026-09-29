@@ -49,13 +49,14 @@ controlling those inputs or the process. `threshold.py` supplies secret sharing,
 not independent share-custodian enforcement. Protected self-custody remains a
 deployment implementation gap. See the [trust-boundary review](../../docs/deployment-trust.md).
 
-1. **The gate is only cryptographic when a quote verifier is wired.** `kbs.verify_and_release` checks serving-image and GPU *claims* structurally; the
-   `cpu_quote_verified` check reports **"structural trust only"** until a
-   `cpu_quote_verifier` is configured. AMD SEV-SNP quote verification now exists
-   (`snp.py`, validated on real hardware); **GPU-side (NVIDIA) quote verification
-   is not yet implemented** (pending H100 hardware), so composite CPU+GPU
-   cryptographic verification is CPU-only today. This is the single most
-   important thing a deployer must not over-read.
+1. **The gate is only cryptographic when a quote verifier is wired.** `kbs.verify_and_release` checks serving-image and GPU *claims* structurally. A manifest
+   requires cryptographic verification of both the CPU quote and the GPU report
+   unless it sets `release_policy.require_evidence_verification: false`, so a
+   KBS without a verifier refuses; only under that explicit waiver do
+   `cpu_quote_verified` and `gpu_report_verified` report **"structural trust
+   only"**. AMD SEV-SNP, Intel TDX and NVIDIA GPU verification exist and are
+   validated on real hardware. The waiver is the single most important thing a
+   deployer must not over-read.
 2. **T1.7 key-extraction stays open (8.8).** The SDK enforces the compensating
    controls it can (revocation freshness, memory-fingerprint for the
    measurement-forgery half); a physically-extracted attestation key still

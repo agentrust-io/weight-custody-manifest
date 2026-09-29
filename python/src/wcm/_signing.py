@@ -76,7 +76,7 @@ _B64URL_RE = re.compile(r"^[A-Za-z0-9\-_]*$")
 
 def _b64url_decode(s: str) -> bytes:
     # Reject standard base64 (+/); only URL-safe alphabet is allowed.
-    if not _B64URL_RE.match(s):
+    if not _B64URL_RE.fullmatch(s):
         raise ValueError(
             "Invalid base64url: contains non-URL-safe characters (use - and _ not + and /)"
         )

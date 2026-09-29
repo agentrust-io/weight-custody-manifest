@@ -19,6 +19,7 @@ from wcm.gpu_revocation import NvidiaOcspClient
 from wcm.kbs import KeyBrokerService
 from wcm.renewal import manifest_identity
 
+from tests.conftest import waive
 from tests.test_gpu_revocation import (  # noqa: F401
     ASKED, FIXTURES, WHEN, answer_bytes, chain, client_for, nonce_of,
 )
@@ -44,11 +45,6 @@ def evidence(nonce: str, manifest) -> CompositeEvidence:
         gpu=GpuReport(
             platform="nvidia-cc-gpu",
             measurement=manifest.release_policy.required_gpu_measurement.rim_pin,
-            # Stated since GHSA-j665-99rh-w85h: cc_mode defaults to unknown and
-            # the gate denies an unstated mode, so evidence for a revocation
-            # test has to say the device was in confidential mode or every one
-            # of these fails on the mode instead of on revocation.
-            cc_mode=True,
             nonce_echo=nonce,
             quote_b64=gpu_evidence_b64(),
         ),
@@ -69,7 +65,7 @@ def requires_revocation(manifest):
     assert manifest.release_policy.attestation_revocation_check is not None, (
         "this fixture must ask for a revocation check or the gate is not exercised"
     )
-    return manifest
+    return waive(manifest)
 
 
 # ---- the gate itself -------------------------------------------------------

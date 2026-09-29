@@ -148,6 +148,8 @@ def compute_root_from_proof(
     Returns ``b""`` on a malformed proof (more path nodes than the tree needs),
     which will not equal any real root.
     """
+    if not 0 <= index < tree_size:
+        return b""  # a position outside the tree is not a position
     fn = index
     sn = tree_size - 1
     r = leaf_hash
@@ -164,6 +166,8 @@ def compute_root_from_proof(
             r = h_fn(b"\x01" + r + step)
         fn >>= 1
         sn >>= 1
+    if sn != 0:
+        return b""  # short proof: did not reach the root
     return r
 
 

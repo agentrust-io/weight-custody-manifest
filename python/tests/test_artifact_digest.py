@@ -257,3 +257,32 @@ def test_inventory_is_sorted_by_posix_relative_path(tmp_path: Path) -> None:
 
     assert names == sorted(names)
     assert names == ["a.bin", "a/z.bin", "b.bin"]
+
+
+@pytest.mark.parametrize("delta", [-1, +1])
+def test_size_and_contents_that_disagree_raise(tmp_path: Path, monkeypatch, delta) -> None:
+    # Stands in for a file rewritten between the size measurement and the read:
+    # the recorded size no longer matches the bytes streamed. The digest used to
+    # bind the stale size over the new bytes and return normally.
+    import os
+
+    target = tmp_path / "model.safetensors"
+    target.write_bytes(b"w" * 4096)
+    real_stat, real_fstat = os.stat, os.fstat
+
+    def lie(result):
+        fields = list(result)
+        fields[6] = result.st_size + delta  # st_size
+        return os.stat_result(fields)
+
+    def fake_fstat(fd):
+        return lie(real_fstat(fd))
+
+    def fake_path_stat(self, *, follow_symlinks=True):
+        result = real_stat(self, follow_symlinks=follow_symlinks)
+        return lie(result) if self == target else result
+
+    monkeypatch.setattr(os, "fstat", fake_fstat)
+    monkeypatch.setattr(Path, "stat", fake_path_stat)
+    with pytest.raises(ArtifactDigestError, match="while it was being hashed"):
+        artifact_digest(target)

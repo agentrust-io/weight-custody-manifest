@@ -201,7 +201,7 @@ def test_the_adapter_output_is_refused_by_the_release_gate(example_manifest) -> 
     assert decision.key is None
     gpu = next(check for check in decision.checks if check.name == "gpu")
     assert gpu.passed is False
-    assert "unstated" in gpu.detail
+    assert "not established" in gpu.detail
 
 
 def test_the_waiver_is_explicit_and_is_not_set_here(example_manifest) -> None:
@@ -215,10 +215,14 @@ def test_the_waiver_is_explicit_and_is_not_set_here(example_manifest) -> None:
     pinned, refused = _gate(example_manifest, emitted, NONCE)
     assert refused.released is False
 
+    # The mock evidence here carries no verifiable CPU quote either, so the
+    # evidence-verification requirement is waived too; the point under test is
+    # that the mode is waived only by the signed manifest.
     policy = pinned.release_policy
     waived = pinned.model_copy(update={"release_policy": policy.model_copy(update={
+        "require_evidence_verification": False,
         "required_gpu_measurement": policy.required_gpu_measurement.model_copy(
-            update={"require_cc_mode": False})
+            update={"require_cc_mode": False}),
     })})
     _, decision = _gate(waived, emitted, NONCE)
 

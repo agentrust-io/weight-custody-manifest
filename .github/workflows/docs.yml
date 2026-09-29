@@ -9,7 +9,7 @@ on:
       - "overrides/**"
       - "hooks/**"
       - "mkdocs.yml"
-      - "requirements-docs.txt"
+      - "requirements/docs.txt"
       - ".github/workflows/docs.yml"
   pull_request:
     paths:
@@ -17,12 +17,12 @@ on:
       - "overrides/**"
       - "hooks/**"
       - "mkdocs.yml"
-      - "requirements-docs.txt"
+      - "requirements/docs.txt"
       - ".github/workflows/docs.yml"
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: docs-deploy
@@ -31,6 +31,8 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write  # mkdocs gh-deploy pushes the gh-pages branch on main
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -40,7 +42,7 @@ jobs:
           python-version: "3.12"
           cache: pip
       - name: Install docs dependencies
-        run: pip install -r requirements-docs.txt
+        run: pip install --require-hashes -r requirements/docs.txt
       - name: Build (validate)
         run: mkdocs build
       - name: Configure git and deploy (main only)

@@ -88,3 +88,14 @@ def test_with_signatures_revalidates(example_manifest):
     m = example_manifest.with_signatures([block])
     assert len(m.signatures) == 1
     assert m.signatures[0].signer == "example-builder"
+
+
+def test_hash_value_rejects_a_trailing_newline():
+    # re.match with "$" accepted "<digest>\n", a second spelling of one digest
+    # that slipped past equality checks such as self-derivation and revocation.
+    from wcm import HashValue
+
+    good = "sha256:" + "ab" * 32
+    assert HashValue._validate(good) == good
+    with pytest.raises(ValueError):
+        HashValue._validate(good + "\n")

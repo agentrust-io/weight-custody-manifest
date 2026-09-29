@@ -73,8 +73,26 @@ def _pem(cert) -> bytes:
     return cert.public_bytes(serialization.Encoding.PEM)
 
 
-def build_quote(*, nonce_hex=NONCE, mrtd=b"\x33" * 48):
-    """Assemble a valid synthetic TDX DCAP v4 quote and its trust root."""
+INTEL_TD_QE_MRSIGNER = bytes.fromhex(
+    "dc9e2a7c6f948f17474e34a7fc43ed030f7c1563f1babddf6340c82e0e54a8c5"
+)
+
+
+def build_quote(
+    *,
+    nonce_hex=NONCE,
+    mrtd=b"\x33" * 48,
+    qe_mrsigner=INTEL_TD_QE_MRSIGNER,
+    qe_prodid=2,
+    qe_attributes=b"\x15" + bytes(15),
+    qe_report_data_tail=bytes(32),
+    qe_auth_size=None,
+):
+    """Assemble a valid synthetic TDX DCAP v4 quote and its trust root.
+
+    The QE report carries Intel's TD QE identity by default; the keyword
+    arguments let a test present an enclave that is not Intel's QE.
+    """
     root_k = _p256()
     root = _cert("Intel SGX Root CA (synthetic)", "Intel SGX Root CA (synthetic)", root_k, root_k, ca=True)
     pck_k = _p256()
@@ -99,14 +117,18 @@ def build_quote(*, nonce_hex=NONCE, mrtd=b"\x33" * 48):
     # QE report (384 bytes): report_data at 320 binds the attestation key.
     qe_auth = b"qe-auth"
     qe_report = bytearray(384)
+    qe_report[48:64] = qe_attributes
+    qe_report[128:160] = qe_mrsigner
+    struct.pack_into("<H", qe_report, 256, qe_prodid)
     qe_report[320:320 + 32] = hashlib.sha256(att_pub + qe_auth).digest()
+    qe_report[352:384] = qe_report_data_tail
     qe_report_sig = _raw_sig(pck_k, bytes(qe_report))
 
     pck_blob = _pem(pck) + _pem(root)
     cert_data = (
         bytes(qe_report)
         + qe_report_sig
-        + struct.pack("<H", len(qe_auth)) + qe_auth
+        + struct.pack("<H", len(qe_auth) if qe_auth_size is None else qe_auth_size) + qe_auth
         + struct.pack("<H", 5) + struct.pack("<I", len(pck_blob)) + pck_blob
     )
     sig_data = (
@@ -247,3 +269,40 @@ def test_broken_qe_binding_fails():
     bad[idx + 320] ^= 0xFF  # first byte of the QE REPORT_DATA binding
     result = verify_tdx_quote(bytes(bad), _trust(root), expected_nonce=NONCE, now=NOW)
     assert not result.verified
+
+
+# -- QE identity and malformed cert data ---------------------------------------
+
+
+@pytest.mark.parametrize(
+    "change, reason",
+    [
+        ({"qe_mrsigner": b"\x5a" * 32}, "not from Intel's TD Quoting Enclave"),
+        ({"qe_prodid": 1}, "product id"),
+        ({"qe_attributes": b"\x17" + bytes(15)}, "attributes"),  # DEBUG set
+        ({"qe_report_data_tail": b"\x01" * 32}, "not bound in the QE report"),
+    ],
+)
+def test_quote_certified_by_a_non_intel_enclave_is_rejected(change, reason):
+    # The PCK signs a report for any enclave the host lets hold the
+    # provisioning key. A correctly PCK-signed report from an enclave that is
+    # not Intel's TD QE must not be able to vouch for an attestation key.
+    quote, root = build_quote(**change)
+    result = verify_tdx_quote(quote, _trust(root), expected_nonce=NONCE, now=NOW)
+    assert not result.verified
+    assert reason in (result.reason or "")
+
+
+def test_real_captures_carry_intel_td_qe_identity():
+    for path in (GCP_TDX, AZURE_TDX):
+        doc = json.loads(path.read_text())
+        q = parse_tdx_quote(base64.b64decode(doc["quote_b64"]))
+        assert q.qe_report[128:160] == INTEL_TD_QE_MRSIGNER
+
+
+def test_oversized_qe_auth_length_is_a_format_error():
+    quote, root = build_quote(qe_auth_size=0xFFFF)
+    with pytest.raises(QuoteFormatError):
+        parse_tdx_quote(quote)
+    result = verify_tdx_quote(quote, _trust(root), expected_nonce=NONCE, now=NOW)
+    assert not result.verified and "truncated" in (result.reason or "")

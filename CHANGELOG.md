@@ -6,32 +6,6 @@ uses semantic-ish versioning while pre-1.0.
 
 ## Unreleased
 
-Add the first real-silicon vendor conformance vector: a genuine Azure SEV-SNP
-report verified against an independently staged AMD ARK-Milan root. The scored
-case declares the paravisor's vTPM-attestation-key binding and derives all six
-mandatory refusal mutations, so passing L2 now exercises real AMD report bytes
-rather than only the synthetic quote container. Intel TDX and GPU vendor vectors
-remain explicitly uncovered. The legacy SDK fixture no longer carries its own
-trust anchor; callers stage the same named root independently.
-
-**Changed (behaviour).** `tools/nvat_adapter.py` no longer asserts
-confidential-compute mode. It emitted `cc_mode: True` unconditionally, so the
-gate added in GHSA-j665-99rh-w85h read a constant from the adapter rather than
-evidence from the device and could not deny along that path. It now emits
-unknown, which the gate denies (`WCM-L2-0018`).
-
-A release through this adapter therefore fails closed. A deployment that
-accepts the risk can waive the check with
-`required_gpu_measurement.require_cc_mode: false`, which is the existing,
-explicit waiver and belongs to whoever signs the manifest. The adapter does not
-set it and nothing enables it automatically.
-
-Captures from an H100 with the mode on and off, the attestation certificate
-chain, and the capture tool are under `python/tests/fixtures/nvidia/cc-mode`
-and `tools/capture_gpu_cc_mode.py`. They establish that this adapter cannot
-read the mode from what it receives. They do not establish what every device,
-driver or host configuration reports.
-
 **Added.** Live, nonce-bound OCSP for the NVIDIA GPU attestation chain, in
 `wcm.gpu_revocation`. `attestation_revocation_check` is specified as
 live-per-release with a short cache window, but the gate behind it compared a
@@ -64,6 +38,115 @@ but it does change the signed bytes for decisions that carry it.
 
 Captured responder answers, both reachability datasets and
 `tools/capture_gpu_ocsp.py` are under `python/tests/fixtures/nvidia`.
+
+## 0.28.5 - 2026-09-26
+
+Add the first real-silicon vendor conformance vector: a genuine Azure SEV-SNP
+report verified against an independently staged AMD ARK-Milan root. The scored
+case declares the paravisor's vTPM-attestation-key binding and derives all six
+mandatory refusal mutations, so passing L2 now exercises real AMD report bytes
+rather than only the synthetic quote container. Intel TDX and GPU vendor vectors
+remain explicitly uncovered. The legacy SDK fixture no longer carries its own
+trust anchor; callers stage the same named root independently.
+
+**Changed (behaviour).** `tools/nvat_adapter.py` no longer asserts
+confidential-compute mode. It emitted `cc_mode: True` unconditionally, so the
+gate added in GHSA-j665-99rh-w85h read a constant from the adapter rather than
+evidence from the device and could not deny along that path. It now emits
+unknown, which the gate denies (`WCM-L2-0018`).
+
+A release through this adapter therefore fails closed. A deployment that
+accepts the risk can waive the check with
+`required_gpu_measurement.require_cc_mode: false`, which is the existing,
+explicit waiver and belongs to whoever signs the manifest. The adapter does not
+set it and nothing enables it automatically.
+
+Captures from an H100 with the mode on and off, the attestation certificate
+chain, and the capture tool are under `python/tests/fixtures/nvidia/cc-mode`
+and `tools/capture_gpu_cc_mode.py`. They establish that this adapter cannot
+read the mode from what it receives. They do not establish what every device,
+driver or host configuration reports.
+
+**Fixed (verification).** A sweep of the verifiers and the release path:
+
+- `verify_manifest` no longer lets one key satisfy two required roles. `role`
+  and `signer` sit outside the signed pre-image, so a builder's signature
+  relabelled as `custodian` (or `sovereign`) passed as a joint signature. Each
+  required role now needs its own trusted key; `byom-symmetric` with one
+  identity for builder and custodian keeps the single-key case SPEC 3.1 allows.
+- `verify_tdx_quote` checks that the QE report is Intel's TD Quoting Enclave
+  (Intel PCS QE identity: MRSIGNER, ISVPRODID 2, masked attributes and
+  MISCSELECT) and that the QE REPORT_DATA tail is zero. Before, any enclave the
+  PCK certified could vouch for an attestation key.
+- Certificate chains require every issuer to be a CA (`basicConstraints`,
+  `pathLenConstraint`, `keyCertSign`), so a leaf under a trusted root can no
+  longer issue.
+- `wcm verify-quote --kind snp` no longer trusts the AMD root carried in the
+  bundle unless it is a pinned ARK (Milan, Genoa) or passed with `--root`, and
+  `--kind tdx` no longer takes the Intel root pin from the bundle.
+- `EnclaveSession.from_release` refuses a manifest other than the one the key
+  was released against, since cadence and time floor are read from it.
+- `ChallengeStore` is thread-safe (two concurrent presentations of one nonce
+  both passed) and drops expired challenges instead of keeping every nonce ever
+  issued.
+- Malformed attacker bytes return a denial instead of raising from
+  `AzureSnpVtpmVerifier`, `parse_tdx_quote`, `JsonQuoteParser` and
+  `NvidiaGpuVerifier`.
+- `HashValue` rejects a trailing newline, Merkle inclusion rejects a leaf index
+  outside the tree, and `combine_shares` rejects share x outside 1..255.
+- `JsonQuoteParser` takes `report_data_offset` from its own configuration
+  (new keyword, default 0). A container may still carry the field but must
+  match; before, the evidence chose which signed 32 bytes the nonce check read.
+- `verify_and_release` refuses input that does not canonicalize (a lone
+  surrogate) before consuming the nonce, instead of raising after it.
+  `verify_for_renewal` raises `ValueError` for that input.
+- `seal_to_public_key` raises `SealError` for a low-order X25519 key, and the
+  KBS turns that into a denial (`key_sealed`).
+- `artifact_digest` takes each file's size and bytes from one open handle and
+  raises if they disagree, and opens with `O_NOFOLLOW` where available.
+- `verify_log_consistency` takes an optional `log_public_key` and then requires
+  both heads to verify; a malformed root returns False.
+- Docs: the Azure TDX provider takes no nonce-bound vTPM quote, so its evidence
+  has no freshness binding; the docstrings that said it did are corrected, and
+  `LIMITATIONS.md` says so.
+
+**Changed (behaviour, breaking for unverified deployments).** A manifest now
+requires cryptographic evidence verification unless it says otherwise (#159).
+New optional field `release_policy.require_evidence_verification`: absent or
+`true` means the KBS must verify the CPU quote and, when one is presented, the
+GPU report; only an explicit `false` waives it. A KBS with no verifier for
+evidence the manifest requires now refuses (`WCM-L2-0019`) where it used to
+pass with "structural trust only". The operator flags
+`require_cpu_quote_verification` and `require_gpu_report_verification` still
+exist and can only add to what the manifest requires. The field is `Optional`,
+so an existing signed manifest's pre-image and identity do not change, but its
+meaning does: a manifest signed before this release that is silent on the
+field now requires verification.
+
+`required_gpu_measurement.require_cc_mode` is now met only by a GPU report the
+KBS verified cryptographically. No signed NVIDIA evidence states the mode, so
+WCM treats a verified report as establishing it, an assumption SPEC 3.2 states
+together with the two-device evidence it rests on and what was not tested. With
+a GPU verifier configured, a release through `tools/nvat_adapter.py` no longer
+needs the `require_cc_mode: false` waiver described above.
+
+**Deprecated.** `GpuReport.cc_mode`. It is still accepted, and an explicit
+`False` still denies, but `True` and `None` are ignored. It will be removed in
+a later release.
+
+To keep a deployment that runs on mock or unverified evidence releasing, set
+both waivers in the manifest and re-sign it:
+`release_policy.require_evidence_verification: false` and, if a GPU is
+required, `required_gpu_measurement.require_cc_mode: false`. `wcm gate` now
+reports the checks mock evidence cannot satisfy as `SKIP` rather than `FAIL`.
+Ten gate vectors gained these explicit waivers, and two were added:
+`deny-evidence-verification-required-without-verifier` and
+`deny-gpu-cc-mode-asserted-but-unverified`.
+
+**Build.** CI and the fuzz build install third-party dependencies from
+hash-locked files under `requirements/` (#164), and the contributor install
+instructions match. Workflow write permissions are scoped to the jobs that use
+them (#165). No change to the published package's dependencies.
 
 ## 0.28.4 - 2026-09-24
 

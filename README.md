@@ -61,7 +61,8 @@ cd python
 python -m venv .venv
 # Linux/macOS: source .venv/bin/activate
 # Windows PowerShell: .venv\Scripts\Activate.ps1
-python -m pip install -e ".[dev]"
+python -m pip install --require-hashes -r ../requirements/dev.txt
+python -m pip install --no-deps -e .
 pytest -q tests/test_examples.py tests/test_kbs.py tests/test_custody.py
 wcm conformance
 ```

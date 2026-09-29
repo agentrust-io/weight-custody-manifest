@@ -19,7 +19,7 @@ whose attestation matches the manifest.
 
 !!! tip "TL;DR"
     The reference SDK ([weight-custody-manifest](https://pypi.org/project/weight-custody-manifest/)
-    0.28.4, Apache-2.0) runs its conformance vectors offline with no GPU or cloud
+    0.28.5, Apache-2.0) runs its conformance vectors offline with no GPU or cloud
     account, and verifies AMD SEV-SNP, Intel TDX and NVIDIA H100 CC evidence
     captured on real hardware. Against an operator who physically owns the
     machine, WCM offers accountability, not cryptographic custody, because
@@ -115,8 +115,8 @@ reference suite does not assign a deployment an attacker-resistance tier.
 
 ## What is checked today
 
-The reference implementation ships **95 portable conformance vectors**: 32 at L1,
-41 at L2, 12 at L3, and 10 at L4. Run them yourself with `wcm conformance`.
+The reference implementation ships **97 portable conformance vectors**: 32 at L1,
+43 at L2, 12 at L3, and 10 at L4. Run them yourself with `wcm conformance`.
 
 This is the reference implementation's self-test, not independent certification
 and not a hardware deployment test. One L2 vector verifies genuine AMD SEV-SNP
@@ -194,6 +194,6 @@ reference key-release service are available under Apache-2.0. Vendors may build
 interoperable hosted services and protected-runtime implementations. Public
 availability does not establish production readiness.
 
-**Status:** pre-1.0 · SDK 0.28.4 · Apache-2.0 · SCITT and CoSAI standards path on
+**Status:** pre-1.0 · SDK 0.28.5 · Apache-2.0 · SCITT and CoSAI standards path on
 the [roadmap](roadmap.md) · Sponsored by OPAQUE, which funds the engineering,
 infrastructure and confidential-computing work behind these projects.

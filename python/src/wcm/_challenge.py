@@ -11,6 +11,7 @@ KBS uses its own clock here, never a guest-supplied one.
 from __future__ import annotations
 
 import secrets
+import threading
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from typing import Callable, Optional
@@ -32,7 +33,14 @@ def _utcnow() -> datetime:
 
 
 class ChallengeStore:
-    """Issues nonces and enforces single use within a TTL."""
+    """Issues nonces and enforces single use within a TTL.
+
+    Thread-safe: the reference server runs sync handlers on a thread pool, and
+    an unlocked check-then-add let two concurrent presentations of one nonce
+    both pass. Memory is bounded by the TTL window: expired challenges are
+    dropped on every issue, since an unauthenticated caller can request as
+    many as it likes. A dropped nonce reads as unknown, which still refuses it.
+    """
 
     def __init__(
         self,
@@ -43,17 +51,33 @@ class ChallengeStore:
         self._ttl = ttl_seconds
         self._now = now or _utcnow
         self._issued: dict[str, Challenge] = {}
-        self._consumed: set[str] = set()
+        # nonce -> its challenge's expiry, kept only until that expiry passes.
+        self._consumed: dict[str, datetime] = {}
+        self._lock = threading.Lock()
+
+    def _prune(self, now: datetime) -> None:
+        # Insertion order is issue order, so with a steady clock the oldest
+        # entries sit at the front; stop at the first one still live.
+        for table in (self._issued, self._consumed):
+            while table:
+                nonce = next(iter(table))
+                entry = table[nonce]
+                expires = entry.expires_at if isinstance(entry, Challenge) else entry
+                if now <= expires:
+                    break
+                del table[nonce]
 
     def issue(self) -> Challenge:
-        now = self._now()
-        challenge = Challenge(
-            nonce=secrets.token_hex(32),
-            issued_at=now,
-            expires_at=now + timedelta(seconds=self._ttl),
-        )
-        self._issued[challenge.nonce] = challenge
-        return challenge
+        with self._lock:
+            now = self._now()
+            self._prune(now)
+            challenge = Challenge(
+                nonce=secrets.token_hex(32),
+                issued_at=now,
+                expires_at=now + timedelta(seconds=self._ttl),
+            )
+            self._issued[challenge.nonce] = challenge
+            return challenge
 
     def consume(self, nonce: str) -> None:
         """Validate *nonce* and mark it used. Idempotency is intentionally not
@@ -62,12 +86,12 @@ class ChallengeStore:
         Raises:
             ChallengeError: unknown, expired, or already-consumed nonce.
         """
-        if nonce in self._consumed:
-            raise ChallengeError("nonce already used (replay)")
-        challenge = self._issued.get(nonce)
-        if challenge is None:
-            raise ChallengeError("unknown nonce (not issued by this KBS)")
-        if self._now() > challenge.expires_at:
-            self._consumed.add(nonce)
-            raise ChallengeError("nonce expired")
-        self._consumed.add(nonce)
+        with self._lock:
+            if nonce in self._consumed:
+                raise ChallengeError("nonce already used (replay)")
+            challenge = self._issued.pop(nonce, None)
+            if challenge is None:
+                raise ChallengeError("unknown nonce (not issued by this KBS)")
+            self._consumed[nonce] = challenge.expires_at
+            if self._now() > challenge.expires_at:
+                raise ChallengeError("nonce expired")

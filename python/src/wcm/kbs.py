@@ -25,7 +25,7 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
 from ._challenge import Challenge, ChallengeError, ChallengeStore
 from ._quote_verify import QuoteFormatError, QuoteVerifier
-from ._seal import seal_to_public_key
+from ._seal import SealError, seal_to_public_key
 from .nvidia import NvidiaGpuVerifier
 from .gpu_revocation import NvidiaOcspClient, chain_from_evidence, check_chain
 from .attestation import CompositeEvidence
@@ -38,6 +38,7 @@ from .models import (
 from .snp import extract_snp_report_from_hcl, parse_snp_report
 from .renewal import (
     RenewalDecision,
+    evidence_identity,
     manifest_identity,
     renewal_public_key,
     sign_renewal_decision,
@@ -179,6 +180,21 @@ class KeyBrokerService:
         rp = manifest.release_policy
         nonce = evidence.cpu.nonce_echo
 
+        # 0. Both inputs must canonicalize before anything is decided. The
+        #    manifest identity and the renewal signature are computed over them,
+        #    and a string the canonicalizer cannot encode (a lone surrogate from
+        #    JSON) used to raise after the nonce below was already spent.
+        try:
+            manifest_hash = manifest_identity(manifest)
+            evidence_identity(evidence)
+        except (ValueError, TypeError) as exc:
+            return ReleaseDecision(
+                released=False,
+                key=None,
+                checks=[CheckResult("input_canonical", False, f"cannot canonicalize input: {exc}")],
+                renewal_public_key_b64url=renewal_public_key(self._renewal_signing_key),
+            )
+
         # 1. Nonce: issued by this KBS, unexpired, unused. A hard gate: if it
         #    fails there is nothing else to check.
         try:
@@ -188,7 +204,7 @@ class KeyBrokerService:
                 released=False,
                 key=None,
                 checks=[CheckResult("nonce_fresh", False, str(exc))],
-                manifest_hash=manifest_identity(manifest),
+                manifest_hash=manifest_hash,
                 renewal_public_key_b64url=renewal_public_key(self._renewal_signing_key),
             )
 
@@ -198,7 +214,6 @@ class KeyBrokerService:
         #     Accept only an exact manifest identity pinned by the KBS operator.
         #     The identity covers the complete authority-layer signing pre-image,
         #     without mistaking caller-provided keys or self-declared roles for trust.
-        manifest_hash = manifest_identity(manifest)
         pinned = manifest_hash in self._trusted_manifest_identities
         checks.append(
             CheckResult(
@@ -243,7 +258,16 @@ class KeyBrokerService:
         checks.append(self._check_serving_image(manifest, evidence))
 
         # 5. GPU: separate chain, bound to the CPU quote by the shared nonce.
-        checks.append(self._check_gpu(manifest, evidence))
+        #    Confidential-compute mode is met only by a cryptographically
+        #    verified report, so the report is verified first; its check is still
+        #    reported at 7c, keeping the order of the decision's checks stable.
+        gpu_report_check = self._check_gpu_report(manifest, evidence, nonce)
+        gpu_verified = (
+            gpu_report_check.passed
+            and self._gpu_report_verifier is not None
+            and evidence.gpu is not None
+        )
+        checks.append(self._check_gpu(manifest, evidence, gpu_verified))
 
         # 6. Memory-fingerprint challenge (v0.8) when the posture requires it.
         checks.append(self._check_memory_fingerprint(manifest, evidence, nonce))
@@ -259,11 +283,11 @@ class KeyBrokerService:
 
         # 7b. Cryptographic quote verification (signature + cert chain + nonce +
         #     transport-key binding) when a verifier is configured.
-        checks.append(self._check_cpu_quote(evidence, nonce, channel_binding))
+        checks.append(self._check_cpu_quote(manifest, evidence, nonce, channel_binding))
 
         # 7c. Cryptographic GPU-report verification (signature + cert chain to
         #     NVIDIA's device root + nonce binding) when a verifier is configured.
-        checks.append(self._check_gpu_report(evidence, nonce))
+        checks.append(gpu_report_check)
 
         # 8. A key actually exists for this weights_hash.
         have_key = manifest.weights_hash in self._keystore
@@ -288,7 +312,12 @@ class KeyBrokerService:
             # are stripped under -O, and this is the release path).
             transport_public_key = evidence.cpu.transport_public_key
             if key is not None and transport_public_key is not None:
-                sealed_key = seal_to_public_key(transport_public_key, key)
+                try:
+                    sealed_key = seal_to_public_key(transport_public_key, key)
+                except SealError as exc:
+                    # Nothing can be sealed to this key, so nothing is released.
+                    checks.append(CheckResult("key_sealed", False, str(exc)))
+                    released = False
                 key = None
 
         return ReleaseDecision(
@@ -304,8 +333,15 @@ class KeyBrokerService:
     def verify_for_renewal(
         self, manifest: WeightCustodyManifest, evidence: CompositeEvidence
     ) -> RenewalDecision:
-        """Re-run the release gate and return a short-lived signed keyless decision."""
+        """Re-run the release gate and return a short-lived signed keyless decision.
+
+        Raises:
+            ValueError: the manifest or evidence does not canonicalize, so no
+                decision can be signed over it. The challenge is not consumed.
+        """
         decision = self.verify_and_release(manifest, evidence, renewal=True)
+        if any(c.name == "input_canonical" for c in decision.checks):
+            raise ValueError(decision.checks[0].detail or "input does not canonicalize")
         issued = self._now()
         expires = issued + timedelta(seconds=self._renewal_ttl)
         # Limiting how old a reused answer may be is not enough on its own: if
@@ -375,7 +411,10 @@ class KeyBrokerService:
         return CheckResult("serving_image", True)
 
     def _check_gpu(
-        self, manifest: WeightCustodyManifest, evidence: CompositeEvidence
+        self,
+        manifest: WeightCustodyManifest,
+        evidence: CompositeEvidence,
+        gpu_verified: bool,
     ) -> CheckResult:
         req = manifest.release_policy.required_gpu_measurement
         if req is None:
@@ -393,15 +432,29 @@ class KeyBrokerService:
             return CheckResult(
                 "gpu", True, "confidential-compute mode waived by require_cc_mode: false"
             )
-        if gpu.cc_mode is not True:
-            state = "unstated" if gpu.cc_mode is None else "off"
+        if gpu.cc_mode is False:
+            # Deprecated field, but evidence saying the mode is off is never a
+            # reason to release.
             return CheckResult(
-                "gpu", False, f"GPU confidential-compute mode is {state} but required"
+                "gpu", False, "GPU confidential-compute mode is off but required"
             )
-        # cc_mode comes from the evidence's structured field, not from bytes the
-        # GPU report signature covers, so this catches a misconfigured GPU, not
-        # a lying adapter.
-        return CheckResult("gpu", True, "confidential-compute mode on (unsigned field)")
+        if not gpu_verified:
+            # No signed NVIDIA evidence states the mode, so an adapter's True is
+            # an assertion, not evidence (#159). Only a verified report counts.
+            return CheckResult(
+                "gpu",
+                False,
+                "GPU confidential-compute mode is not established: the GPU report "
+                "was not cryptographically verified",
+            )
+        # SPEC 3.2 assumption: a device with the mode off produces no report to
+        # verify. Observed on two H100s, not documented by NVIDIA.
+        return CheckResult(
+            "gpu",
+            True,
+            "confidential-compute mode inferred from a verified GPU report "
+            "(SPEC 3.2 assumption)",
+        )
 
     def _check_memory_fingerprint(
         self,
@@ -486,7 +539,11 @@ class KeyBrokerService:
         return CheckResult("channel_binding", True), raw
 
     def _check_cpu_quote(
-        self, evidence: CompositeEvidence, nonce: str, channel_binding: bytes
+        self,
+        manifest: WeightCustodyManifest,
+        evidence: CompositeEvidence,
+        nonce: str,
+        channel_binding: bytes,
     ) -> CheckResult:
         if self._cpu_quote_verifier is None:
             if self._require_cpu_quote_verification:
@@ -495,10 +552,18 @@ class KeyBrokerService:
                     False,
                     "cryptographic CPU quote verifier required but not configured",
                 )
+            if manifest.release_policy.require_evidence_verification is not False:
+                return CheckResult(
+                    "cpu_quote_verified",
+                    False,
+                    "cryptographic CPU quote verification required by the manifest "
+                    "but no verifier is configured",
+                )
             return CheckResult(
                 "cpu_quote_verified",
                 True,
-                "not configured: structural trust only (no cryptographic quote verification)",
+                "waived by require_evidence_verification: false: structural trust "
+                "only (no cryptographic quote verification)",
             )
         quote_b64 = evidence.cpu.quote_b64
         if quote_b64 is None:
@@ -515,7 +580,7 @@ class KeyBrokerService:
         return CheckResult("cpu_quote_verified", result.verified, result.reason)
 
     def _check_gpu_report(
-        self, evidence: CompositeEvidence, nonce: str
+        self, manifest: WeightCustodyManifest, evidence: CompositeEvidence, nonce: str
     ) -> CheckResult:
         gpu = evidence.gpu
         if gpu is None:
@@ -528,10 +593,18 @@ class KeyBrokerService:
                     False,
                     "cryptographic GPU report verifier required but not configured",
                 )
+            if manifest.release_policy.require_evidence_verification is not False:
+                return CheckResult(
+                    "gpu_report_verified",
+                    False,
+                    "cryptographic GPU report verification required by the manifest "
+                    "but no verifier is configured",
+                )
             return CheckResult(
                 "gpu_report_verified",
                 True,
-                "not configured: structural trust only (no cryptographic GPU verification)",
+                "waived by require_evidence_verification: false: structural trust "
+                "only (no cryptographic GPU verification)",
             )
         if gpu.quote_b64 is None:
             return CheckResult(

@@ -252,14 +252,14 @@ def test_nvidia_bad_json_raises(monkeypatch):
 # -- full producer -> KBS gate path with faked device I/O ----------------------
 
 
-def test_hardware_composite_releases_through_gate(example_manifest, monkeypatch):
-    ams = example_manifest.release_policy.required_serving_image.accepted_measurements
+def test_hardware_composite_releases_through_gate(structural_manifest, monkeypatch):
+    ams = structural_manifest.release_policy.required_serving_image.accepted_measurements
     current = next(m.measurement for m in ams if m.status.value == "current")
-    rim = example_manifest.release_policy.required_gpu_measurement.rim_pin
+    rim = structural_manifest.release_policy.required_gpu_measurement.rim_pin
 
     kbs = KeyBrokerService(
-        {example_manifest.weights_hash: KEY},
-        trusted_manifest_identities={manifest_identity(example_manifest)},
+        {structural_manifest.weights_hash: KEY},
+        trusted_manifest_identities={manifest_identity(structural_manifest)},
     )
     challenge = kbs.issue_challenge()
 
@@ -271,6 +271,6 @@ def test_hardware_composite_releases_through_gate(example_manifest, monkeypatch)
     provider = HardwareCompositeProvider(cpu, gpu)
     evidence = provider.produce(challenge, serving_image_measurement=current)
 
-    decision = kbs.verify_and_release(example_manifest, evidence)
+    decision = kbs.verify_and_release(structural_manifest, evidence)
     assert decision.released
     assert decision.key == KEY

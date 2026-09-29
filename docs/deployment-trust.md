@@ -205,8 +205,11 @@ those brokers and enforcing workload key lifetimes are separate controls.
 
 The reference HTTP server requires cryptographic GPU verification whenever GPU
 evidence is submitted, using `WCM_GPU_TRUST_ROOT_FILE`. This closes a structural
-evidence downgrade. The library retains an explicit development mode; callers
-requiring verified GPU reports must set `require_gpu_report_verification=True`.
+evidence downgrade. In the library, a manifest requires cryptographic
+verification of the CPU quote and GPU report unless it sets
+`release_policy.require_evidence_verification: false`, so a KBS without a
+verifier refuses. The operator flags `require_cpu_quote_verification` and
+`require_gpu_report_verification` can only add to what the manifest requires.
 
 Shared challenge nonces establish freshness of two reports. They do not by
 themselves establish physical co-location or an authenticated encrypted data

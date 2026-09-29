@@ -10,7 +10,8 @@ From a checkout of the release tag, install the SDK and development dependencies
 in an isolated Python environment:
 
 ```bash
-python -m pip install -e "./python[dev]"
+python -m pip install --require-hashes -r requirements/dev.txt
+python -m pip install --no-deps -e ./python
 python -m pytest python/tests -q
 ```
 

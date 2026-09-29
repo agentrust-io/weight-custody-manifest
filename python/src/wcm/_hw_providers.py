@@ -255,11 +255,12 @@ class AzureSnpVtpmProvider(CpuQuoteProvider):
     live Azure host - see the repo history). This provider reads that index via
     ``tpm2_nvread`` and extracts the raw SNP report.
 
-    Caveat carried from that validation: Azure binds the report's REPORT_DATA to
-    the vTPM runtime-data hash, not a caller nonce, so ``nonce_echo`` here is the
-    structural challenge pointer while the raw report (``quote_b64``) carries the
-    Azure binding. Cryptographic quote verification (VCEK signature + AMD chain)
-    works; the KBS nonce-binding check does not apply on Azure.
+    Azure binds the report's REPORT_DATA to the vTPM runtime-data hash, not a
+    caller nonce. Freshness therefore comes from a second, nonce-bound piece of
+    evidence: this provider extends PCR 23 with the workload measurement and
+    takes a TPM quote under the HCL-authenticated AK with
+    ``sha256(nonce || channel_binding)`` as qualifying data. ``quote_b64`` is
+    that bundle, and ``AzureSnpVtpmVerifier`` is the verifier that checks it.
     """
 
     platform = "amd-sev-snp"
@@ -432,10 +433,16 @@ class AzureTdxVtpmProvider(CpuQuoteProvider):
     chain to the Intel SGX Root CA) is what ``tdx.py`` verifies. Validated on a
     live Azure DCes_v6 host in westeurope.
 
-    Caveat (mirrors ``AzureSnpVtpmProvider``): Azure binds the TD report's
-    REPORT_DATA to the vTPM runtime-data/AK hash, not a caller nonce, so
-    ``verify_tdx_quote`` must be called with ``expected_nonce=None`` here and
-    freshness comes from the enclosing vTPM quote, not the TD report field.
+    NO FRESHNESS. Azure binds the TD report's REPORT_DATA to the vTPM
+    runtime-data/AK hash, not a caller nonce, so ``verify_tdx_quote`` only
+    passes with ``expected_nonce=None``, which skips its one freshness check.
+    Unlike ``AzureSnpVtpmProvider`` this provider does not take a nonce-bound
+    vTPM quote, so nothing in its output binds the challenge: ``nonce_echo`` is
+    an unauthenticated field and a captured quote replays. No verifier in this
+    SDK accepts this evidence cryptographically for key release; a KBS with no
+    CPU verifier falls back to structural trust, which believes ``nonce_echo``
+    here exactly as it would for software evidence. Closing it means capturing the vTPM quote here and verifying
+    the HCL runtime-data binding, as the SNP path does.
     """
 
     platform = "intel-tdx"

@@ -273,6 +273,14 @@ class EnclaveSession:
         key = getattr(decision, "key", None)
         if not released or key is None:
             raise ValueError("cannot start custody: the release decision has no key")
+        # The cadence and time floor below come from *manifest*, so it has to
+        # be the manifest the KBS released against, not a copy with a longer
+        # attestation_cadence.
+        released_manifest = getattr(decision, "manifest_hash", None)
+        if released_manifest is not None and released_manifest != manifest_identity(manifest):
+            raise ValueError(
+                "cannot start custody: the manifest is not the one this key was released against"
+            )
         return cls(
             key,
             cadence_seconds=parse_cadence(manifest.custody.attestation_cadence),
