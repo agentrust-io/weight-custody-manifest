@@ -1,0 +1,311 @@
+{
+  "measured_at": "2026-09-24T09:49:46.421112+00:00",
+  "vantage_point": "developer workstation on a consumer connection",
+  "responder": "ocsp.ndis.nvidia.com",
+  "edges": [
+    "166.117.113.121",
+    "166.117.200.57"
+  ],
+  "requests": 40,
+  "answered": 40,
+  "failure_rate": 0.0,
+  "per_edge": {
+    "166.117.113.121": {
+      "requests": 20,
+      "answered": 20,
+      "failure_rate": 0.0,
+      "failures": {},
+      "median_ok_seconds": 0.432
+    },
+    "166.117.200.57": {
+      "requests": 20,
+      "answered": 20,
+      "failure_rate": 0.0,
+      "failures": {},
+      "median_ok_seconds": 0.429
+    }
+  },
+  "note": "one attempt per request, no retry, pinned to a single edge address; vantage points are described by network type rather than named, because the finding is about two networks differing and not about who operates either",
+  "samples": [
+    {
+      "edge": "166.117.113.121",
+      "link": 1,
+      "ok": true,
+      "status": "GOOD",
+      "seconds": 0.439
+    },
+    {
+      "edge": "166.117.200.57",
+      "link": 1,
+      "ok": true,
+      "status": "GOOD",
+      "seconds": 0.429
+    },
+    {
+      "edge": "166.117.113.121",
+      "link": 2,
+      "ok": true,
+      "status": "GOOD",
+      "seconds": 0.433
+    },
+    {
+      "edge": "166.117.200.57",
+      "link": 2,
+      "ok": true,
+      "status": "GOOD",
+      "seconds": 0.417
+    },
+    {
+      "edge": "166.117.113.121",
+      "link": 3,
+      "ok": true,
+      "status": "GOOD",
+      "seconds": 0.422
+    },
+    {
+      "edge": "166.117.200.57",
+      "link": 3,
+      "ok": true,
+      "status": "GOOD",
+      "seconds": 0.427
+    },
+    {
+      "edge": "166.117.113.121",
+      "link": 1,
+      "ok": true,
+      "status": "GOOD",
+      "seconds": 0.428
+    },
+    {
+      "edge": "166.117.200.57",
+      "link": 1,
+      "ok": true,
+      "status": "GOOD",
+      "seconds": 0.429
+    },
+    {
+      "edge": "166.117.113.121",
+      "link": 2,
+      "ok": true,
+      "status": "GOOD",
+      "seconds": 0.437
+    },
+    {
+      "edge": "166.117.200.57",
+      "link": 2,
+      "ok": true,
+      "status": "GOOD",
+      "seconds": 0.441
+    },
+    {
+      "edge": "166.117.113.121",
+      "link": 3,
+      "ok": true,
+      "status": "GOOD",
+      "seconds": 0.437
+    },
+    {
+      "edge": "166.117.200.57",
+      "link": 3,
+      "ok": true,
+      "status": "GOOD",
+      "seconds": 0.426
+    },
+    {
+      "edge": "166.117.113.121",
+      "link": 1,
+      "ok": true,
+      "status": "GOOD",
+      "seconds": 0.431
+    },
+    {
+      "edge": "166.117.200.57",
+      "link": 1,
+      "ok": true,
+      "status": "GOOD",
+      "seconds": 0.428
+    },
+    {
+      "edge": "166.117.113.121",
+      "link": 2,
+      "ok": true,
+      "status": "GOOD",
+      "seconds": 0.435
+    },
+    {
+      "edge": "166.117.200.57",
+      "link": 2,
+      "ok": true,
+      "status": "GOOD",
+      "seconds": 0.431
+    },
+    {
+      "edge": "166.117.113.121",
+      "link": 3,
+      "ok": true,
+      "status": "GOOD",
+      "seconds": 0.428
+    },
+    {
+      "edge": "166.117.200.57",
+      "link": 3,
+      "ok": true,
+      "status": "GOOD",
+      "seconds": 0.435
+    },
+    {
+      "edge": "166.117.113.121",
+      "link": 1,
+      "ok": true,
+      "status": "GOOD",
+      "seconds": 0.432
+    },
+    {
+      "edge": "166.117.200.57",
+      "link": 1,
+      "ok": true,
+      "status": "GOOD",
+      "seconds": 0.43
+    },
+    {
+      "edge": "166.117.113.121",
+      "link": 2,
+      "ok": true,
+      "status": "GOOD",
+      "seconds": 0.427
+    },
+    {
+      "edge": "166.117.200.57",
+      "link": 2,
+      "ok": true,
+      "status": "GOOD",
+      "seconds": 0.43
+    },
+    {
+      "edge": "166.117.113.121",
+      "link": 3,
+      "ok": true,
+      "status": "GOOD",
+      "seconds": 0.429
+    },
+    {
+      "edge": "166.117.200.57",
+      "link": 3,
+      "ok": true,
+      "status": "GOOD",
+      "seconds": 0.428
+    },
+    {
+      "edge": "166.117.113.121",
+      "link": 1,
+      "ok": true,
+      "status": "GOOD",
+      "seconds": 0.429
+    },
+    {
+      "edge": "166.117.200.57",
+      "link": 1,
+      "ok": true,
+      "status": "GOOD",
+      "seconds": 0.433
+    },
+    {
+      "edge": "166.117.113.121",
+      "link": 2,
+      "ok": true,
+      "status": "GOOD",
+      "seconds": 0.436
+    },
+    {
+      "edge": "166.117.200.57",
+      "link": 2,
+      "ok": true,
+      "status": "GOOD",
+      "seconds": 0.438
+    },
+    {
+      "edge": "166.117.113.121",
+      "link": 3,
+      "ok": true,
+      "status": "GOOD",
+      "seconds": 0.432
+    },
+    {
+      "edge": "166.117.200.57",
+      "link": 3,
+      "ok": true,
+      "status": "GOOD",
+      "seconds": 0.432
+    },
+    {
+      "edge": "166.117.113.121",
+      "link": 1,
+      "ok": true,
+      "status": "GOOD",
+      "seconds": 0.422
+    },
+    {
+      "edge": "166.117.200.57",
+      "link": 1,
+      "ok": true,
+      "status": "GOOD",
+      "seconds": 0.426
+    },
+    {
+      "edge": "166.117.113.121",
+      "link": 2,
+      "ok": true,
+      "status": "GOOD",
+      "seconds": 0.412
+    },
+    {
+      "edge": "166.117.200.57",
+      "link": 2,
+      "ok": true,
+      "status": "GOOD",
+      "seconds": 0.433
+    },
+    {
+      "edge": "166.117.113.121",
+      "link": 3,
+      "ok": true,
+      "status": "GOOD",
+      "seconds": 0.433
+    },
+    {
+      "edge": "166.117.200.57",
+      "link": 3,
+      "ok": true,
+      "status": "GOOD",
+      "seconds": 0.425
+    },
+    {
+      "edge": "166.117.113.121",
+      "link": 1,
+      "ok": true,
+      "status": "GOOD",
+      "seconds": 0.436
+    },
+    {
+      "edge": "166.117.200.57",
+      "link": 1,
+      "ok": true,
+      "status": "GOOD",
+      "seconds": 0.419
+    },
+    {
+      "edge": "166.117.113.121",
+      "link": 2,
+      "ok": true,
+      "status": "GOOD",
+      "seconds": 0.432
+    },
+    {
+      "edge": "166.117.200.57",
+      "link": 2,
+      "ok": true,
+      "status": "GOOD",
+      "seconds": 0.419
+    }
+  ]
+}

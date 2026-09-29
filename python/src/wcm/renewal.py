@@ -5,7 +5,7 @@ import base64
 import binascii
 import hashlib
 from dataclasses import asdict, dataclass
-from typing import Any, Iterable
+from typing import Any, Iterable, Optional
 
 from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives import serialization
@@ -60,6 +60,13 @@ class RenewalDecision:
     evidence_hash: str
     issued_at: str
     expires_at: str
+    #: The instant the revocation evidence behind this decision stops being
+    #: valid, or None when nothing time-bounded was consulted. Distinct from
+    #: expires_at, which bounds how long this decision may be applied: this
+    #: bounds how long custody may continue once it has been. Signed with the
+    #: rest of the payload, and optional so a decision without one behaves as
+    #: before.
+    evidence_expires_at: Optional[str]
     checks: tuple[dict[str, Any], ...]
     public_key_b64url: str
     signature_b64url: str
@@ -101,6 +108,7 @@ def sign_renewal_decision(
     issued_at: str,
     expires_at: str,
     checks: Iterable[dict[str, Any]],
+    evidence_expires_at: Optional[str] = None,
 ) -> RenewalDecision:
     unsigned = RenewalDecision(
         kind="wcm-renewal/v1",
@@ -114,6 +122,7 @@ def sign_renewal_decision(
         evidence_hash=evidence_identity(evidence),
         issued_at=issued_at,
         expires_at=expires_at,
+        evidence_expires_at=evidence_expires_at,
         checks=tuple(dict(check) for check in checks),
         public_key_b64url=renewal_public_key(signing_key),
         signature_b64url="",
