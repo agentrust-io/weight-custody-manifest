@@ -235,4 +235,5 @@ class SnpQuoteParser:
             intermediates=self._intermediates,
             report_data_offset=_OFF_REPORT_DATA,
             report_signature_algorithm="ecdsa-p384-sha384",
+            launch_measurement=report[_OFF_MEASUREMENT : _OFF_MEASUREMENT + 48],
         )

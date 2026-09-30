@@ -126,7 +126,7 @@ evidence = provider.produce(
     gpu_measurement=required_gpu_measurement,
 )
 renewal = kbs.verify_for_renewal(manifest, evidence)
-session.apply_renewal(manifest, renewal)
+session.apply_renewal(manifest, renewal, evidence=evidence)
 ```
 
 The initial release pins the KBS renewal public key. The renewal decision is
