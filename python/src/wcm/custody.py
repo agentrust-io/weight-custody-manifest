@@ -41,6 +41,7 @@ question 8.9 residual), not a manifest field, so it is passed in explicitly.
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import math
 import re
 import threading
@@ -48,8 +49,14 @@ from datetime import datetime, timedelta, timezone
 from enum import Enum
 from typing import Callable, Optional
 
+from .attestation import CompositeEvidence
 from .models import TrustedTimeSource, WeightCustodyManifest
-from .renewal import REQUIRED_RENEWAL_CHECKS, RenewalDecision, manifest_identity
+from .renewal import (
+    REQUIRED_RENEWAL_CHECKS,
+    RenewalDecision,
+    evidence_identity,
+    manifest_identity,
+)
 
 
 class SessionState(str, Enum):
@@ -387,8 +394,16 @@ class EnclaveSession:
         manifest: WeightCustodyManifest,
         decision: RenewalDecision,
         now: Optional[datetime] = None,
+        *,
+        evidence: CompositeEvidence,
     ) -> None:
-        """Apply one fresh signed KBS renewal decision to this custody session."""
+        """Apply one fresh signed KBS renewal decision to this custody session.
+
+        ``evidence`` is what this session submitted for the renewal. The decision
+        signs a hash of the evidence and of its challenge nonce; both must match,
+        or a decision issued to another enclave on the same model and policy
+        would renew this one.
+        """
         current = now if now is not None else self._now()
         if self.tick(current) is SessionState.wiped:
             raise KeyWipedError("renewal too late: custody was already zeroized")
@@ -416,6 +431,9 @@ class EnclaveSession:
             raise ValueError("renewal decision or manifest policy does not match this session")
         if parse_cadence(manifest.custody.attestation_cadence) != self._cadence:
             raise ValueError("renewal cadence does not match this session")
+        nonce_hash = "sha256:" + hashlib.sha256(evidence.cpu.nonce_echo.encode("utf-8")).hexdigest()
+        if decision.evidence_hash != evidence_identity(evidence) or decision.challenge_nonce_hash != nonce_hash:
+            raise ValueError("renewal decision was issued for different evidence")
         if manifest.release_policy.trusted_time_source is not self._tts:
             raise ValueError("renewal trusted-time source does not match this session")
         try:

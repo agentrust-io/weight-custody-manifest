@@ -252,7 +252,8 @@ def test_monitor_honors_successful_signed_renewal(structural_manifest, monkeypat
         nonlocal renewed
         clock.advance(delay)
         if not renewed:
-            session.apply_renewal(structural_manifest, _renew(kbs, structural_manifest, current, rim))
+            decision = _renew(kbs, structural_manifest, current, rim)
+            session.apply_renewal(structural_manifest, decision, evidence=_submitted(decision))
             renewed = True
 
     monkeypatch.setattr("wcm.custody.asyncio.sleep", advance)
@@ -485,12 +486,23 @@ def _session_and_kbs(
     return session, kbs, current, rim
 
 
+#: Evidence each test decision was issued for, keyed by its signature, which
+#: dataclasses.replace() leaves intact on the tampered variants below.
+_SUBMITTED: dict = {}
+
+
 def _renew(kbs, manifest, current, rim):
     challenge = kbs.issue_challenge()
     evidence = SoftwareProvider().produce(
         challenge, serving_image_measurement=current, gpu_measurement=rim,
     )
-    return kbs.verify_for_renewal(manifest, evidence)
+    decision = kbs.verify_for_renewal(manifest, evidence)
+    _SUBMITTED[decision.signature_b64url] = evidence
+    return decision
+
+
+def _submitted(decision):
+    return _SUBMITTED[decision.signature_b64url]
 
 
 def test_signed_renewal_resets_budget_without_exporting_key(structural_manifest):
@@ -503,7 +515,7 @@ def test_signed_renewal_resets_budget_without_exporting_key(structural_manifest)
     assert decision.renewed
     assert not hasattr(decision, "key")
     assert decision.verify(decision.public_key_b64url)
-    session.apply_renewal(structural_manifest, decision)
+    session.apply_renewal(structural_manifest, decision, evidence=_submitted(decision))
     assert session.operations_remaining() == 1
     session.authorize_operation()
 
@@ -512,9 +524,9 @@ def test_renewal_decision_is_single_use(structural_manifest):
     clock = _clock()
     session, kbs, current, rim = _session_and_kbs(structural_manifest, clock)
     decision = _renew(kbs, structural_manifest, current, rim)
-    session.apply_renewal(structural_manifest, decision)
+    session.apply_renewal(structural_manifest, decision, evidence=_submitted(decision))
     with pytest.raises(ValueError, match="already applied"):
-        session.apply_renewal(structural_manifest, decision)
+        session.apply_renewal(structural_manifest, decision, evidence=_submitted(decision))
 
 
 def test_kbs_nonce_replay_produces_signed_failed_renewal(structural_manifest):
@@ -533,7 +545,7 @@ def test_kbs_nonce_replay_produces_signed_failed_renewal(structural_manifest):
     assert replay.checks[0]["passed"] is False
     # A short-circuited gate list is still the KBS's verdict, not a malformed decision.
     with pytest.raises(RenewalDenied) as denied:
-        session.apply_renewal(structural_manifest, replay)
+        session.apply_renewal(structural_manifest, replay, evidence=evidence)
     assert denied.value.failed_check_names == {"nonce_fresh"}
 
 
@@ -556,7 +568,7 @@ def test_signed_denial_is_distinguishable_from_a_malformed_decision(structural_m
     verdict = _renew(kbs, structural_manifest, revoked, rim)
     assert verdict.verify(verdict.public_key_b64url) and not verdict.renewed
     with pytest.raises(RenewalDenied) as denied:
-        session.apply_renewal(structural_manifest, verdict)
+        session.apply_renewal(structural_manifest, verdict, evidence=_submitted(verdict))
     assert "serving_image" in denied.value.failed_check_names
     assert denied.value.decision is verdict
     assert isinstance(denied.value, ValueError)  # back-compatible with ValueError callers
@@ -577,7 +589,7 @@ def test_signed_denial_is_distinguishable_from_a_malformed_decision(structural_m
     )
     assert malformed.verify(malformed.public_key_b64url)
     with pytest.raises(ValueError) as inconclusive:
-        session.apply_renewal(structural_manifest, malformed)
+        session.apply_renewal(structural_manifest, malformed, evidence=evidence)
     assert not isinstance(inconclusive.value, RenewalDenied)
 
     # Neither outcome moves the deadline, so exposure stays one cadence window.
@@ -608,7 +620,7 @@ def test_failed_renewal_keeps_deadline_then_stops(structural_manifest):
     clock.advance(10)
     failed = _renew(kbs, structural_manifest, current, "wrong-rim")
     with pytest.raises(RenewalDenied):
-        session.apply_renewal(structural_manifest, failed)
+        session.apply_renewal(structural_manifest, failed, evidence=_submitted(failed))
     assert session.deadline == deadline
     assert not session.is_wiped
     assert stopped == []
@@ -630,7 +642,7 @@ def test_renewal_refuses_wrong_signer_and_tampering(structural_manifest):
         evidence_hash="sha256:" + "0" * 64,
     )
     with pytest.raises(ValueError, match="signature or signer"):
-        session.apply_renewal(structural_manifest, tampered)
+        session.apply_renewal(structural_manifest, tampered, evidence=_submitted(tampered))
     malformed = replace(valid, signature_b64url="***")
     assert not malformed.verify(malformed.public_key_b64url)
     wrong_kind = replace(valid, kind="another-protocol/v1")
@@ -643,7 +655,7 @@ def test_renewal_refuses_wrong_signer_and_tampering(structural_manifest):
     )
     wrong_signer = _renew(other, structural_manifest, current, rim)
     with pytest.raises(ValueError, match="signature or signer"):
-        session.apply_renewal(structural_manifest, wrong_signer)
+        session.apply_renewal(structural_manifest, wrong_signer, evidence=_submitted(wrong_signer))
 
 
 def test_renewal_refuses_signed_truncated_gate_list(structural_manifest):
@@ -671,7 +683,7 @@ def test_renewal_refuses_signed_truncated_gate_list(structural_manifest):
     )
     assert truncated.verify(valid.public_key_b64url)
     with pytest.raises(ValueError, match="omits required gates"):
-        session.apply_renewal(structural_manifest, truncated)
+        session.apply_renewal(structural_manifest, truncated, evidence=evidence)
 
 
 def test_renewal_refuses_success_claimed_over_a_failed_gate(structural_manifest):
@@ -703,7 +715,7 @@ def test_renewal_refuses_success_claimed_over_a_failed_gate(structural_manifest)
     )
     assert contradictory.verify(contradictory.public_key_b64url)
     with pytest.raises(ValueError, match="claims success over a failed gate"):
-        session.apply_renewal(structural_manifest, contradictory)
+        session.apply_renewal(structural_manifest, contradictory, evidence=evidence)
     assert session.deadline == deadline
     assert session.state is SessionState.holding
 
@@ -729,7 +741,7 @@ def test_renewal_refuses_cross_model_and_policy_drift(structural_manifest, examp
     )
     other_decision = _renew(kbs, other_manifest, current, rim)
     with pytest.raises(ValueError, match="different model"):
-        session.apply_renewal(structural_manifest, other_decision)
+        session.apply_renewal(structural_manifest, other_decision, evidence=_submitted(other_decision))
 
     drifted_dict = dict(example_dict)
     drifted_dict["custody"] = dict(example_dict["custody"])
@@ -741,7 +753,7 @@ def test_renewal_refuses_cross_model_and_policy_drift(structural_manifest, examp
     )
     drift_decision = _renew(drift_kbs, drifted, current, rim)
     with pytest.raises(ValueError, match="policy does not match"):
-        session.apply_renewal(drifted, drift_decision)
+        session.apply_renewal(drifted, drift_decision, evidence=_submitted(drift_decision))
 
 
 def test_renewal_refuses_expired_failed_and_post_wipe_decisions(structural_manifest):
@@ -752,7 +764,7 @@ def test_renewal_refuses_expired_failed_and_post_wipe_decisions(structural_manif
     expired = _renew(kbs, structural_manifest, current, rim)
     clock.advance(11)
     with pytest.raises(ValueError, match="not currently valid"):
-        session.apply_renewal(structural_manifest, expired)
+        session.apply_renewal(structural_manifest, expired, evidence=_submitted(expired))
 
     challenge = kbs.issue_challenge()
     bad_evidence = SoftwareProvider().produce(
@@ -761,12 +773,12 @@ def test_renewal_refuses_expired_failed_and_post_wipe_decisions(structural_manif
     failed = kbs.verify_for_renewal(structural_manifest, bad_evidence)
     assert not failed.renewed
     with pytest.raises(RenewalDenied):
-        session.apply_renewal(structural_manifest, failed)
+        session.apply_renewal(structural_manifest, failed, evidence=bad_evidence)
 
     fresh = _renew(kbs, structural_manifest, current, rim)
     clock.advance(86401)
     with pytest.raises(KeyWipedError, match="already zeroized"):
-        session.apply_renewal(structural_manifest, fresh)
+        session.apply_renewal(structural_manifest, fresh, evidence=_submitted(fresh))
 
 
 def test_from_release_rejects_a_manifest_other_than_the_released_one(structural_manifest):
@@ -779,3 +791,21 @@ def test_from_release_rejects_a_manifest_other_than_the_released_one(structural_
     stretched.custody.attestation_cadence = "3650d"
     with pytest.raises(ValueError, match="released against"):
         EnclaveSession.from_release(stretched, decision, now=clock)
+
+
+
+def test_renewal_issued_to_another_enclave_does_not_renew_this_one(structural_manifest):
+    """Two sessions on one model and policy share the KBS renewal key, so the
+    signature alone cannot tell them apart. The signed evidence hash can."""
+    clock = _clock()
+    session, kbs, current, rim = _session_and_kbs(structural_manifest, clock)
+    other_decision = _renew(kbs, structural_manifest, current, rim)
+    own_decision = _renew(kbs, structural_manifest, current, rim)
+    assert other_decision.renewed and own_decision.renewed
+    deadline = session.deadline
+    with pytest.raises(ValueError, match="different evidence"):
+        session.apply_renewal(
+            structural_manifest, other_decision, evidence=_submitted(own_decision)
+        )
+    assert session.deadline == deadline
+    session.apply_renewal(structural_manifest, own_decision, evidence=_submitted(own_decision))

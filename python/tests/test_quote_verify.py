@@ -539,3 +539,27 @@ def test_low_order_transport_key_is_a_denial_not_an_exception(structural_manifes
     assert not decision.released
     assert decision.key is None and decision.sealed_key is None
     assert any(c.name == "key_sealed" and not c.passed for c in decision.checks)
+
+
+def test_json_container_with_a_configured_launch_measurement_is_compared():
+    """Opt-in for the reference container: with an offset configured, the signed
+    measurement must match what the KBS is about to approve."""
+    pki = Pki()
+    nonce = "cd" * 32
+    launch = bytes([0x22]) * 48
+    body = _report_body(nonce) + launch
+    offset = len(body) - 48
+    verifier = QuoteVerifier(JsonQuoteParser(launch_measurement_offset=offset), _trust(pki))
+    quote = _container(pki, body)
+    good = "sha256:" + hashlib.sha256(launch).hexdigest()
+    assert verifier.verify(quote, expected_nonce=nonce, expected_workload_measurement=good).verified
+    bad = verifier.verify(quote, expected_nonce=nonce, expected_workload_measurement="sha256:" + "00" * 32)
+    assert not bad.verified
+    assert bad.reason == "signed workload launch measurement mismatch"
+
+
+def test_json_container_offset_past_the_report_is_a_format_error():
+    pki = Pki()
+    nonce = "cd" * 32
+    verifier = QuoteVerifier(JsonQuoteParser(launch_measurement_offset=10_000), _trust(pki))
+    assert not verifier.verify(_container(pki, _report_body(nonce)), expected_nonce=nonce).verified

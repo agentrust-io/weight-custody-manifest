@@ -6,6 +6,22 @@ uses semantic-ish versioning while pre-1.0.
 
 ## Unreleased
 
+**Fixed.** `QuoteVerifier.verify` discarded `expected_workload_measurement`, so
+the key broker's serving-image check rested on `serving_image_measurement`, a
+structured field whoever builds the evidence controls. A genuine SEV-SNP report
+from an unapproved image could name an approved measurement there and receive
+the key. The verifier now compares `sha256(launch measurement)` from the signed
+report with the value the broker is about to approve, which is what
+`broker_receiver` already did. `SnpQuoteParser` supplies the launch measurement;
+`JsonQuoteParser` supplies one when constructed with `launch_measurement_offset`.
+A format that carries no launch measurement is not checked here, as before.
+
+**Changed, breaking.** `EnclaveSession.apply_renewal()` takes a required
+`evidence=` keyword: the evidence this session submitted for the renewal. The
+decision signs a hash of that evidence and of its challenge nonce, and neither
+was compared, so a decision issued to another enclave on the same model and
+policy renewed this one. Both are now checked before any verdict is acted on.
+
 **Added.** Live, nonce-bound OCSP for the NVIDIA GPU attestation chain, in
 `wcm.gpu_revocation`. `attestation_revocation_check` is specified as
 live-per-release with a short cache window, but the gate behind it compared a

@@ -251,13 +251,12 @@ def test_the_custody_window_is_bounded_by_the_evidence(example_manifest):
     )
     cadence = session._cadence  # noqa: SLF001
 
-    decision = kbs.verify_for_renewal(
-        manifest, evidence(kbs.issue_challenge().nonce, manifest)
-    )
+    submitted = evidence(kbs.issue_challenge().nonce, manifest)
+    decision = kbs.verify_for_renewal(manifest, submitted)
     assert decision.evidence_expires_at is not None, "the bound must be carried and signed"
     bound = datetime.fromisoformat(decision.evidence_expires_at.replace("Z", "+00:00"))
 
-    session.apply_renewal(manifest, decision)
+    session.apply_renewal(manifest, decision, evidence=submitted)
     deadline = session._deadline  # noqa: SLF001
 
     # The cadence is far longer than what NVIDIA's answer stands for, so the
@@ -287,9 +286,8 @@ def test_a_decision_with_no_evidence_bound_keeps_the_cadence(example_manifest):
     session = EnclaveSession.from_release(
         manifest, release, max_operations=10, now=lambda: WHEN,
     )
-    decision = plain.verify_for_renewal(
-        manifest, evidence(plain.issue_challenge().nonce, manifest)
-    )
+    submitted = evidence(plain.issue_challenge().nonce, manifest)
+    decision = plain.verify_for_renewal(manifest, submitted)
     assert decision.evidence_expires_at is None
-    session.apply_renewal(manifest, decision)
+    session.apply_renewal(manifest, decision, evidence=submitted)
     assert session._deadline == WHEN + timedelta(seconds=session._cadence)  # noqa: SLF001

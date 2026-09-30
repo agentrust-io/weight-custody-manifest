@@ -46,6 +46,9 @@ class ParsedQuote:
     intermediates: list[x509.Certificate] = field(default_factory=list)
     report_data_offset: int = 0  # where the 32-byte nonce digest sits in report_body
     report_signature_algorithm: str = "ecdsa-sha256"  # selected by the format parser
+    # The workload launch measurement, sliced from report_body (so it is signed).
+    # None when the format carries no launch measurement.
+    launch_measurement: Optional[bytes] = None
 
 
 class QuoteParser(Protocol):
@@ -85,10 +88,14 @@ class JsonQuoteParser:
         *,
         report_signature_algorithm: str = "ecdsa-sha256",
         report_data_offset: int = 0,
+        launch_measurement_offset: Optional[int] = None,
+        launch_measurement_length: int = 48,
     ) -> None:
         # Configuration belongs to the verifier's parser, not the input JSON.
         self._report_signature_algorithm = report_signature_algorithm
         self._report_data_offset = report_data_offset
+        self._launch_measurement_offset = launch_measurement_offset
+        self._launch_measurement_length = launch_measurement_length
 
     def parse(self, quote_b64: str) -> ParsedQuote:
         try:
@@ -104,13 +111,21 @@ class JsonQuoteParser:
                 load_pem_certificate(p.encode())
                 for p in doc.get("intermediates_pem", [])
             ]
+            body = base64.b64decode(doc["report_b64"])
+            launch = None
+            if self._launch_measurement_offset is not None:
+                end = self._launch_measurement_offset + self._launch_measurement_length
+                if len(body) < end:
+                    raise ValueError("report too short for the configured launch measurement")
+                launch = body[self._launch_measurement_offset : end]
             return ParsedQuote(
-                report_body=base64.b64decode(doc["report_b64"]),
+                report_body=body,
                 signature=base64.b64decode(doc["signature_b64"]),
                 leaf=leaf,
                 intermediates=inters,
                 report_data_offset=self._report_data_offset,
                 report_signature_algorithm=self._report_signature_algorithm,
+                launch_measurement=launch,
             )
         except (KeyError, ValueError, TypeError, AttributeError) as exc:
             raise QuoteFormatError(f"unparseable quote container: {exc}") from exc
@@ -278,11 +293,6 @@ class QuoteVerifier:
         breaking this check. Empty binding reduces to sha256(nonce), the
         replay-only value, so pre-channel-binding quotes still verify.
         """
-        # Generic quote formats do not expose a TPM PCR digest. Platform
-        # verifiers (notably AzureSnpVtpmVerifier) consume this policy-derived
-        # value. Keeping it on the common call shape lets the KBS pass the
-        # manifest value without trusting an evidence-side assertion.
-        del expected_workload_measurement
         current = now if now is not None else _utcnow()
         try:
             q = self._parser.parse(quote_b64)
@@ -307,5 +317,18 @@ class QuoteVerifier:
                 else "REPORT_DATA does not bind the challenge nonce (possible replay)"
             )
             return QuoteVerification(False, reason)
+
+        # The KBS passes the serving-image measurement it is about to approve.
+        # That value comes from the evidence's structured fields, so it binds
+        # nothing until it is compared with the signed report. Without this, a
+        # genuine report from an unapproved image could name an approved
+        # measurement and receive the key.
+        # A format with no launch measurement (the JSON reference container,
+        # unless configured with an offset) cannot be checked here; platform
+        # verifiers such as AzureSnpVtpmVerifier bind it through their own field.
+        if expected_workload_measurement is not None and q.launch_measurement is not None:
+            signed = "sha256:" + hashlib.sha256(q.launch_measurement).hexdigest()
+            if signed != expected_workload_measurement:
+                return QuoteVerification(False, "signed workload launch measurement mismatch")
 
         return QuoteVerification(True, leaf_subject=q.leaf.subject.rfc4514_string())

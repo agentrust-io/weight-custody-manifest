@@ -69,11 +69,12 @@ def test_an_unsuccessful_renewal_cannot_extend_that_lease(example_manifest):
     client._held.clear()  # noqa: SLF001 - nothing to fall back to, so the gate refuses
     later = WHEN + timedelta(seconds=30)
     kbs._now = lambda: later  # noqa: SLF001
-    refused = kbs.verify_for_renewal(manifest, evidence(kbs.issue_challenge().nonce, manifest))
+    submitted = evidence(kbs.issue_challenge().nonce, manifest)
+    refused = kbs.verify_for_renewal(manifest, submitted)
     assert refused.renewed is False
 
     with pytest.raises(RenewalDenied):
-        session.apply_renewal(manifest, refused, now=later)
+        session.apply_renewal(manifest, refused, now=later, evidence=submitted)
     assert session._deadline == before, "a refused renewal moved the window"  # noqa: SLF001
 
 
@@ -115,14 +116,15 @@ def test_the_permission_window_must_end_before_the_evidence_does(example_manifes
     kbs = kbs_for(manifest, client, ttl=900)
     session = session_for(kbs, manifest, WHEN)
 
-    decision = kbs.verify_for_renewal(manifest, evidence(kbs.issue_challenge().nonce, manifest))
+    submitted = evidence(kbs.issue_challenge().nonce, manifest)
+    decision = kbs.verify_for_renewal(manifest, submitted)
     assert decision.evidence_expires_at is not None
     bound = datetime.fromisoformat(decision.evidence_expires_at.replace("Z", "+00:00"))
     assert session._cadence > (bound - WHEN).total_seconds(), (  # noqa: SLF001
         "the cadence must exceed the evidence or this proves nothing"
     )
 
-    session.apply_renewal(manifest, decision)
+    session.apply_renewal(manifest, decision, evidence=submitted)
     assert session._deadline <= bound  # noqa: SLF001
 
 
@@ -162,10 +164,11 @@ def test_a_fourteen_minute_old_answer_does_not_grant_another_fifteen(example_man
     fourteen = WHEN + timedelta(minutes=14)
     kbs._now = lambda: fourteen  # noqa: SLF001
     session._now = lambda: fourteen  # noqa: SLF001
-    decision = kbs.verify_for_renewal(manifest, evidence(kbs.issue_challenge().nonce, manifest))
+    submitted = evidence(kbs.issue_challenge().nonce, manifest)
+    decision = kbs.verify_for_renewal(manifest, submitted)
     assert decision.renewed is True, decision.checks
 
-    session.apply_renewal(manifest, decision, now=fourteen)
+    session.apply_renewal(manifest, decision, now=fourteen, evidence=submitted)
     granted = session._deadline - fourteen  # noqa: SLF001
     assert session._deadline <= short_window_ends, (  # noqa: SLF001
         f"custody ran to {session._deadline}, past the short window ending "  # noqa: SLF001
