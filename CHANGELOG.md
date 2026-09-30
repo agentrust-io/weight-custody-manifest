@@ -4,6 +4,26 @@ Notable changes to the Weight Custody Manifest specification and Python SDK.
 Format loosely follows [Keep a Changelog](https://keepachangelog.com/); the SDK
 uses semantic-ish versioning while pre-1.0.
 
+## Unreleased (0.29.1)
+
+**Fixed, security.** `AzureSnpVtpmVerifier` verified the TPM quote with the key
+parsed from `ak_pem`, which the bundle's sender writes, and compared only its
+modulus with `HCLAkPub` from the SNP-authenticated HCL runtime JSON. The
+exponent was never checked. With cryptography 48.0.1, a public key of
+(HCL modulus, e=1) loads, and under e=1 a PKCS#1 v1.5 signature is just the
+padded digest, so anyone holding a genuine report could sign a quote for any
+nonce, any transport key and any PCR 23 measurement. The pinned cryptography
+50.x refuses to load e=1; the verifier itself checked nothing about the
+exponent.
+
+The quote is now verified under the key built from `HCLAkPub` itself: `kty`
+must be `RSA`, `n` and `e` must both be present as unpadded base64url, `e`
+must be 65537, and the modulus must be at least 2048 bits. `ak_pem` must name
+exactly that key, modulus and exponent, or the evidence is denied with the
+existing "TPM quote key does not match HCL-authenticated AK" reason. Every
+Azure capture on hand (two Genoa, one Milan, September 29 and 30 2026) carries
+`"kty": "RSA", "e": "AQAB"` and a 2048-bit modulus, and still verifies.
+
 ## 0.29.0 - 2026-09-30
 
 **Fixed.** `QuoteVerifier.verify` discarded `expected_workload_measurement`, so

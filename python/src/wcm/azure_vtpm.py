@@ -43,6 +43,20 @@ def _b64(value: str) -> bytes:
     return base64.b64decode(value, validate=True)
 
 
+# Azure vTPM AKs are RSA-2048 with the TPM default exponent; HCLAkPub carries
+# e = "AQAB" on every capture WCM has seen.
+_AK_EXPONENT = 65537
+_AK_MIN_BITS = 2048
+
+
+def _b64url_uint(value: str) -> int:
+    """Decode a JWK base64url unsigned integer, rejecting non-alphabet bytes."""
+    if not isinstance(value, str) or not value or any(c in value for c in "+/="):
+        raise ValueError("JWK integer must be an unpadded base64url string")
+    std = value.replace("-", "+").replace("_", "/")
+    return int.from_bytes(base64.b64decode(std + "=" * (-len(std) % 4), validate=True), "big")
+
+
 def _take_u16(blob: bytes, offset: int) -> tuple[bytes, int]:
     if offset + 2 > len(blob):
         raise ValueError("truncated TPM2B")
@@ -124,11 +138,24 @@ class AzureSnpVtpmVerifier:
         try:
             runtime_doc = json.loads(runtime_json)
             jwk = next(k for k in runtime_doc["keys"] if k["kid"] == "HCLAkPub")
-            modulus = int.from_bytes(base64.urlsafe_b64decode(jwk["n"] + "=" * (-len(jwk["n"]) % 4)), "big")
-        except (KeyError, StopIteration, ValueError, TypeError) as exc:
+            if jwk["kty"] != "RSA":
+                raise ValueError(f"kty {jwk['kty']!r} is not RSA")
+            modulus = _b64url_uint(jwk["n"])
+            exponent = _b64url_uint(jwk["e"])
+        except (KeyError, StopIteration, ValueError, TypeError, AttributeError) as exc:
             return QuoteVerification(False, f"invalid HCLAkPub: {exc}")
-        if modulus != ak.public_numbers().n:
+        if exponent != _AK_EXPONENT:
+            return QuoteVerification(False, f"HCLAkPub exponent {exponent} is not {_AK_EXPONENT}")
+        if modulus.bit_length() < _AK_MIN_BITS:
+            return QuoteVerification(False, f"HCLAkPub modulus is shorter than {_AK_MIN_BITS} bits")
+        # The quote is verified under the key the SNP report authenticates,
+        # never under ``ak_pem``: that field is attacker-supplied, and matching
+        # only its modulus let an (n, e=1) key verify a forged signature.
+        # ``ak_pem`` must still name exactly the same key.
+        supplied = ak.public_numbers()
+        if (supplied.n, supplied.e) != (modulus, exponent):
             return QuoteVerification(False, "TPM quote key does not match HCL-authenticated AK")
+        ak = rsa.RSAPublicNumbers(exponent, modulus).public_key()
 
         try:
             if quote[:4] != b"\xffTCG" or quote[4:6] != b"\x80\x18":
