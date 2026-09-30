@@ -4,7 +4,7 @@ Notable changes to the Weight Custody Manifest specification and Python SDK.
 Format loosely follows [Keep a Changelog](https://keepachangelog.com/); the SDK
 uses semantic-ish versioning while pre-1.0.
 
-## Unreleased
+## 0.29.0 - 2026-09-30
 
 **Fixed.** `QuoteVerifier.verify` discarded `expected_workload_measurement`, so
 the key broker's serving-image check rested on `serving_image_measurement`, a
