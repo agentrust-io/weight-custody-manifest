@@ -47,18 +47,28 @@ def _tpm2b(value: bytes) -> bytes:
     return len(value).to_bytes(2, "big") + value
 
 
-def _bundle(*, wrong_binding=False, wrong_ak=False, no_pcr23=False, pcr_digest=None):
+def _b64url(value: int, size: int) -> str:
+    return base64.urlsafe_b64encode(value.to_bytes(size, "big")).rstrip(b"=").decode()
+
+
+def _bundle(*, wrong_binding=False, wrong_ak=False, no_pcr23=False, pcr_digest=None, jwk=None):
     root_key, inter_key, vcek_key = (ec.generate_private_key(ec.SECP384R1()) for _ in range(3))
     root = _cert("root", "root", root_key, root_key, ca=True)
     inter = _cert("inter", "root", inter_key, root_key, ca=True)
     vcek = _cert("vcek", "inter", vcek_key, inter_key)
     ak_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
     runtime_key = rsa.generate_private_key(public_exponent=65537, key_size=2048) if wrong_ak else ak_key
-    n = runtime_key.public_key().public_numbers().n.to_bytes(256, "big")
-    runtime_json = json.dumps(
-        {"keys": [{"kid": "HCLAkPub", "n": base64.urlsafe_b64encode(n).rstrip(b"=").decode()}]},
-        separators=(",", ":"),
-    ).encode()
+    # Same shape as a real Azure HCL runtime JWK: kid, key_ops, kty, e, n.
+    hcl_jwk = {
+        "kid": "HCLAkPub",
+        "key_ops": ["sign"],
+        "kty": "RSA",
+        "e": "AQAB",
+        "n": _b64url(runtime_key.public_key().public_numbers().n, 256),
+    }
+    if jwk is not None:
+        hcl_jwk = {k: v for k, v in {**hcl_jwk, **jwk}.items() if v is not None}
+    runtime_json = json.dumps({"keys": [hcl_jwk]}, separators=(",", ":")).encode()
     report = bytearray(1184)
     struct.pack_into("<I", report, 0, 3)
     report[0x50:0x70] = hashlib.sha256(runtime_json).digest()
@@ -173,3 +183,109 @@ def test_azure_snp_vtpm_malformed_bundles_deny_instead_of_raising():
         result = _verify(bundle, trust)
         assert not result.verified, label
         assert result.reason, label
+
+
+# The AK is the HCL-authenticated key, modulus AND exponent. Matching only the
+# modulus let an attacker-supplied ak_pem choose the exponent.
+
+_SHA256_DIGEST_INFO = bytes.fromhex("3031300d060960864801650304020105000420")
+
+
+def _der_len(length: int) -> bytes:
+    if length < 0x80:
+        return bytes([length])
+    raw = length.to_bytes((length.bit_length() + 7) // 8, "big")
+    return bytes([0x80 | len(raw)]) + raw
+
+
+def _tlv(tag: int, value: bytes) -> bytes:
+    return bytes([tag]) + _der_len(len(value)) + value
+
+
+def _der_int(value: int) -> bytes:
+    return _tlv(0x02, value.to_bytes(value.bit_length() // 8 + 1, "big"))
+
+
+def _rsa_spki_pem(n: int, e: int) -> str:
+    """SubjectPublicKeyInfo for (n, e), built by hand so e=1 is expressible."""
+    rsa_key = _tlv(0x30, _der_int(n) + _der_int(e))
+    algorithm = bytes.fromhex("300d06092a864886f70d0101010500")
+    spki = _tlv(0x30, algorithm + _tlv(0x03, b"\x00" + rsa_key))
+    body = base64.encodebytes(spki).decode()
+    return "-----BEGIN PUBLIC KEY-----\n" + body + "-----END PUBLIC KEY-----\n"
+
+
+def _supplied_ak_n(doc) -> int:
+    return serialization.load_pem_public_key(doc["ak_pem"].encode()).public_numbers().n
+
+
+def test_azure_snp_vtpm_rejects_exponent_one_forgery():
+    # Under e=1 a PKCS#1 v1.5 signature is just the padded digest, so anyone who
+    # knows the HCL modulus can "sign" any quote: any nonce, any transport key,
+    # any PCR 23 measurement. The modulus-only check verified this.
+    bundle, trust = _bundle()
+    doc = json.loads(base64.b64decode(bundle))
+    nonce, binding, measurement = "11" * 32, b"\x22" * 32, "sha256:" + "ee" * 32
+    quote = (
+        b"\xffTCG\x80\x18" + _tpm2b(b"signer")
+        + _tpm2b(hashlib.sha256(bytes.fromhex(nonce) + binding).digest())
+        + bytes(25) + (1).to_bytes(4, "big") + b"\x00\x0b\x03\x00\x00\x80"
+        + _tpm2b(expected_pcr23_digest(measurement))
+    )
+    t = _SHA256_DIGEST_INFO + hashlib.sha256(quote).digest()
+    forged = b"\x00\x01" + b"\xff" * (256 - len(t) - 3) + b"\x00" + t
+    doc.update(
+        ak_pem=_rsa_spki_pem(_supplied_ak_n(doc), 1),
+        tpm_quote_b64=base64.b64encode(quote).decode(),
+        tpm_signature_b64=base64.b64encode(b"\x00\x14\x00\x0b" + _tpm2b(forged)).decode(),
+    )
+    evil = base64.b64encode(json.dumps(doc).encode()).decode()
+    result = AzureSnpVtpmVerifier(trust).verify(
+        evil, expected_nonce=nonce, channel_binding=binding,
+        expected_workload_measurement=measurement, now=NOW,
+    )
+    assert not result.verified
+    # cryptography 50 refuses to load e=1 at all; older releases load it and
+    # the HCL key comparison is what denies. Either way it must not verify.
+    reason = result.reason or ""
+    assert "does not match" in reason or "e must be" in reason, reason
+
+
+def test_azure_snp_vtpm_rejects_ak_pem_with_matching_modulus_other_exponent():
+    bundle, trust = _bundle()
+    doc = json.loads(base64.b64decode(bundle))
+    doc["ak_pem"] = _rsa_spki_pem(_supplied_ak_n(doc), 3)
+    result = _verify(base64.b64encode(json.dumps(doc).encode()).decode(), trust)
+    assert not result.verified
+    assert "does not match" in (result.reason or "")
+
+
+def test_azure_snp_vtpm_rejects_hcl_ak_with_non_default_exponent():
+    bundle, trust = _bundle(jwk={"e": "Aw"})
+    result = _verify(bundle, trust)
+    assert not result.verified
+    assert "exponent 3 is not 65537" in (result.reason or "")
+
+
+def test_azure_snp_vtpm_rejects_short_hcl_ak_modulus():
+    short = rsa.generate_private_key(public_exponent=65537, key_size=1024)
+    bundle, trust = _bundle(jwk={"n": _b64url(short.public_key().public_numbers().n, 128)})
+    result = _verify(bundle, trust)
+    assert not result.verified
+    assert "shorter than 2048 bits" in (result.reason or "")
+
+
+def test_azure_snp_vtpm_rejects_malformed_hcl_ak_jwk():
+    cases = {
+        "missing e": {"e": None},
+        "missing kty": {"kty": None},
+        "not RSA": {"kty": "EC"},
+        "padded n": {"n": "AQAB=="},
+        "standard alphabet": {"e": "AQ+B"},
+        "e not a string": {"e": 65537},
+    }
+    for label, change in cases.items():
+        bundle, trust = _bundle(jwk=change)
+        result = _verify(bundle, trust)
+        assert not result.verified, label
+        assert "invalid HCLAkPub" in (result.reason or ""), label
