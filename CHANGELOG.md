@@ -4,7 +4,7 @@ Notable changes to the Weight Custody Manifest specification and Python SDK.
 Format loosely follows [Keep a Changelog](https://keepachangelog.com/); the SDK
 uses semantic-ish versioning while pre-1.0.
 
-## Unreleased (0.29.1)
+## 0.30.0 - 2026-10-01
 
 **Fixed, security.** `AzureSnpVtpmVerifier` verified the TPM quote with the key
 parsed from `ak_pem`, which the bundle's sender writes, and compared only its
@@ -29,11 +29,11 @@ workload measurement for the serving-image check from the signed report, as the
 library verifier has since 0.29.0. A quote with no signed launch measurement is
 refused.
 
-**Changed, operator-facing.** With `WCM_CPU_TRUST_ROOT_FILE` set, the server
-requires `WCM_CPU_LAUNCH_MEASUREMENT_OFFSET`: the byte offset of the 48-byte
-launch measurement in the report body, decimal or `0x` hex (`0x90` for an AMD
-SEV-SNP report). Without it the server refuses to start. Deployments without a
-CPU trust root are unchanged.
+**Changed, operator-facing (breaking).** With `WCM_CPU_TRUST_ROOT_FILE` set,
+the server requires `WCM_CPU_LAUNCH_MEASUREMENT_OFFSET`: the byte offset of the
+48-byte launch measurement in the report body, decimal or `0x` hex (`0x90` for
+an AMD SEV-SNP report). Without it the server refuses to start. Deployments
+without a CPU trust root are unchanged.
 
 **Added.** `QuoteVerifier(..., require_launch_measurement=True)` refuses a quote
 whose parser yields no launch measurement when an expected workload measurement
