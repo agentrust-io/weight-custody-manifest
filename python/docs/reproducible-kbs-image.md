@@ -44,6 +44,7 @@ docker run --rm -p 8080:8080 \
   -v "$PWD/manifest-identities.json:/run/trust/manifest-identities.json:ro" \
   -e WCM_KEYSTORE_FILE=/run/secrets/keystore.json \
   -e WCM_CPU_TRUST_ROOT_FILE=/run/trust/cpu-root.pem \
+  -e WCM_CPU_LAUNCH_MEASUREMENT_OFFSET=0x90 \
   -e WCM_TRUSTED_MANIFEST_IDENTITIES_FILE=/run/trust/manifest-identities.json \
   wcm-kbs
 # GET /health, POST /challenge, POST /release

@@ -27,6 +27,7 @@ docker run --rm -p 8080:8080 \
   -v "$PWD/manifest-identities.json:/run/trust/manifest-identities.json:ro" \
   -e WCM_KEYSTORE_FILE=/run/secrets/keystore.json \
   -e WCM_CPU_TRUST_ROOT_FILE=/run/trust/cpu-root.pem \
+  -e WCM_CPU_LAUNCH_MEASUREMENT_OFFSET=0x90 \
   -e WCM_GPU_TRUST_ROOT_FILE=/run/trust/gpu-root.pem \
   -e WCM_TRUSTED_MANIFEST_IDENTITIES_FILE=/run/trust/manifest-identities.json wcm-kbs
 ```
@@ -52,6 +53,12 @@ operator hardening steps, documented in the link above).
     The environment-built server fails closed when `WCM_CPU_TRUST_ROOT_FILE` is
     absent: health and challenge issuance remain available, but every release is
     denied rather than falling back to structural CPU evidence.
+    With `WCM_CPU_TRUST_ROOT_FILE` set, `WCM_CPU_LAUNCH_MEASUREMENT_OFFSET` is
+    required: the byte offset of the 48-byte launch measurement in the signed
+    report body (decimal or `0x` hex, `0x90` for an AMD SEV-SNP report). The
+    serving-image check compares `sha256` of that signed measurement with the
+    manifest, and a quote with no measurement at the offset is denied. The
+    server refuses to start if the root is set and the offset is not.
     The server also fails closed unless the submitted manifest is authorized.
     `WCM_TRUSTED_MANIFEST_IDENTITIES_FILE` must contain a JSON array of exact
     `sha256:` manifest identities produced by `wcm.manifest_identity`. The manifest

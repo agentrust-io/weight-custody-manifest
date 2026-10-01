@@ -24,6 +24,21 @@ existing "TPM quote key does not match HCL-authenticated AK" reason. Every
 Azure capture on hand (two Genoa, one Milan, September 29 and 30 2026) carries
 `"kty": "RSA", "e": "AQAB"` and a 2048-bit modulus, and still verifies.
 
+**Fixed.** The reference server (`wcm.server.build_kbs_from_env`) now takes the
+workload measurement for the serving-image check from the signed report, as the
+library verifier has since 0.29.0. A quote with no signed launch measurement is
+refused.
+
+**Changed, operator-facing.** With `WCM_CPU_TRUST_ROOT_FILE` set, the server
+requires `WCM_CPU_LAUNCH_MEASUREMENT_OFFSET`: the byte offset of the 48-byte
+launch measurement in the report body, decimal or `0x` hex (`0x90` for an AMD
+SEV-SNP report). Without it the server refuses to start. Deployments without a
+CPU trust root are unchanged.
+
+**Added.** `QuoteVerifier(..., require_launch_measurement=True)` refuses a quote
+whose parser yields no launch measurement when an expected workload measurement
+is passed. The default is unchanged.
+
 ## 0.29.0 - 2026-09-30
 
 **Fixed.** `QuoteVerifier.verify` discarded `expected_workload_measurement`, so
