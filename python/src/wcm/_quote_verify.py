@@ -271,9 +271,21 @@ def verify_cert_chain(
 class QuoteVerifier:
     """Verifies a quote: cert chain, report signature, and nonce binding."""
 
-    def __init__(self, parser: QuoteParser, trust_store: TrustStore) -> None:
+    def __init__(
+        self,
+        parser: QuoteParser,
+        trust_store: TrustStore,
+        *,
+        require_launch_measurement: bool = False,
+    ) -> None:
+        """``require_launch_measurement``: when the caller passes an expected
+        workload measurement, refuse a quote whose parser yields no signed
+        launch measurement instead of skipping the comparison. The reference
+        server sets it; leave it off only for formats bound by another verifier.
+        """
         self._parser = parser
         self._trust = trust_store
+        self._require_launch_measurement = require_launch_measurement
 
     def verify(
         self,
@@ -326,9 +338,18 @@ class QuoteVerifier:
         # A format with no launch measurement (the JSON reference container,
         # unless configured with an offset) cannot be checked here; platform
         # verifiers such as AzureSnpVtpmVerifier bind it through their own field.
-        if expected_workload_measurement is not None and q.launch_measurement is not None:
-            signed = "sha256:" + hashlib.sha256(q.launch_measurement).hexdigest()
-            if signed != expected_workload_measurement:
-                return QuoteVerification(False, "signed workload launch measurement mismatch")
+        # With require_launch_measurement set, such a quote is refused instead.
+        if expected_workload_measurement is not None:
+            if q.launch_measurement is None:
+                if self._require_launch_measurement:
+                    return QuoteVerification(
+                        False, "quote carries no signed workload launch measurement"
+                    )
+            else:
+                signed = "sha256:" + hashlib.sha256(q.launch_measurement).hexdigest()
+                if signed != expected_workload_measurement:
+                    return QuoteVerification(
+                        False, "signed workload launch measurement mismatch"
+                    )
 
         return QuoteVerification(True, leaf_subject=q.leaf.subject.rfc4514_string())

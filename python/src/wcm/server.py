@@ -81,6 +81,35 @@ def create_app(kbs: KeyBrokerService) -> FastAPI:
     return app
 
 
+_LAUNCH_OFFSET_ENV = "WCM_CPU_LAUNCH_MEASUREMENT_OFFSET"
+
+
+def _launch_measurement_offset_from_env() -> int:
+    """Read the byte offset of the 48-byte launch measurement in the report body.
+
+    Required whenever ``WCM_CPU_TRUST_ROOT_FILE`` is set. Decimal or ``0x`` hex;
+    0x90 for an AMD SEV-SNP attestation report.
+    """
+    raw = os.environ.get(_LAUNCH_OFFSET_ENV)
+    if raw is None or not raw.strip():
+        raise ValueError(
+            f"WCM_CPU_TRUST_ROOT_FILE is set but {_LAUNCH_OFFSET_ENV} is not: the "
+            "server must read the serving-image measurement from the signed "
+            "report. Set it to the byte offset of the launch measurement in the "
+            "report body (0x90 for an AMD SEV-SNP report)."
+        )
+    try:
+        offset = int(raw.strip(), 0)
+    except ValueError:
+        raise ValueError(
+            f"{_LAUNCH_OFFSET_ENV} must be a non-negative integer (decimal or 0x hex), "
+            f"got {raw!r}"
+        ) from None
+    if offset < 0:
+        raise ValueError(f"{_LAUNCH_OFFSET_ENV} must be non-negative, got {raw!r}")
+    return offset
+
+
 def build_kbs_from_env() -> KeyBrokerService:
     """Construct a KeyBrokerService from environment config (for the container).
 
@@ -88,6 +117,12 @@ def build_kbs_from_env() -> KeyBrokerService:
     base64 decryption key. Absent, the keystore is empty (health/challenge work;
     release always denies with ``key_available`` false). Keys are supplied at
     runtime (mounted secret / KMS), never baked into the image.
+
+    ``WCM_CPU_TRUST_ROOT_FILE`` enables CPU quote verification and requires
+    ``WCM_CPU_LAUNCH_MEASUREMENT_OFFSET``: the serving-image measurement is
+    taken from the signed report at that offset, and evidence whose report
+    yields none is refused. Setting the root without the offset raises
+    ``ValueError`` at startup.
     """
     keystore: dict[str, bytes] = {}
     path = os.environ.get("WCM_KEYSTORE_FILE")
@@ -98,11 +133,21 @@ def build_kbs_from_env() -> KeyBrokerService:
     cpu_verifier = None
     root_path = os.environ.get("WCM_CPU_TRUST_ROOT_FILE")
     if root_path:
+        # The serving-image check compares the manifest with the launch
+        # measurement in the signed report, so the parser must know where that
+        # measurement sits. Without it the only measurement left is the
+        # evidence's structured serving_image_measurement field, which whoever
+        # builds the evidence writes. Refuse to start rather than run that way.
+        launch_offset = _launch_measurement_offset_from_env()
         with open(root_path, "rb") as fh:
             root = load_pem_certificate(fh.read())
         trust = TrustStore()
         trust.add_root(root)
-        cpu_verifier = QuoteVerifier(JsonQuoteParser(), trust)
+        cpu_verifier = QuoteVerifier(
+            JsonQuoteParser(launch_measurement_offset=launch_offset),
+            trust,
+            require_launch_measurement=True,
+        )
     trusted_manifest_identities: set[str] = set()
     gpu_verifier = None
     gpu_root_path = os.environ.get("WCM_GPU_TRUST_ROOT_FILE")

@@ -54,8 +54,9 @@ is a review record, not cryptographic evidence of administrative independence.
 ## What the reference server actually does
 
 `server.build_kbs_from_env` reads plaintext keys from `WCM_KEYSTORE_FILE`, CPU
-trust from `WCM_CPU_TRUST_ROOT_FILE`, and manifest identities from
-`WCM_TRUSTED_MANIFEST_IDENTITIES_FILE`. The KBS copies keys into process memory.
+trust from `WCM_CPU_TRUST_ROOT_FILE` (with the signed launch-measurement offset
+from `WCM_CPU_LAUNCH_MEASUREMENT_OFFSET`, required when the root is set), and
+manifest identities from `WCM_TRUSTED_MANIFEST_IDENTITIES_FILE`. The KBS copies keys into process memory.
 Read-only Docker mounts prevent writes through that mount; they do not hide
 the source files from the host administrator.
 
