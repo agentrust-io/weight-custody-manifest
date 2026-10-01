@@ -17,10 +17,10 @@ WCM reserves application-controlled SHA-256 PCR 23 for one workload event:
    transport-key binding.
 
 The reference Azure provider performs steps 1–4 with `tpm2_pcrreset 23` followed
-by `tpm2_pcrextend 23:sha256=<serving-image-digest>`, then immediately requests
-the AK-signed quote. Missing tools, an invalid measurement, or either TPM command
-failing aborts evidence production; the provider never falls back to quoting an
-unmeasured PCR state.
+by `tpm2_pcrextend 23:sha256=<serving-image-digest>` (both from the `tpm2-tools`
+package), then immediately requests the AK-signed quote. Missing tools, an
+invalid measurement, or either TPM command failing aborts evidence production;
+the provider never falls back to quoting an unmeasured PCR state.
 
 PCR 23 after the reset and extend is:
 

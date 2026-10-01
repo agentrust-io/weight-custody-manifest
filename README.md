@@ -70,6 +70,8 @@ wcm conformance
 Success means the example, release gate, custody state machine, and portable
 conformance vectors pass on your machine. For real deployment evidence, use the
 provider-specific procedures linked from [the implementation README](python/README.md).
+On Azure confidential VMs, install `tpm2-tools` first; without it both Azure
+providers report unavailable (see [Getting started](docs/getting-started.md#azure-confidential-vms)).
 
 ### What is implemented, and what still needs hardware evidence
 
