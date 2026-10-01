@@ -1638,6 +1638,7 @@ docker<span class="w"> </span>run<span class="w"> </span>--rm<span class="w"> </
 <span class="w">  </span>-v<span class="w"> </span><span class="s2">"</span><span class="nv">$PWD</span><span class="s2">/manifest-identities.json:/run/trust/manifest-identities.json:ro"</span><span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>-e<span class="w"> </span><span class="nv">WCM_KEYSTORE_FILE</span><span class="o">=</span>/run/secrets/keystore.json<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>-e<span class="w"> </span><span class="nv">WCM_CPU_TRUST_ROOT_FILE</span><span class="o">=</span>/run/trust/cpu-root.pem<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-e<span class="w"> </span><span class="nv">WCM_CPU_LAUNCH_MEASUREMENT_OFFSET</span><span class="o">=</span>0x90<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>-e<span class="w"> </span><span class="nv">WCM_GPU_TRUST_ROOT_FILE</span><span class="o">=</span>/run/trust/gpu-root.pem<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>-e<span class="w"> </span><span class="nv">WCM_TRUSTED_MANIFEST_IDENTITIES_FILE</span><span class="o">=</span>/run/trust/manifest-identities.json<span class="w"> </span>wcm-kbs
 </code></pre></div>
@@ -1660,6 +1661,12 @@ mounted policy or keys; the owner must verify the provisioning boundary.</p>
 <p>The environment-built server fails closed when <code>WCM_CPU_TRUST_ROOT_FILE</code> is
 absent: health and challenge issuance remain available, but every release is
 denied rather than falling back to structural CPU evidence.
+With <code>WCM_CPU_TRUST_ROOT_FILE</code> set, <code>WCM_CPU_LAUNCH_MEASUREMENT_OFFSET</code> is
+required: the byte offset of the 48-byte launch measurement in the signed
+report body (decimal or <code>0x</code> hex, <code>0x90</code> for an AMD SEV-SNP report). The
+serving-image check compares <code>sha256</code> of that signed measurement with the
+manifest, and a quote with no measurement at the offset is denied. The
+server refuses to start if the root is set and the offset is not.
 The server also fails closed unless the submitted manifest is authorized.
 <code>WCM_TRUSTED_MANIFEST_IDENTITIES_FILE</code> must contain a JSON array of exact
 <code>sha256:</code> manifest identities produced by <code>wcm.manifest_identity</code>. The manifest

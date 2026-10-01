@@ -1827,8 +1827,9 @@ each item before provisioning model keys:</p>
 is a review record, not cryptographic evidence of administrative independence.</p>
 <h2 id="what-the-reference-server-actually-does">What the reference server actually does<a class="headerlink" href="#what-the-reference-server-actually-does" title="Permanent link">&para;</a></h2>
 <p><code>server.build_kbs_from_env</code> reads plaintext keys from <code>WCM_KEYSTORE_FILE</code>, CPU
-trust from <code>WCM_CPU_TRUST_ROOT_FILE</code>, and manifest identities from
-<code>WCM_TRUSTED_MANIFEST_IDENTITIES_FILE</code>. The KBS copies keys into process memory.
+trust from <code>WCM_CPU_TRUST_ROOT_FILE</code> (with the signed launch-measurement offset
+from <code>WCM_CPU_LAUNCH_MEASUREMENT_OFFSET</code>, required when the root is set), and
+manifest identities from <code>WCM_TRUSTED_MANIFEST_IDENTITIES_FILE</code>. The KBS copies keys into process memory.
 Read-only Docker mounts prevent writes through that mount; they do not hide
 the source files from the host administrator.</p>
 <p>The environment-built server requires CPU quote verification, channel binding,
