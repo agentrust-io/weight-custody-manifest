@@ -92,6 +92,10 @@ TD_ATTR_DEBUG = 1 << 0
 _TEE_TYPE_TDX = 0x81
 _ATT_KEY_TYPE_ECDSA_P256 = 2
 _CERT_TYPE_PCK_CHAIN = 5      # QE cert-data inner type: PEM PCK chain
+_CERT_TYPE_QE_REPORT = 6      # signature-section cert-data type: QE report cert data
+# Signature section before its certification data: ECDSA signature, attestation
+# key, then the certification-data type (u16) and size (u32).
+_SIG_FIXED_LEN = _ECDSA_SIG_LEN + _ECDSA_PUBKEY_LEN + 6
 
 
 @dataclass(frozen=True)
@@ -173,7 +177,13 @@ def _p256_from_raw(xy: bytes) -> ec.EllipticCurvePublicKey:
 def parse_tdx_quote(quote: bytes) -> TdxQuote:
     """Parse a DCAP v4 TDX ECDSA quote into its verifiable pieces.
 
-    Raises ``QuoteFormatError`` on any structural problem.
+    Raises ``QuoteFormatError`` on any structural problem. The framing outside
+    the signed bytes is held to the layout every captured quote has: the
+    signature section is exactly the signature, the attestation key and one
+    certification-data entry of type 6 (QE report certification data) whose
+    declared size is the rest of the section; that entry is exactly the QE
+    report, its signature, the authentication data and one PCK entry of type 5
+    (PEM PCK chain); and anything after the section is zero padding.
     """
     if len(quote) < _SIGNED_LEN + 4:
         raise QuoteFormatError("TDX quote too short for header + TD report")
@@ -198,19 +208,32 @@ def parse_tdx_quote(quote: bytes) -> TdxQuote:
     )
 
     sig_len = _u32(quote, _SIGNED_LEN)
-    sig = quote[_SIGNED_LEN + 4:]
-    if len(sig) < sig_len or sig_len < _ECDSA_SIG_LEN + _ECDSA_PUBKEY_LEN + 6:
+    sig_start = _SIGNED_LEN + 4
+    if sig_start + sig_len > len(quote) or sig_len < _SIG_FIXED_LEN:
         raise QuoteFormatError("TDX signature section truncated")
+    sig = quote[sig_start:sig_start + sig_len]
+    # Captured quotes carry zero padding after the signature section (70 bytes
+    # on Azure, about 3 KiB on GCP); anything else there is not part of a quote.
+    if any(quote[sig_start + sig_len:]):
+        raise QuoteFormatError("nonzero bytes after the TDX signature section")
 
     quote_signature = sig[0:_ECDSA_SIG_LEN]
     attestation_pubkey = sig[_ECDSA_SIG_LEN:_ECDSA_SIG_LEN + _ECDSA_PUBKEY_LEN]
 
     # QE certification data (outer): type u16, size u32, then the cert-data blob.
     off = _ECDSA_SIG_LEN + _ECDSA_PUBKEY_LEN
-    _qe_cd_type = _u16(sig, off)
+    qe_cd_type = _u16(sig, off)
+    if qe_cd_type != _CERT_TYPE_QE_REPORT:
+        raise QuoteFormatError(
+            f"unexpected QE certification-data type {qe_cd_type} (want {_CERT_TYPE_QE_REPORT})"
+        )
     qe_cd_size = _u32(sig, off + 2)
     off += 6
-    cd = sig[off:off + qe_cd_size]
+    if off + qe_cd_size != len(sig):
+        raise QuoteFormatError(
+            "QE certification data size does not match the signature section"
+        )
+    cd = sig[off:]
     if len(cd) < _QE_REPORT_LEN + _ECDSA_SIG_LEN + 2:
         raise QuoteFormatError("QE certification data truncated")
 
@@ -234,6 +257,8 @@ def parse_tdx_quote(quote: bytes) -> TdxQuote:
         raise QuoteFormatError("PCK cert chain truncated")
     if pck_type != _CERT_TYPE_PCK_CHAIN:
         raise QuoteFormatError(f"unexpected PCK cert-data type {pck_type} (want {_CERT_TYPE_PCK_CHAIN})")
+    if p + pck_size != len(cd):
+        raise QuoteFormatError("unexpected bytes after the PCK cert chain in the QE certification data")
     try:
         certs = load_pem_certificates(pck_blob)
     except ValueError as exc:
