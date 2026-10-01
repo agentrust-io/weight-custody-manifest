@@ -62,15 +62,30 @@ INTEL_SGX_ROOT_CA_SHA256 = "44a0196b2b99f889b8e149e95b807a350e7424964399e885a7cb
 NVIDIA_DEVICE_ROOT_SHA256 = "102bf659d5419614c9d8e6aecebc80454eb26b1df6a769ac720b9a690b167b48"
 
 
+class _InputFileError(Exception):
+    """A user-supplied input file could not be read or decoded."""
+
+
+def _input_file_error(path: str, exc: OSError | json.JSONDecodeError) -> _InputFileError:
+    reason = exc.strerror if isinstance(exc, OSError) and exc.strerror else str(exc)
+    return _InputFileError(f"{path}: {reason}")
+
+
 def _load_manifest(path: str) -> WeightCustodyManifest:
-    with open(path, "r", encoding="utf-8") as fh:
-        data = json.load(fh)
+    try:
+        with open(path, "r", encoding="utf-8") as fh:
+            data = json.load(fh)
+    except (OSError, json.JSONDecodeError) as exc:
+        raise _input_file_error(path, exc) from exc
     return WeightCustodyManifest.model_validate(data)
 
 
 def _read_key(path: str) -> str:
-    with open(path, "r", encoding="utf-8") as fh:
-        return fh.read().strip()
+    try:
+        with open(path, "r", encoding="utf-8") as fh:
+            return fh.read().strip()
+    except OSError as exc:
+        raise _input_file_error(path, exc) from exc
 
 
 def _read_text(path: str) -> str:
@@ -583,7 +598,11 @@ def main(argv: Optional[list[str]] = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
     func = args.func
-    return int(func(args))
+    try:
+        return int(func(args))
+    except _InputFileError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
 
 
 if __name__ == "__main__":  # pragma: no cover
