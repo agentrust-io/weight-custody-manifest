@@ -6,6 +6,11 @@ uses semantic-ish versioning while pre-1.0.
 
 ## 0.30.0 - 2026-10-01
 
+**Fixed.** The CLI reports missing manifest or key files and malformed manifest
+JSON as a single `error: <path>: <reason>` line on stderr and exits 1, instead
+of printing a Python traceback. Verification outcomes and exit codes are
+unchanged.
+
 **Fixed, security.** `AzureSnpVtpmVerifier` verified the TPM quote with the key
 parsed from `ak_pem`, which the bundle's sender writes, and compared only its
 modulus with `HCLAkPub` from the SNP-authenticated HCL runtime JSON. The

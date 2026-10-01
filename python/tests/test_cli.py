@@ -75,3 +75,58 @@ def test_verify_fails_missing_role(tmp_path: Path, capsys):
     assert rc == 1
     assert report["ok"] is False
     assert "custodian" in report["missing_roles"]
+
+
+def test_sign_missing_manifest_reports_one_line_error(tmp_path: Path, capsys):
+    missing = tmp_path / "missing.json"
+    rc = main(
+        ["sign", str(missing), "--role", "builder", "--signer", "builder",
+         "--key-file", str(tmp_path / "unused-key")]
+    )
+    output = capsys.readouterr()
+    assert rc == 1
+    assert output.out == ""
+    assert output.err.startswith(f"error: {missing}: ")
+    assert output.err.count("\n") == 1
+    assert "Traceback" not in output.err
+
+
+def test_sign_missing_key_reports_one_line_error(tmp_path: Path, capsys):
+    manifest = tmp_path / "manifest.json"
+    shutil.copy(EXAMPLES / "manifest.example.json", manifest)
+    missing = tmp_path / "missing-key"
+    rc = main(
+        ["sign", str(manifest), "--role", "builder", "--signer", "builder",
+         "--key-file", str(missing)]
+    )
+    output = capsys.readouterr()
+    assert rc == 1
+    assert output.out == ""
+    assert output.err.startswith(f"error: {missing}: ")
+    assert output.err.count("\n") == 1
+    assert "Traceback" not in output.err
+
+
+def test_verify_missing_key_reports_one_line_error(tmp_path: Path, capsys):
+    manifest = tmp_path / "manifest.json"
+    shutil.copy(EXAMPLES / "manifest.example.json", manifest)
+    missing = tmp_path / "missing-key.pub"
+    rc = main(["verify", str(manifest), "--key-file", str(missing)])
+    output = capsys.readouterr()
+    assert rc == 1
+    assert output.out == ""
+    assert output.err.startswith(f"error: {missing}: ")
+    assert output.err.count("\n") == 1
+    assert "Traceback" not in output.err
+
+
+def test_verify_invalid_json_reports_one_line_error(tmp_path: Path, capsys):
+    manifest = tmp_path / "bad.json"
+    manifest.write_text("{bad", encoding="utf-8")
+    rc = main(["verify", str(manifest), "--key-file", str(tmp_path / "unused-key")])
+    output = capsys.readouterr()
+    assert rc == 1
+    assert output.out == ""
+    assert output.err.startswith(f"error: {manifest}: ")
+    assert output.err.count("\n") == 1
+    assert "Traceback" not in output.err
