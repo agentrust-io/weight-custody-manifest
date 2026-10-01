@@ -24,6 +24,13 @@ value could be changed through these fields: the attestation key signs the
 header and TD report, the QE report binds that key, and the PCK chain signs the
 QE report.
 
+**Changed.** The docs name `tpm2-tools` as a prerequisite for both Azure vTPM
+providers (getting started, README, measured launch). Both gate `is_available()`
+on `tpm2_nvread`; without it, on an Azure CVM with no other CPU provider,
+`select_provider()` falls back to `SoftwareProvider`. The Canonical
+`ubuntu-24_04-lts:cvm` image `24.04.202608260` (observed 2026-09-10) shipped
+without the package. No runtime behavior changes.
+
 ## 0.31.0 - 2026-10-08
 
 **Added.** Vendor-neutral spellings for two manifest enum values (spec v0.16,
