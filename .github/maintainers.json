@@ -1,0 +1,13 @@
+{
+  "schema": 1,
+  "repository": "weight-custody-manifest",
+  "source": "agentrust-io/.github:maintainers/roster.json",
+  "maintainers": [
+    "imran-siddique",
+    "pforest",
+    "podcastinator",
+    "Qiang-Xu"
+  ],
+  "security_paths": [],
+  "security_approvals": 1
+}
