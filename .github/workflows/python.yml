@@ -70,7 +70,7 @@ jobs:
           /tmp/sdist-venv/bin/wcm conformance
 
   downstream-examples:
-    # The public demos in agentrust-io/examples, run against a wheel built from
+    # The public demos in agentrust-io/integrations/examples, run against a wheel built from
     # THIS branch rather than against whatever is on PyPI.
     #
     # 0.27.0 is why. It shipped two correct security changes, and both broke
@@ -105,8 +105,8 @@ jobs:
       - name: Check out the public examples
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          repository: agentrust-io/examples
-          path: examples
+          repository: agentrust-io/integrations
+          path: integrations
           persist-credentials: false
 
       - name: Install the branch wheel over the pinned release
@@ -116,13 +116,13 @@ jobs:
         # review. --force-reinstall because the pinned floor is often already
         # satisfied by the version being replaced.
         run: |
-          python -m pip install -r examples/weight-custody-manifest/requirements.txt
+          python -m pip install -r integrations/examples/weight-custody-manifest/requirements.txt
           python -m pip install --require-hashes -r requirements/dev.txt
           python -m pip install --force-reinstall --no-deps python/dist/*.whl
           python -c "import wcm; print('testing against', wcm.__version__)"
 
       - name: Run every offline demo and the unit tests
-        working-directory: examples/weight-custody-manifest
+        working-directory: integrations/examples/weight-custody-manifest
         run: python run_demos.py
 
   test:
