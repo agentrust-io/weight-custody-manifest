@@ -92,8 +92,8 @@ wcm conformance
 Then run the closed-weight allow/deny example, which supplies an approved serving measurement and then changes it:
 
 ```
-git clone https://github.com/agentrust-io/demos
-cd demos
+git clone https://github.com/agentrust-io/integrations
+cd integrations/demos
 python demo-07-closed-weight/run.py
 ```
 

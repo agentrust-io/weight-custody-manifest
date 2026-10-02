@@ -1,6 +1,6 @@
 # How WCM works (the six steps)
 
-A plain-language tour of the flow. Nothing here assumes cryptography background; the [runnable examples](https://github.com/agentrust-io/examples/tree/main/weight-custody-manifest) then run it for real.
+A plain-language tour of the flow. Nothing here assumes cryptography background; the [runnable examples](https://github.com/agentrust-io/integrations/tree/main/examples/weight-custody-manifest) then run it for real.
 
 ## The problem, in one sentence
 
@@ -13,7 +13,7 @@ When a model builder deploys weights into **someone else's** infrastructure (on-
 - **Customer / operator** - runs the enclave on their own hardware. They are the party being constrained, so they never sign the manifest alone.
 - **KBS** - the key broker: issues challenges, verifies attestation, releases the decryption key only into a verified enclave.
 
-For an open-weight deployment these roles often collapse into one enterprise governance function (see the [runnable examples](https://github.com/agentrust-io/examples/tree/main/weight-custody-manifest)).
+For an open-weight deployment these roles often collapse into one enterprise governance function (see the [runnable examples](https://github.com/agentrust-io/integrations/tree/main/examples/weight-custody-manifest)).
 
 ## The six steps
 
@@ -39,4 +39,4 @@ WCM never claims silicon-enforced custody against an operator who **physically o
 
 ## Closed vs open weights
 
-For a **closed** model, steps 0-2 are doing secrecy work: keep the weights hidden. For an **open** model the base weights are public, so that secrecy is theater - but the same steps still do integrity, license, and (above all) derivative-custody work. That flip is shown in the [runnable open-model example](https://github.com/agentrust-io/examples/tree/main/weight-custody-manifest).
+For a **closed** model, steps 0-2 are doing secrecy work: keep the weights hidden. For an **open** model the base weights are public, so that secrecy is theater - but the same steps still do integrity, license, and (above all) derivative-custody work. That flip is shown in the [runnable open-model example](https://github.com/agentrust-io/integrations/tree/main/examples/weight-custody-manifest).
