@@ -1713,9 +1713,19 @@ pip<span class="w"> </span>install<span class="w"> </span>--no-deps<span class="
 see <code>snp.py</code> (AMD SEV-SNP, hardware-validated) and the provider auto-selection in
 <code>_hw_providers.py</code>.</p>
 <h2 id="cli">CLI<a class="headerlink" href="#cli" title="Permanent link">&para;</a></h2>
-<div class="highlight"><pre><span></span><code>wcm<span class="w"> </span>keygen<span class="w"> </span>--out<span class="w"> </span>builder
-wcm<span class="w"> </span>sign<span class="w"> </span>examples/manifest.example.json<span class="w"> </span>--role<span class="w"> </span>builder<span class="w"> </span>--signer<span class="w"> </span>example-builder<span class="w"> </span>--key-file<span class="w"> </span>builder<span class="w"> </span>--out<span class="w"> </span>signed.json
+<div class="highlight"><pre><span></span><code><span class="c1"># 1. keys for the two required parties (writes builder + builder.pub, etc.)</span>
+wcm<span class="w"> </span>keygen<span class="w"> </span>--out<span class="w"> </span>builder
+wcm<span class="w"> </span>keygen<span class="w"> </span>--out<span class="w"> </span>custodian
+
+<span class="c1"># 2. joint signature over the example manifest</span>
+wcm<span class="w"> </span>sign<span class="w"> </span>examples/manifest.example.json<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--role<span class="w"> </span>builder<span class="w">    </span>--signer<span class="w"> </span>example-builder<span class="w"> </span>--key-file<span class="w"> </span>builder<span class="w">    </span>--out<span class="w"> </span>signed.json
+wcm<span class="w"> </span>sign<span class="w"> </span>signed.json<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--role<span class="w"> </span>custodian<span class="w">  </span>--signer<span class="w"> </span>opaque-systems<span class="w">  </span>--key-file<span class="w"> </span>custodian<span class="w">  </span>--out<span class="w"> </span>signed.json
+
+<span class="c1"># 3. verify against the two trusted public keys</span>
 wcm<span class="w"> </span>verify<span class="w"> </span>signed.json<span class="w"> </span>--key-file<span class="w"> </span>builder.pub<span class="w"> </span>--key-file<span class="w"> </span>custodian.pub
+<span class="c1"># -&gt; {"ok": true, ...}   (exit 0)</span>
 </code></pre></div>
 <p>See the <a href="https://github.com/agentrust-io/weight-custody-manifest/blob/main/python/README.md"><code>python/</code> README</a> for the full module tour.</p>
 
