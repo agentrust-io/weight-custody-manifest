@@ -65,7 +65,7 @@ Documentation = "https://wcm.agentrust-io.com"
 Source = "https://github.com/agentrust-io/weight-custody-manifest"
 Issues = "https://github.com/agentrust-io/weight-custody-manifest/issues"
 Changelog = "https://github.com/agentrust-io/weight-custody-manifest/blob/main/CHANGELOG.md"
-Examples = "https://github.com/agentrust-io/examples/tree/main/weight-custody-manifest"
+Examples = "https://github.com/agentrust-io/integrations/tree/main/examples/weight-custody-manifest"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/wcm"]

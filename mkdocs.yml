@@ -119,7 +119,7 @@ nav:
       - Restricted firmware candidate: broker-restricted-firmware.md
       - Partner hardware validation: partner-hardware-validation.md
       - Protected-runtime evidence: protected-runtime-evidence.md
-      - Runnable examples: https://github.com/agentrust-io/examples/tree/main/weight-custody-manifest
+      - Runnable examples: https://github.com/agentrust-io/integrations/tree/main/examples/weight-custody-manifest
   - Project:
       - Roadmap: roadmap.md
       - Limitations: limitations.md

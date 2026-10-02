@@ -301,7 +301,7 @@ print(session.time_floor)  # 'sound' for secure-tsc, 'weaker' for the hybrid, 'n
 ## End-to-end examples
 
 Runnable end-to-end demos live in the public examples repo,
-[agentrust-io/examples/weight-custody-manifest](https://github.com/agentrust-io/examples/tree/main/weight-custody-manifest),
+[agentrust-io/integrations/examples/weight-custody-manifest](https://github.com/agentrust-io/integrations/tree/main/examples/weight-custody-manifest),
 where they depend on the published `weight-custody-manifest` package: the full
 six-step flow on an open-weight model, a 2-of-3 sovereign threshold release, and
 an offline SEV-SNP quote replay. They are honest about the open-weight reframe
