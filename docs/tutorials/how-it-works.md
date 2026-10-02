@@ -1,7 +1,7 @@
 # How WCM works (the six steps)
 
 A plain-language tour of the flow. Nothing here assumes cryptography background;
-the [runnable examples](https://github.com/agentrust-io/examples/tree/main/weight-custody-manifest) then run it for real.
+the [runnable examples](https://github.com/agentrust-io/integrations/tree/main/examples/weight-custody-manifest) then run it for real.
 
 ## The problem, in one sentence
 
@@ -21,7 +21,7 @@ operators it does not control. WCM is the protocol for that direction.
   decryption key only into a verified enclave.
 
 For an open-weight deployment these roles often collapse into one enterprise
-governance function (see the [runnable examples](https://github.com/agentrust-io/examples/tree/main/weight-custody-manifest)).
+governance function (see the [runnable examples](https://github.com/agentrust-io/integrations/tree/main/examples/weight-custody-manifest)).
 
 ## The six steps
 
@@ -86,4 +86,4 @@ For a **closed** model, steps 0-2 are doing secrecy work: keep the weights
 hidden. For an **open** model the base weights are public, so that secrecy is
 theater - but the same steps still do integrity, license, and (above all)
 derivative-custody work. That flip is shown in the
-[runnable open-model example](https://github.com/agentrust-io/examples/tree/main/weight-custody-manifest).
+[runnable open-model example](https://github.com/agentrust-io/integrations/tree/main/examples/weight-custody-manifest).
