@@ -4,6 +4,26 @@ Notable changes to the Weight Custody Manifest specification and Python SDK.
 Format loosely follows [Keep a Changelog](https://keepachangelog.com/); the SDK
 uses semantic-ish versioning while pre-1.0.
 
+## Unreleased (0.30.1)
+
+**Fixed.** `parse_tdx_quote`, and through it `verify_tdx_quote` and `wcm
+verify-quote --kind tdx`, ignored the signature section's certification-data
+type, did not tie the certification-data size to the signature-section length,
+could read past the declared signature section, and accepted any bytes after
+it. These framing fields outside the signed data are now checked: the
+certification-data type must be 6 (QE report certification data); its size
+must be exactly the rest of the signature section; it must hold exactly the QE
+report, its signature, the authentication data and one PCK entry of type 5
+(PEM cert chain, already required); and bytes after the signature section must
+be zero. The captured quote buffers in this repo hold zero-filled bytes after the
+declared quote (70 on the Azure capture, 3061 and 3065 on the GCP captures);
+those are outside the declared signature section and are still accepted, for
+compatibility with how quotes are captured. Each refusal is a
+`QuoteFormatError`, which `verify_tdx_quote` reports as a denial. No trusted
+value could be changed through these fields: the attestation key signs the
+header and TD report, the QE report binds that key, and the PCK chain signs the
+QE report.
+
 ## 0.30.0 - 2026-10-01
 
 **Fixed.** The CLI reports missing manifest or key files and malformed manifest
