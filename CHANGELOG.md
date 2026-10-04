@@ -4,6 +4,15 @@ Notable changes to the Weight Custody Manifest specification and Python SDK.
 Format loosely follows [Keep a Changelog](https://keepachangelog.com/); the SDK
 uses semantic-ish versioning while pre-1.0.
 
+## Unreleased (0.30.1)
+
+**[docs]** Name `tpm2-tools` as a prerequisite for both Azure vTPM providers
+(getting started, README, measured launch). Both gate `is_available()` on
+`tpm2_nvread`; without it, on an Azure CVM with no other CPU provider,
+`select_provider()` falls back to `SoftwareProvider`. The Canonical
+`ubuntu-24_04-lts:cvm` image `24.04.202608260` (observed 2026-09-10) shipped
+without the package. No runtime behavior changes.
+
 ## 0.30.0 - 2026-10-01
 
 **Fixed.** The CLI reports missing manifest or key files and malformed manifest

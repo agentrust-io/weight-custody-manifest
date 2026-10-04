@@ -11,6 +11,25 @@ pip install --require-hashes -r ../requirements/dev.txt   # includes the KBS ser
 pip install --no-deps -e .
 ```
 
+### Azure confidential VMs
+
+Both Azure providers (`AzureSnpVtpmProvider`, `AzureTdxVtpmProvider`) read the
+HCL report from the vTPM with `tpm2_nvread` from `tpm2-tools`, and need
+`/dev/tpmrm0`. The SNP provider's measured-launch quote also runs
+`tpm2_pcrreset`, `tpm2_pcrextend`, `tpm2_readpublic` and `tpm2_quote`:
+
+```bash
+sudo apt-get install -y tpm2-tools
+```
+
+Without the package both providers report unavailable. On an Azure CVM, where
+the bare-metal providers (`/dev/sev-guest`, `/dev/tdx_guest`) are absent, that
+leaves no CPU provider, so `select_provider()` falls back to `SoftwareProvider`
+unless it is called with `require_hardware=True`; the error it raises then names
+only `/dev/sev-guest` and `/dev/tdx-guest`, not the missing tool. The Canonical
+`ubuntu-24_04-lts:cvm` image (`24.04.202608260`, observed on 2026-09-10) ships
+`/dev/tpmrm0` and `libtss2-*` but not `tpm2-tools`.
+
 ## Build, sign, verify a manifest
 
 ```python
