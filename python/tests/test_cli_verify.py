@@ -187,6 +187,51 @@ def test_vq_tdx_untrusted_root(capsys, tmp_path):
     assert "verified  : False" in capsys.readouterr().out
 
 
+def test_vq_tdx_garbage_quote_is_a_denial(capsys, tmp_path):
+    # parse_tdx_quote raises QuoteFormatError, which is not a ValueError, so
+    # this used to escape cmd_verify_quote as a traceback.
+    import base64
+
+    path = tmp_path / "garbage.json"
+    path.write_text(json.dumps({"quote_b64": base64.b64encode(b"\0" * 3).decode()}))
+    assert main(["verify-quote", "--kind", "tdx", str(path)]) == 1
+    out = capsys.readouterr().out
+    assert "verified  : False" in out and "TDX quote too short" in out
+
+
+def test_vq_missing_input_reports_one_line_error(capsys, tmp_path):
+    missing = tmp_path / "missing.json"
+    assert main(["verify-quote", "--kind", "tdx", str(missing)]) == 1
+    output = capsys.readouterr()
+    assert output.out == ""
+    assert output.err.startswith(f"error: {missing}: ")
+    assert output.err.count("\n") == 1
+    assert "Traceback" not in output.err
+
+
+def test_vq_invalid_json_input_reports_one_line_error(capsys, tmp_path):
+    path = tmp_path / "bad.json"
+    path.write_text("{bad", encoding="utf-8")
+    assert main(["verify-quote", "--kind", "snp", str(path)]) == 1
+    output = capsys.readouterr()
+    assert output.out == ""
+    assert output.err.startswith(f"error: {path}: ")
+    assert output.err.count("\n") == 1
+    assert "Traceback" not in output.err
+
+
+def test_vq_missing_root_file_reports_one_line_error(capsys, tmp_path):
+    path = tmp_path / "quote.json"
+    path.write_text(json.dumps({"quote_b64": "AAAA"}), encoding="utf-8")
+    missing = tmp_path / "missing-root.pem"
+    assert main(["verify-quote", "--kind", "tdx", str(path), "--root", str(missing)]) == 1
+    output = capsys.readouterr()
+    assert output.out == ""
+    assert output.err.startswith(f"error: {missing}: ")
+    assert output.err.count("\n") == 1
+    assert "Traceback" not in output.err
+
+
 # -- verify-quote: GPU ---------------------------------------------------------
 
 

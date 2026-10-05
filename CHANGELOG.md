@@ -4,6 +4,15 @@ Notable changes to the Weight Custody Manifest specification and Python SDK.
 Format loosely follows [Keep a Changelog](https://keepachangelog.com/); the SDK
 uses semantic-ish versioning while pre-1.0.
 
+## Unreleased (0.30.1)
+
+**Fixed.** `wcm verify-quote` printed a traceback for an input it could not
+use. A `--kind tdx` quote that does not parse (`QuoteFormatError` is not a
+`ValueError`) is now a denial with the parser's reason; an input file that is
+missing or is not JSON, or a `--root` file that is missing, is now reported as
+`error: <path>: <reason>` with exit 1, like the manifest and key files since
+0.30.0.
+
 ## 0.30.0 - 2026-10-01
 
 **Fixed.** The CLI reports missing manifest or key files and malformed manifest

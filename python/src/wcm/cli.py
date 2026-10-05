@@ -37,7 +37,13 @@ from cryptography import x509
 from ._certificates import load_pem_certificate, load_pem_certificates
 from cryptography.hazmat.primitives import serialization
 
-from ._quote_verify import QuoteVerification, QuoteVerifier, TrustStore, verify_cert_chain
+from ._quote_verify import (
+    QuoteFormatError,
+    QuoteVerification,
+    QuoteVerifier,
+    TrustStore,
+    verify_cert_chain,
+)
 from ._signing import Ed25519Signer, ed25519_from_private_b64url, generate_ed25519
 from ._verify import VerificationContext, verify_manifest
 from .kbs import KeyBrokerService
@@ -89,13 +95,19 @@ def _read_key(path: str) -> str:
 
 
 def _read_text(path: str) -> str:
-    with open(path, "r", encoding="utf-8") as fh:
-        return fh.read()
+    try:
+        with open(path, "r", encoding="utf-8") as fh:
+            return fh.read()
+    except OSError as exc:
+        raise _input_file_error(path, exc) from exc
 
 
 def _read_json(path: str) -> dict[str, Any]:
-    with open(path, "r", encoding="utf-8") as fh:
-        data: dict[str, Any] = json.load(fh)
+    try:
+        with open(path, "r", encoding="utf-8") as fh:
+            data: dict[str, Any] = json.load(fh)
+    except (OSError, json.JSONDecodeError) as exc:
+        raise _input_file_error(path, exc) from exc
     return data
 
 
@@ -365,7 +377,10 @@ def _verify_tdx(bundle: dict[str, Any], args: argparse.Namespace) -> QuoteVerifi
     if args.root:
         trust.add_root(_load_root_pem(args.root))
     else:
-        q = parse_tdx_quote(quote)
+        try:
+            q = parse_tdx_quote(quote)
+        except QuoteFormatError as exc:
+            return QuoteVerification(False, str(exc))
         chain = [q.pck_leaf, *q.pck_intermediates]
         root = next((c for c in chain if c.subject == c.issuer), None)
         if root is None:
