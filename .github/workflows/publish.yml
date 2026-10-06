@@ -1,6 +1,6 @@
 name: publish
 
-# OIDC publishing requires validation, archive scanning and environment approval.
+# Manual dispatch validates and builds only. OIDC publishing is release-only.
 
 on:
   release:
@@ -42,23 +42,6 @@ jobs:
         with:
           name: dist
           path: dist/
-
-  testpypi:
-    # Manual dry run: publish to TestPyPI.
-    if: github.event_name == 'workflow_dispatch'
-    needs: build
-    runs-on: ubuntu-latest
-    environment: testpypi
-    permissions:
-      id-token: write
-    steps:
-      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          name: dist
-          path: dist/
-      - uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # v1.14.2
-        with:
-          repository-url: https://test.pypi.org/legacy/
 
   pypi:
     # Real publish: only when a GitHub Release is published.

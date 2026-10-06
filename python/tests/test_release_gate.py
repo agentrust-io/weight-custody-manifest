@@ -2,10 +2,12 @@
 from __future__ import annotations
 
 import importlib.util
+import ast
 import subprocess
 from pathlib import Path
 
 import pytest
+import yaml
 
 SPEC = importlib.util.spec_from_file_location("release_gate", Path(__file__).parents[2] / "tools/release_gate.py")
 assert SPEC and SPEC.loader
@@ -70,3 +72,60 @@ def test_unknown_event_fails(repo):
     root, _ = repo
     with pytest.raises(ValueError, match="event"):
         gate.validate(root, "push", "v0.0.1")
+
+
+def _workflow():
+    path = Path(__file__).parents[2] / ".github/workflows/publish.yml"
+    return yaml.safe_load(path.read_text(encoding="utf-8"))
+
+
+def _event_guard(expression, event):
+    comparison = ast.parse(expression, mode="eval").body
+    assert isinstance(comparison, ast.Compare)
+    assert ast.unparse(comparison.left) == "github.event_name"
+    assert len(comparison.ops) == 1 and isinstance(comparison.ops[0], ast.Eq)
+    assert len(comparison.comparators) == 1
+    return event == ast.literal_eval(comparison.comparators[0])
+
+
+@pytest.mark.parametrize("event", ["workflow_dispatch", "release"])
+@pytest.mark.parametrize("validation", ["success", "failure", "cancelled", "skipped"])
+def test_rehearsal_and_release_job_graph(event, validation):
+    workflow = _workflow()
+    jobs = workflow["jobs"]
+    assert jobs["validate"]["uses"] == "./.github/workflows/python.yml"
+    results = {"validate": validation}
+    for name, job in jobs.items():
+        if name == "validate":
+            continue
+        dependencies = job.get("needs", [])
+        dependencies = [dependencies] if isinstance(dependencies, str) else dependencies
+        assert all(dependency in results for dependency in dependencies)
+        allowed = "if" not in job or _event_guard(job["if"], event)
+        results[name] = (
+            "success" if allowed and all(results[d] == "success" for d in dependencies)
+            else "skipped"
+        )
+    active = [job for name, job in jobs.items() if results[name] == "success"]
+    publications = [step for job in active for step in job.get("steps", [])
+                    if step.get("uses", "").startswith("pypa/gh-action-pypi-publish@")]
+    assert len(publications) == int(event == "release" and validation == "success")
+    if event == "workflow_dispatch":
+        for job in active:
+            assert "environment" not in job
+            assert job.get("permissions", workflow["permissions"]).get("id-token") != "write"
+    assert jobs["build"]["needs"] == "validate"
+    assert jobs["pypi"]["needs"] == "build"
+
+
+def test_rehearsal_retains_scans_and_downloadable_artifacts():
+    workflow = _workflow()
+    assert workflow[True]["release"]["types"] == ["published"]
+    assert "workflow_dispatch" in workflow[True]
+    steps = workflow["jobs"]["build"]["steps"]
+    names = {step.get("name") for step in steps}
+    assert {"Verify release source and version", "Scan source", "Build sdist + wheel",
+            "Scan built distributions"} <= names
+    uploads = [step for step in steps if step.get("uses", "").startswith("actions/upload-artifact@")]
+    assert len(uploads) == 1
+    assert uploads[0]["with"] == {"name": "dist", "path": "dist/"}

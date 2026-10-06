@@ -16,7 +16,7 @@ def validate(root: Path, event: str, tag: str) -> None:
         head = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=root)
         main = subprocess.check_output(["git", "rev-parse", "origin/main"], cwd=root)
         if head != main:
-            raise ValueError("manual publishing requires the current main commit")
+            raise ValueError("manual rehearsal requires the current main commit")
         return
     if event != "release":
         raise ValueError("unsupported publication event")
