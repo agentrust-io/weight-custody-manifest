@@ -35,11 +35,20 @@ bandit -q -c pyproject.toml -r src/wcm   # security scan
 
 ## Submitting a PR
 
+
 1. Fork and branch from `main`.
 2. Write tests for any SDK change. Anything security-relevant (signing, verification, the KBS gate, quote verification, custody) needs both a happy path and the failure paths.
 3. Ensure `pytest`, `mypy --strict`, and `bandit` pass locally; keep coverage ≥ 80%.
 4. Open a PR against `main` and fill in the template.
 5. One maintainer approval is required to merge (see [CODEOWNERS](.github/CODEOWNERS)).
+
+## Release rehearsal
+
+Manual dispatch of the publish workflow runs validation, source/archive scanning
+and distribution builds, then saves the `dist` artifact for review. It requires
+the current `origin/main` commit and performs no package publication. Only a
+published GitHub Release can enter the existing PyPI publishing job, after the
+release-source/version checks and successful validation and build.
 
 ## Spec changes
 
