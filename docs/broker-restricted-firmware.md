@@ -1,5 +1,11 @@
 # Restricted firmware candidate
 
+The firmware that starts a protected VM can, by default, load things other than
+the approved kernel, which would make the hardware fingerprint mean less. This
+page describes an experimental, locked-down build of that firmware (edk2) that
+boots only the approved files, and the tests that check it. It is for firmware
+and platform engineers; it is not approved for production.
+
 This experimental profile narrows edk2's AmdSev direct-boot path. It does not
 establish production firmware approval, a complete boot-chain audit or matching
 SNP hardware evidence. Application identity and installation claims stay false.

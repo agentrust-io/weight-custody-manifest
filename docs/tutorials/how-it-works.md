@@ -1,89 +1,95 @@
 # How WCM works (the six steps)
 
-A plain-language tour of the flow. Nothing here assumes cryptography background;
-the [runnable examples](https://github.com/agentrust-io/integrations/tree/main/examples/weight-custody-manifest) then run it for real.
+A plain-language tour of WCM from start to finish, for anyone who wants to
+understand the idea before reading the specification. No cryptography background
+is needed. The [runnable examples](https://github.com/agentrust-io/integrations/tree/main/examples/weight-custody-manifest)
+then show it working.
 
 ## The problem, in one sentence
 
-When a model builder deploys weights into **someone else's** infrastructure
-(on-prem, sovereign cloud, air-gapped), the usual trust direction flips: the
-party at risk is the **builder**, whose weights now sit on hardware and
-operators it does not control. WCM is the protocol for that direction.
+When a model builder installs its weights in **someone else's** infrastructure
+(their own data center, a national cloud, or an offline network), the usual worry
+is reversed: the party at risk is the **builder**, whose weights now sit on
+hardware and with staff it does not control. WCM is the protocol for that case.
 
 ## The cast
 
-- **Builder** - signs off on which weights and which serving stack are approved.
-- **Custodian** - operates the key broker (KBS) that gates release. Jointly signs
-  the manifest with the builder so neither acts alone.
-- **Customer / operator** - runs the enclave on their own hardware. They are the
-  party being constrained, so they never sign the manifest alone.
-- **KBS** - the key broker: issues challenges, verifies attestation, releases the
-  decryption key only into a verified enclave.
+- **Builder.** Approves which model files and which serving software may be used.
+- **Custodian.** Runs the key broker service (KBS) that decides whether to release
+  the key. Signs the manifest together with the builder, so neither acts alone.
+- **Customer or operator.** Runs the protected environment (the enclave) on their
+  own hardware. They are the party being limited, so they never sign the manifest
+  alone.
+- **KBS.** The key broker. It sends a one-time challenge, checks the hardware
+  evidence that comes back (the attestation), and releases the decryption key
+  only into an enclave that passes.
 
-For an open-weight deployment these roles often collapse into one enterprise
-governance function (see the [runnable examples](https://github.com/agentrust-io/integrations/tree/main/examples/weight-custody-manifest)).
+For an open model these roles often belong to one team inside one company (see
+the [runnable examples](https://github.com/agentrust-io/integrations/tree/main/examples/weight-custody-manifest)).
 
 ## The six steps
 
-These steps assume a release authority the builder trusts. If the customer
-controls the broker's keys and verification settings, co-signing a manifest
-does not prevent that customer from bypassing it. Customer-hosted attested KBS
-operation is specified as a design, but the reference server does not implement
-its protected provisioning boundary. See [who controls key release](../deployment-trust.md).
+These steps assume the builder trusts whoever runs the key service. If the
+customer controls the broker's keys and checking settings, signing a manifest
+together does not stop that customer from going around it. A design for a
+customer-hosted, hardware-checked KBS is written down, but the reference server
+does not build its protected setup step. See [who controls key release](../deployment-trust.md).
 
-**0. Certify - the manifest.** The builder writes a signed manifest: the
-`weights_hash`, the release terms (license, permitted derivatives), and the
-release policy (which hardware, which serving-image measurement, trusted-time
-source). It is signed **jointly** by builder and custodian. This is the
-enforceable, machine-checkable version of the deployment agreement.
+**0. Certify: the manifest.** The builder writes a signed manifest. It records the
+`weights_hash` (a fingerprint of the exact model files), the release terms
+(license, whether fine-tuning is allowed) and the release policy (which hardware,
+which serving software fingerprint, which trusted clock). The builder and the
+custodian sign it **together**. It is the deployment agreement in a form a
+machine can check and enforce.
 
-**1. Verify - is this the real manifest?** Anyone can check the joint signature:
-both the builder and the custodian (and the sovereign signer, under the
-sovereign profile) must have signed, over the exact bytes. A tampered manifest
-does not verify.
+**1. Verify: is this the real manifest?** Anyone can check the joint signature.
+Both the builder and the custodian (and a national signer, under the sovereign
+profile) must have signed the exact same bytes. A changed manifest fails the check.
 
-**2. Gate - attestation-gated release.** The KBS issues a single-use nonce. The
-enclave returns evidence: a CPU confidential-VM quote and a *separate* GPU
-report, both echoing the nonce. The KBS checks all of it - genuine hardware, the
-platform the manifest requires, and a serving-image measurement matching what
-the builder signed - and only then releases the decryption key into the enclave.
-The key decrypts weights **only** under the builder-signed, measured serving
-stack, so "no raw weight export path" can be a real property, not a promise.
+**2. Gate: release only after a hardware check.** The KBS sends a one-time number
+(a nonce). The enclave answers with evidence: a signed report from the CPU and a
+*separate* signed report from the GPU, both repeating that number. The KBS checks
+that the hardware is genuine, that it is the platform the manifest requires, and
+that the serving software's fingerprint matches what the builder signed. Only
+then does it release the decryption key into the enclave. The key works **only**
+inside the serving software the builder approved, which is how "no way to copy
+the raw weights out" becomes something the system enforces.
 
-**3. Custody - wipe-on-lapse.** The enclave holds the key only for the manifest's
-attestation cadence window. If it does not re-attest in time, it **zeroizes** the
-key from its own memory and stops authorizing inference - the key is gone, not
-suspended - and invokes the teardown adapter the deployment supplied to stop its
-serving worker. This bounds worst-case exposure to one cadence window even if a
-compromised host blocks every revocation signal, *provided the clock cannot be
-stalled* (`trusted_time_source`).
+**3. Custody: wipe when approval lapses.** The enclave keeps the key only for a
+set window. If it does not pass the hardware check again in time, it **erases**
+the key from its own memory and stops answering requests. The key is gone, not
+paused. It also calls the shutdown hook the deployment supplied to stop the
+serving process. This limits the worst case to one window, even if a compromised
+host blocks every revoke message, *as long as the clock cannot be stalled*
+(`trusted_time_source`).
 
-**4. Terms - license and field-of-use.** The manifest's `release_terms` carry the
-license and usage restrictions; release happens only under the disclosed,
-conforming configuration. The manifest turns contract text into a technical
-release condition.
+**4. Terms: license and permitted use.** The manifest's `release_terms` carry the
+license and any limits on use, and the key is released only to a setup that
+matches them. Contract text becomes a technical condition for release.
 
-**5. Derive - lineage.** If the customer is permitted to fine-tune inside the
-enclave, the result gets its own manifest with `derived_from` pointing at the
-parent and a `rights_holder` recording the IP split - a chain of custody back to
-the original.
+**5. Derive: fine-tune history.** If the customer may fine-tune the model inside
+the enclave, the result gets its own manifest. Its `derived_from` field points at
+the original, and `rights_holder` records who owns what, giving a chain back to
+the original model.
 
-**6. Revoke - the kill switch.** Either party (or the sovereign quorum) can
-revoke; the enclave ends custody and tears serving down on the next cadence lapse
-at the latest. Wipe-on-lapse is the floor underneath revocation.
+**6. Revoke: the off switch.** Either party (or the national signers, under the
+sovereign profile) can revoke. The enclave ends custody and shuts serving down at
+the next window at the latest. Wipe-on-lapse is the safety net underneath revoking.
 
-## The honesty at the center
+## The honest limit
 
-WCM never claims silicon-enforced custody against an operator who **physically
-owns the hardware**. Cheap published attacks (TEE.fail, BadRAM) defeat current
-confidential-computing silicon. Against that adversary WCM offers cost,
-detection, containment, legal recourse, and mandatory physical hardening - not
-cryptographic custody. See [Limitations](../limitations.md) and `SPEC.md` §3.6.
+WCM never claims that the chip alone keeps the key safe from an operator who
+**physically owns the hardware**. Cheap published attacks (TEE.fail, BadRAM)
+defeat current confidential-computing chips. Against that operator WCM offers
+higher cost, detection, containment, legal recourse and required physical
+hardening, not cryptographic custody. See [Limitations](../limitations.md) and
+`SPEC.md` §3.6.
 
 ## Closed vs open weights
 
-For a **closed** model, steps 0-2 are doing secrecy work: keep the weights
-hidden. For an **open** model the base weights are public, so that secrecy is
-theater - but the same steps still do integrity, license, and (above all)
-derivative-custody work. That flip is shown in the
-[runnable open-model example](https://github.com/agentrust-io/integrations/tree/main/examples/weight-custody-manifest).
+For a **closed** model, steps 0 to 2 keep the weights secret. For an **open**
+model the base weights are already public, so secrecy adds nothing. The same steps
+still prove the files are intact, enforce the license, and above all keep track of
+fine-tuned copies. The
+[runnable open-model example](https://github.com/agentrust-io/integrations/tree/main/examples/weight-custody-manifest)
+shows this difference.

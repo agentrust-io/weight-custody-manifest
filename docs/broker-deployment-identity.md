@@ -1,5 +1,11 @@
 # Broker deployment identity: approval contract
 
+Before a model owner sends a key to a broker, the owner needs its own record of
+exactly which broker software and settings it approved, worked out from the build
+inputs rather than taken from the broker's word. This page defines that approval
+record. It is for engineers preparing a broker for hardware testing; nothing here
+has been tested on real hardware yet.
+
 This is the software contract and provisional SNP adapter specification for
 [#144](https://github.com/agentrust-io/weight-custody-manifest/issues/144).
 It derives a deterministic owner-side approval record from local build inputs

@@ -1,5 +1,14 @@
 # Who controls key release?
 
+This page is for anyone deciding where WCM's key service runs and who operates
+it. WCM only protects a model owner when the party that controls key release is
+one the owner trusts. Use the table and the checklist below before handing over
+any model key.
+
+In plain terms: the hardware check proves which software is running. It cannot
+stop someone who holds the key service's own keys or can change its settings.
+So the first question is always who can do that.
+
 WCM's custody claim requires a release authority the model owner trusts. If the
 customer can read the model key or replace the verifier, trust roots, or accepted
 policy, workload attestation does not protect the owner from that customer.
@@ -11,6 +20,8 @@ Confidential Containers Trustee. WCM does not supply a Trustee integration or
 certify a Trustee deployment by checking a manifest.
 
 ## Deployment configurations
+
+Who runs the workload and who controls key release decide what WCM can promise.
 
 | Configuration | Custody claim |
 |---|---|
@@ -25,6 +36,8 @@ the owner's authorization. An external KMS/HSM does not resolve this if it
 exports keys to customer administrators or blindly trusts their verifier.
 
 ## Deployment review checklist
+
+Questions to answer, in writing, before any model key is handed over.
 
 Record the responsible principal, configuration, and verification evidence for
 each item before provisioning model keys:
@@ -53,6 +66,9 @@ is a review record, not cryptographic evidence of administrative independence.
 
 ## What the reference server actually does
 
+The example server in this repository is for trying the protocol. It trusts the
+administrator of the machine it runs on.
+
 `server.build_kbs_from_env` reads plaintext keys from `WCM_KEYSTORE_FILE`, CPU
 trust from `WCM_CPU_TRUST_ROOT_FILE` (with the signed launch-measurement offset
 from `WCM_CPU_LAUNCH_MEASUREMENT_OFFSET`, required when the root is set), and
@@ -73,6 +89,10 @@ not a protected self-custody deployment. See the
 
 ## Work required for customer-hosted protected release
 
+What would have to be built and shown before a customer could host the key
+service themselves without the owner having to trust them. Some pieces exist in
+the SDK, described in the subsections below; the full setup does not exist yet.
+
 Before claiming support, a deployment must demonstrate owner-authorized
 provisioning into a freshly attested KBS, with the provisioning channel bound to
 that KBS instance. Verification must cover the release code and security-relevant
@@ -90,6 +110,9 @@ TEEs removes hardware trust. If the owner rejects the underlying TEE assumptions
 attesting a second service does not resolve that objection.
 
 ### Owner-side provisioning reference protocol
+
+In plain terms: the owner checks a broker's hardware report before sending it the
+model key, sealed so only that broker can open it.
 
 `wcm.provisioning.OwnerProvisioner` now supplies a native-SNP protocol primitive
 for an owner-operated provisioning service. It does not alter the HTTP reference
@@ -136,6 +159,9 @@ epochs, replay, expiry and owner/envelope tampering. These tests establish
 protocol behavior under the stated assumptions, not live broker isolation.
 
 ### Receiver boot lifecycle
+
+In plain terms: each broker starts empty, accepts exactly one key delivery from
+the owner, and can be permanently shut off.
 
 `wcm.broker_receiver.BrokerEffectiveConfiguration` snapshots normalized DER CPU
 root/VCEK/intermediate certificates, an optional NVIDIA root, exact accepted
@@ -190,6 +216,9 @@ profile version and owner approval of the resulting digest.
 
 ### Optional persistent owner epoch guard
 
+In plain terms: a small database on the owner's side that remembers the latest
+approved policy version, so an older one cannot be replayed.
+
 Pass `epoch_store=OwnerEpochStore(path, namespace)` from
 `wcm.provisioning_state` when constructing `OwnerProvisioner`. The SQLite store
 persists the current epoch and policy-context hash. It refuses older epochs and
@@ -203,6 +232,9 @@ erase keys already provisioned to a broker or revoke their future use; retiring
 those brokers and enforcing workload key lifetimes are separate controls.
 
 ## CPU-to-GPU confidentiality acceptance
+
+Checking the CPU and the GPU separately does not prove that model data travels
+safely between them. This section lists what must be shown before claiming it does.
 
 The reference HTTP server requires cryptographic GPU verification whenever GPU
 evidence is submitted, using `WCM_GPU_TRUST_ROOT_FILE`. This closes a structural

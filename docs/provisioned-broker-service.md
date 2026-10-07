@@ -1,5 +1,14 @@
 # Provisioned broker receiver service
 
+A version of the key broker that starts with no model keys at all. It receives a
+key only from the model owner, and only after proving with a fresh AMD hardware
+report which software it is running. This page is for engineers deploying it: it
+covers configuration, the web endpoints, and what the deployment itself must
+still protect.
+
+The [owner-side provisioning client](owner-provisioning-client.md) is the other
+half: it runs on the owner's machine and sends the key.
+
 `wcm.broker_server` runs the native-SNP receiver lifecycle over HTTP. It starts
 without model keys and accepts only an owner-authenticated sealed provisioning
 envelope. It uses the `server` package extra and does not read

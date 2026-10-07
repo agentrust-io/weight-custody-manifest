@@ -1,5 +1,11 @@
 # Provisioning lifecycle and recovery
 
+What happens at each step of delivering a model key to a broker, and what to do
+when something goes wrong partway: a restart, a timeout, or a reply that never
+arrives. This page is for operators of the provisioning service. The key point is
+that an unclear outcome must be resolved by a person checking the deployment,
+never by blindly running the step again.
+
 The reference provisioning service separates owner authorization, envelope
 delivery, receiver installation and workload execution. This guide records its
 software transitions and recovery requirements for

@@ -48,7 +48,7 @@ plugins:
         releasing model weights only to an approved, attested runtime. A signed
         manifest binds encrypted weights to a release policy, and a key broker
         releases the decryption key only to a workload whose attestation matches
-        it. The reference SDK is Apache-2.0 and runs 91 portable conformance
+        it. The reference SDK is Apache-2.0 and runs 97 portable conformance
         vectors offline, which are a self-test and not certification. Against
         an operator who physically owns the hardware, WCM offers accountability,
         not cryptographic custody.
