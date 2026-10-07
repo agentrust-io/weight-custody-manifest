@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="The offline predictor derives a candidate digest from owner-selected bytes.">
+        <meta name="description" content="AMD SEV-SNP hardware reports a fingerprint (a measurement) of what a protected VM booted.">
       
       
       
@@ -65,7 +65,7 @@
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="AgenTrust">
   <meta property="og:title" content="Provisional measurement profile - Weight Custody Manifest">
-  <meta property="og:description" content="The offline predictor derives a candidate digest from owner-selected bytes.">
+  <meta property="og:description" content="AMD SEV-SNP hardware reports a fingerprint (a measurement) of what a protected VM booted.">
   <meta property="og:url" content="https://wcm.agentrust-io.com/broker-measurement-profile/">
   <meta property="og:locale" content="en_US">
   <meta property="og:image" content="https://wcm.agentrust-io.com/assets/og.png">
@@ -75,7 +75,7 @@
 
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Provisional measurement profile - Weight Custody Manifest">
-  <meta name="twitter:description" content="The offline predictor derives a candidate digest from owner-selected bytes.">
+  <meta name="twitter:description" content="AMD SEV-SNP hardware reports a fingerprint (a measurement) of what a protected VM booted.">
   <meta name="twitter:image" content="https://wcm.agentrust-io.com/assets/og.png">
 
   <script type="application/ld+json">
@@ -111,7 +111,7 @@
         "url": "https://wcm.agentrust-io.com/broker-measurement-profile/",
         "name": "Provisional measurement profile - Weight Custody Manifest",
         "headline": "Provisional measurement profile - Weight Custody Manifest",
-        "description": "The offline predictor derives a candidate digest from owner-selected bytes.",
+        "description": "AMD SEV-SNP hardware reports a fingerprint (a measurement) of what a protected VM booted.",
         "inLanguage": "en",
         "isPartOf": { "@id": "https://wcm.agentrust-io.com/#website" },
         "publisher": { "@id": "https://agentrust-io.com/#organization" }
@@ -1683,6 +1683,12 @@
 
 
 <h1 id="provisional-snp-measurement-profile">Provisional SNP measurement profile<a class="headerlink" href="#provisional-snp-measurement-profile" title="Permanent link">&para;</a></h1>
+<p>AMD SEV-SNP hardware reports a fingerprint (a measurement) of what a protected
+VM booted. This page explains how the owner can predict that fingerprint offline
+from the exact firmware, kernel and boot files, and records a review of the
+firmware source showing what that fingerprint does and does not cover. It is for
+engineers preparing hardware tests; no real hardware report has matched a
+prediction yet.</p>
 <p>The offline predictor derives a candidate digest from owner-selected bytes.
 It does not approve firmware, authenticate a report or establish application
 identity. No matching genuine SNP report has been validated for this profile.</p>

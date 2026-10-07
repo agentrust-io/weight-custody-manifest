@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="The reference provisioning service separates owner authorization, envelope delivery, receiver installation and workload execution.">
+        <meta name="description" content="What happens at each step of delivering a model key to a broker, and what to do when something goes wrong partway: a restart, a timeout, or a reply that...">
       
       
       
@@ -65,7 +65,7 @@
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="AgenTrust">
   <meta property="og:title" content="Provisioning lifecycle - Weight Custody Manifest">
-  <meta property="og:description" content="The reference provisioning service separates owner authorization, envelope delivery, receiver installation and workload execution.">
+  <meta property="og:description" content="What happens at each step of delivering a model key to a broker, and what to do when something goes wrong partway: a restart, a timeout, or a reply that...">
   <meta property="og:url" content="https://wcm.agentrust-io.com/provisioning-lifecycle/">
   <meta property="og:locale" content="en_US">
   <meta property="og:image" content="https://wcm.agentrust-io.com/assets/og.png">
@@ -75,7 +75,7 @@
 
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Provisioning lifecycle - Weight Custody Manifest">
-  <meta name="twitter:description" content="The reference provisioning service separates owner authorization, envelope delivery, receiver installation and workload execution.">
+  <meta name="twitter:description" content="What happens at each step of delivering a model key to a broker, and what to do when something goes wrong partway: a restart, a timeout, or a reply that...">
   <meta name="twitter:image" content="https://wcm.agentrust-io.com/assets/og.png">
 
   <script type="application/ld+json">
@@ -111,7 +111,7 @@
         "url": "https://wcm.agentrust-io.com/provisioning-lifecycle/",
         "name": "Provisioning lifecycle - Weight Custody Manifest",
         "headline": "Provisioning lifecycle - Weight Custody Manifest",
-        "description": "The reference provisioning service separates owner authorization, envelope delivery, receiver installation and workload execution.",
+        "description": "What happens at each step of delivering a model key to a broker, and what to do when something goes wrong partway: a restart, a timeout, or a reply that...",
         "inLanguage": "en",
         "isPartOf": { "@id": "https://wcm.agentrust-io.com/#website" },
         "publisher": { "@id": "https://agentrust-io.com/#organization" }
@@ -1727,6 +1727,11 @@
 
 
 <h1 id="provisioning-lifecycle-and-recovery">Provisioning lifecycle and recovery<a class="headerlink" href="#provisioning-lifecycle-and-recovery" title="Permanent link">&para;</a></h1>
+<p>What happens at each step of delivering a model key to a broker, and what to do
+when something goes wrong partway: a restart, a timeout, or a reply that never
+arrives. This page is for operators of the provisioning service. The key point is
+that an unclear outcome must be resolved by a person checking the deployment,
+never by blindly running the step again.</p>
 <p>The reference provisioning service separates owner authorization, envelope
 delivery, receiver installation and workload execution. This guide records its
 software transitions and recovery requirements for

@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="This experimental profile narrows edk2's AmdSev direct-boot path.">
+        <meta name="description" content="The firmware that starts a protected VM can, by default, load things other than the approved kernel, which would make the hardware fingerprint mean...">
       
       
       
@@ -65,7 +65,7 @@
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="AgenTrust">
   <meta property="og:title" content="Restricted firmware candidate - Weight Custody Manifest">
-  <meta property="og:description" content="This experimental profile narrows edk2&#39;s AmdSev direct-boot path.">
+  <meta property="og:description" content="The firmware that starts a protected VM can, by default, load things other than the approved kernel, which would make the hardware fingerprint mean...">
   <meta property="og:url" content="https://wcm.agentrust-io.com/broker-restricted-firmware/">
   <meta property="og:locale" content="en_US">
   <meta property="og:image" content="https://wcm.agentrust-io.com/assets/og.png">
@@ -75,7 +75,7 @@
 
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Restricted firmware candidate - Weight Custody Manifest">
-  <meta name="twitter:description" content="This experimental profile narrows edk2&#39;s AmdSev direct-boot path.">
+  <meta name="twitter:description" content="The firmware that starts a protected VM can, by default, load things other than the approved kernel, which would make the hardware fingerprint mean...">
   <meta name="twitter:image" content="https://wcm.agentrust-io.com/assets/og.png">
 
   <script type="application/ld+json">
@@ -111,7 +111,7 @@
         "url": "https://wcm.agentrust-io.com/broker-restricted-firmware/",
         "name": "Restricted firmware candidate - Weight Custody Manifest",
         "headline": "Restricted firmware candidate - Weight Custody Manifest",
-        "description": "This experimental profile narrows edk2\u0027s AmdSev direct-boot path.",
+        "description": "The firmware that starts a protected VM can, by default, load things other than the approved kernel, which would make the hardware fingerprint mean...",
         "inLanguage": "en",
         "isPartOf": { "@id": "https://wcm.agentrust-io.com/#website" },
         "publisher": { "@id": "https://agentrust-io.com/#organization" }
@@ -1673,6 +1673,11 @@
 
 
 <h1 id="restricted-firmware-candidate">Restricted firmware candidate<a class="headerlink" href="#restricted-firmware-candidate" title="Permanent link">&para;</a></h1>
+<p>The firmware that starts a protected VM can, by default, load things other than
+the approved kernel, which would make the hardware fingerprint mean less. This
+page describes an experimental, locked-down build of that firmware (edk2) that
+boots only the approved files, and the tests that check it. It is for firmware
+and platform engineers; it is not approved for production.</p>
 <p>This experimental profile narrows edk2's AmdSev direct-boot path. It does not
 establish production firmware approval, a complete boot-chain audit or matching
 SNP hardware evidence. Application identity and installation claims stay false.</p>

@@ -1,10 +1,12 @@
 # Reference KBS image
 
+How to build and run WCM's example key broker service (KBS), the server that hands out the model key after a hardware check. Use it to try the protocol end to end. It is a demonstration: it trusts whoever administers the machine it runs on, so it does not protect weights from that person.
+
 The reference key-release service that §3.4 / §8.3 call for - built reproducibly so its measurement can be pinned in a manifest's `custody.kbs_image.measurement` and independently reproduced. Full details: [`python/docs/reproducible-kbs-image.md`](https://github.com/agentrust-io/weight-custody-manifest/blob/main/python/docs/reproducible-kbs-image.md).
 
 ## Server
 
-`wcm.server.create_app(kbs)` is a FastAPI surface (`POST /challenge`, `POST /release`, `GET /health`) with the same semantics as the library `KeyBrokerService`. Install with `pip install ".[server]"`.
+A small web service with three endpoints: get a challenge, ask for a release, and check it is running. `wcm.server.create_app(kbs)` is a FastAPI surface (`POST /challenge`, `POST /release`, `GET /health`) with the same semantics as the library `KeyBrokerService`. Install with `pip install ".[server]"`.
 
 ## Image
 
@@ -25,6 +27,8 @@ docker run --rm -p 8080:8080 \
 ```
 
 Keys are supplied at runtime, never baked into the image. CI builds, runs, and health-checks the image on every change. Bit-for-bit reproducibility additionally requires pinning the base image by digest and hash-locking dependencies (the operator hardening steps, documented in the link above).
+
+Keys must stay off untrusted networks and away from host administrators in any real deployment. The note below lists what production needs on top of this image, and how the server refuses releases when a trust setting is missing.
 
 Reference-only deployment
 

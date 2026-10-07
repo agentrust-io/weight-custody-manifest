@@ -1,11 +1,13 @@
 # OpenSSF Model Signing + WCM
 
+How WCM fits with OpenSSF Model Signing, the open standard for signing model files. Read this if you already sign models with it, or plan to: you keep doing that, and WCM adds the decision about who may decrypt them.
+
 OpenSSF Model Signing (OMS) and WCM answer different questions in one release pipeline:
 
 - **OMS:** Are these the authentic, untampered model files published by the expected signer?
 - **WCM:** May the decryption key for those exact files be released to this attested workload, under these custody terms, now?
 
-WCM does not replace or redefine OMS. OMS is the provenance layer; WCM binds that provenance to jointly approved release policy, fresh platform evidence, transport-sealed key delivery, runtime custody, revocation, and derivative lineage.
+WCM does not replace or redefine OMS. OMS proves where the files came from (provenance). WCM ties that proof to a release policy both parties approved, a fresh hardware check, a key sent sealed so only the checked workload can open it, time-limited custody, revocation, and the history of fine-tuned copies.
 
 ## Where the boundary sits
 
@@ -23,6 +25,8 @@ WCM does not replace or redefine OMS. OMS is the provenance layer; WCM binds tha
 This boundary follows OMS's own scope: signing establishes artifact integrity and authenticity, but is not confidentiality, access control, or comprehensive runtime security.
 
 ## Composition flow
+
+The model files are signed once with OMS. The WCM manifest records a fingerprint of that signed file list, so the two cannot be mixed and matched later.
 
 ```
 model files
@@ -90,6 +94,8 @@ The command fails closed if:
 Run `wcm verify` separately to verify the builder/custodian signatures and the rest of the manifest. Successful provenance verification does not by itself authorize a key release; the WCM attestation and policy gate must also pass.
 
 ## Digest note
+
+WCM keeps two different fingerprints of the same model files, and they are not interchangeable.
 
 `provenance.model_signing.signed_digest` and WCM's `weights_hash` are related to the same physical artifact but serve different formats and are not interchangeable. The former is WCM's stable fold of the OMS resource inventory; the latter is WCM's own artifact identity. An ingest pipeline must compute both from the same accepted bytes.
 

@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="This software slice of #144 adds deterministic initramfs assembly and a fixed Linux x86-64 loader. It is">
+        <meta name="description" content="How to build the small boot image that starts the broker inside a protected AMD virtual machine, and the fixed loader that hands control to it.">
       
       
       
@@ -65,7 +65,7 @@
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="AgenTrust">
   <meta property="og:title" content="Provisional boot loader - Weight Custody Manifest">
-  <meta property="og:description" content="This software slice of #144 adds deterministic initramfs assembly and a fixed Linux x86-64 loader. It is">
+  <meta property="og:description" content="How to build the small boot image that starts the broker inside a protected AMD virtual machine, and the fixed loader that hands control to it.">
   <meta property="og:url" content="https://wcm.agentrust-io.com/broker-boot-loader/">
   <meta property="og:locale" content="en_US">
   <meta property="og:image" content="https://wcm.agentrust-io.com/assets/og.png">
@@ -75,7 +75,7 @@
 
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Provisional boot loader - Weight Custody Manifest">
-  <meta name="twitter:description" content="This software slice of #144 adds deterministic initramfs assembly and a fixed Linux x86-64 loader. It is">
+  <meta name="twitter:description" content="How to build the small boot image that starts the broker inside a protected AMD virtual machine, and the fixed loader that hands control to it.">
   <meta name="twitter:image" content="https://wcm.agentrust-io.com/assets/og.png">
 
   <script type="application/ld+json">
@@ -111,7 +111,7 @@
         "url": "https://wcm.agentrust-io.com/broker-boot-loader/",
         "name": "Provisional boot loader - Weight Custody Manifest",
         "headline": "Provisional boot loader - Weight Custody Manifest",
-        "description": "This software slice of #144 adds deterministic initramfs assembly and a fixed Linux x86-64 loader. It is",
+        "description": "How to build the small boot image that starts the broker inside a protected AMD virtual machine, and the fixed loader that hands control to it.",
         "inLanguage": "en",
         "isPartOf": { "@id": "https://wcm.agentrust-io.com/#website" },
         "publisher": { "@id": "https://agentrust-io.com/#organization" }
@@ -1695,6 +1695,11 @@
 
 
 <h1 id="provisional-broker-boot-builder-and-loader">Provisional broker boot builder and loader<a class="headerlink" href="#provisional-broker-boot-builder-and-loader" title="Permanent link">&para;</a></h1>
+<p>How to build the small boot image that starts the broker inside a protected AMD
+virtual machine, and the fixed loader that hands control to it. Building it the
+same way every time means the owner can predict its fingerprint in advance. This
+page is for engineers building and testing that image; it is provisional and has
+not yet been checked on real protected hardware.</p>
 <p>This software slice of <a href="https://github.com/agentrust-io/weight-custody-manifest/issues/144">#144</a>
 adds deterministic initramfs assembly and a fixed Linux x86-64 loader. It is
 <strong>provisional</strong>: software boot tests do not establish SNP launch coverage or

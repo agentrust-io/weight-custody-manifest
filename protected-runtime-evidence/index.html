@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Two WCM controls cannot be established by the reference SDK alone.">
+        <meta name="description" content="Two WCM protections can only be proven on a real protected runtime, not by the SDK on its own: checking that protected memory really is protected (issue...">
       
       
       
@@ -65,7 +65,7 @@
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="AgenTrust">
   <meta property="og:title" content="Protected-runtime evidence - Weight Custody Manifest">
-  <meta property="og:description" content="Two WCM controls cannot be established by the reference SDK alone.">
+  <meta property="og:description" content="Two WCM protections can only be proven on a real protected runtime, not by the SDK on its own: checking that protected memory really is protected (issue...">
   <meta property="og:url" content="https://wcm.agentrust-io.com/protected-runtime-evidence/">
   <meta property="og:locale" content="en_US">
   <meta property="og:image" content="https://wcm.agentrust-io.com/assets/og.png">
@@ -75,7 +75,7 @@
 
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Protected-runtime evidence - Weight Custody Manifest">
-  <meta name="twitter:description" content="Two WCM controls cannot be established by the reference SDK alone.">
+  <meta name="twitter:description" content="Two WCM protections can only be proven on a real protected runtime, not by the SDK on its own: checking that protected memory really is protected (issue...">
   <meta name="twitter:image" content="https://wcm.agentrust-io.com/assets/og.png">
 
   <script type="application/ld+json">
@@ -111,7 +111,7 @@
         "url": "https://wcm.agentrust-io.com/protected-runtime-evidence/",
         "name": "Protected-runtime evidence - Weight Custody Manifest",
         "headline": "Protected-runtime evidence - Weight Custody Manifest",
-        "description": "Two WCM controls cannot be established by the reference SDK alone.",
+        "description": "Two WCM protections can only be proven on a real protected runtime, not by the SDK on its own: checking that protected memory really is protected (issue...",
         "inLanguage": "en",
         "isPartOf": { "@id": "https://wcm.agentrust-io.com/#website" },
         "publisher": { "@id": "https://agentrust-io.com/#organization" }
@@ -1673,11 +1673,20 @@
 
 
 <h1 id="protected-runtime-evidence-plan">Protected-runtime evidence plan<a class="headerlink" href="#protected-runtime-evidence-plan" title="Permanent link">&para;</a></h1>
+<p>Two WCM protections can only be proven on a real protected runtime, not by the
+SDK on its own: checking that protected memory really is protected
+(<a href="https://github.com/agentrust-io/weight-custody-manifest/issues/79">issue #79</a>),
+and proving that the key is wiped and serving stops when approval lapses
+(<a href="https://github.com/agentrust-io/weight-custody-manifest/issues/78">issue #78</a>). This page lists the evidence a runtime team must produce before either
+issue can close. It is written for the teams building that runtime.</p>
 <p>Two WCM controls cannot be established by the reference SDK alone. This page
 defines the evidence a protected-runtime implementation must produce before the
 project closes the corresponding issues. A unit-test simulation is useful for
 development but is not acceptable proof.</p>
 <h2 id="protected-memory-fingerprint-sweep-issue-79">Protected-memory fingerprint sweep (issue #79)<a class="headerlink" href="#protected-memory-fingerprint-sweep-issue-79" title="Permanent link">&para;</a></h2>
+<p>In plain terms: write unpredictable values across the protected memory, read them
+back, and check that every location is really separate. A host that quietly maps
+two addresses onto the same memory is caught.</p>
 <p>The SDK supplies <code>BytearrayMemoryRange</code>, <code>run_memory_sweep</code>, and
 <code>verify_memory_sweep</code> as the executable reference contract. The runner derives
 different full-page values and write/read permutations from protected secret
@@ -1720,6 +1729,8 @@ hostnames, IPs, customer names, or model material.</p>
 It does not prove immunity to later remapping, bus probing, cold-boot extraction,
 key extraction, or every physical-memory attack.</p>
 <h2 id="lease-lapse-zeroization-and-execution-stop-issue-78">Lease lapse, zeroization, and execution stop (issue #78)<a class="headerlink" href="#lease-lapse-zeroization-and-execution-stop-issue-78" title="Permanent link">&para;</a></h2>
+<p>In plain terms: show, on the real system, that when approval runs out the key is
+erased, inference stops, and nothing starts again without a fresh hardware check.</p>
 <p>Use the production custody controller and the actual inference boundary:</p>
 <ol>
 <li>Start from clean persistent state, attest, receive a transport-sealed model
@@ -1729,7 +1740,7 @@ key extraction, or every physical-memory attack.</p>
 <li>At the effective boundary, require the controller to emit distinct signed
    records for <code>wipe_requested</code>, <code>wipe_completed</code>, and <code>process_terminated</code>.</li>
 <li>Attempt inference after the boundary and require failure.</li>
-<li>Inspect the controller's supported key handle—not arbitrary language memory—
+<li>Inspect the controller's supported key handle (not arbitrary language memory)
    and require the cryptographic operation to fail after zeroization.</li>
 <li>Restart from the encrypted artifacts and stale local state. Require a new
    attestation and release before any inference can succeed.</li>
@@ -1749,13 +1760,15 @@ in-flight and future inference.</p>
 Ed25519-signed and hash-chained across one weights hash, manifest hash, and lease
 identifier. A terminal proof must start with <code>lease_started</code>, may contain
 <code>renewal_succeeded</code> records, then contain exactly one <code>lapse_detected</code> or
-<code>revocation_detected</code> boundary followed—in order—by <code>wipe_requested</code>,
+<code>revocation_detected</code> boundary followed, in order, by <code>wipe_requested</code>,
 <code>wipe_completed</code>, and <code>process_terminated</code>. The verifier rejects tampering,
 reordering, missing terminal events, signer substitution, and cross-lease
 splicing. The production controller must call this contract from inside its
 protected control path; signatures created by an external observer are not
 evidence of protected execution.</p>
 <h3 id="serving-shutdown-integration">Serving shutdown integration<a class="headerlink" href="#serving-shutdown-integration" title="Permanent link">&para;</a></h3>
+<p>How the SDK hands off to the serving software when it is time to stop, and what
+that serving software must do in each step.</p>
 <p>The reference SDK provides <code>EnclaveSession(on_stop=...)</code> and <code>ServingShutdown</code>
 as integration points, not an inference engine or a hardware erasure driver.
 Pass a <code>ServingShutdown</code> instance as <code>on_stop</code> when constructing the session
@@ -1826,6 +1839,7 @@ nor their unit tests close issue #78: the hardware-specific callbacks, trusted
 time source, enforced stop latency, memory cleanup limits, and receipt capture
 still require the production evidence described above.</p>
 <h2 id="review-gate">Review gate<a class="headerlink" href="#review-gate" title="Permanent link">&para;</a></h2>
+<p>What must be in the pull request before either issue can close.</p>
 <p>For either issue, merge only when the sanitized receipt, verifier, negative
 case, exact build identity, and rerun instructions are committed together. A
 green SDK suite confirms reference semantics; it does not substitute for this

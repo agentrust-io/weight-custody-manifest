@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="The full threat model is THREAT-MODEL.md. A map of every threat to what the SDK actually enforces is in the implementation audit.">
+        <meta name="description" content="What WCM protects, who it protects against, and the one assumption everything rests on. Security reviewers should start here, then read Limitations.">
       
       
       
@@ -65,7 +65,7 @@
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="AgenTrust">
   <meta property="og:title" content="Threat model - Weight Custody Manifest">
-  <meta property="og:description" content="The full threat model is THREAT-MODEL.md. A map of every threat to what the SDK actually enforces is in the implementation audit.">
+  <meta property="og:description" content="What WCM protects, who it protects against, and the one assumption everything rests on. Security reviewers should start here, then read Limitations.">
   <meta property="og:url" content="https://wcm.agentrust-io.com/threat-model/">
   <meta property="og:locale" content="en_US">
   <meta property="og:image" content="https://wcm.agentrust-io.com/assets/og.png">
@@ -75,7 +75,7 @@
 
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Threat model - Weight Custody Manifest">
-  <meta name="twitter:description" content="The full threat model is THREAT-MODEL.md. A map of every threat to what the SDK actually enforces is in the implementation audit.">
+  <meta name="twitter:description" content="What WCM protects, who it protects against, and the one assumption everything rests on. Security reviewers should start here, then read Limitations.">
   <meta name="twitter:image" content="https://wcm.agentrust-io.com/assets/og.png">
 
   <script type="application/ld+json">
@@ -111,7 +111,7 @@
         "url": "https://wcm.agentrust-io.com/threat-model/",
         "name": "Threat model - Weight Custody Manifest",
         "headline": "Threat model - Weight Custody Manifest",
-        "description": "The full threat model is THREAT-MODEL.md. A map of every threat to what the SDK actually enforces is in the implementation audit.",
+        "description": "What WCM protects, who it protects against, and the one assumption everything rests on. Security reviewers should start here, then read Limitations.",
         "inLanguage": "en",
         "isPartOf": { "@id": "https://wcm.agentrust-io.com/#website" },
         "publisher": { "@id": "https://agentrust-io.com/#organization" }
@@ -1639,25 +1639,31 @@
 
 
 <h1 id="threat-model">Threat model<a class="headerlink" href="#threat-model" title="Permanent link">&para;</a></h1>
+<p>What WCM protects, who it protects against, and the one assumption everything
+rests on. Security reviewers should start here, then read
+<a href="../limitations/">Limitations</a>.</p>
 <p>The full threat model is <a href="https://github.com/agentrust-io/weight-custody-manifest/blob/main/THREAT-MODEL.md"><code>THREAT-MODEL.md</code></a>. A map of every threat to what the SDK actually enforces is in the <a href="https://github.com/agentrust-io/weight-custody-manifest/blob/main/python/docs/threat-model-implementation-audit.md">implementation audit</a>.</p>
 <h2 id="assets">Assets<a class="headerlink" href="#assets" title="Permanent link">&para;</a></h2>
-<p>Decrypted weights, the decryption key, manifest integrity, attestation quotes,
-audit receipts, derivative weights, and signing keys.</p>
+<p>The things worth stealing or tampering with: decrypted weights, the decryption
+key, manifest integrity, attestation quotes (signed hardware reports), audit
+receipts, derivative weights, and signing keys.</p>
 <h2 id="adversaries">Adversaries<a class="headerlink" href="#adversaries" title="Permanent link">&para;</a></h2>
-<p>A malicious or compromised customer operator (privileged on the host), a
-malicious custodian insider, a network adversary, a malicious or coerced builder
-(the sovereign case), a co-located side-channel tenant, and a supply-chain
-attacker.</p>
+<p>The people WCM plans for: a malicious or compromised customer operator with
+admin rights on the host, a malicious insider at the custodian, an attacker on the
+network, a malicious or pressured builder (the sovereign case), another tenant on
+the same machine trying to read data through side channels, and an attacker who
+tampers with software before it arrives (supply chain).</p>
 <h2 id="the-load-bearing-assumption">The load-bearing assumption<a class="headerlink" href="#the-load-bearing-assumption" title="Permanent link">&para;</a></h2>
-<p>The model owner must trust the key-release authority. A customer who can read
-the model key or replace KBS/Trustee verification and policy can bypass workload
-attestation without attacking the TEE. Internal separation of administrators
+<p>The model owner must trust whoever controls key release. A customer who can read
+the model key, or swap out the key service's (KBS/Trustee) checking code and
+policy, can go around the hardware check without attacking the protected
+hardware (the TEE) at all. Internal separation of administrators
 does not protect against the entity that can override them. See the
 <a href="../deployment-trust/">deployment configurations and checklist</a>.</p>
-<p>WCM's guarantees hold only as far as the trusted computing base does. The honest
-core: current confidential-computing silicon does <strong>not</strong> protect the key or
-attestation integrity against an operator who physically owns the hardware
-(TEE.fail, BadRAM). Against that adversary WCM provides cost, detection,
+<p>WCM's guarantees hold only as far as the hardware and software it relies on (the
+trusted computing base) hold. The honest core: current confidential-computing
+chips do <strong>not</strong> protect the key, or the honesty of the hardware check, against an
+operator who physically owns the hardware (TEE.fail, BadRAM). Against that adversary WCM provides cost, detection,
 containment, legal recourse, and mandatory physical hardening - not cryptographic
 custody. See <a href="../limitations/">Limitations</a>.</p>
 

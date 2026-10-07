@@ -1683,6 +1683,9 @@
 
 
 <h1 id="openssf-model-signing-wcm">OpenSSF Model Signing + WCM<a class="headerlink" href="#openssf-model-signing-wcm" title="Permanent link">&para;</a></h1>
+<p>How WCM fits with OpenSSF Model Signing, the open standard for signing model
+files. Read this if you already sign models with it, or plan to: you keep doing
+that, and WCM adds the decision about who may decrypt them.</p>
 <p>OpenSSF Model Signing (OMS) and WCM answer different questions in one release
 pipeline:</p>
 <ul>
@@ -1691,10 +1694,10 @@ pipeline:</p>
 <li><strong>WCM:</strong> May the decryption key for those exact files be released to this
   attested workload, under these custody terms, now?</li>
 </ul>
-<p>WCM does not replace or redefine OMS. OMS is the provenance layer; WCM binds
-that provenance to jointly approved release policy, fresh platform evidence,
-transport-sealed key delivery, runtime custody, revocation, and derivative
-lineage.</p>
+<p>WCM does not replace or redefine OMS. OMS proves where the files came from
+(provenance). WCM ties that proof to a release policy both parties approved, a
+fresh hardware check, a key sent sealed so only the checked workload can open it,
+time-limited custody, revocation, and the history of fine-tuned copies.</p>
 <h2 id="where-the-boundary-sits">Where the boundary sits<a class="headerlink" href="#where-the-boundary-sits" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
@@ -1751,6 +1754,8 @@ lineage.</p>
 and authenticity, but is not confidentiality, access control, or comprehensive
 runtime security.</p>
 <h2 id="composition-flow">Composition flow<a class="headerlink" href="#composition-flow" title="Permanent link">&para;</a></h2>
+<p>The model files are signed once with OMS. The WCM manifest records a fingerprint
+of that signed file list, so the two cannot be mixed and matched later.</p>
 <div class="highlight"><pre><span></span><code>model files
     │
     ├── OMS inventory + detached signature
@@ -1806,6 +1811,8 @@ manifest:</p>
 rest of the manifest. Successful provenance verification does not by itself
 authorize a key release; the WCM attestation and policy gate must also pass.</p>
 <h2 id="digest-note">Digest note<a class="headerlink" href="#digest-note" title="Permanent link">&para;</a></h2>
+<p>WCM keeps two different fingerprints of the same model files, and they are not
+interchangeable.</p>
 <p><code>provenance.model_signing.signed_digest</code> and WCM's <code>weights_hash</code> are related to
 the same physical artifact but serve different formats and are not
 interchangeable. The former is WCM's stable fold of the OMS resource inventory;

@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Roadmap. An open, pre-1.0 specification for releasing model weights only to an attested runtime, with the guarantee boundary stated plainly">
+        <meta name="description" content="What WCM can do now, what comes next, and what is further out, for anyone planning around it.">
       
       
       
@@ -65,7 +65,7 @@
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="AgenTrust">
   <meta property="og:title" content="Roadmap - Weight Custody Manifest">
-  <meta property="og:description" content="Roadmap. An open, pre-1.0 specification for releasing model weights only to an attested runtime, with the guarantee boundary stated plainly">
+  <meta property="og:description" content="What WCM can do now, what comes next, and what is further out, for anyone planning around it.">
   <meta property="og:url" content="https://wcm.agentrust-io.com/roadmap/">
   <meta property="og:locale" content="en_US">
   <meta property="og:image" content="https://wcm.agentrust-io.com/assets/og.png">
@@ -75,7 +75,7 @@
 
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Roadmap - Weight Custody Manifest">
-  <meta name="twitter:description" content="Roadmap. An open, pre-1.0 specification for releasing model weights only to an attested runtime, with the guarantee boundary stated plainly">
+  <meta name="twitter:description" content="What WCM can do now, what comes next, and what is further out, for anyone planning around it.">
   <meta name="twitter:image" content="https://wcm.agentrust-io.com/assets/og.png">
 
   <script type="application/ld+json">
@@ -111,7 +111,7 @@
         "url": "https://wcm.agentrust-io.com/roadmap/",
         "name": "Roadmap - Weight Custody Manifest",
         "headline": "Roadmap - Weight Custody Manifest",
-        "description": "Roadmap. An open, pre-1.0 specification for releasing model weights only to an attested runtime, with the guarantee boundary stated plainly",
+        "description": "What WCM can do now, what comes next, and what is further out, for anyone planning around it.",
         "inLanguage": "en",
         "isPartOf": { "@id": "https://wcm.agentrust-io.com/#website" },
         "publisher": { "@id": "https://agentrust-io.com/#organization" }
@@ -1528,16 +1528,20 @@
 
 
 <h1 id="roadmap">Roadmap<a class="headerlink" href="#roadmap" title="Permanent link">&para;</a></h1>
+<p>What WCM can do now, what comes next, and what is further out, for anyone
+planning around it.</p>
 <p>The canonical roadmap is <a href="https://github.com/agentrust-io/weight-custody-manifest/blob/main/ROADMAP.md"><code>ROADMAP.md</code></a>.</p>
 <ul>
-<li><strong>Now</strong> - pre-1.0 developer preview, with the full attestation matrix validated
-  on real silicon: AMD SEV-SNP (Azure), Intel TDX (GCP) and NVIDIA H100 CC, each
-  with a committed fixture that verifies offline.</li>
-<li><strong>Next</strong> - bare-metal <code>/dev/*-guest</code> provider validation, and vendor-format
-  conformance vectors that carry real captured evidence.</li>
-<li><strong>Later</strong> - resolve or bound the §8 open questions (notably the key-extraction
-  half of 8.8, which needs new silicon), the SCITT/CoSAI standards path, and
-  additional language SDKs.</li>
+<li><strong>Now</strong> - pre-1.0 developer preview. Hardware checks have been tested on real
+  chips for all three platforms: AMD SEV-SNP (Azure), Intel TDX (GCP) and NVIDIA
+  H100 in confidential mode, each with a saved hardware report in the repository
+  that verifies offline.</li>
+<li><strong>Next</strong> - testing on bare-metal machines rather than cloud VMs
+  (<code>/dev/*-guest</code> providers), and portable test cases that carry real hardware
+  reports in each vendor's own format.</li>
+<li><strong>Later</strong> - resolve or narrow the open questions in §8 (notably the
+  key-extraction half of 8.8, which needs new chips), the SCITT/CoSAI standards
+  path, and SDKs in more programming languages.</li>
 </ul>
 <p>Public release is a deliberate decision by the Project Lead; it is not gated on open question 8.8.</p>
 

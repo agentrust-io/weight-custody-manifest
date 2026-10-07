@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Contributing. An open, pre-1.0 specification for releasing model weights only to an attested runtime, with the guarantee boundary stated plainly">
+        <meta name="description" content="How to send a change to WCM and what it needs to pass before it is merged.">
       
       
       
@@ -65,7 +65,7 @@
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="AgenTrust">
   <meta property="og:title" content="Contributing - Weight Custody Manifest">
-  <meta property="og:description" content="Contributing. An open, pre-1.0 specification for releasing model weights only to an attested runtime, with the guarantee boundary stated plainly">
+  <meta property="og:description" content="How to send a change to WCM and what it needs to pass before it is merged.">
   <meta property="og:url" content="https://wcm.agentrust-io.com/contributing/">
   <meta property="og:locale" content="en_US">
   <meta property="og:image" content="https://wcm.agentrust-io.com/assets/og.png">
@@ -75,7 +75,7 @@
 
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Contributing - Weight Custody Manifest">
-  <meta name="twitter:description" content="Contributing. An open, pre-1.0 specification for releasing model weights only to an attested runtime, with the guarantee boundary stated plainly">
+  <meta name="twitter:description" content="How to send a change to WCM and what it needs to pass before it is merged.">
   <meta name="twitter:image" content="https://wcm.agentrust-io.com/assets/og.png">
 
   <script type="application/ld+json">
@@ -111,7 +111,7 @@
         "url": "https://wcm.agentrust-io.com/contributing/",
         "name": "Contributing - Weight Custody Manifest",
         "headline": "Contributing - Weight Custody Manifest",
-        "description": "Contributing. An open, pre-1.0 specification for releasing model weights only to an attested runtime, with the guarantee boundary stated plainly",
+        "description": "How to send a change to WCM and what it needs to pass before it is merged.",
         "inLanguage": "en",
         "isPartOf": { "@id": "https://wcm.agentrust-io.com/#website" },
         "publisher": { "@id": "https://agentrust-io.com/#organization" }
@@ -1528,18 +1528,20 @@
 
 
 <h1 id="contributing">Contributing<a class="headerlink" href="#contributing" title="Permanent link">&para;</a></h1>
+<p>How to send a change to WCM and what it needs to pass before it is merged.</p>
 <p>The canonical guide is <a href="https://github.com/agentrust-io/weight-custody-manifest/blob/main/CONTRIBUTING.md"><code>CONTRIBUTING.md</code></a>. In short:</p>
 <ul>
 <li>Sign commits with DCO (<code>git commit -s</code>).</li>
-<li><code>pytest -q</code>, <code>mypy --strict src/wcm</code>, and <code>bandit</code> must pass; coverage ≥ 80%.</li>
-<li>Tests cover the happy path <strong>and</strong> the failure paths for anything
-  security-relevant.</li>
-<li>Breaking spec / guarantee-scope changes need an issue and a comment period
-  first; open with the <a href="https://github.com/agentrust-io/weight-custody-manifest/issues/new?template=spec_change.md">spec change template</a>.</li>
-<li>The non-negotiable: <strong>do not overclaim.</strong> No change may strengthen a security
+<li>The tests (<code>pytest -q</code>), the type checker (<code>mypy --strict src/wcm</code>) and the
+  security linter (<code>bandit</code>) must pass, with test coverage of 80% or more.</li>
+<li>Tests cover the normal case <strong>and</strong> the failure cases for anything that
+  affects security.</li>
+<li>Changes that break the spec or alter what WCM promises need an issue and a
+  comment period first; open with the <a href="https://github.com/agentrust-io/weight-custody-manifest/issues/new?template=spec_change.md">spec change template</a>.</li>
+<li>The one firm rule: <strong>do not overclaim.</strong> No change may strengthen a security
   claim beyond what the hardware and protocol actually deliver.</li>
 </ul>
-<p>Security issues go through <a href="https://github.com/agentrust-io/weight-custody-manifest/security/advisories/new">private disclosure</a>, not public issues - see <a href="https://github.com/agentrust-io/weight-custody-manifest/blob/main/SECURITY.md"><code>SECURITY.md</code></a>.</p>
+<p>Security issues go through <a href="https://github.com/agentrust-io/weight-custody-manifest/security/advisories/new">private disclosure</a>, not public issues. See <a href="https://github.com/agentrust-io/weight-custody-manifest/blob/main/SECURITY.md"><code>SECURITY.md</code></a>.</p>
 
 
 

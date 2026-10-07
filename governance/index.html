@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="The canonical governance doc is GOVERNANCE.md; maintainers are in MAINTAINERS.md.">
+        <meta name="description" content="Who makes decisions about WCM and how changes get accepted, for anyone thinking of contributing or depending on the project.">
       
       
       
@@ -65,7 +65,7 @@
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="AgenTrust">
   <meta property="og:title" content="Governance - Weight Custody Manifest">
-  <meta property="og:description" content="The canonical governance doc is GOVERNANCE.md; maintainers are in MAINTAINERS.md.">
+  <meta property="og:description" content="Who makes decisions about WCM and how changes get accepted, for anyone thinking of contributing or depending on the project.">
   <meta property="og:url" content="https://wcm.agentrust-io.com/governance/">
   <meta property="og:locale" content="en_US">
   <meta property="og:image" content="https://wcm.agentrust-io.com/assets/og.png">
@@ -75,7 +75,7 @@
 
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Governance - Weight Custody Manifest">
-  <meta name="twitter:description" content="The canonical governance doc is GOVERNANCE.md; maintainers are in MAINTAINERS.md.">
+  <meta name="twitter:description" content="Who makes decisions about WCM and how changes get accepted, for anyone thinking of contributing or depending on the project.">
   <meta name="twitter:image" content="https://wcm.agentrust-io.com/assets/og.png">
 
   <script type="application/ld+json">
@@ -111,7 +111,7 @@
         "url": "https://wcm.agentrust-io.com/governance/",
         "name": "Governance - Weight Custody Manifest",
         "headline": "Governance - Weight Custody Manifest",
-        "description": "The canonical governance doc is GOVERNANCE.md; maintainers are in MAINTAINERS.md.",
+        "description": "Who makes decisions about WCM and how changes get accepted, for anyone thinking of contributing or depending on the project.",
         "inLanguage": "en",
         "isPartOf": { "@id": "https://wcm.agentrust-io.com/#website" },
         "publisher": { "@id": "https://agentrust-io.com/#organization" }
@@ -1528,19 +1528,22 @@
 
 
 <h1 id="governance">Governance<a class="headerlink" href="#governance" title="Permanent link">&para;</a></h1>
+<p>Who makes decisions about WCM and how changes get accepted, for anyone thinking
+of contributing or depending on the project.</p>
 <p>The canonical governance doc is <a href="https://github.com/agentrust-io/weight-custody-manifest/blob/main/GOVERNANCE.md"><code>GOVERNANCE.md</code></a>; maintainers are in <a href="https://github.com/agentrust-io/weight-custody-manifest/blob/main/MAINTAINERS.md"><code>MAINTAINERS.md</code></a>.</p>
 <ul>
 <li><strong>Roles</strong>: Contributor → Reviewer → Maintainer → Project Lead (currently Imran
-  Siddique). Contributions are DCO-signed.</li>
-<li><strong>Decisions</strong>: routine changes merge on one Maintainer approval; breaking spec
-  or guarantee-scope changes need an issue, a comment period, and Project Lead
-  sign-off. No change may strengthen a security claim beyond what the hardware
+  Siddique). Contributions are DCO-signed (each commit carries a sign-off line
+  confirming you have the right to submit it).</li>
+<li><strong>Decisions</strong>: routine changes merge on one Maintainer approval. Changes that
+  break the spec or alter what WCM promises need an issue, a comment period, and
+  Project Lead sign-off. No change may strengthen a security claim beyond what the hardware
   and protocol deliver.</li>
 <li><strong>Publication</strong>: public release is a deliberate decision by the Project Lead.
-  It is not gated on the key-extraction half of open question 8.8, which is
-  documented as an honest residual rather than a release blocker.</li>
-<li><strong>Family</strong>: WCM is part of the agentrust-io family (TRACE, cMCP, Agent
-  Manifest, cA2A) - open spec, independent implementations, shared conventions.</li>
+  It does not wait on the key-extraction half of open question 8.8, which is
+  written down as a known remaining risk rather than a reason to hold release.</li>
+<li><strong>Family</strong>: WCM is part of the AgenTrust family (TRACE, cMCP, Agent Manifest,
+  cA2A): open specifications, separate implementations, shared conventions.</li>
 <li><strong>Sponsors</strong>: support is recognized separately from governance. Sponsorship
   does not confer ownership, decision rights, conformance preference, or an
   endorsement of a sponsor's implementation.</li>

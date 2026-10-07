@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="The reference key-release service that §3.4 / §8.3 call for - built reproducibly so its measurement can be pinned in a manifest's...">
+        <meta name="description" content="How to build and run WCM's example key broker service (KBS), the server that hands out the model key after a hardware check.">
       
       
       
@@ -65,7 +65,7 @@
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="AgenTrust">
   <meta property="og:title" content="Reference KBS image - Weight Custody Manifest">
-  <meta property="og:description" content="The reference key-release service that §3.4 / §8.3 call for - built reproducibly so its measurement can be pinned in a manifest&#39;s...">
+  <meta property="og:description" content="How to build and run WCM&#39;s example key broker service (KBS), the server that hands out the model key after a hardware check.">
   <meta property="og:url" content="https://wcm.agentrust-io.com/reference-kbs/">
   <meta property="og:locale" content="en_US">
   <meta property="og:image" content="https://wcm.agentrust-io.com/assets/og.png">
@@ -75,7 +75,7 @@
 
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Reference KBS image - Weight Custody Manifest">
-  <meta name="twitter:description" content="The reference key-release service that §3.4 / §8.3 call for - built reproducibly so its measurement can be pinned in a manifest&#39;s...">
+  <meta name="twitter:description" content="How to build and run WCM&#39;s example key broker service (KBS), the server that hands out the model key after a hardware check.">
   <meta name="twitter:image" content="https://wcm.agentrust-io.com/assets/og.png">
 
   <script type="application/ld+json">
@@ -111,7 +111,7 @@
         "url": "https://wcm.agentrust-io.com/reference-kbs/",
         "name": "Reference KBS image - Weight Custody Manifest",
         "headline": "Reference KBS image - Weight Custody Manifest",
-        "description": "The reference key-release service that \u00a73.4 / \u00a78.3 call for - built reproducibly so its measurement can be pinned in a manifest\u0027s...",
+        "description": "How to build and run WCM\u0027s example key broker service (KBS), the server that hands out the model key after a hardware check.",
         "inLanguage": "en",
         "isPartOf": { "@id": "https://wcm.agentrust-io.com/#website" },
         "publisher": { "@id": "https://agentrust-io.com/#organization" }
@@ -1617,12 +1617,17 @@
 
 
 <h1 id="reference-kbs-image">Reference KBS image<a class="headerlink" href="#reference-kbs-image" title="Permanent link">&para;</a></h1>
+<p>How to build and run WCM's example key broker service (KBS), the server that
+hands out the model key after a hardware check. Use it to try the protocol end to
+end. It is a demonstration: it trusts whoever administers the machine it runs on,
+so it does not protect weights from that person.</p>
 <p>The reference key-release service that §3.4 / §8.3 call for - built reproducibly
 so its measurement can be pinned in a manifest's <code>custody.kbs_image.measurement</code>
 and independently reproduced. Full details:
 <a href="https://github.com/agentrust-io/weight-custody-manifest/blob/main/python/docs/reproducible-kbs-image.md"><code>python/docs/reproducible-kbs-image.md</code></a>.</p>
 <h2 id="server">Server<a class="headerlink" href="#server" title="Permanent link">&para;</a></h2>
-<p><code>wcm.server.create_app(kbs)</code> is a FastAPI surface (<code>POST /challenge</code>,
+<p>A small web service with three endpoints: get a challenge, ask for a release,
+and check it is running. <code>wcm.server.create_app(kbs)</code> is a FastAPI surface (<code>POST /challenge</code>,
 <code>POST /release</code>, <code>GET /health</code>) with the same semantics as the library
 <code>KeyBrokerService</code>. Install with <code>pip install ".[server]"</code>.</p>
 <h2 id="image">Image<a class="headerlink" href="#image" title="Permanent link">&para;</a></h2>
@@ -1646,6 +1651,9 @@ docker<span class="w"> </span>run<span class="w"> </span>--rm<span class="w"> </
 health-checks the image on every change. Bit-for-bit reproducibility additionally
 requires pinning the base image by digest and hash-locking dependencies (the
 operator hardening steps, documented in the link above).</p>
+<p>Keys must stay off untrusted networks and away from host administrators in any
+real deployment. The note below lists what production needs on top of this image,
+and how the server refuses releases when a trust setting is missing.</p>
 <div class="admonition note">
 <p class="admonition-title">Reference-only deployment</p>
 <p>The reference server requires channel binding and returns only

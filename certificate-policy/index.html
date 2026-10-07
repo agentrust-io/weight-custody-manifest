@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="WCM rejects X.509 certificates whose serial number is zero or negative.">
+        <meta name="description" content="A short note for implementers on one certificate rule WCM enforces and why.">
       
       
       
@@ -65,7 +65,7 @@
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="AgenTrust">
   <meta property="og:title" content="Provider certificate policy - Weight Custody Manifest">
-  <meta property="og:description" content="WCM rejects X.509 certificates whose serial number is zero or negative.">
+  <meta property="og:description" content="A short note for implementers on one certificate rule WCM enforces and why.">
   <meta property="og:url" content="https://wcm.agentrust-io.com/certificate-policy/">
   <meta property="og:locale" content="en_US">
   <meta property="og:image" content="https://wcm.agentrust-io.com/assets/og.png">
@@ -75,7 +75,7 @@
 
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Provider certificate policy - Weight Custody Manifest">
-  <meta name="twitter:description" content="WCM rejects X.509 certificates whose serial number is zero or negative.">
+  <meta name="twitter:description" content="A short note for implementers on one certificate rule WCM enforces and why.">
   <meta name="twitter:image" content="https://wcm.agentrust-io.com/assets/og.png">
 
   <script type="application/ld+json">
@@ -111,7 +111,7 @@
         "url": "https://wcm.agentrust-io.com/certificate-policy/",
         "name": "Provider certificate policy - Weight Custody Manifest",
         "headline": "Provider certificate policy - Weight Custody Manifest",
-        "description": "WCM rejects X.509 certificates whose serial number is zero or negative.",
+        "description": "A short note for implementers on one certificate rule WCM enforces and why.",
         "inLanguage": "en",
         "isPartOf": { "@id": "https://wcm.agentrust-io.com/#website" },
         "publisher": { "@id": "https://agentrust-io.com/#organization" }
@@ -1528,18 +1528,23 @@
 
 
 <h1 id="provider-certificate-policy">Provider certificate policy<a class="headerlink" href="#provider-certificate-policy" title="Permanent link">&para;</a></h1>
+<p>A short note for implementers on one certificate rule WCM enforces and why. If a
+hardware or cloud provider's certificate is refused with a policy error, this page
+explains the cause.</p>
 <p>WCM rejects X.509 certificates whose serial number is zero or negative. RFC
-5280 requires positive serial numbers, and supporting non-conforming provider
-certificates would make behavior dependency-version-specific.</p>
+5280, the internet standard for these certificates, requires positive serial
+numbers, and accepting certificates that break it would make WCM's behavior
+depend on which version of a library is installed.</p>
 <p><code>cryptography</code> 50 warns while loading these certificates; its announced version
-51 behavior is to reject them. WCM isolates both behaviors behind one loader and
-returns the same non-sensitive, fail-closed policy error. It does not rewrite
-the certificate or skip any chain, signature, validity, or revocation check.</p>
+51 behavior is to reject them. WCM puts both behaviors behind one loader and
+returns the same policy error, which reveals nothing sensitive and refuses the
+release (fails closed). It does not rewrite the certificate or skip any chain,
+signature, validity, or revocation check.</p>
 <p>Until version 51 is published, the runtime dependency remains capped below it.
 CI exercises the real version-50 warning path and an executable model of the
 documented version-51 load-time exception. The cap must not be lifted until CI
-can replace that model with the released dependency. Fixtures contain generated
-names and keys only—never raw provider tokens, tenant identifiers, or environment
+can replace that model with the released dependency. Test data contains generated
+names and keys only, never raw provider tokens, tenant identifiers, or environment
 identifiers.</p>
 
 

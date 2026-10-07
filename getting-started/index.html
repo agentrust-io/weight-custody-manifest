@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="The reference SDK lives in python/. It implements the full protocol on software / synthetic test doubles, with AMD SEV-SNP quote verification validated...">
+        <meta name="description" content="This page is for developers who want to try WCM in code.">
       
       
       
@@ -65,7 +65,7 @@
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="AgenTrust">
   <meta property="og:title" content="Getting started - Weight Custody Manifest">
-  <meta property="og:description" content="The reference SDK lives in python/. It implements the full protocol on software / synthetic test doubles, with AMD SEV-SNP quote verification validated...">
+  <meta property="og:description" content="This page is for developers who want to try WCM in code.">
   <meta property="og:url" content="https://wcm.agentrust-io.com/getting-started/">
   <meta property="og:locale" content="en_US">
   <meta property="og:image" content="https://wcm.agentrust-io.com/assets/og.png">
@@ -75,7 +75,7 @@
 
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Getting started - Weight Custody Manifest">
-  <meta name="twitter:description" content="The reference SDK lives in python/. It implements the full protocol on software / synthetic test doubles, with AMD SEV-SNP quote verification validated...">
+  <meta name="twitter:description" content="This page is for developers who want to try WCM in code.">
   <meta name="twitter:image" content="https://wcm.agentrust-io.com/assets/og.png">
 
   <script type="application/ld+json">
@@ -111,7 +111,7 @@
         "url": "https://wcm.agentrust-io.com/getting-started/",
         "name": "Getting started - Weight Custody Manifest",
         "headline": "Getting started - Weight Custody Manifest",
-        "description": "The reference SDK lives in python/. It implements the full protocol on software / synthetic test doubles, with AMD SEV-SNP quote verification validated...",
+        "description": "This page is for developers who want to try WCM in code.",
         "inLanguage": "en",
         "isPartOf": { "@id": "https://wcm.agentrust-io.com/#website" },
         "publisher": { "@id": "https://agentrust-io.com/#organization" }
@@ -1661,7 +1661,13 @@
 
 
 <h1 id="getting-started">Getting started<a class="headerlink" href="#getting-started" title="Permanent link">&para;</a></h1>
-<p>The reference SDK lives in <a href="https://github.com/agentrust-io/weight-custody-manifest/tree/main/python"><code>python/</code></a>. It implements the full protocol on software / synthetic test doubles, with AMD SEV-SNP quote verification validated against real hardware.</p>
+<p>This page is for developers who want to try WCM in code. In about ten minutes you
+install the Python SDK, sign a manifest, check it, and run a simulated key
+release on your own computer.</p>
+<p>The reference SDK lives in <a href="https://github.com/agentrust-io/weight-custody-manifest/tree/main/python"><code>python/</code></a>.
+It runs the whole protocol using software stand-ins for the hardware, so no
+special machine is needed. Its check of AMD SEV-SNP hardware reports has also been
+tested against real hardware.</p>
 <h2 id="install">Install<a class="headerlink" href="#install" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/agentrust-io/weight-custody-manifest
 <span class="nb">cd</span><span class="w"> </span>weight-custody-manifest/python
@@ -1669,6 +1675,9 @@ pip<span class="w"> </span>install<span class="w"> </span>--require-hashes<span 
 pip<span class="w"> </span>install<span class="w"> </span>--no-deps<span class="w"> </span>-e<span class="w"> </span>.
 </code></pre></div>
 <h2 id="build-sign-verify-a-manifest">Build, sign, verify a manifest<a class="headerlink" href="#build-sign-verify-a-manifest" title="Permanent link">&para;</a></h2>
+<p>A manifest is a short signed document that names the model files and the rules
+for releasing their key. Two parties sign it: the builder (who made the model)
+and the custodian (who runs the key service).</p>
 <div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">wcm</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">WeightCustodyManifest</span><span class="p">,</span> <span class="n">Ed25519Signer</span><span class="p">,</span> <span class="n">generate_ed25519</span><span class="p">,</span>
     <span class="n">VerificationContext</span><span class="p">,</span> <span class="n">verify_manifest</span><span class="p">,</span>
@@ -1694,6 +1703,9 @@ pip<span class="w"> </span>install<span class="w"> </span>--no-deps<span class="
 (and the declared sovereign signer, under the sovereign profile). Post-quantum
 (<code>add_ml_dsa65_key</code>) and hybrid (<code>add_hybrid_key</code>) profiles verify the same way.</p>
 <h2 id="gate-a-key-release">Gate a key release<a class="headerlink" href="#gate-a-key-release" title="Permanent link">&para;</a></h2>
+<p>The key broker service (KBS) holds the decryption key. It sends a one-time
+challenge, checks the evidence that comes back, and releases the key only if
+everything matches the manifest.</p>
 <div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">wcm</span><span class="w"> </span><span class="kn">import</span> <span class="n">KeyBrokerService</span><span class="p">,</span> <span class="n">SoftwareProvider</span><span class="p">,</span> <span class="n">manifest_identity</span>
 
 <span class="n">kbs</span> <span class="o">=</span> <span class="n">KeyBrokerService</span><span class="p">(</span>
@@ -1709,10 +1721,12 @@ pip<span class="w"> </span>install<span class="w"> </span>--no-deps<span class="
 <span class="n">decision</span> <span class="o">=</span> <span class="n">kbs</span><span class="o">.</span><span class="n">verify_and_release</span><span class="p">(</span><span class="n">manifest</span><span class="p">,</span> <span class="n">evidence</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="n">decision</span><span class="o">.</span><span class="n">released</span><span class="p">)</span>   <span class="c1"># True on a passing gate</span>
 </code></pre></div>
-<p><code>SoftwareProvider</code> is a mock with no hardware root of trust. For real evidence
-see <code>snp.py</code> (AMD SEV-SNP, hardware-validated) and the provider auto-selection in
+<p><code>SoftwareProvider</code> is a stand-in that produces fake evidence with no real
+hardware behind it, so this example proves nothing about hardware. For real
+evidence see <code>snp.py</code> (AMD SEV-SNP, hardware-validated) and the provider auto-selection in
 <code>_hw_providers.py</code>.</p>
 <h2 id="cli">CLI<a class="headerlink" href="#cli" title="Permanent link">&para;</a></h2>
+<p>The same steps from the command line: make keys for both parties, sign, verify.</p>
 <div class="highlight"><pre><span></span><code><span class="c1"># 1. keys for the two required parties (writes builder + builder.pub, etc.)</span>
 wcm<span class="w"> </span>keygen<span class="w"> </span>--out<span class="w"> </span>builder
 wcm<span class="w"> </span>keygen<span class="w"> </span>--out<span class="w"> </span>custodian

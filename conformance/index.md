@@ -1,12 +1,14 @@
 # Schema and conformance
 
-Two machine-readable artifacts sit alongside the specification text, so an independent implementation has something to build and check against rather than prose to interpret.
+For anyone building their own WCM implementation, or checking one. The schema is a machine-readable description of a valid manifest, and the conformance suite is a set of test cases that shows whether an implementation behaves as the specification says.
+
+These two machine-readable files sit alongside the specification text, so an independent implementation has something to build and check against rather than prose to interpret.
 
 ## The manifest JSON Schema
 
 [`schema/wcm-manifest-v1.schema.json`](https://github.com/agentrust-io/weight-custody-manifest/blob/main/schema/wcm-manifest-v1.schema.json) is the normative machine-readable form of `SPEC.md` §3.1. JSON Schema 2020-12, identified by `https://wcm.agentrust-io.com/schema/manifest/v1.json`.
 
-It is **frozen at v1 and additive-only**. Fields and permitted enum values may be added; nothing is removed, renamed, made required, narrowed, or repurposed. A breaking change would publish `.../manifest/v2.json` alongside rather than edit v1. The specification itself is still pre-1.0, so this is a deliberate trade: implementers get a stable target now, and whatever the spec grows into arrives as an addition.
+It is **frozen at v1 and additive-only**: new things can be added, nothing existing changes. Fields and permitted enum values may be added; nothing is removed, renamed, made required, narrowed, or repurposed. A breaking change would publish `.../manifest/v2.json` alongside rather than edit v1. The specification itself is still pre-1.0, so this is a deliberate trade: implementers get a stable target now, and whatever the spec grows into arrives as an addition.
 
 From Python:
 
@@ -24,18 +26,18 @@ schema = manifest_schema()
 | Level | Title                        | Vectors | Shape                         |
 | ----- | ---------------------------- | ------- | ----------------------------- |
 | L1    | Manifest and joint signature | 32      | documents                     |
-| L2    | Attestation-gated release    | 41      | scenarios and vendor evidence |
+| L2    | Attestation-gated release    | 43      | scenarios and vendor evidence |
 | L3    | Runtime custody              | 12      | scenarios                     |
 | L4    | Derivative lineage           | 10      | documents                     |
 
-95 vectors. All four levels are vectored and every reportable error code is exercised by at least one vector, which a test enforces. L1 and L4 ask a question about a document. Most L2 vectors and every L3 vector ask what a system does over *time*, so they are ordered scenarios with an injected clock and named nonces; L2 also carries vendor evidence.
+97 vectors. All four levels are vectored and every reportable error code is exercised by at least one vector, which a test enforces. L1 and L4 ask a question about a document. Most L2 vectors and every L3 vector ask what a system does over *time*, so they are ordered scenarios with an injected clock and named nonces; L2 also carries vendor evidence.
 
 Two limits remain, and `wcm conformance` prints both on every full run rather than leaving a green result to be over-read:
 
 - **The vendor corpus covers AMD SEV-SNP, but not Intel TDX.** The AMD vector verifies a genuine Azure report against the staged AMD Milan root and applies the mandatory refusal matrix. Intel remains covered by SDK fixtures, not a language-neutral vendor vector.
 - **GPU-side cryptographic verification is not vectored.** The quote vectors cover the CPU quote; the NVIDIA device chain is covered by the SDK's H100 fixture.
 
-Running it:
+Running it (the first command tests this SDK itself; the last one scores another implementation's results):
 
 ```
 pip install weight-custody-manifest

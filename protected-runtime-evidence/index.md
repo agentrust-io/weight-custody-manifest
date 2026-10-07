@@ -1,8 +1,12 @@
 # Protected-runtime evidence plan
 
+Two WCM protections can only be proven on a real protected runtime, not by the SDK on its own: checking that protected memory really is protected ([issue #79](https://github.com/agentrust-io/weight-custody-manifest/issues/79)), and proving that the key is wiped and serving stops when approval lapses ([issue #78](https://github.com/agentrust-io/weight-custody-manifest/issues/78)). This page lists the evidence a runtime team must produce before either issue can close. It is written for the teams building that runtime.
+
 Two WCM controls cannot be established by the reference SDK alone. This page defines the evidence a protected-runtime implementation must produce before the project closes the corresponding issues. A unit-test simulation is useful for development but is not acceptable proof.
 
 ## Protected-memory fingerprint sweep (issue #79)
+
+In plain terms: write unpredictable values across the protected memory, read them back, and check that every location is really separate. A host that quietly maps two addresses onto the same memory is caught.
 
 The SDK supplies `BytearrayMemoryRange`, `run_memory_sweep`, and `verify_memory_sweep` as the executable reference contract. The runner derives different full-page values and write/read permutations from protected secret material plus the fresh KBS nonce, writes and reads every declared page, detects inconsistent mappings, and signs the complete transcript with Ed25519. The KBS fails closed unless a policy-pinned sweep public key verifies that transcript; its production default does not accept the earlier unsigned structural shape. Language-neutral conformance vectors retain an explicitly isolated declarative mode because the frozen v1 vectors cannot carry a signature over a runtime nonce.
 
@@ -25,6 +29,8 @@ Passing proves the tested address map behaved consistently during that attempt. 
 
 ## Lease lapse, zeroization, and execution stop (issue #78)
 
+In plain terms: show, on the real system, that when approval runs out the key is erased, inference stops, and nothing starts again without a fresh hardware check.
+
 Use the production custody controller and the actual inference boundary:
 
 1. Start from clean persistent state, attest, receive a transport-sealed model key, decrypt one protected model, and record the lease deadline.
@@ -32,16 +38,18 @@ Use the production custody controller and the actual inference boundary:
 1. Before the next deadline, block the renewal service or revoke the workload.
 1. At the effective boundary, require the controller to emit distinct signed records for `wipe_requested`, `wipe_completed`, and `process_terminated`.
 1. Attempt inference after the boundary and require failure.
-1. Inspect the controller's supported key handle—not arbitrary language memory— and require the cryptographic operation to fail after zeroization.
+1. Inspect the controller's supported key handle (not arbitrary language memory) and require the cryptographic operation to fail after zeroization.
 1. Restart from the encrypted artifacts and stale local state. Require a new attestation and release before any inference can succeed.
 
 Run separate cases for explicit revocation and unreachable renewal service. Verify the signed record chain, monotonic sequence, manifest/weights identity, lease identifier, timestamps, and previous-record hash. Publish hashes and boolean outcomes, not keys, plaintext model data, raw attestation evidence, or environment identifiers.
 
 The result applies only to the tested controller, key API, language/runtime, hardware, compiler, and build. A best-effort overwrite of a Python `bytes` object is not proof of hardware-backed zeroization. The evidence must name the primitive that makes the key handle unusable and the mechanism that terminates in-flight and future inference.
 
-The SDK provides `RuntimeRecord`, `sign_runtime_record`, and `verify_runtime_record_chain` as the portable receipt contract. Records are Ed25519-signed and hash-chained across one weights hash, manifest hash, and lease identifier. A terminal proof must start with `lease_started`, may contain `renewal_succeeded` records, then contain exactly one `lapse_detected` or `revocation_detected` boundary followed—in order—by `wipe_requested`, `wipe_completed`, and `process_terminated`. The verifier rejects tampering, reordering, missing terminal events, signer substitution, and cross-lease splicing. The production controller must call this contract from inside its protected control path; signatures created by an external observer are not evidence of protected execution.
+The SDK provides `RuntimeRecord`, `sign_runtime_record`, and `verify_runtime_record_chain` as the portable receipt contract. Records are Ed25519-signed and hash-chained across one weights hash, manifest hash, and lease identifier. A terminal proof must start with `lease_started`, may contain `renewal_succeeded` records, then contain exactly one `lapse_detected` or `revocation_detected` boundary followed, in order, by `wipe_requested`, `wipe_completed`, and `process_terminated`. The verifier rejects tampering, reordering, missing terminal events, signer substitution, and cross-lease splicing. The production controller must call this contract from inside its protected control path; signatures created by an external observer are not evidence of protected execution.
 
 ### Serving shutdown integration
+
+How the SDK hands off to the serving software when it is time to stop, and what that serving software must do in each step.
 
 The reference SDK provides `EnclaveSession(on_stop=...)` and `ServingShutdown` as integration points, not an inference engine or a hardware erasure driver. Pass a `ServingShutdown` instance as `on_stop` when constructing the session (also supported by `from_release`). Supply these measured-runtime callbacks:
 
@@ -65,5 +73,7 @@ Check `authorize_operation()` on every inference dispatch, including requests al
 The asyncio monitor is cooperative, not a trusted timer. Blocking the event loop or a synchronous cleanup callback can delay it. Callbacks must use bounded native runtime primitives, with an independent protected watchdog to force execution stop if renewal, cleanup, or the serving worker hangs. Neither these SDK hooks nor their unit tests close issue #78: the hardware-specific callbacks, trusted time source, enforced stop latency, memory cleanup limits, and receipt capture still require the production evidence described above.
 
 ## Review gate
+
+What must be in the pull request before either issue can close.
 
 For either issue, merge only when the sanitized receipt, verifier, negative case, exact build identity, and rerun instructions are committed together. A green SDK suite confirms reference semantics; it does not substitute for this protected-runtime evidence.

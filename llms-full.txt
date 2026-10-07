@@ -2,7 +2,7 @@
 
 > An open, pre-1.0 specification for releasing model weights only to an attested runtime, with the guarantee boundary stated plainly
 
-Weight Custody Manifest (WCM) is an open, pre-1.0 specification for releasing model weights only to an approved, attested runtime. A signed manifest binds encrypted weights to a release policy, and a key broker releases the decryption key only to a workload whose attestation matches it. The reference SDK is Apache-2.0 and runs 91 portable conformance vectors offline, which are a self-test and not certification. Against an operator who physically owns the hardware, WCM offers accountability, not cryptographic custody. WCM is part of AgenTrust, open specifications for verifiable AI: https://agentrust-io.com
+Weight Custody Manifest (WCM) is an open, pre-1.0 specification for releasing model weights only to an approved, attested runtime. A signed manifest binds encrypted weights to a release policy, and a key broker releases the decryption key only to a workload whose attestation matches it. The reference SDK is Apache-2.0 and runs 97 portable conformance vectors offline, which are a self-test and not certification. Against an operator who physically owns the hardware, WCM offers accountability, not cryptographic custody. WCM is part of AgenTrust, open specifications for verifiable AI: https://agentrust-io.com
 
 # Get started
 
@@ -10,19 +10,19 @@ Weight Custody Manifest (WCM) is an open, pre-1.0 specification for releasing mo
 
 # Release model weights only to an attested runtime
 
-WCM is an open, pre-1.0 specification that binds encrypted weights to a signed release policy, so a key broker releases the decryption key only to a workload whose attestation matches the manifest.
+When a company hands its AI model to a customer to run on the customer's own machines, WCM lets the model's maker decide which machines may use it. The model files stay encrypted, and the key that decrypts them goes only to a program that can prove, through a hardware check called attestation, that it is the approved one. WCM is an open, pre-1.0 specification with a reference SDK you can run today ([the terms, in plain English](https://agentrust-io.com/#plain-terms)).
 
-[Run the 95 conformance vectors](#try-it) [What this proves, and what it does not](https://wcm.agentrust-io.com/limitations/index.md)
+[Run the 97 conformance vectors](#try-it) [What this proves, and what it does not](https://wcm.agentrust-io.com/limitations/index.md)
 
 TL;DR
 
-The reference SDK ([weight-custody-manifest](https://pypi.org/project/weight-custody-manifest/) 0.30.0, Apache-2.0) runs its conformance vectors offline with no GPU or cloud account, and verifies AMD SEV-SNP, Intel TDX and NVIDIA H100 CC evidence captured on real hardware. Against an operator who physically owns the machine, WCM offers accountability, not cryptographic custody, because published memory-bus attacks defeat current confidential-computing silicon.
+The reference SDK ([weight-custody-manifest](https://pypi.org/project/weight-custody-manifest/) 0.30.0, Apache-2.0) runs its test cases on an ordinary laptop with no GPU or cloud account, and checks hardware reports captured on real AMD SEV-SNP, Intel TDX and NVIDIA H100 machines. Against someone who physically owns the machine, WCM gives you a record and a way to hold them to account, not cryptographic custody, because published attacks on the memory bus defeat today's confidential-computing chips.
 
 - **Run it**
 
   ______________________________________________________________________
 
-  `wcm conformance` runs every level offline. One vector uses a genuine AMD report and staged root; Intel and GPU vendor vectors remain open.
+  `wcm conformance` runs every test level on your own computer. One test uses a genuine AMD hardware report; Intel and GPU vendor tests are still to come.
 
   [Try it](#try-it)
 
@@ -30,7 +30,7 @@ The reference SDK ([weight-custody-manifest](https://pypi.org/project/weight-cus
 
   ______________________________________________________________________
 
-  What an operator who owns the hardware can still do, and why a valid signature cannot tell an authorized key from an extracted one.
+  What someone who owns the hardware can still do, and why a valid signature cannot tell an approved key from a stolen one.
 
   [Limitations](https://wcm.agentrust-io.com/limitations/index.md)
 
@@ -38,7 +38,7 @@ The reference SDK ([weight-custody-manifest](https://pypi.org/project/weight-cus
 
   ______________________________________________________________________
 
-  AMD SEV-SNP (Azure), Intel TDX (GCP) and NVIDIA H100 CC, each with a committed fixture that verifies offline. H100 landed in [#54](https://github.com/agentrust-io/weight-custody-manifest/pull/54).
+  AMD SEV-SNP (Azure), Intel TDX (GCP) and NVIDIA H100, each with a saved hardware report that anyone can re-check offline. H100 landed in [#54](https://github.com/agentrust-io/weight-custody-manifest/pull/54).
 
   [Roadmap](https://wcm.agentrust-io.com/roadmap/index.md)
 
@@ -46,7 +46,7 @@ The reference SDK ([weight-custody-manifest](https://pypi.org/project/weight-cus
 
   ______________________________________________________________________
 
-  Next: [Agent Manifest](https://manifest.agentrust-io.com) records the agent that loads the weights. Check a real TDX quote yourself at [agentrust-io.com/verify](https://agentrust-io.com/verify/).
+  Next: [Agent Manifest](https://manifest.agentrust-io.com) records which AI agent loads the model. Check a real Intel TDX hardware report yourself at [agentrust-io.com/verify](https://agentrust-io.com/verify/).
 
   [See the chain](https://agentrust-io.com/#chain)
 
@@ -56,38 +56,43 @@ This is a design under review, not a production standard. Do not rely on it for 
 
 ## The trust direction
 
-When a frontier model is deployed into a customer's own infrastructure (on-prem, sovereign cloud, air-gapped), the party at risk flips: it is now the **model builder** whose weights are exposed to the customer's hardware and operators. WCM is the protocol for that direction: a signed manifest describing which weights are released and under what terms, attestation-gated key release into a verified enclave, wipe-on-lapse and revocation, and a chain of custody for derivatives.
+Usually the customer worries about the AI provider. When a frontier model is installed inside a customer's own infrastructure (their own data center, a national cloud, or a network cut off from the internet), the worry runs the other way: the **model builder** now has its most valuable asset, the trained weights, sitting on hardware and with staff it does not control. WCM is built for that direction. It gives the builder:
 
-WCM answers one question: can a model builder release encrypted weights only to an approved workload, keep that approval short-lived, and retain evidence of what happened? The answer is yes for the reference protocol and its software checks, with one boundary stated plainly rather than buried, in the next section.
+- a signed manifest, a short document saying which model files may be released and on what terms;
+- key release only to a workload that passes a fresh hardware check;
+- automatic key wipe when approval lapses, and a way to revoke it early;
+- a record of fine-tuned copies (derivatives) back to the original.
 
-WCM composes with [OpenSSF Model Signing](https://wcm.agentrust-io.com/oms-interoperability/index.md) rather than competing with it: OMS proves which model artifact a signer published; WCM governs whether the key for those exact bytes may be released to a freshly attested workload and how long that workload may retain it.
+WCM answers one question: can a model builder release encrypted weights only to an approved workload, keep that approval short-lived, and keep evidence of what happened? The answer is yes for the reference protocol and its software checks, with one boundary stated plainly in the next section.
+
+WCM works alongside [OpenSSF Model Signing](https://wcm.agentrust-io.com/oms-interoperability/index.md). Model Signing proves which model files a publisher released. WCM decides whether the key for those exact files may go to a freshly checked workload, and how long that workload may keep it.
 
 ## Honest guarantee scope
 
-WCM names two guarantees and never blends them:
+WCM makes two separate promises and never blends them:
 
-- **Cryptographic custody** against software and remote adversaries.
-- **Accountability-grade** protection against an operator who physically owns the hardware, *not* cryptographic custody. Cheap published memory-bus attacks ([TEE.fail](https://tee.fail/), [BadRAM](https://badram.eu/)) defeat current confidential-computing silicon; there WCM offers cost, detection, containment, legal recourse, and a mandatory physical-hardening tier.
+- **Cryptographic custody** against attackers working through software or over the network.
+- **Accountability** against an operator who physically owns the hardware, which is *not* cryptographic custody. Cheap published attacks on the memory bus ([TEE.fail](https://tee.fail/), [BadRAM](https://badram.eu/)) defeat current confidential-computing chips. Against that operator WCM raises the cost, helps detect and contain a breach, supports legal recourse, and requires physical hardening.
 
 See [Limitations](https://wcm.agentrust-io.com/limitations/index.md) and the specification's §3.6.
 
-| Against                     | What you get                                                                                                                                                                                                                 |
-| --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Local software demo**     | Checks the reference protocol in an ordinary process. The operator can inspect its memory. Mock attestation provides no hardware-rooted confidentiality.                                                                     |
-| **Protected runtime**       | Requires verified platform evidence, trusted keys, channel binding, workload isolation, and enforced renewal. Platform configuration, firmware, side channels, and the serving application's export paths affect the result. |
-| **Physical hardware owner** | Do not assume weight extraction is impossible. Published physical attacks motivate additional hardening and operator assumptions. A valid signature alone cannot distinguish an authorized key from an extracted one.        |
+| Against                     | What you get                                                                                                                                                                                                                                                          |
+| --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Local software demo**     | Checks the reference protocol in an ordinary program. The operator can read its memory. The simulated hardware check gives no real confidentiality.                                                                                                                   |
+| **Protected runtime**       | Needs verified hardware evidence, trusted keys, a key sent only over the checked connection, an isolated workload, and enforced renewal. The machine's configuration, firmware, side channels and any way the serving software can export data all affect the result. |
+| **Physical hardware owner** | Do not assume the weights cannot be extracted. Published physical attacks are why extra hardening and operator assumptions are needed. A valid signature alone cannot tell an approved key from an extracted one.                                                     |
 
-The [RAND weight-security report](https://www.rand.org/pubs/research_reports/RRA2849-1.html) provides threat-model context; it is not a certification of WCM. Passing the reference suite does not assign a deployment an attacker-resistance tier.
+The [RAND weight-security report](https://www.rand.org/pubs/research_reports/RRA2849-1.html) gives background on the threats; it is not a certification of WCM. Passing the reference test suite does not give a deployment an attacker-resistance rating.
 
 ## What is checked today
 
-The reference implementation ships **97 portable conformance vectors**: 32 at L1, 43 at L2, 12 at L3, and 10 at L4. Run them yourself with `wcm conformance`.
+The reference implementation ships **97 portable conformance vectors**: 32 at L1, 43 at L2, 12 at L3, and 10 at L4. A conformance vector is a test case written as a JSON file, so any implementation in any language can run it. Run them yourself with `wcm conformance`.
 
-This is the reference implementation's self-test, not independent certification and not a hardware deployment test. One L2 vector verifies genuine AMD SEV-SNP evidence against the staged AMD root; Intel vendor evidence and GPU cryptographic verification remain uncovered, and the runner prints those limits. See [Schema and conformance](https://wcm.agentrust-io.com/conformance/index.md).
+This is the reference implementation testing itself, not independent certification and not a test on real deployment hardware. One L2 vector checks a genuine AMD SEV-SNP hardware report against AMD's published root certificate; Intel vendor evidence and GPU signature checks are not yet covered, and the runner prints those limits. See [Schema and conformance](https://wcm.agentrust-io.com/conformance/index.md).
 
 ## Try it
 
-Python 3.11+ and Git. No cloud account, GPU, model download, or API key. Keep WCM in its own environment, because other AgenTrust packages may require a different `cryptography` version.
+You need Python 3.11+ and Git. No cloud account, GPU, model download, or API key. Install WCM in its own environment, because other AgenTrust packages may need a different version of the `cryptography` library.
 
 ```
 python -m venv .venv-wcm
@@ -97,7 +102,7 @@ python -m pip install weight-custody-manifest
 wcm conformance
 ```
 
-Then run the closed-weight allow/deny example, which supplies an approved serving measurement and then changes it:
+Then run the closed-model allow/deny example. It first presents an approved software fingerprint (a measurement), then changes it:
 
 ```
 git clone https://github.com/agentrust-io/integrations
@@ -105,13 +110,13 @@ cd integrations/demos
 python demo-07-closed-weight/run.py
 ```
 
-Expected: joint signature `True`, approved release `True`, then unapproved release `False`, because the measurement is not in `accepted_measurements`. Both cases use synthetic attestation and a placeholder key; labels such as "enclave" in the output do not mean hardware was used. [Getting started](https://wcm.agentrust-io.com/getting-started/index.md) covers the SDK in full.
+Expected: joint signature `True`, approved release `True`, then unapproved release `False`, because the measurement is not in `accepted_measurements`. Both cases use synthetic attestation and a placeholder key; words such as "enclave" in the output do not mean real hardware was used. [Getting started](https://wcm.agentrust-io.com/getting-started/index.md) covers the SDK in full.
 
 ## Where it fits
 
-- **Sovereign deployment.** Run a closed model inside nationally controlled infrastructure while making weight release conditional on an approved, attested workload.
-- **Enterprise and air-gapped.** Deliver encrypted weights to customer-operated environments without turning a one-time handoff into permanent authorization.
-- **Regulated model delivery.** Carry signed policy, release decisions, renewal state, revocation, and derivative lineage as portable evidence.
+- **National (sovereign) deployment.** Run a closed model inside infrastructure a country controls, while releasing the weights only to an approved, checked workload.
+- **Enterprise and offline networks.** Deliver encrypted weights to machines the customer runs, without turning a one-time handoff into permanent permission.
+- **Regulated model delivery.** Carry the signed policy, release decisions, renewals, revocations and fine-tune history as evidence others can check.
 
 ## Where to go next
 
@@ -124,22 +129,24 @@ Expected: joint signature `True`, approved release `True`, then unapproved relea
 
 ## Get involved
 
-WCM is pre-1.0 and the review is open. Four routes in:
+WCM is pre-1.0 and open for review. Four ways in:
 
-- **Model owners.** Pressure-test the release policy against your actual threat model.
-- **Runtime and cloud teams.** Add or review an attestation profile and prove what your protected boundary can support. Start with [CONTRIBUTING.md](https://github.com/agentrust-io/weight-custody-manifest/blob/main/CONTRIBUTING.md).
-- **Security researchers.** Challenge the threat model, fixtures, hardware assumptions, and explicit non-goals. Reporting process in [SECURITY.md](https://github.com/agentrust-io/weight-custody-manifest/blob/main/SECURITY.md).
-- **Standards contributors.** Review the manifest, portable evidence, conformance levels, and interoperability boundaries.
+- **Model owners.** Test the release policy against the risks you actually face.
+- **Runtime and cloud teams.** Add or review support for your hardware platform and show what your protected environment can deliver. Start with [CONTRIBUTING.md](https://github.com/agentrust-io/weight-custody-manifest/blob/main/CONTRIBUTING.md).
+- **Security researchers.** Challenge the threat model, the saved test data, the hardware assumptions, and what WCM says it does not cover. Reporting process in [SECURITY.md](https://github.com/agentrust-io/weight-custody-manifest/blob/main/SECURITY.md).
+- **Standards contributors.** Review the manifest, the portable evidence, the test levels, and where WCM meets other standards.
 
 Open an issue or a discussion on [github.com/agentrust-io/weight-custody-manifest](https://github.com/agentrust-io/weight-custody-manifest).
 
-The specification, schema, conformance suite, reference SDK, threat model, and reference key-release service are available under Apache-2.0. Vendors may build interoperable hosted services and protected-runtime implementations. Public availability does not establish production readiness.
+The specification, schema, test suite, reference SDK, threat model, and reference key-release service are free to use under Apache-2.0. Vendors may build compatible hosted services and protected-runtime products. Public availability does not establish production readiness.
 
-**Status:** pre-1.0 · SDK 0.30.0 · Apache-2.0 · SCITT and CoSAI standards path on the [roadmap](https://wcm.agentrust-io.com/roadmap/index.md) · Sponsored by OPAQUE, which funds the engineering, infrastructure and confidential-computing work behind these projects.
+**Status:** pre-1.0 · SDK 0.30.0 · Apache-2.0 · SCITT and CoSAI standards path on the [roadmap](https://wcm.agentrust-io.com/roadmap/index.md) · Sponsored by OPAQUE, which funds the engineering, infrastructure and confidential-computing work behind these projects. More sponsors are welcome.
 
 # Getting started
 
-The reference SDK lives in [`python/`](https://github.com/agentrust-io/weight-custody-manifest/tree/main/python). It implements the full protocol on software / synthetic test doubles, with AMD SEV-SNP quote verification validated against real hardware.
+This page is for developers who want to try WCM in code. In about ten minutes you install the Python SDK, sign a manifest, check it, and run a simulated key release on your own computer.
+
+The reference SDK lives in [`python/`](https://github.com/agentrust-io/weight-custody-manifest/tree/main/python). It runs the whole protocol using software stand-ins for the hardware, so no special machine is needed. Its check of AMD SEV-SNP hardware reports has also been tested against real hardware.
 
 ## Install
 
@@ -151,6 +158,8 @@ pip install --no-deps -e .
 ```
 
 ## Build, sign, verify a manifest
+
+A manifest is a short signed document that names the model files and the rules for releasing their key. Two parties sign it: the builder (who made the model) and the custodian (who runs the key service).
 
 ```
 from wcm import (
@@ -179,6 +188,8 @@ A manifest is valid only when **both** the builder and custodian have signed (an
 
 ## Gate a key release
 
+The key broker service (KBS) holds the decryption key. It sends a one-time challenge, checks the evidence that comes back, and releases the key only if everything matches the manifest.
+
 ```
 from wcm import KeyBrokerService, SoftwareProvider, manifest_identity
 
@@ -196,9 +207,11 @@ decision = kbs.verify_and_release(manifest, evidence)
 print(decision.released)   # True on a passing gate
 ```
 
-`SoftwareProvider` is a mock with no hardware root of trust. For real evidence see `snp.py` (AMD SEV-SNP, hardware-validated) and the provider auto-selection in `_hw_providers.py`.
+`SoftwareProvider` is a stand-in that produces fake evidence with no real hardware behind it, so this example proves nothing about hardware. For real evidence see `snp.py` (AMD SEV-SNP, hardware-validated) and the provider auto-selection in `_hw_providers.py`.
 
 ## CLI
+
+The same steps from the command line: make keys for both parties, sign, verify.
 
 ```
 # 1. keys for the two required parties (writes builder + builder.pub, etc.)
@@ -220,79 +233,93 @@ See the [`python/` README](https://github.com/agentrust-io/weight-custody-manife
 
 # How WCM works (the six steps)
 
-A plain-language tour of the flow. Nothing here assumes cryptography background; the [runnable examples](https://github.com/agentrust-io/integrations/tree/main/examples/weight-custody-manifest) then run it for real.
+A plain-language tour of WCM from start to finish, for anyone who wants to understand the idea before reading the specification. No cryptography background is needed. The [runnable examples](https://github.com/agentrust-io/integrations/tree/main/examples/weight-custody-manifest) then show it working.
 
 ## The problem, in one sentence
 
-When a model builder deploys weights into **someone else's** infrastructure (on-prem, sovereign cloud, air-gapped), the usual trust direction flips: the party at risk is the **builder**, whose weights now sit on hardware and operators it does not control. WCM is the protocol for that direction.
+When a model builder installs its weights in **someone else's** infrastructure (their own data center, a national cloud, or an offline network), the usual worry is reversed: the party at risk is the **builder**, whose weights now sit on hardware and with staff it does not control. WCM is the protocol for that case.
 
 ## The cast
 
-- **Builder** - signs off on which weights and which serving stack are approved.
-- **Custodian** - operates the key broker (KBS) that gates release. Jointly signs the manifest with the builder so neither acts alone.
-- **Customer / operator** - runs the enclave on their own hardware. They are the party being constrained, so they never sign the manifest alone.
-- **KBS** - the key broker: issues challenges, verifies attestation, releases the decryption key only into a verified enclave.
+- **Builder.** Approves which model files and which serving software may be used.
+- **Custodian.** Runs the key broker service (KBS) that decides whether to release the key. Signs the manifest together with the builder, so neither acts alone.
+- **Customer or operator.** Runs the protected environment (the enclave) on their own hardware. They are the party being limited, so they never sign the manifest alone.
+- **KBS.** The key broker. It sends a one-time challenge, checks the hardware evidence that comes back (the attestation), and releases the decryption key only into an enclave that passes.
 
-For an open-weight deployment these roles often collapse into one enterprise governance function (see the [runnable examples](https://github.com/agentrust-io/integrations/tree/main/examples/weight-custody-manifest)).
+For an open model these roles often belong to one team inside one company (see the [runnable examples](https://github.com/agentrust-io/integrations/tree/main/examples/weight-custody-manifest)).
 
 ## The six steps
 
-These steps assume a release authority the builder trusts. If the customer controls the broker's keys and verification settings, co-signing a manifest does not prevent that customer from bypassing it. Customer-hosted attested KBS operation is specified as a design, but the reference server does not implement its protected provisioning boundary. See [who controls key release](https://wcm.agentrust-io.com/deployment-trust/index.md).
+These steps assume the builder trusts whoever runs the key service. If the customer controls the broker's keys and checking settings, signing a manifest together does not stop that customer from going around it. A design for a customer-hosted, hardware-checked KBS is written down, but the reference server does not build its protected setup step. See [who controls key release](https://wcm.agentrust-io.com/deployment-trust/index.md).
 
-**0. Certify - the manifest.** The builder writes a signed manifest: the `weights_hash`, the release terms (license, permitted derivatives), and the release policy (which hardware, which serving-image measurement, trusted-time source). It is signed **jointly** by builder and custodian. This is the enforceable, machine-checkable version of the deployment agreement.
+**0. Certify: the manifest.** The builder writes a signed manifest. It records the `weights_hash` (a fingerprint of the exact model files), the release terms (license, whether fine-tuning is allowed) and the release policy (which hardware, which serving software fingerprint, which trusted clock). The builder and the custodian sign it **together**. It is the deployment agreement in a form a machine can check and enforce.
 
-**1. Verify - is this the real manifest?** Anyone can check the joint signature: both the builder and the custodian (and the sovereign signer, under the sovereign profile) must have signed, over the exact bytes. A tampered manifest does not verify.
+**1. Verify: is this the real manifest?** Anyone can check the joint signature. Both the builder and the custodian (and a national signer, under the sovereign profile) must have signed the exact same bytes. A changed manifest fails the check.
 
-**2. Gate - attestation-gated release.** The KBS issues a single-use nonce. The enclave returns evidence: a CPU confidential-VM quote and a *separate* GPU report, both echoing the nonce. The KBS checks all of it - genuine hardware, the platform the manifest requires, and a serving-image measurement matching what the builder signed - and only then releases the decryption key into the enclave. The key decrypts weights **only** under the builder-signed, measured serving stack, so "no raw weight export path" can be a real property, not a promise.
+**2. Gate: release only after a hardware check.** The KBS sends a one-time number (a nonce). The enclave answers with evidence: a signed report from the CPU and a *separate* signed report from the GPU, both repeating that number. The KBS checks that the hardware is genuine, that it is the platform the manifest requires, and that the serving software's fingerprint matches what the builder signed. Only then does it release the decryption key into the enclave. The key works **only** inside the serving software the builder approved, which is how "no way to copy the raw weights out" becomes something the system enforces.
 
-**3. Custody - wipe-on-lapse.** The enclave holds the key only for the manifest's attestation cadence window. If it does not re-attest in time, it **zeroizes** the key from its own memory and stops authorizing inference - the key is gone, not suspended - and invokes the teardown adapter the deployment supplied to stop its serving worker. This bounds worst-case exposure to one cadence window even if a compromised host blocks every revocation signal, *provided the clock cannot be stalled* (`trusted_time_source`).
+**3. Custody: wipe when approval lapses.** The enclave keeps the key only for a set window. If it does not pass the hardware check again in time, it **erases** the key from its own memory and stops answering requests. The key is gone, not paused. It also calls the shutdown hook the deployment supplied to stop the serving process. This limits the worst case to one window, even if a compromised host blocks every revoke message, *as long as the clock cannot be stalled* (`trusted_time_source`).
 
-**4. Terms - license and field-of-use.** The manifest's `release_terms` carry the license and usage restrictions; release happens only under the disclosed, conforming configuration. The manifest turns contract text into a technical release condition.
+**4. Terms: license and permitted use.** The manifest's `release_terms` carry the license and any limits on use, and the key is released only to a setup that matches them. Contract text becomes a technical condition for release.
 
-**5. Derive - lineage.** If the customer is permitted to fine-tune inside the enclave, the result gets its own manifest with `derived_from` pointing at the parent and a `rights_holder` recording the IP split - a chain of custody back to the original.
+**5. Derive: fine-tune history.** If the customer may fine-tune the model inside the enclave, the result gets its own manifest. Its `derived_from` field points at the original, and `rights_holder` records who owns what, giving a chain back to the original model.
 
-**6. Revoke - the kill switch.** Either party (or the sovereign quorum) can revoke; the enclave ends custody and tears serving down on the next cadence lapse at the latest. Wipe-on-lapse is the floor underneath revocation.
+**6. Revoke: the off switch.** Either party (or the national signers, under the sovereign profile) can revoke. The enclave ends custody and shuts serving down at the next window at the latest. Wipe-on-lapse is the safety net underneath revoking.
 
-## The honesty at the center
+## The honest limit
 
-WCM never claims silicon-enforced custody against an operator who **physically owns the hardware**. Cheap published attacks (TEE.fail, BadRAM) defeat current confidential-computing silicon. Against that adversary WCM offers cost, detection, containment, legal recourse, and mandatory physical hardening - not cryptographic custody. See [Limitations](https://wcm.agentrust-io.com/limitations/index.md) and `SPEC.md` §3.6.
+WCM never claims that the chip alone keeps the key safe from an operator who **physically owns the hardware**. Cheap published attacks (TEE.fail, BadRAM) defeat current confidential-computing chips. Against that operator WCM offers higher cost, detection, containment, legal recourse and required physical hardening, not cryptographic custody. See [Limitations](https://wcm.agentrust-io.com/limitations/index.md) and `SPEC.md` §3.6.
 
 ## Closed vs open weights
 
-For a **closed** model, steps 0-2 are doing secrecy work: keep the weights hidden. For an **open** model the base weights are public, so that secrecy is theater - but the same steps still do integrity, license, and (above all) derivative-custody work. That flip is shown in the [runnable open-model example](https://github.com/agentrust-io/integrations/tree/main/examples/weight-custody-manifest).
+For a **closed** model, steps 0 to 2 keep the weights secret. For an **open** model the base weights are already public, so secrecy adds nothing. The same steps still prove the files are intact, enforce the license, and above all keep track of fine-tuned copies. The [runnable open-model example](https://github.com/agentrust-io/integrations/tree/main/examples/weight-custody-manifest) shows this difference.
 # Specification
 
 # Specification overview
 
-The full normative text is [`SPEC.md`](https://github.com/agentrust-io/weight-custody-manifest/blob/main/SPEC.md) (v0.15). WCM is four layers plus a transparency log. The machine-readable form of the manifest, and the vectors an implementation is checked against, are on the [schema and conformance](https://wcm.agentrust-io.com/conformance/index.md) page.
+A one-page summary of what the WCM specification defines, for readers deciding whether to read the full text. Each layer below starts with what it does in plain words, then names the parts the specification pins down.
+
+The full normative text (the binding rules) is [`SPEC.md`](https://github.com/agentrust-io/weight-custody-manifest/blob/main/SPEC.md) (v0.15). WCM is four layers plus a public, append-only log. The machine-readable form of the manifest, and the test cases an implementation is checked against, are on the [schema and conformance](https://wcm.agentrust-io.com/conformance/index.md) page.
 
 ## Layer 1 - the manifest
 
-A builder issues a signed manifest describing exactly which weights are released and under what terms: `weights_hash`, release terms, release policy (assurance tier, required platforms and serving image, trusted-time source, memory fingerprint challenge), and custody. It is signed **jointly** by the builder and the custodian - never by the customer alone - with an optional sovereign quorum.
+A signed document saying exactly which model files may be released, and on what terms.
+
+It records the `weights_hash`, the release terms, the release policy (assurance tier, required platforms and serving image, trusted-time source, memory fingerprint challenge), and custody details. The builder and the custodian sign it **together**, never the customer alone, and a group of national signers can be added.
 
 ## Layer 2 - attestation-gated key release
 
-The key broker (KBS) issues a single-use nonce; the enclave returns composite evidence (a CPU CVM quote and a *separate* GPU report, both bound to the nonce); the KBS releases the key only if every check passes (platform, assurance tier, serving-image status with prefer-current, GPU measurement and CPU↔GPU binding, memory fingerprint in the hostile-owner posture, revocation freshness).
+The key goes out only after fresh hardware evidence passes every check.
+
+The key broker (KBS) sends a one-time number (nonce). The enclave returns combined evidence: a signed report from the CPU's protected virtual machine and a *separate* GPU report, both tied to that number. The KBS releases the key only if every check passes: platform, assurance tier, serving-image status (preferring the current approved image), GPU measurement and the link between CPU and GPU, a memory fingerprint when the hardware owner is treated as hostile, and up-to-date revocation information.
 
 ## Layer 3 - runtime custody (wipe-on-lapse)
 
-The enclave holds the key only for the attestation cadence window and zeroizes it if it does not re-attest in time - the key is *gone*, not suspended. This bounds worst-case exposure to one cadence window against an operator who cannot forge attestation, subject to a trusted clock (`trusted_time_source`).
+The protected environment keeps the key only for a short window and must keep proving itself to hold on to it.
+
+The enclave holds the key only for the attestation window and erases it if it does not pass the check again in time; the key is *gone*, not paused. This limits the worst case to one window against an operator who cannot fake the hardware check, as long as the clock can be trusted (`trusted_time_source`).
 
 ## Layer 4 - derivative lineage
 
-A fine-tune produces a new `weights_hash` with `derived_from` pointing at its parent and a `rights_holder` recording the IP split, forming a chain of custody back to the root.
+Fine-tuned copies keep a record that points back to the original.
+
+A fine-tune produces a new `weights_hash`, with `derived_from` pointing at its parent and a `rights_holder` recording who owns what, forming a chain back to the original model.
 
 ## Transparency (§3.7)
 
-An append-only Merkle log (RFC 9162) with signed tree heads makes equivocation and suppressed revocations detectable.
+A public log that can only be added to, so nobody can quietly show different people different histories or hide a revocation.
+
+It is an append-only Merkle log (RFC 9162) with signed tree heads, which makes that kind of double-dealing (equivocation) and suppressed revocations detectable.
 
 ## Guarantee scope (§3.6) - read this
 
-WCM does not claim silicon-enforced custody against a bare-metal owner with no physical hardening. That configuration is out of scope, deliberately. See [Limitations](https://wcm.agentrust-io.com/limitations/index.md).
+WCM does not claim that the chip alone keeps the key safe from someone who owns the bare machine and has done no physical hardening. That setup is out of scope on purpose. See [Limitations](https://wcm.agentrust-io.com/limitations/index.md).
 
 # Measured launch and Azure PCR 23
 
-This page is for platform engineers implementing the Azure SNP/vTPM release path. It defines the measurement that the verifier checks; selecting a PCR in a signed quote is not enough on its own.
+On Azure, the hardware check for a confidential VM goes through a virtual TPM, a security chip emulated for each VM. This page defines exactly what fingerprint of the serving software that chip must record before WCM releases a key, so the key goes only to the approved software. It is written for platform engineers building the Azure release path; the summary below is enough for everyone else.
+
+In short: just before loading the model, the VM writes the approved software's fingerprint into one reserved slot of the TPM (PCR 23, a register that can only be added to, never set directly). The TPM then signs a report that includes that slot and the key service's fresh challenge. The key service works out what the slot should contain from the signed manifest and releases the key only if the signed report matches. Selecting a PCR in a signed report is not enough on its own; its value must match.
 
 ## Contract
 
@@ -304,7 +331,7 @@ WCM reserves application-controlled SHA-256 PCR 23 for one workload event:
 1. Before accepting model material, extend PCR 23 exactly once with that digest.
 1. Quote SHA-256 PCR 23 together with the fresh KBS challenge and ephemeral transport-key binding.
 
-The reference Azure provider performs steps 1–4 with `tpm2_pcrreset 23` followed by `tpm2_pcrextend 23:sha256=<serving-image-digest>`, then immediately requests the AK-signed quote. Missing tools, an invalid measurement, or either TPM command failing aborts evidence production; the provider never falls back to quoting an unmeasured PCR state.
+The reference Azure provider performs steps 1 to 4 with `tpm2_pcrreset 23` followed by `tpm2_pcrextend 23:sha256=<serving-image-digest>`, then immediately requests the AK-signed quote. Missing tools, an invalid measurement, or either TPM command failing aborts evidence production; the provider never falls back to quoting an unmeasured PCR state.
 
 PCR 23 after the reset and extend is:
 
@@ -322,34 +349,38 @@ The KBS supplies the manifest-approved measurement to the verifier. It does not 
 
 ## Fail-closed cases
 
-Release is denied when PCR 23 is absent, uses a non-SHA-256 bank, has a malformed digest, represents a different PCR state, or the KBS has no approved workload measurement. A valid AK signature, fresh nonce, and correct transport key do not override a PCR mismatch.
+"Fail closed" means that when anything is missing or wrong, the answer is no. Release is denied when PCR 23 is absent, uses a non-SHA-256 bank, has a malformed digest, represents a different PCR state, or the KBS has no approved workload measurement. A valid AK signature, fresh nonce, and correct transport key do not override a PCR mismatch.
 
 ## Reproducible Azure validation
 
-The repository's isolated tests build a sanitized quote and cover valid launch, wrong PCR digest, wrong policy measurement, malformed digest, and missing PCR. The procedure was also exercised on an Azure `Standard_DC2as_v5` confidential VM with AMD SEV-SNP and a vTPM. The sanitized, commit-pinned receipt and its reproduction notes are in the [Azure PCR 23 validation pack](https://github.com/agentrust-io/weight-custody-manifest/blob/main/python/tests/fixtures/live-validation/weight-custody-manifest/azure-pcr23-2026-08-23/README.md).
+This has been tested both in software and on a real Azure confidential VM. The repository's isolated tests build a sanitized quote and cover valid launch, wrong PCR digest, wrong policy measurement, malformed digest, and missing PCR. The procedure was also exercised on an Azure `Standard_DC2as_v5` confidential VM with AMD SEV-SNP and a vTPM. The sanitized, commit-pinned receipt and its reproduction notes are in the [Azure PCR 23 validation pack](https://github.com/agentrust-io/weight-custody-manifest/blob/main/python/tests/fixtures/live-validation/weight-custody-manifest/azure-pcr23-2026-08-23/README.md).
 
 A publishable receipt contains only hashes, tool versions, generic VM/SKU information, boolean verdicts, and timestamps. It must not contain raw HCL, certificates tied to a tenant, provider tokens, subscription/resource identifiers, hostnames, IPs, customer names, or event-specific material.
 
 ## What this proves
 
-It proves that the authenticated AK signed the expected PCR state for this fresh release attempt. It does not prove immunity to physical extraction, forged attestation after hardware-key compromise, or memory-bus attacks. See the [threat model](https://wcm.agentrust-io.com/threat-model/index.md).
+It proves that the authenticated AK (the TPM's own signing key) signed the expected PCR state for this fresh release attempt. It does not prove immunity to physical extraction, forged attestation after hardware-key compromise, or memory-bus attacks. See the [threat model](https://wcm.agentrust-io.com/threat-model/index.md).
 
 # Provider certificate policy
 
-WCM rejects X.509 certificates whose serial number is zero or negative. RFC 5280 requires positive serial numbers, and supporting non-conforming provider certificates would make behavior dependency-version-specific.
+A short note for implementers on one certificate rule WCM enforces and why. If a hardware or cloud provider's certificate is refused with a policy error, this page explains the cause.
 
-`cryptography` 50 warns while loading these certificates; its announced version 51 behavior is to reject them. WCM isolates both behaviors behind one loader and returns the same non-sensitive, fail-closed policy error. It does not rewrite the certificate or skip any chain, signature, validity, or revocation check.
+WCM rejects X.509 certificates whose serial number is zero or negative. RFC 5280, the internet standard for these certificates, requires positive serial numbers, and accepting certificates that break it would make WCM's behavior depend on which version of a library is installed.
 
-Until version 51 is published, the runtime dependency remains capped below it. CI exercises the real version-50 warning path and an executable model of the documented version-51 load-time exception. The cap must not be lifted until CI can replace that model with the released dependency. Fixtures contain generated names and keys only—never raw provider tokens, tenant identifiers, or environment identifiers.
+`cryptography` 50 warns while loading these certificates; its announced version 51 behavior is to reject them. WCM puts both behaviors behind one loader and returns the same policy error, which reveals nothing sensitive and refuses the release (fails closed). It does not rewrite the certificate or skip any chain, signature, validity, or revocation check.
+
+Until version 51 is published, the runtime dependency remains capped below it. CI exercises the real version-50 warning path and an executable model of the documented version-51 load-time exception. The cap must not be lifted until CI can replace that model with the released dependency. Test data contains generated names and keys only, never raw provider tokens, tenant identifiers, or environment identifiers.
 
 # OpenSSF Model Signing + WCM
+
+How WCM fits with OpenSSF Model Signing, the open standard for signing model files. Read this if you already sign models with it, or plan to: you keep doing that, and WCM adds the decision about who may decrypt them.
 
 OpenSSF Model Signing (OMS) and WCM answer different questions in one release pipeline:
 
 - **OMS:** Are these the authentic, untampered model files published by the expected signer?
 - **WCM:** May the decryption key for those exact files be released to this attested workload, under these custody terms, now?
 
-WCM does not replace or redefine OMS. OMS is the provenance layer; WCM binds that provenance to jointly approved release policy, fresh platform evidence, transport-sealed key delivery, runtime custody, revocation, and derivative lineage.
+WCM does not replace or redefine OMS. OMS proves where the files came from (provenance). WCM ties that proof to a release policy both parties approved, a fresh hardware check, a key sent sealed so only the checked workload can open it, time-limited custody, revocation, and the history of fine-tuned copies.
 
 ## Where the boundary sits
 
@@ -367,6 +398,8 @@ WCM does not replace or redefine OMS. OMS is the provenance layer; WCM binds tha
 This boundary follows OMS's own scope: signing establishes artifact integrity and authenticity, but is not confidentiality, access control, or comprehensive runtime security.
 
 ## Composition flow
+
+The model files are signed once with OMS. The WCM manifest records a fingerprint of that signed file list, so the two cannot be mixed and matched later.
 
 ```
 model files
@@ -435,6 +468,8 @@ Run `wcm verify` separately to verify the builder/custodian signatures and the r
 
 ## Digest note
 
+WCM keeps two different fingerprints of the same model files, and they are not interchangeable.
+
 `provenance.model_signing.signed_digest` and WCM's `weights_hash` are related to the same physical artifact but serve different formats and are not interchangeable. The former is WCM's stable fold of the OMS resource inventory; the latter is WCM's own artifact identity. An ingest pipeline must compute both from the same accepted bytes.
 
 ## Project references
@@ -446,31 +481,35 @@ Run `wcm verify` separately to verify the builder/custodian signatures and the r
 
 # Threat model
 
+What WCM protects, who it protects against, and the one assumption everything rests on. Security reviewers should start here, then read [Limitations](https://wcm.agentrust-io.com/limitations/index.md).
+
 The full threat model is [`THREAT-MODEL.md`](https://github.com/agentrust-io/weight-custody-manifest/blob/main/THREAT-MODEL.md). A map of every threat to what the SDK actually enforces is in the [implementation audit](https://github.com/agentrust-io/weight-custody-manifest/blob/main/python/docs/threat-model-implementation-audit.md).
 
 ## Assets
 
-Decrypted weights, the decryption key, manifest integrity, attestation quotes, audit receipts, derivative weights, and signing keys.
+The things worth stealing or tampering with: decrypted weights, the decryption key, manifest integrity, attestation quotes (signed hardware reports), audit receipts, derivative weights, and signing keys.
 
 ## Adversaries
 
-A malicious or compromised customer operator (privileged on the host), a malicious custodian insider, a network adversary, a malicious or coerced builder (the sovereign case), a co-located side-channel tenant, and a supply-chain attacker.
+The people WCM plans for: a malicious or compromised customer operator with admin rights on the host, a malicious insider at the custodian, an attacker on the network, a malicious or pressured builder (the sovereign case), another tenant on the same machine trying to read data through side channels, and an attacker who tampers with software before it arrives (supply chain).
 
 ## The load-bearing assumption
 
-The model owner must trust the key-release authority. A customer who can read the model key or replace KBS/Trustee verification and policy can bypass workload attestation without attacking the TEE. Internal separation of administrators does not protect against the entity that can override them. See the [deployment configurations and checklist](https://wcm.agentrust-io.com/deployment-trust/index.md).
+The model owner must trust whoever controls key release. A customer who can read the model key, or swap out the key service's (KBS/Trustee) checking code and policy, can go around the hardware check without attacking the protected hardware (the TEE) at all. Internal separation of administrators does not protect against the entity that can override them. See the [deployment configurations and checklist](https://wcm.agentrust-io.com/deployment-trust/index.md).
 
-WCM's guarantees hold only as far as the trusted computing base does. The honest core: current confidential-computing silicon does **not** protect the key or attestation integrity against an operator who physically owns the hardware (TEE.fail, BadRAM). Against that adversary WCM provides cost, detection, containment, legal recourse, and mandatory physical hardening - not cryptographic custody. See [Limitations](https://wcm.agentrust-io.com/limitations/index.md).
+WCM's guarantees hold only as far as the hardware and software it relies on (the trusted computing base) hold. The honest core: current confidential-computing chips do **not** protect the key, or the honesty of the hardware check, against an operator who physically owns the hardware (TEE.fail, BadRAM). Against that adversary WCM provides cost, detection, containment, legal recourse, and mandatory physical hardening - not cryptographic custody. See [Limitations](https://wcm.agentrust-io.com/limitations/index.md).
 
 # Schema and conformance
 
-Two machine-readable artifacts sit alongside the specification text, so an independent implementation has something to build and check against rather than prose to interpret.
+For anyone building their own WCM implementation, or checking one. The schema is a machine-readable description of a valid manifest, and the conformance suite is a set of test cases that shows whether an implementation behaves as the specification says.
+
+These two machine-readable files sit alongside the specification text, so an independent implementation has something to build and check against rather than prose to interpret.
 
 ## The manifest JSON Schema
 
 [`schema/wcm-manifest-v1.schema.json`](https://github.com/agentrust-io/weight-custody-manifest/blob/main/schema/wcm-manifest-v1.schema.json) is the normative machine-readable form of `SPEC.md` §3.1. JSON Schema 2020-12, identified by `https://wcm.agentrust-io.com/schema/manifest/v1.json`.
 
-It is **frozen at v1 and additive-only**. Fields and permitted enum values may be added; nothing is removed, renamed, made required, narrowed, or repurposed. A breaking change would publish `.../manifest/v2.json` alongside rather than edit v1. The specification itself is still pre-1.0, so this is a deliberate trade: implementers get a stable target now, and whatever the spec grows into arrives as an addition.
+It is **frozen at v1 and additive-only**: new things can be added, nothing existing changes. Fields and permitted enum values may be added; nothing is removed, renamed, made required, narrowed, or repurposed. A breaking change would publish `.../manifest/v2.json` alongside rather than edit v1. The specification itself is still pre-1.0, so this is a deliberate trade: implementers get a stable target now, and whatever the spec grows into arrives as an addition.
 
 From Python:
 
@@ -488,18 +527,18 @@ schema = manifest_schema()
 | Level | Title                        | Vectors | Shape                         |
 | ----- | ---------------------------- | ------- | ----------------------------- |
 | L1    | Manifest and joint signature | 32      | documents                     |
-| L2    | Attestation-gated release    | 41      | scenarios and vendor evidence |
+| L2    | Attestation-gated release    | 43      | scenarios and vendor evidence |
 | L3    | Runtime custody              | 12      | scenarios                     |
 | L4    | Derivative lineage           | 10      | documents                     |
 
-95 vectors. All four levels are vectored and every reportable error code is exercised by at least one vector, which a test enforces. L1 and L4 ask a question about a document. Most L2 vectors and every L3 vector ask what a system does over *time*, so they are ordered scenarios with an injected clock and named nonces; L2 also carries vendor evidence.
+97 vectors. All four levels are vectored and every reportable error code is exercised by at least one vector, which a test enforces. L1 and L4 ask a question about a document. Most L2 vectors and every L3 vector ask what a system does over *time*, so they are ordered scenarios with an injected clock and named nonces; L2 also carries vendor evidence.
 
 Two limits remain, and `wcm conformance` prints both on every full run rather than leaving a green result to be over-read:
 
 - **The vendor corpus covers AMD SEV-SNP, but not Intel TDX.** The AMD vector verifies a genuine Azure report against the staged AMD Milan root and applies the mandatory refusal matrix. Intel remains covered by SDK fixtures, not a language-neutral vendor vector.
 - **GPU-side cryptographic verification is not vectored.** The quote vectors cover the CPU quote; the NVIDIA device chain is covered by the SDK's H100 fixture.
 
-Running it:
+Running it (the first command tests this SDK itself; the last one scores another implementation's results):
 
 ```
 pip install weight-custody-manifest
@@ -519,11 +558,13 @@ The error codes are listed in [`conformance/codes.md`](https://github.com/agentr
 
 # Reference KBS image
 
+How to build and run WCM's example key broker service (KBS), the server that hands out the model key after a hardware check. Use it to try the protocol end to end. It is a demonstration: it trusts whoever administers the machine it runs on, so it does not protect weights from that person.
+
 The reference key-release service that §3.4 / §8.3 call for - built reproducibly so its measurement can be pinned in a manifest's `custody.kbs_image.measurement` and independently reproduced. Full details: [`python/docs/reproducible-kbs-image.md`](https://github.com/agentrust-io/weight-custody-manifest/blob/main/python/docs/reproducible-kbs-image.md).
 
 ## Server
 
-`wcm.server.create_app(kbs)` is a FastAPI surface (`POST /challenge`, `POST /release`, `GET /health`) with the same semantics as the library `KeyBrokerService`. Install with `pip install ".[server]"`.
+A small web service with three endpoints: get a challenge, ask for a release, and check it is running. `wcm.server.create_app(kbs)` is a FastAPI surface (`POST /challenge`, `POST /release`, `GET /health`) with the same semantics as the library `KeyBrokerService`. Install with `pip install ".[server]"`.
 
 ## Image
 
@@ -545,6 +586,8 @@ docker run --rm -p 8080:8080 \
 
 Keys are supplied at runtime, never baked into the image. CI builds, runs, and health-checks the image on every change. Bit-for-bit reproducibility additionally requires pinning the base image by digest and hash-locking dependencies (the operator hardening steps, documented in the link above).
 
+Keys must stay off untrusted networks and away from host administrators in any real deployment. The note below lists what production needs on top of this image, and how the server refuses releases when a trust setting is missing.
+
 Reference-only deployment
 
 The reference server requires channel binding and returns only `sealed_key_b64`, encrypted to the transport public key bound into the attestation evidence; it never returns the raw key. Production deployments must additionally isolate the KBS trust boundary, authenticate clients, protect key provisioning from host administrators, restrict network ingress, and attest/pin the KBS image itself. Do not expose the reference image directly on an untrusted network.
@@ -557,9 +600,13 @@ GPU evidence also requires a cryptographic verifier. Set `WCM_GPU_TRUST_ROOT_FIL
 
 # Protected-runtime evidence plan
 
+Two WCM protections can only be proven on a real protected runtime, not by the SDK on its own: checking that protected memory really is protected ([issue #79](https://github.com/agentrust-io/weight-custody-manifest/issues/79)), and proving that the key is wiped and serving stops when approval lapses ([issue #78](https://github.com/agentrust-io/weight-custody-manifest/issues/78)). This page lists the evidence a runtime team must produce before either issue can close. It is written for the teams building that runtime.
+
 Two WCM controls cannot be established by the reference SDK alone. This page defines the evidence a protected-runtime implementation must produce before the project closes the corresponding issues. A unit-test simulation is useful for development but is not acceptable proof.
 
 ## Protected-memory fingerprint sweep (issue #79)
+
+In plain terms: write unpredictable values across the protected memory, read them back, and check that every location is really separate. A host that quietly maps two addresses onto the same memory is caught.
 
 The SDK supplies `BytearrayMemoryRange`, `run_memory_sweep`, and `verify_memory_sweep` as the executable reference contract. The runner derives different full-page values and write/read permutations from protected secret material plus the fresh KBS nonce, writes and reads every declared page, detects inconsistent mappings, and signs the complete transcript with Ed25519. The KBS fails closed unless a policy-pinned sweep public key verifies that transcript; its production default does not accept the earlier unsigned structural shape. Language-neutral conformance vectors retain an explicitly isolated declarative mode because the frozen v1 vectors cannot carry a signature over a runtime nonce.
 
@@ -582,6 +629,8 @@ Passing proves the tested address map behaved consistently during that attempt. 
 
 ## Lease lapse, zeroization, and execution stop (issue #78)
 
+In plain terms: show, on the real system, that when approval runs out the key is erased, inference stops, and nothing starts again without a fresh hardware check.
+
 Use the production custody controller and the actual inference boundary:
 
 1. Start from clean persistent state, attest, receive a transport-sealed model key, decrypt one protected model, and record the lease deadline.
@@ -589,16 +638,18 @@ Use the production custody controller and the actual inference boundary:
 1. Before the next deadline, block the renewal service or revoke the workload.
 1. At the effective boundary, require the controller to emit distinct signed records for `wipe_requested`, `wipe_completed`, and `process_terminated`.
 1. Attempt inference after the boundary and require failure.
-1. Inspect the controller's supported key handle—not arbitrary language memory— and require the cryptographic operation to fail after zeroization.
+1. Inspect the controller's supported key handle (not arbitrary language memory) and require the cryptographic operation to fail after zeroization.
 1. Restart from the encrypted artifacts and stale local state. Require a new attestation and release before any inference can succeed.
 
 Run separate cases for explicit revocation and unreachable renewal service. Verify the signed record chain, monotonic sequence, manifest/weights identity, lease identifier, timestamps, and previous-record hash. Publish hashes and boolean outcomes, not keys, plaintext model data, raw attestation evidence, or environment identifiers.
 
 The result applies only to the tested controller, key API, language/runtime, hardware, compiler, and build. A best-effort overwrite of a Python `bytes` object is not proof of hardware-backed zeroization. The evidence must name the primitive that makes the key handle unusable and the mechanism that terminates in-flight and future inference.
 
-The SDK provides `RuntimeRecord`, `sign_runtime_record`, and `verify_runtime_record_chain` as the portable receipt contract. Records are Ed25519-signed and hash-chained across one weights hash, manifest hash, and lease identifier. A terminal proof must start with `lease_started`, may contain `renewal_succeeded` records, then contain exactly one `lapse_detected` or `revocation_detected` boundary followed—in order—by `wipe_requested`, `wipe_completed`, and `process_terminated`. The verifier rejects tampering, reordering, missing terminal events, signer substitution, and cross-lease splicing. The production controller must call this contract from inside its protected control path; signatures created by an external observer are not evidence of protected execution.
+The SDK provides `RuntimeRecord`, `sign_runtime_record`, and `verify_runtime_record_chain` as the portable receipt contract. Records are Ed25519-signed and hash-chained across one weights hash, manifest hash, and lease identifier. A terminal proof must start with `lease_started`, may contain `renewal_succeeded` records, then contain exactly one `lapse_detected` or `revocation_detected` boundary followed, in order, by `wipe_requested`, `wipe_completed`, and `process_terminated`. The verifier rejects tampering, reordering, missing terminal events, signer substitution, and cross-lease splicing. The production controller must call this contract from inside its protected control path; signatures created by an external observer are not evidence of protected execution.
 
 ### Serving shutdown integration
+
+How the SDK hands off to the serving software when it is time to stop, and what that serving software must do in each step.
 
 The reference SDK provides `EnclaveSession(on_stop=...)` and `ServingShutdown` as integration points, not an inference engine or a hardware erasure driver. Pass a `ServingShutdown` instance as `on_stop` when constructing the session (also supported by `from_release`). Supply these measured-runtime callbacks:
 
@@ -623,64 +674,78 @@ The asyncio monitor is cooperative, not a trusted timer. Blocking the event loop
 
 ## Review gate
 
+What must be in the pull request before either issue can close.
+
 For either issue, merge only when the sanitized receipt, verifier, negative case, exact build identity, and rerun instructions are committed together. A green SDK suite confirms reference semantics; it does not substitute for this protected-runtime evidence.
 # Project
 
 # Limitations
 
-The canonical, complete list is [`LIMITATIONS.md`](https://github.com/agentrust-io/weight-custody-manifest/blob/main/LIMITATIONS.md). The load-bearing ones:
+Where WCM stops protecting you, in one list. Read this before relying on WCM for anything: each item says who can still get at the model key, or which assumption has to hold for the protection to work.
 
-- **No custody against a customer-controlled release authority.** A customer who can read KBS/Trustee keys or replace its verifier and policy can bypass the gate without defeating hardware attestation. The reference server does not implement protected KBS provisioning. See the [deployment trust checklist](https://wcm.agentrust-io.com/deployment-trust/index.md).
-- **No custody against a hardware owner.** Against a physical operator who owns the box, cheap published memory-bus attacks (TEE.fail, BadRAM) extract the key and can forge attestation. WCM offers cost, detection, containment, legal recourse, and mandatory physical hardening there - not silicon-enforced custody.
-- **Attestation forgery, open half.** Measurement forgery is detectable (`memory_fingerprint_challenge`); the key-extraction half is not, and is why publication is staged (open question 8.8).
-- **The platform we validate against does not meet our own ciphertext-hiding precondition.** SPEC §3.6 conditions the semi-trusted-operator custody claim on SEV-SNP ciphertext hiding being enabled. The live Azure CVM this SDK is validated against reports `PLATFORM_INFO = 0x25`: alias check set, ciphertext hiding **clear**. Require it with `release_policy.platform_integrity.ciphertext_hiding` rather than assuming it.
-- **Attestation-key revocation is weaker than the compensating control implies.** Verified 2026-09-11: every certificate in our captured H100 chain carries `notAfter = 9999-12-31`, both NVIDIA CRLs are empty with a two-year next-update, AMD VCEKs carry serial number zero so a CRL entry cannot name a chip, and on no vendor can the operator invoke revocation.
-- **Trusted time is an assumption.** Wipe-on-lapse bounds exposure only if the clock cannot be stalled; the SDK reports the floor (`time_floor`) but cannot make an untrusted clock trustworthy.
-- **In-envelope distillation is not prevented.**
-- **GPU-side quote verification is cryptographic only when a device root is configured.** `NvidiaGpuVerifier` verifies the device chain, the ECDSA P-384 report signature and the raw nonce at offset 4, and is validated on a live H100 capture and an H200. A gate built without `build_gpu_verifier` falls back to structural trust, and `gpu_report_verified` says so.
-- **Azure CVMs** use a vTPM-rooted attestation path (`AzureSnpVtpmProvider`), not `/dev/sev-guest`; `REPORT_DATA` is paravisor-bound there.
+The canonical, complete list is [`LIMITATIONS.md`](https://github.com/agentrust-io/weight-custody-manifest/blob/main/LIMITATIONS.md). The ones that matter most:
+
+- **No custody against a customer who controls the key service.** A customer who can read the key service's (KBS/Trustee) keys, or swap out its checking code and policy, can go around the gate without breaking the hardware check at all. The reference server does not implement protected KBS provisioning. See the [deployment trust checklist](https://wcm.agentrust-io.com/deployment-trust/index.md).
+- **No custody against a hardware owner.** Someone who physically owns the machine can use cheap published attacks on the memory bus (TEE.fail, BadRAM) to pull out the key and fake the hardware check. There WCM offers higher cost, detection, containment, legal recourse and required physical hardening, not protection enforced by the chip.
+- **Faked hardware checks, the open half.** A faked software fingerprint (measurement forgery) can be detected (`memory_fingerprint_challenge`). A stolen hardware signing key cannot, and that is why publication is staged (open question 8.8).
+- **The platform we test on does not meet our own ciphertext-hiding precondition.** Ciphertext hiding is an AMD setting that stops the host from reading even the encrypted form of protected memory. SPEC §3.6 conditions the semi-trusted-operator custody claim on SEV-SNP ciphertext hiding being enabled. The live Azure CVM this SDK is validated against reports `PLATFORM_INFO = 0x25`: alias check set, ciphertext hiding **clear**. Require it with `release_policy.platform_integrity.ciphertext_hiding` rather than assuming it.
+- **Cancelling a leaked hardware signing key is weaker than it sounds.** Verified 2026-09-11: every certificate in our captured H100 chain carries `notAfter = 9999-12-31`, both NVIDIA CRLs are empty with a two-year next-update, AMD VCEKs carry serial number zero so a CRL entry cannot name a chip, and on no vendor can the operator invoke revocation.
+- **Trusted time is an assumption.** The automatic key wipe limits exposure only if the clock cannot be stalled; the SDK reports the floor (`time_floor`) but cannot make an untrusted clock trustworthy.
+- **In-envelope distillation is not prevented.** Rate limits and receipts make bulk theft costly and visible, but a legitimate high-volume customer can still train a copy of the model from its answers (distillation) while staying inside its permitted request rate.
+- **The GPU's report is checked by signature only when a device root is configured.** A device root is the vendor certificate that GPU signatures are checked against. `NvidiaGpuVerifier` verifies the device chain, the ECDSA P-384 report signature and the raw nonce at offset 4, and is validated on a live H100 capture and an H200. A gate built without `build_gpu_verifier` falls back to structural trust, and `gpu_report_verified` says so.
+- **Azure confidential VMs** use a different hardware check path, rooted in a virtual TPM chip (`AzureSnpVtpmProvider`), not `/dev/sev-guest`; `REPORT_DATA` is paravisor-bound there.
 
 # Roadmap
 
+What WCM can do now, what comes next, and what is further out, for anyone planning around it.
+
 The canonical roadmap is [`ROADMAP.md`](https://github.com/agentrust-io/weight-custody-manifest/blob/main/ROADMAP.md).
 
-- **Now** - pre-1.0 developer preview, with the full attestation matrix validated on real silicon: AMD SEV-SNP (Azure), Intel TDX (GCP) and NVIDIA H100 CC, each with a committed fixture that verifies offline.
-- **Next** - bare-metal `/dev/*-guest` provider validation, and vendor-format conformance vectors that carry real captured evidence.
-- **Later** - resolve or bound the §8 open questions (notably the key-extraction half of 8.8, which needs new silicon), the SCITT/CoSAI standards path, and additional language SDKs.
+- **Now** - pre-1.0 developer preview. Hardware checks have been tested on real chips for all three platforms: AMD SEV-SNP (Azure), Intel TDX (GCP) and NVIDIA H100 in confidential mode, each with a saved hardware report in the repository that verifies offline.
+- **Next** - testing on bare-metal machines rather than cloud VMs (`/dev/*-guest` providers), and portable test cases that carry real hardware reports in each vendor's own format.
+- **Later** - resolve or narrow the open questions in §8 (notably the key-extraction half of 8.8, which needs new chips), the SCITT/CoSAI standards path, and SDKs in more programming languages.
 
 Public release is a deliberate decision by the Project Lead; it is not gated on open question 8.8.
 
 # Governance
 
+Who makes decisions about WCM and how changes get accepted, for anyone thinking of contributing or depending on the project.
+
 The canonical governance doc is [`GOVERNANCE.md`](https://github.com/agentrust-io/weight-custody-manifest/blob/main/GOVERNANCE.md); maintainers are in [`MAINTAINERS.md`](https://github.com/agentrust-io/weight-custody-manifest/blob/main/MAINTAINERS.md).
 
-- **Roles**: Contributor → Reviewer → Maintainer → Project Lead (currently Imran Siddique). Contributions are DCO-signed.
-- **Decisions**: routine changes merge on one Maintainer approval; breaking spec or guarantee-scope changes need an issue, a comment period, and Project Lead sign-off. No change may strengthen a security claim beyond what the hardware and protocol deliver.
-- **Publication**: public release is a deliberate decision by the Project Lead. It is not gated on the key-extraction half of open question 8.8, which is documented as an honest residual rather than a release blocker.
-- **Family**: WCM is part of the agentrust-io family (TRACE, cMCP, Agent Manifest, cA2A) - open spec, independent implementations, shared conventions.
+- **Roles**: Contributor → Reviewer → Maintainer → Project Lead (currently Imran Siddique). Contributions are DCO-signed (each commit carries a sign-off line confirming you have the right to submit it).
+- **Decisions**: routine changes merge on one Maintainer approval. Changes that break the spec or alter what WCM promises need an issue, a comment period, and Project Lead sign-off. No change may strengthen a security claim beyond what the hardware and protocol deliver.
+- **Publication**: public release is a deliberate decision by the Project Lead. It does not wait on the key-extraction half of open question 8.8, which is written down as a known remaining risk rather than a reason to hold release.
+- **Family**: WCM is part of the AgenTrust family (TRACE, cMCP, Agent Manifest, cA2A): open specifications, separate implementations, shared conventions.
 - **Sponsors**: support is recognized separately from governance. Sponsorship does not confer ownership, decision rights, conformance preference, or an endorsement of a sponsor's implementation.
 
 See also the [Code of Conduct](https://github.com/agentrust-io/weight-custody-manifest/blob/main/CODE_OF_CONDUCT.md), [Antitrust Policy](https://github.com/agentrust-io/weight-custody-manifest/blob/main/ANTITRUST.md), and [Sponsors](https://github.com/agentrust-io/weight-custody-manifest/blob/main/SPONSORS.md).
 
 # Sponsors
 
+Who funds the work on WCM, and where to look if your organisation wants to support it.
+
 The canonical sponsor list and sponsorship policy are in [`SPONSORS.md`](https://github.com/agentrust-io/weight-custody-manifest/blob/main/SPONSORS.md).
 
-Weight Custody Manifest is sponsored by OPAQUE Systems, which funds the engineering, infrastructure and confidential-computing work behind it.
+Weight Custody Manifest is sponsored by OPAQUE Systems, which funds the engineering, infrastructure and confidential-computing work behind it. More sponsors are welcome; see [`SPONSORS.md`](https://github.com/agentrust-io/weight-custody-manifest/blob/main/SPONSORS.md) for how to take part.
 
 # Contributing
+
+How to send a change to WCM and what it needs to pass before it is merged.
 
 The canonical guide is [`CONTRIBUTING.md`](https://github.com/agentrust-io/weight-custody-manifest/blob/main/CONTRIBUTING.md). In short:
 
 - Sign commits with DCO (`git commit -s`).
-- `pytest -q`, `mypy --strict src/wcm`, and `bandit` must pass; coverage ≥ 80%.
-- Tests cover the happy path **and** the failure paths for anything security-relevant.
-- Breaking spec / guarantee-scope changes need an issue and a comment period first; open with the [spec change template](https://github.com/agentrust-io/weight-custody-manifest/issues/new?template=spec_change.md).
-- The non-negotiable: **do not overclaim.** No change may strengthen a security claim beyond what the hardware and protocol actually deliver.
+- The tests (`pytest -q`), the type checker (`mypy --strict src/wcm`) and the security linter (`bandit`) must pass, with test coverage of 80% or more.
+- Tests cover the normal case **and** the failure cases for anything that affects security.
+- Changes that break the spec or alter what WCM promises need an issue and a comment period first; open with the [spec change template](https://github.com/agentrust-io/weight-custody-manifest/issues/new?template=spec_change.md).
+- The one firm rule: **do not overclaim.** No change may strengthen a security claim beyond what the hardware and protocol actually deliver.
 
-Security issues go through [private disclosure](https://github.com/agentrust-io/weight-custody-manifest/security/advisories/new), not public issues - see [`SECURITY.md`](https://github.com/agentrust-io/weight-custody-manifest/blob/main/SECURITY.md).
+Security issues go through [private disclosure](https://github.com/agentrust-io/weight-custody-manifest/security/advisories/new), not public issues. See [`SECURITY.md`](https://github.com/agentrust-io/weight-custody-manifest/blob/main/SECURITY.md).
 
 # Changelog
+
+A short history of how the specification and the SDK got to where they are. For every release in detail, use the full changelog.
 
 The canonical changelog is [`CHANGELOG.md`](https://github.com/agentrust-io/weight-custody-manifest/blob/main/CHANGELOG.md).
 

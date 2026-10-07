@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="wcm.broker_server runs the native-SNP receiver lifecycle over HTTP.">
+        <meta name="description" content="A version of the key broker that starts with no model keys at all.">
       
       
       
@@ -65,7 +65,7 @@
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="AgenTrust">
   <meta property="og:title" content="Provisioned receiver service - Weight Custody Manifest">
-  <meta property="og:description" content="wcm.broker_server runs the native-SNP receiver lifecycle over HTTP.">
+  <meta property="og:description" content="A version of the key broker that starts with no model keys at all.">
   <meta property="og:url" content="https://wcm.agentrust-io.com/provisioned-broker-service/">
   <meta property="og:locale" content="en_US">
   <meta property="og:image" content="https://wcm.agentrust-io.com/assets/og.png">
@@ -75,7 +75,7 @@
 
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Provisioned receiver service - Weight Custody Manifest">
-  <meta name="twitter:description" content="wcm.broker_server runs the native-SNP receiver lifecycle over HTTP.">
+  <meta name="twitter:description" content="A version of the key broker that starts with no model keys at all.">
   <meta name="twitter:image" content="https://wcm.agentrust-io.com/assets/og.png">
 
   <script type="application/ld+json">
@@ -111,7 +111,7 @@
         "url": "https://wcm.agentrust-io.com/provisioned-broker-service/",
         "name": "Provisioned receiver service - Weight Custody Manifest",
         "headline": "Provisioned receiver service - Weight Custody Manifest",
-        "description": "wcm.broker_server runs the native-SNP receiver lifecycle over HTTP.",
+        "description": "A version of the key broker that starts with no model keys at all.",
         "inLanguage": "en",
         "isPartOf": { "@id": "https://wcm.agentrust-io.com/#website" },
         "publisher": { "@id": "https://agentrust-io.com/#organization" }
@@ -1673,6 +1673,13 @@
 
 
 <h1 id="provisioned-broker-receiver-service">Provisioned broker receiver service<a class="headerlink" href="#provisioned-broker-receiver-service" title="Permanent link">&para;</a></h1>
+<p>A version of the key broker that starts with no model keys at all. It receives a
+key only from the model owner, and only after proving with a fresh AMD hardware
+report which software it is running. This page is for engineers deploying it: it
+covers configuration, the web endpoints, and what the deployment itself must
+still protect.</p>
+<p>The <a href="../owner-provisioning-client/">owner-side provisioning client</a> is the other
+half: it runs on the owner's machine and sends the key.</p>
 <p><code>wcm.broker_server</code> runs the native-SNP receiver lifecycle over HTTP. It starts
 without model keys and accepts only an owner-authenticated sealed provisioning
 envelope. It uses the <code>server</code> package extra and does not read

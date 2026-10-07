@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="WCM's custody claim requires a release authority the model owner trusts.">
+        <meta name="description" content="This page is for anyone deciding where WCM's key service runs and who operates it.">
       
       
       
@@ -65,7 +65,7 @@
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="AgenTrust">
   <meta property="og:title" content="Key-release trust boundary - Weight Custody Manifest">
-  <meta property="og:description" content="WCM&#39;s custody claim requires a release authority the model owner trusts.">
+  <meta property="og:description" content="This page is for anyone deciding where WCM&#39;s key service runs and who operates it.">
   <meta property="og:url" content="https://wcm.agentrust-io.com/deployment-trust/">
   <meta property="og:locale" content="en_US">
   <meta property="og:image" content="https://wcm.agentrust-io.com/assets/og.png">
@@ -75,7 +75,7 @@
 
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Key-release trust boundary - Weight Custody Manifest">
-  <meta name="twitter:description" content="WCM&#39;s custody claim requires a release authority the model owner trusts.">
+  <meta name="twitter:description" content="This page is for anyone deciding where WCM&#39;s key service runs and who operates it.">
   <meta name="twitter:image" content="https://wcm.agentrust-io.com/assets/og.png">
 
   <script type="application/ld+json">
@@ -111,7 +111,7 @@
         "url": "https://wcm.agentrust-io.com/deployment-trust/",
         "name": "Key-release trust boundary - Weight Custody Manifest",
         "headline": "Key-release trust boundary - Weight Custody Manifest",
-        "description": "WCM\u0027s custody claim requires a release authority the model owner trusts.",
+        "description": "This page is for anyone deciding where WCM\u0027s key service runs and who operates it.",
         "inLanguage": "en",
         "isPartOf": { "@id": "https://wcm.agentrust-io.com/#website" },
         "publisher": { "@id": "https://agentrust-io.com/#organization" }
@@ -1761,6 +1761,13 @@
 
 
 <h1 id="who-controls-key-release">Who controls key release?<a class="headerlink" href="#who-controls-key-release" title="Permanent link">&para;</a></h1>
+<p>This page is for anyone deciding where WCM's key service runs and who operates
+it. WCM only protects a model owner when the party that controls key release is
+one the owner trusts. Use the table and the checklist below before handing over
+any model key.</p>
+<p>In plain terms: the hardware check proves which software is running. It cannot
+stop someone who holds the key service's own keys or can change its settings.
+So the first question is always who can do that.</p>
 <p>WCM's custody claim requires a release authority the model owner trusts. If the
 customer can read the model key or replace the verifier, trust roots, or accepted
 policy, workload attestation does not protect the owner from that customer.
@@ -1770,6 +1777,7 @@ boundary when that entity can override both teams.</p>
 Confidential Containers Trustee. WCM does not supply a Trustee integration or
 certify a Trustee deployment by checking a manifest.</p>
 <h2 id="deployment-configurations">Deployment configurations<a class="headerlink" href="#deployment-configurations" title="Permanent link">&para;</a></h2>
+<p>Who runs the workload and who controls key release decide what WCM can promise.</p>
 <table>
 <thead>
 <tr>
@@ -1801,6 +1809,7 @@ the customer can obtain a key or change an accepted release decision without
 the owner's authorization. An external KMS/HSM does not resolve this if it
 exports keys to customer administrators or blindly trusts their verifier.</p>
 <h2 id="deployment-review-checklist">Deployment review checklist<a class="headerlink" href="#deployment-review-checklist" title="Permanent link">&para;</a></h2>
+<p>Questions to answer, in writing, before any model key is handed over.</p>
 <p>Record the responsible principal, configuration, and verification evidence for
 each item before provisioning model keys:</p>
 <ul>
@@ -1826,6 +1835,8 @@ each item before provisioning model keys:</p>
 <p>An unanswered item is an unresolved deployment assumption. A completed checklist
 is a review record, not cryptographic evidence of administrative independence.</p>
 <h2 id="what-the-reference-server-actually-does">What the reference server actually does<a class="headerlink" href="#what-the-reference-server-actually-does" title="Permanent link">&para;</a></h2>
+<p>The example server in this repository is for trying the protocol. It trusts the
+administrator of the machine it runs on.</p>
 <p><code>server.build_kbs_from_env</code> reads plaintext keys from <code>WCM_KEYSTORE_FILE</code>, CPU
 trust from <code>WCM_CPU_TRUST_ROOT_FILE</code> (with the signed launch-measurement offset
 from <code>WCM_CPU_LAUNCH_MEASUREMENT_OFFSET</code>, required when the root is set), and
@@ -1842,6 +1853,9 @@ loading keys. <code>/health</code> reports availability, not custody assurance.<
 not a protected self-custody deployment. See the
 <a href="https://github.com/agentrust-io/weight-custody-manifest/blob/main/python/docs/threat-model-implementation-audit.md">implementation audit</a>.</p>
 <h2 id="work-required-for-customer-hosted-protected-release">Work required for customer-hosted protected release<a class="headerlink" href="#work-required-for-customer-hosted-protected-release" title="Permanent link">&para;</a></h2>
+<p>What would have to be built and shown before a customer could host the key
+service themselves without the owner having to trust them. Some pieces exist in
+the SDK, described in the subsections below; the full setup does not exist yet.</p>
 <p>Before claiming support, a deployment must demonstrate owner-authorized
 provisioning into a freshly attested KBS, with the provisioning channel bound to
 that KBS instance. Verification must cover the release code and security-relevant
@@ -1856,6 +1870,8 @@ not implement independent share custodians or their provisioning policies.</p>
 TEEs removes hardware trust. If the owner rejects the underlying TEE assumptions,
 attesting a second service does not resolve that objection.</p>
 <h3 id="owner-side-provisioning-reference-protocol">Owner-side provisioning reference protocol<a class="headerlink" href="#owner-side-provisioning-reference-protocol" title="Permanent link">&para;</a></h3>
+<p>In plain terms: the owner checks a broker's hardware report before sending it the
+model key, sealed so only that broker can open it.</p>
 <p><code>wcm.provisioning.OwnerProvisioner</code> now supplies a native-SNP protocol primitive
 for an owner-operated provisioning service. It does not alter the HTTP reference
 server's plaintext keystore loading or provide a protected broker image.</p>
@@ -1896,6 +1912,8 @@ certificate root to exercise image/configuration/root/key substitutions, stale
 epochs, replay, expiry and owner/envelope tampering. These tests establish
 protocol behavior under the stated assumptions, not live broker isolation.</p>
 <h3 id="receiver-boot-lifecycle">Receiver boot lifecycle<a class="headerlink" href="#receiver-boot-lifecycle" title="Permanent link">&para;</a></h3>
+<p>In plain terms: each broker starts empty, accepts exactly one key delivery from
+the owner, and can be permanently shut off.</p>
 <p><code>wcm.broker_receiver.BrokerEffectiveConfiguration</code> snapshots normalized DER CPU
 root/VCEK/intermediate certificates, an optional NVIDIA root, exact accepted
 manifest identities and the owner's Ed25519 public key. Its digest also commits
@@ -1941,6 +1959,8 @@ substitution/replay/retirement failures; no new hardware result is implied.
 Changes to fixed verifier semantics or defaults require a new configuration
 profile version and owner approval of the resulting digest.</p>
 <h3 id="optional-persistent-owner-epoch-guard">Optional persistent owner epoch guard<a class="headerlink" href="#optional-persistent-owner-epoch-guard" title="Permanent link">&para;</a></h3>
+<p>In plain terms: a small database on the owner's side that remembers the latest
+approved policy version, so an older one cannot be replayed.</p>
 <p>Pass <code>epoch_store=OwnerEpochStore(path, namespace)</code> from
 <code>wcm.provisioning_state</code> when constructing <code>OwnerProvisioner</code>. The SQLite store
 persists the current epoch and policy-context hash. It refuses older epochs and
@@ -1952,6 +1972,8 @@ a hostile disk or VM snapshot trustworthy. Provisioning epoch advances do not
 erase keys already provisioned to a broker or revoke their future use; retiring
 those brokers and enforcing workload key lifetimes are separate controls.</p>
 <h2 id="cpu-to-gpu-confidentiality-acceptance">CPU-to-GPU confidentiality acceptance<a class="headerlink" href="#cpu-to-gpu-confidentiality-acceptance" title="Permanent link">&para;</a></h2>
+<p>Checking the CPU and the GPU separately does not prove that model data travels
+safely between them. This section lists what must be shown before claiming it does.</p>
 <p>The reference HTTP server requires cryptographic GPU verification whenever GPU
 evidence is submitted, using <code>WCM_GPU_TRUST_ROOT_FILE</code>. This closes a structural
 evidence downgrade. In the library, a manifest requires cryptographic

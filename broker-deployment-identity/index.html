@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="This is the software contract and provisional SNP adapter specification for #144.">
+        <meta name="description" content="Before a model owner sends a key to a broker, the owner needs its own record of exactly which broker software and settings it approved, worked out from...">
       
       
       
@@ -65,7 +65,7 @@
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="AgenTrust">
   <meta property="og:title" content="Broker deployment identity - Weight Custody Manifest">
-  <meta property="og:description" content="This is the software contract and provisional SNP adapter specification for #144.">
+  <meta property="og:description" content="Before a model owner sends a key to a broker, the owner needs its own record of exactly which broker software and settings it approved, worked out from...">
   <meta property="og:url" content="https://wcm.agentrust-io.com/broker-deployment-identity/">
   <meta property="og:locale" content="en_US">
   <meta property="og:image" content="https://wcm.agentrust-io.com/assets/og.png">
@@ -75,7 +75,7 @@
 
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Broker deployment identity - Weight Custody Manifest">
-  <meta name="twitter:description" content="This is the software contract and provisional SNP adapter specification for #144.">
+  <meta name="twitter:description" content="Before a model owner sends a key to a broker, the owner needs its own record of exactly which broker software and settings it approved, worked out from...">
   <meta name="twitter:image" content="https://wcm.agentrust-io.com/assets/og.png">
 
   <script type="application/ld+json">
@@ -111,7 +111,7 @@
         "url": "https://wcm.agentrust-io.com/broker-deployment-identity/",
         "name": "Broker deployment identity - Weight Custody Manifest",
         "headline": "Broker deployment identity - Weight Custody Manifest",
-        "description": "This is the software contract and provisional SNP adapter specification for #144.",
+        "description": "Before a model owner sends a key to a broker, the owner needs its own record of exactly which broker software and settings it approved, worked out from...",
         "inLanguage": "en",
         "isPartOf": { "@id": "https://wcm.agentrust-io.com/#website" },
         "publisher": { "@id": "https://agentrust-io.com/#organization" }
@@ -1683,6 +1683,11 @@
 
 
 <h1 id="broker-deployment-identity-approval-contract">Broker deployment identity: approval contract<a class="headerlink" href="#broker-deployment-identity-approval-contract" title="Permanent link">&para;</a></h1>
+<p>Before a model owner sends a key to a broker, the owner needs its own record of
+exactly which broker software and settings it approved, worked out from the build
+inputs rather than taken from the broker's word. This page defines that approval
+record. It is for engineers preparing a broker for hardware testing; nothing here
+has been tested on real hardware yet.</p>
 <p>This is the software contract and provisional SNP adapter specification for
 <a href="https://github.com/agentrust-io/weight-custody-manifest/issues/144">#144</a>.
 It derives a deterministic owner-side approval record from local build inputs
