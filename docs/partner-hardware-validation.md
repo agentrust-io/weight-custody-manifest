@@ -1,5 +1,10 @@
 # Partner hardware validation: first execution packet
 
+A first, read-only checklist for a partner who runs an AMD SEV-SNP server and
+wants to help test WCM's broker on real hardware. It checks whether the machine
+can support the setup; it does not start a VM or prove anything about the broker.
+This page is for the partner's lab operator and the WCM engineer working with them.
+
 This packet starts the controlled-host work tracked in #149. It checks whether
 an operator can support the provisional Linux/QEMU native-SNP launch profile.
 It does not launch a VM or establish hardware-backed application identity.

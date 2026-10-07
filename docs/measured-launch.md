@@ -1,8 +1,18 @@
 # Measured launch and Azure PCR 23
 
-This page is for platform engineers implementing the Azure SNP/vTPM release
-path. It defines the measurement that the verifier checks; selecting a PCR in a
-signed quote is not enough on its own.
+On Azure, the hardware check for a confidential VM goes through a virtual TPM, a
+security chip emulated for each VM. This page defines exactly what fingerprint of
+the serving software that chip must record before WCM releases a key, so the key
+goes only to the approved software. It is written for platform engineers building
+the Azure release path; the summary below is enough for everyone else.
+
+In short: just before loading the model, the VM writes the approved software's
+fingerprint into one reserved slot of the TPM (PCR 23, a register that can only be
+added to, never set directly). The TPM then signs a report that includes that slot
+and the key service's fresh challenge. The key service works out what the slot
+should contain from the signed manifest and releases the key only if the signed
+report matches. Selecting a PCR in a signed report is not enough on its own; its
+value must match.
 
 ## Contract
 
@@ -16,7 +26,7 @@ WCM reserves application-controlled SHA-256 PCR 23 for one workload event:
 5. Quote SHA-256 PCR 23 together with the fresh KBS challenge and ephemeral
    transport-key binding.
 
-The reference Azure provider performs steps 1–4 with `tpm2_pcrreset 23` followed
+The reference Azure provider performs steps 1 to 4 with `tpm2_pcrreset 23` followed
 by `tpm2_pcrextend 23:sha256=<serving-image-digest>`, then immediately requests
 the AK-signed quote. Missing tools, an invalid measurement, or either TPM command
 failing aborts evidence production; the provider never falls back to quoting an
@@ -42,6 +52,7 @@ independently calculated value.
 
 ## Fail-closed cases
 
+"Fail closed" means that when anything is missing or wrong, the answer is no.
 Release is denied when PCR 23 is absent, uses a non-SHA-256 bank, has a malformed
 digest, represents a different PCR state, or the KBS has no approved workload
 measurement. A valid AK signature, fresh nonce, and correct transport key do not
@@ -49,6 +60,7 @@ override a PCR mismatch.
 
 ## Reproducible Azure validation
 
+This has been tested both in software and on a real Azure confidential VM.
 The repository's isolated tests build a sanitized quote and cover valid launch,
 wrong PCR digest, wrong policy measurement, malformed digest, and missing PCR.
 The procedure was also exercised on an Azure `Standard_DC2as_v5` confidential
@@ -63,7 +75,7 @@ identifiers, hostnames, IPs, customer names, or event-specific material.
 
 ## What this proves
 
-It proves that the authenticated AK signed the expected PCR state for this fresh
-release attempt. It does not prove immunity to physical extraction, forged
+It proves that the authenticated AK (the TPM's own signing key) signed the
+expected PCR state for this fresh release attempt. It does not prove immunity to physical extraction, forged
 attestation after hardware-key compromise, or memory-bus attacks. See the
 [threat model](threat-model.md).

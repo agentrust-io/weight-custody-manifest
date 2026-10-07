@@ -1,6 +1,11 @@
 # Schema and conformance
 
-Two machine-readable artifacts sit alongside the specification text, so an
+For anyone building their own WCM implementation, or checking one. The schema is
+a machine-readable description of a valid manifest, and the conformance suite is
+a set of test cases that shows whether an implementation behaves as the
+specification says.
+
+These two machine-readable files sit alongside the specification text, so an
 independent implementation has something to build and check against rather than
 prose to interpret.
 
@@ -10,7 +15,8 @@ prose to interpret.
 is the normative machine-readable form of `SPEC.md` §3.1. JSON Schema 2020-12,
 identified by `https://wcm.agentrust-io.com/schema/manifest/v1.json`.
 
-It is **frozen at v1 and additive-only**. Fields and permitted enum values may be
+It is **frozen at v1 and additive-only**: new things can be added, nothing
+existing changes. Fields and permitted enum values may be
 added; nothing is removed, renamed, made required, narrowed, or repurposed. A
 breaking change would publish `.../manifest/v2.json` alongside rather than edit
 v1. The specification itself is still pre-1.0, so this is a deliberate trade:
@@ -41,11 +47,11 @@ defined, matching the four protocol layers:
 | Level | Title | Vectors | Shape |
 | --- | --- | --- | --- |
 | L1 | Manifest and joint signature | 32 | documents |
-| L2 | Attestation-gated release | 41 | scenarios and vendor evidence |
+| L2 | Attestation-gated release | 43 | scenarios and vendor evidence |
 | L3 | Runtime custody | 12 | scenarios |
 | L4 | Derivative lineage | 10 | documents |
 
-95 vectors. All four levels are vectored and every reportable error code is
+97 vectors. All four levels are vectored and every reportable error code is
 exercised by at least one vector, which a test enforces. L1 and L4 ask a question
 about a document. Most L2 vectors and every L3 vector ask what a system does over
 *time*, so they are ordered scenarios with an injected clock and named nonces; L2
@@ -61,7 +67,8 @@ leaving a green result to be over-read:
 - **GPU-side cryptographic verification is not vectored.** The quote vectors cover
   the CPU quote; the NVIDIA device chain is covered by the SDK's H100 fixture.
 
-Running it:
+Running it (the first command tests this SDK itself; the last one scores another
+implementation's results):
 
 ```sh
 pip install weight-custody-manifest

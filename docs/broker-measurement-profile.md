@@ -1,5 +1,12 @@
 # Provisional SNP measurement profile
 
+AMD SEV-SNP hardware reports a fingerprint (a measurement) of what a protected
+VM booted. This page explains how the owner can predict that fingerprint offline
+from the exact firmware, kernel and boot files, and records a review of the
+firmware source showing what that fingerprint does and does not cover. It is for
+engineers preparing hardware tests; no real hardware report has matched a
+prediction yet.
+
 The offline predictor derives a candidate digest from owner-selected bytes.
 It does not approve firmware, authenticate a report or establish application
 identity. No matching genuine SNP report has been validated for this profile.

@@ -1,5 +1,8 @@
 # Changelog
 
+A short history of how the specification and the SDK got to where they are. For
+every release in detail, use the full changelog.
+
 The canonical changelog is [`CHANGELOG.md`](https://github.com/agentrust-io/weight-custody-manifest/blob/main/CHANGELOG.md).
 
 Highlights of the arc so far:

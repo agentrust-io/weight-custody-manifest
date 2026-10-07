@@ -1,5 +1,11 @@
 # Provisional broker boot builder and loader
 
+How to build the small boot image that starts the broker inside a protected AMD
+virtual machine, and the fixed loader that hands control to it. Building it the
+same way every time means the owner can predict its fingerprint in advance. This
+page is for engineers building and testing that image; it is provisional and has
+not yet been checked on real protected hardware.
+
 This software slice of [#144](https://github.com/agentrust-io/weight-custody-manifest/issues/144)
 adds deterministic initramfs assembly and a fixed Linux x86-64 loader. It is
 **provisional**: software boot tests do not establish SNP launch coverage or

@@ -1,5 +1,11 @@
 # Owner-side provisioning client
 
+The model owner's side of key delivery. It is a command the owner runs on their
+own trusted machine: it checks the broker's fresh hardware report, and only if
+that passes does it send the model key, sealed so only that broker can open it
+and signed so the broker knows it came from the owner. This page is for the
+engineer who runs it on the owner's behalf.
+
 The owner client authenticates a fresh native-SNP broker report before sending
 an owner-signed, sealed model-key envelope. The model key and signing private key
 stay on the owner host; neither is sent as a plaintext HTTP field. The receiver

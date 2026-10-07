@@ -1,6 +1,13 @@
 # Getting started
 
-The reference SDK lives in [`python/`](https://github.com/agentrust-io/weight-custody-manifest/tree/main/python). It implements the full protocol on software / synthetic test doubles, with AMD SEV-SNP quote verification validated against real hardware.
+This page is for developers who want to try WCM in code. In about ten minutes you
+install the Python SDK, sign a manifest, check it, and run a simulated key
+release on your own computer.
+
+The reference SDK lives in [`python/`](https://github.com/agentrust-io/weight-custody-manifest/tree/main/python).
+It runs the whole protocol using software stand-ins for the hardware, so no
+special machine is needed. Its check of AMD SEV-SNP hardware reports has also been
+tested against real hardware.
 
 ## Install
 
@@ -12,6 +19,10 @@ pip install --no-deps -e .
 ```
 
 ## Build, sign, verify a manifest
+
+A manifest is a short signed document that names the model files and the rules
+for releasing their key. Two parties sign it: the builder (who made the model)
+and the custodian (who runs the key service).
 
 ```python
 from wcm import (
@@ -42,6 +53,10 @@ A manifest is valid only when **both** the builder and custodian have signed
 
 ## Gate a key release
 
+The key broker service (KBS) holds the decryption key. It sends a one-time
+challenge, checks the evidence that comes back, and releases the key only if
+everything matches the manifest.
+
 ```python
 from wcm import KeyBrokerService, SoftwareProvider, manifest_identity
 
@@ -59,11 +74,14 @@ decision = kbs.verify_and_release(manifest, evidence)
 print(decision.released)   # True on a passing gate
 ```
 
-`SoftwareProvider` is a mock with no hardware root of trust. For real evidence
-see `snp.py` (AMD SEV-SNP, hardware-validated) and the provider auto-selection in
+`SoftwareProvider` is a stand-in that produces fake evidence with no real
+hardware behind it, so this example proves nothing about hardware. For real
+evidence see `snp.py` (AMD SEV-SNP, hardware-validated) and the provider auto-selection in
 `_hw_providers.py`.
 
 ## CLI
+
+The same steps from the command line: make keys for both parties, sign, verify.
 
 ```bash
 # 1. keys for the two required parties (writes builder + builder.pub, etc.)

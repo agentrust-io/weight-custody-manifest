@@ -4,6 +4,8 @@ Community updates and contributor highlights: [AgenTrust on LinkedIn](https://ww
 
 An open specification for protecting model weights when a builder deploys them into a customer's own or sovereign infrastructure.
 
+In plain terms: when a company hands its AI model to a customer to run on the customer's own machines, WCM keeps the model files encrypted and releases the key that decrypts them only to a program that passes a hardware check (attestation) proving it is the approved one. The key is erased when that approval lapses. New to these terms? See [the terms, in plain English](https://agentrust-io.com/#plain-terms). The docs site is [wcm.agentrust-io.com](https://wcm.agentrust-io.com).
+
 > **Status: pre-1.0 public review release.** The protocol and SDK are ready for independent review and interoperability work; production deployments still require the limits in `LIMITATIONS.md` and `THREAT-MODEL.md` to be accepted.
 > This is an open protocol specification under active design, published for review and comment. Several load-bearing questions are still open (see `SPEC.md` section 8), including a known limitation of confidential-computing hardware against an operator who physically owns the machine. Do not rely on it for production.
 
@@ -15,8 +17,8 @@ WCM answers one question:
 > keep that approval short-lived, and retain evidence of what happened?**
 
 The answer is **yes for the reference protocol and software checks**, with an
-important boundary: hardware owners remain outside the cryptographic guarantee.
-WCM makes that limitation visible instead of turning it into a marketing claim.
+important boundary: someone who physically owns the hardware is outside the
+cryptographic guarantee. WCM states that limit openly.
 
 Choose the path that matches what you need:
 
@@ -32,8 +34,9 @@ Choose the path that matches what you need:
 
 ### The protocol in six steps
 
-This flow assumes a release authority the builder trusts. A customer who can
-read broker keys or replace its verifier and policy can bypass it. The
+This flow assumes the builder trusts whoever controls key release. A customer who
+can read the key broker's keys, or swap out its checking code and policy, can go
+around it. The
 reference server does not implement protected KBS provisioning; see the
 [deployment trust checklist](docs/deployment-trust.md) and SPEC section 3.5.
 
@@ -41,8 +44,9 @@ reference server does not implement protected KBS provisioning; see the
    weight and approved-workload measurements.
 2. A protected workload asks the key broker (KBS) for a fresh, single-use
    challenge.
-3. CPU—and, when required, GPU—attestation binds that challenge, the workload
-   measurement, and an ephemeral transport key to the current launch.
+3. The CPU (and, when required, the GPU) signs a hardware report that ties that
+   challenge, the workload's software fingerprint (measurement), and a one-time
+   transport key to the current launch.
 4. The KBS independently checks the manifest policy, certificate chain,
    signatures, revocation state, measurements, freshness, and channel binding.
 5. Only if every required check passes, the KBS seals the model key to the
@@ -114,7 +118,7 @@ Frontier labs grade weight protection in RAND's *Securing AI Model Weights* (RRA
 
 Stated the way a lab grades it:
 
-> **WCM is the RAND-recommended confidential-computing measure; it holds against the OC1–OC3 range and, by its own concession (`SPEC.md` §3.6), not against an OC4–OC5 actor who owns the hardware.**
+> **WCM is the RAND-recommended confidential-computing measure; it holds against the OC1 to OC3 range and, by its own concession (`SPEC.md` §3.6), not against an OC4 to OC5 actor who owns the hardware.**
 
 Not faithful: *"WCM is SL3."* A security level is a whole-system posture (weight storage, physical, network, personnel, supply chain, incident response, …), so assigning one to a single control misuses the unit and reads as not knowing the framework. Place WCM by **OC tier** and by **measure** - the language a lab already grades in, used the way they use it.
 
@@ -129,7 +133,7 @@ This repository is the **open protocol layer**: the specification, the threat mo
 - `SPEC.md` - the specification: manifest schema, attestation-gated release, runtime custody, derivative lineage, guarantee scope, and open questions.
 - `THREAT-MODEL.md` - assets, trusted computing base, adversaries, threats, and residual risks.
 - `schema/` - the normative manifest JSON Schema, **frozen at v1** and additive-only. The machine-readable form of `SPEC.md` §3.1; see `schema/README.md` for the versioning policy and the one constraint JSON Schema cannot express.
-- `conformance/` - language-neutral test vectors and a scoring contract, run by `wcm conformance`. All four levels are vectored (95 vectors) and every reportable error code is exercised; L1 and L4 use documents, L2 uses scenarios plus a genuine AMD SEV-SNP vendor vector, and L3 uses time-ordered scenarios. The runner prints the remaining Intel and GPU coverage limits on every run, so a pass is not read as more than it is. See `conformance/README.md`.
+- `conformance/` - language-neutral test vectors and a scoring contract, run by `wcm conformance`. All four levels are vectored (97 vectors) and every reportable error code is exercised; L1 and L4 use documents, L2 uses scenarios plus a genuine AMD SEV-SNP vendor vector, and L3 uses time-ordered scenarios. The runner prints the remaining Intel and GPU coverage limits on every run, so a pass is not read as more than it is. See `conformance/README.md`.
 - `python/` - the Python reference SDK (build, sign, verify; the KBS gate and reference server; quote verification; transparency log; threshold; PQ profile). See `python/README.md`.
 - `docs/` - documentation site sources (published to wcm.agentrust-io.com).
 - `docs/oms-interoperability.md` - how WCM composes with OpenSSF Model Signing:
