@@ -13,7 +13,7 @@ gets scored.
 | Level | Title | Vectors | Shape |
 | --- | --- | --- | --- |
 | L1 | Manifest and joint signature | **32** | documents |
-| L2 | Attestation-gated release | **41** | scenarios and vendor evidence |
+| L2 | Attestation-gated release | **43** | scenarios and vendor evidence |
 | L3 | Runtime custody | **12** | scenarios |
 | L4 | Derivative lineage | **10** | documents |
 
