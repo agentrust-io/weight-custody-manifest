@@ -4,7 +4,7 @@
 
 Published for review and comment, **not for production**. Publication of the open spec and SDK is **not** gated on the key-extraction half of open question 8.8 (§3.6): that residual is disclosed and scoped out of the operator-trust model rather than treated as a reason to withhold the document.
 
-- **Specification** (`SPEC.md` v0.15): four layers (manifest, attestation-gated release, runtime custody, derivative lineage), transparency log, guarantee-scope honesty (§3.6), a model-signing provenance interop (§3.9), and the open questions in §8.
+- **Specification** (`SPEC.md` v0.16): four layers (manifest, attestation-gated release, runtime custody, derivative lineage), transparency log, guarantee-scope honesty (§3.6), a model-signing provenance interop (§3.9), and the open questions in §8.
 - **Manifest JSON Schema** (`schema/`), the machine-readable form of §3.1, **frozen at v1** and additive-only. One constraint (`derived_from` != `weights_hash`) is not expressible in JSON Schema and stays verifier-side, documented rather than glossed.
 - **Conformance suite** (`conformance/`): 95 language-neutral vectors plus a scoring contract, run by `wcm conformance`. **All four levels are vectored and every reportable error code is exercised** - L1 and L4 over documents, L2 over release scenarios plus genuine AMD SEV-SNP evidence, and L3 over runtime-custody scenarios. The runner prints its remaining limits on every run.
 - **Threat model** (`THREAT-MODEL.md`): assets, TCB, adversaries, threats, residual risk.
