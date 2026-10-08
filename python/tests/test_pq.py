@@ -112,7 +112,7 @@ def test_manifest_ml_dsa65_profile(example_manifest):
     signed = example_manifest.with_signatures(
         [
             MlDsa65Signer(b).sign(example_manifest.unsigned_dict(), role="builder", signer="example-builder"),
-            MlDsa65Signer(c).sign(example_manifest.unsigned_dict(), role="custodian", signer="opaque-systems"),
+            MlDsa65Signer(c).sign(example_manifest.unsigned_dict(), role="custodian", signer="example-custodian"),
         ]
     )
     ctx = VerificationContext()
@@ -126,7 +126,7 @@ def test_manifest_hybrid_profile(example_manifest):
     signed = example_manifest.with_signatures(
         [
             HybridSigner(b).sign(example_manifest.unsigned_dict(), role="builder", signer="example-builder"),
-            HybridSigner(c).sign(example_manifest.unsigned_dict(), role="custodian", signer="opaque-systems"),
+            HybridSigner(c).sign(example_manifest.unsigned_dict(), role="custodian", signer="example-custodian"),
         ]
     )
     ctx = VerificationContext()
@@ -143,7 +143,7 @@ def test_manifest_mixed_profiles(example_manifest):
     signed = example_manifest.with_signatures(
         [
             Ed25519Signer(b).sign(example_manifest.unsigned_dict(), role="builder", signer="example-builder"),
-            MlDsa65Signer(c).sign(example_manifest.unsigned_dict(), role="custodian", signer="opaque-systems"),
+            MlDsa65Signer(c).sign(example_manifest.unsigned_dict(), role="custodian", signer="example-custodian"),
         ]
     )
     ctx = VerificationContext()
@@ -173,7 +173,7 @@ def test_algorithm_mismatch_rejected(example_manifest):
     signed = example_manifest.with_signatures(
         [
             builder_block,
-            Ed25519Signer(c).sign(example_manifest.unsigned_dict(), role="custodian", signer="opaque-systems"),
+            Ed25519Signer(c).sign(example_manifest.unsigned_dict(), role="custodian", signer="example-custodian"),
         ]
     )
     result = verify_manifest(signed, ctx)
@@ -189,7 +189,7 @@ def test_hybrid_missing_component_rejected(example_manifest):
     signed = example_manifest.with_signatures(
         [
             block,
-            HybridSigner(c).sign(example_manifest.unsigned_dict(), role="custodian", signer="opaque-systems"),
+            HybridSigner(c).sign(example_manifest.unsigned_dict(), role="custodian", signer="example-custodian"),
         ]
     )
     ctx = VerificationContext()

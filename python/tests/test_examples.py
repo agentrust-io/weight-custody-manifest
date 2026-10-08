@@ -22,7 +22,7 @@ def test_example_signs_and_verifies(example_manifest):
                 example_manifest.unsigned_dict(), role="builder", signer="example-builder"
             ),
             Ed25519Signer(custodian).sign(
-                example_manifest.unsigned_dict(), role="custodian", signer="opaque-systems"
+                example_manifest.unsigned_dict(), role="custodian", signer="example-custodian"
             ),
         ]
     )

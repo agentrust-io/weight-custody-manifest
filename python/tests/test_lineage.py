@@ -124,7 +124,7 @@ def test_derived_from_is_signed(example_dict):
     signed = child.with_signatures(
         [
             Ed25519Signer(builder).sign(child.unsigned_dict(), role="builder", signer="example-builder"),
-            Ed25519Signer(custodian).sign(child.unsigned_dict(), role="custodian", signer="opaque-systems"),
+            Ed25519Signer(custodian).sign(child.unsigned_dict(), role="custodian", signer="example-custodian"),
         ]
     )
     ctx = VerificationContext()
