@@ -13,6 +13,14 @@ missing or is not JSON, or a `--root` file that is missing, is now reported as
 `error: <path>: <reason>` with exit 1, like the manifest and key files since
 0.30.0.
 
+**Changed.** SPEC.md, THREAT-MODEL.md and LIMITATIONS.md describe the custodian
+by role (operator-hosted or customer self-custody) instead of naming a vendor,
+and threat ADV-3 is now a malicious custodian insider. The spec example and
+`python/examples/manifest.example.json` use `example-attested-enclave`,
+`example-custodian` and `did:example:enclave-04`. The `opaque-hosted` and
+`builder-and-opaque-joint` enum values are unchanged, because the v1 schema is
+frozen and signed conformance vectors carry them.
+
 ## 0.30.0 - 2026-10-01
 
 **Fixed.** The CLI reports missing manifest or key files and malformed manifest
