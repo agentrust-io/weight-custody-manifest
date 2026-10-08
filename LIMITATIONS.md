@@ -17,7 +17,7 @@ its mounted key file and trust configuration remain under host control. See the
 
 ## The load-bearing one: no custody against a hardware owner
 
-WCM protects a builder's weights when they run in a customer's own or sovereign infrastructure. Against a **software** adversary (host OS, hypervisor without ciphertext side channels, remote attacker, an Opaque insider) it is **cryptographic-custody-grade**. Against an operator who **physically owns the hardware** it is **not** custody-grade:
+WCM protects a builder's weights when they run in a customer's own or sovereign infrastructure. Against a **software** adversary (host OS, hypervisor without ciphertext side channels, remote attacker, a custodian insider) it is **cryptographic-custody-grade**. Against an operator who **physically owns the hardware** it is **not** custody-grade:
 
 - Cheap published memory-bus attacks - TEE.fail (sub-$1000 DDR5 interposer) and BadRAM (~$10 + SPD access) - extract the decryption key from live CVM memory and, on some platforms, forge attestation quotes that pass verification at the highest trust level. The root cause is structural (deterministic unauthenticated full-DRAM encryption) and is not fixable without new silicon.
 - NVIDIA CC protects GPU-resident weights by access-control firewalling, **not** HBM encryption; weights are plaintext in HBM during compute, and NVIDIA scopes sophisticated physical attacks out.

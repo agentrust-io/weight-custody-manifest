@@ -214,7 +214,7 @@ wcm keygen --out custodian
 wcm sign examples/manifest.example.json \
   --role builder    --signer example-builder --key-file builder    --out signed.json
 wcm sign signed.json \
-  --role custodian  --signer opaque-systems  --key-file custodian  --out signed.json
+  --role custodian  --signer example-custodian  --key-file custodian  --out signed.json
 
 # 3. verify against the two trusted public keys
 wcm verify signed.json --key-file builder.pub --key-file custodian.pub
@@ -241,7 +241,7 @@ manifest = WeightCustodyManifest.model_validate(
 builder, custodian = generate_ed25519(), generate_ed25519()
 sigs = [
     Ed25519Signer(builder).sign(manifest.unsigned_dict(), role="builder", signer="example-builder"),
-    Ed25519Signer(custodian).sign(manifest.unsigned_dict(), role="custodian", signer="opaque-systems"),
+    Ed25519Signer(custodian).sign(manifest.unsigned_dict(), role="custodian", signer="example-custodian"),
 ]
 manifest = manifest.with_signatures(sigs)
 

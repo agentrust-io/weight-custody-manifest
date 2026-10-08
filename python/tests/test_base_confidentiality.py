@@ -130,7 +130,7 @@ def test_byom_symmetric_note_warns_on_differing_identities(example_dict):
     doc = copy.deepcopy(example_dict)
     doc["deployment_model"] = "byom-symmetric"
     doc["custody"]["custodian_type"] = "customer-self-custody"
-    # builder 'example-builder' vs custodian 'opaque-systems' differ
+    # builder 'example-builder' vs custodian 'example-custodian' differ
     m, ctx = _signed(doc)
     assert any("confirm both belong to the same governing org" in n
                for n in verify_manifest(m, ctx).notes)

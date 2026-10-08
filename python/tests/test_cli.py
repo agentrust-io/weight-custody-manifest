@@ -46,7 +46,7 @@ def test_sign_then_verify_roundtrip(tmp_path: Path, capsys):
     )
     assert (
         main(
-            ["sign", str(signed), "--role", "custodian", "--signer", "opaque-systems",
+            ["sign", str(signed), "--role", "custodian", "--signer", "example-custodian",
              "--key-file", c_priv, "--out", str(signed)]
         )
         == 0

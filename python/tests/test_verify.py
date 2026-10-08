@@ -18,7 +18,7 @@ def test_joint_signature_verifies(example_manifest):
     signed = example_manifest.with_signatures(
         [
             _sign(example_manifest, builder, "builder", "example-builder"),
-            _sign(example_manifest, custodian, "custodian", "opaque-systems"),
+            _sign(example_manifest, custodian, "custodian", "example-custodian"),
         ]
     )
     ctx = VerificationContext()
@@ -49,7 +49,7 @@ def test_untrusted_key_fails(example_manifest):
     signed = example_manifest.with_signatures(
         [
             _sign(example_manifest, builder, "builder", "example-builder"),
-            _sign(example_manifest, custodian, "custodian", "opaque-systems"),
+            _sign(example_manifest, custodian, "custodian", "example-custodian"),
         ]
     )
     ctx = VerificationContext()
@@ -67,7 +67,7 @@ def test_tampered_manifest_fails(example_manifest):
     signed = example_manifest.with_signatures(
         [
             _sign(example_manifest, builder, "builder", "example-builder"),
-            _sign(example_manifest, custodian, "custodian", "opaque-systems"),
+            _sign(example_manifest, custodian, "custodian", "example-custodian"),
         ]
     )
     # Tamper after signing: bump the attestation cadence.
@@ -104,7 +104,7 @@ def test_sovereign_requires_declared_signer(example_dict):
     wrong = manifest.with_signatures(
         [
             _sign(manifest, builder, "builder", "example-builder"),
-            _sign(manifest, custodian, "custodian", "opaque-systems"),
+            _sign(manifest, custodian, "custodian", "example-custodian"),
             _sign(manifest, sovereign, "sovereign", "not-sov-team"),
         ]
     )
@@ -114,7 +114,7 @@ def test_sovereign_requires_declared_signer(example_dict):
     right = manifest.with_signatures(
         [
             _sign(manifest, builder, "builder", "example-builder"),
-            _sign(manifest, custodian, "custodian", "opaque-systems"),
+            _sign(manifest, custodian, "custodian", "example-custodian"),
             _sign(manifest, sovereign, "sovereign", "sov-team"),
         ]
     )
@@ -134,7 +134,7 @@ def test_one_key_cannot_sign_as_both_builder_and_custodian(example_manifest):
     ctx.add_key(custodian.public_bytes)
     block = _sign(example_manifest, builder, "builder", "example-builder")
     forged = example_manifest.with_signatures(
-        [block, _relabel(block, "custodian", "opaque-systems")]
+        [block, _relabel(block, "custodian", "example-custodian")]
     )
 
     result = verify_manifest(forged, ctx)
@@ -156,7 +156,7 @@ def test_builder_key_cannot_stand_in_for_the_sovereign(example_dict):
         ctx.add_key(kp.public_bytes)
     b = _sign(manifest, builder, "builder", "example-builder")
     forged = manifest.with_signatures(
-        [b, _sign(manifest, custodian, "custodian", "opaque-systems"),
+        [b, _sign(manifest, custodian, "custodian", "example-custodian"),
          _relabel(b, "sovereign", "sov-team")]
     )
 
