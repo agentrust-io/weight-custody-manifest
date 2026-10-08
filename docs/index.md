@@ -22,7 +22,7 @@ run today ([the terms, in plain English](https://agentrust-io.com/#plain-terms))
 
 !!! tip "TL;DR"
     The reference SDK ([weight-custody-manifest](https://pypi.org/project/weight-custody-manifest/)
-    0.30.0, Apache-2.0) runs its test cases on an ordinary laptop with no GPU or
+    0.31.0, Apache-2.0) runs its test cases on an ordinary laptop with no GPU or
     cloud account, and checks hardware reports captured on real AMD SEV-SNP, Intel
     TDX and NVIDIA H100 machines. Against someone who physically owns the machine,
     WCM gives you a record and a way to hold them to account, not cryptographic
@@ -208,7 +208,7 @@ reference key-release service are free to use under Apache-2.0. Vendors may buil
 compatible hosted services and protected-runtime products. Public availability
 does not establish production readiness.
 
-**Status:** pre-1.0 · SDK 0.30.0 · Apache-2.0 · SCITT and CoSAI standards path on
+**Status:** pre-1.0 · SDK 0.31.0 · Apache-2.0 · SCITT and CoSAI standards path on
 the [roadmap](roadmap.md) · Sponsored by OPAQUE, which funds the engineering,
 infrastructure and confidential-computing work behind these projects. More
 sponsors are welcome.
