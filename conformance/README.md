@@ -12,12 +12,12 @@ gets scored.
 
 | Level | Title | Vectors | Shape |
 | --- | --- | --- | --- |
-| L1 | Manifest and joint signature | **32** | documents |
+| L1 | Manifest and joint signature | **38** | documents |
 | L2 | Attestation-gated release | **43** | scenarios and vendor evidence |
 | L3 | Runtime custody | **12** | scenarios |
 | L4 | Derivative lineage | **10** | documents |
 
-97 vectors. All four levels are vectored and **every reportable error code is
+103 vectors. All four levels are vectored and **every reportable error code is
 exercised by at least one vector**, which a test enforces. L1 and L4 ask a question
 about a document. Most L2 vectors and every L3 vector ask what a system does over
 *time*, so they are ordered scenarios; L2 also carries vendor evidence (see
@@ -75,6 +75,23 @@ Verifying the joint signature means all of:
    will accept a self-derived manifest and fail `reject-self-derivation`. That is
    deliberate: it makes the lineage walk in §3.4 non-terminating, so the check is
    load-bearing rather than cosmetic. See [`schema/README.md`](../schema/README.md).
+
+**Deprecated enum spellings are valid and mean the same thing.** Since 0.31.0,
+`revocation_authority: builder-and-opaque-joint` is a deprecated alias of
+`builder-and-custodian-joint`, and `custodian_type: opaque-hosted` of
+`custodian-hosted`. Accept both spellings, give them the same policy outcome,
+and never rewrite one into the other before computing the pre-image, because
+the signatures cover what the signer wrote. `accept-deprecated-enum-aliases`
+checks acceptance; each cross-field reject vector has a twin in the other
+spelling (`reject-byom-symmetric-hosted-custodian` and
+`reject-byom-symmetric-custodian-hosted`,
+`reject-sovereign-enabled-non-quorum-profile` and
+`reject-sovereign-enabled-joint-profile`,
+`reject-sovereign-enabled-non-quorum-release-policy` and
+`reject-sovereign-enabled-joint-release-policy`); and
+`accept-joint-builder-custodian` (old spelling) and
+`accept-joint-builder-custodian-current-values` (new) check that a signature over
+either verifies.
 
 ### L2 - Attestation-gated release
 

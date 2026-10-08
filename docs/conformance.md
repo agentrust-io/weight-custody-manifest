@@ -46,12 +46,12 @@ defined, matching the four protocol layers:
 
 | Level | Title | Vectors | Shape |
 | --- | --- | --- | --- |
-| L1 | Manifest and joint signature | 32 | documents |
+| L1 | Manifest and joint signature | 38 | documents |
 | L2 | Attestation-gated release | 43 | scenarios and vendor evidence |
 | L3 | Runtime custody | 12 | scenarios |
 | L4 | Derivative lineage | 10 | documents |
 
-97 vectors. All four levels are vectored and every reportable error code is
+103 vectors. All four levels are vectored and every reportable error code is
 exercised by at least one vector, which a test enforces. L1 and L4 ask a question
 about a document. Most L2 vectors and every L3 vector ask what a system does over
 *time*, so they are ordered scenarios with an injected clock and named nonces; L2
