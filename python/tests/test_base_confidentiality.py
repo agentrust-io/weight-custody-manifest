@@ -65,7 +65,7 @@ def test_tampering_with_base_confidentiality_breaks_the_signature(example_dict):
 
 def test_byom_symmetric_requires_self_custody(example_dict):
     doc = copy.deepcopy(example_dict)
-    doc["deployment_model"] = "byom-symmetric"  # custody is opaque-hosted in the example
+    doc["deployment_model"] = "byom-symmetric"  # custody is custodian-hosted in the example
     with pytest.raises(ValidationError, match="customer-self-custody"):
         WeightCustodyManifest.model_validate(doc)
 

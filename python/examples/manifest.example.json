@@ -45,7 +45,7 @@
     "key_release_mode": "attestation-gated",
     "replay_protection": "kbs-nonce-required",
     "attestation_revocation_check": "live-per-release, max-cache-age: short-window",
-    "revocation_authority": "builder-and-opaque-joint",
+    "revocation_authority": "builder-and-custodian-joint",
     "sovereign_profile": {
       "enabled": false,
       "revocation_authority": "quorum",
@@ -55,7 +55,7 @@
   },
   "custody": {
     "custodian": "example-custodian",
-    "custodian_type": "opaque-hosted",
+    "custodian_type": "custodian-hosted",
     "kbs_image": {
       "measurement": "sha256:abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234",
       "signer": "ed25519:custodian-key-placeholder",

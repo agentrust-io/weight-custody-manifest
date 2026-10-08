@@ -59,7 +59,7 @@ def test_sovereign_enabled_requires_signer(example_dict):
 def test_sovereign_enabled_requires_quorum_revocation(example_dict):
     example_dict["release_policy"]["sovereign_profile"]["enabled"] = True
     example_dict["release_policy"]["sovereign_profile"]["sovereign_signer"] = "sov-team"
-    example_dict["release_policy"]["revocation_authority"] = "builder-and-opaque-joint"
+    example_dict["release_policy"]["revocation_authority"] = "builder-and-custodian-joint"
     with pytest.raises(ValidationError):
         WeightCustodyManifest.model_validate(example_dict)
 

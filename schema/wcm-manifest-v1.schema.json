@@ -256,9 +256,11 @@
       "type": "object"
     },
     "CustodianType": {
+      "description": "Who operates the key release service (SPEC.md section 3.1).\n\n'opaque-hosted' is a deprecated alias of 'custodian-hosted' and means the\nsame thing. It stays valid in v1 so manifests signed with it keep\nverifying; new manifests use 'custodian-hosted'.",
       "enum": [
-        "opaque-hosted",
-        "customer-self-custody"
+        "custodian-hosted",
+        "customer-self-custody",
+        "opaque-hosted"
       ],
       "title": "CustodianType",
       "type": "string"
@@ -817,9 +819,11 @@
       "type": "object"
     },
     "RevocationAuthority": {
+      "description": "Who can revoke the manifest (SPEC.md section 3.1).\n\n'builder-and-opaque-joint' is a deprecated alias of\n'builder-and-custodian-joint' and means the same thing. It stays valid in\nv1 so manifests signed with it keep verifying; new manifests use\n'builder-and-custodian-joint'.",
       "enum": [
-        "builder-and-opaque-joint",
-        "quorum"
+        "builder-and-custodian-joint",
+        "quorum",
+        "builder-and-opaque-joint"
       ],
       "title": "RevocationAuthority",
       "type": "string"

@@ -148,7 +148,9 @@ def cmd_keygen(args: argparse.Namespace) -> int:
 
 
 def cmd_sign(args: argparse.Namespace) -> int:
-    manifest = _load_manifest(args.manifest)
+    # The first signer writes an omitted revocation_authority with its current
+    # spelling; later signers see it explicit, so every signature covers it.
+    manifest = _load_manifest(args.manifest).with_current_values()
     kp = ed25519_from_private_b64url(_read_key(args.key_file))
     block = Ed25519Signer(kp).sign(
         manifest.unsigned_dict(), role=args.role, signer=args.signer

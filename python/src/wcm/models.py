@@ -15,10 +15,11 @@ modeled here; this package is the manifest and its joint signatures only.
 """
 from __future__ import annotations
 
+import warnings
 from enum import Enum
 from typing import Any, Literal, Optional
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from ._types import HashValue
 
@@ -82,13 +83,75 @@ class ServingImageStatus(str, Enum):
 
 
 class RevocationAuthority(str, Enum):
-    builder_and_custodian_joint = "builder-and-opaque-joint"
+    """Who can revoke the manifest (SPEC.md section 3.1).
+
+    'builder-and-opaque-joint' is a deprecated alias of
+    'builder-and-custodian-joint' and means the same thing. It stays valid in
+    v1 so manifests signed with it keep verifying; new manifests use
+    'builder-and-custodian-joint'.
+    """
+
+    # Compare through .canonical, never against the raw member, so the alias
+    # gets the same policy decision as the value it stands for.
+
+    builder_and_custodian_joint = "builder-and-custodian-joint"
     quorum = "quorum"
+    #: Deprecated alias of ``builder_and_custodian_joint`` (0.31.0).
+    builder_and_opaque_joint = "builder-and-opaque-joint"
+
+    @property
+    def canonical(self) -> "RevocationAuthority":
+        """The current value this one means; an alias maps to its replacement."""
+        if self is RevocationAuthority.builder_and_opaque_joint:
+            return RevocationAuthority.builder_and_custodian_joint
+        return self
+
+    @property
+    def deprecated(self) -> bool:
+        return self is not self.canonical
 
 
 class CustodianType(str, Enum):
-    hosted = "opaque-hosted"
+    """Who operates the key release service (SPEC.md section 3.1).
+
+    'opaque-hosted' is a deprecated alias of 'custodian-hosted' and means the
+    same thing. It stays valid in v1 so manifests signed with it keep
+    verifying; new manifests use 'custodian-hosted'.
+    """
+
+    # Compare through .canonical, as for RevocationAuthority.
+
+    hosted = "custodian-hosted"
     customer_self_custody = "customer-self-custody"
+    #: Deprecated alias of ``hosted`` (0.31.0).
+    opaque_hosted = "opaque-hosted"
+
+    @property
+    def canonical(self) -> "CustodianType":
+        """The current value this one means; an alias maps to its replacement."""
+        if self is CustodianType.opaque_hosted:
+            return CustodianType.hosted
+        return self
+
+    @property
+    def deprecated(self) -> bool:
+        return self is not self.canonical
+
+
+def _warn_deprecated_value(field: str, value: Any) -> None:
+    """Warn when a manifest spells an enum with a deprecated alias.
+
+    Only explicit values reach this: a defaulted field is not validated, so a
+    manifest that omits ``revocation_authority`` does not warn.
+    """
+    canonical = getattr(value, "canonical", value)
+    if canonical is not value:
+        warnings.warn(
+            f"{field} {value.value!r} is deprecated since wcm 0.31.0; it means the "
+            f"same as {canonical.value!r}, which new manifests should use",
+            DeprecationWarning,
+            stacklevel=3,
+        )
 
 
 class SignatureRole(str, Enum):
@@ -271,10 +334,16 @@ class SovereignProfile(_Strict):
     additional_signers: Optional[list[str]] = None
     note: Optional[str] = None
 
+    @field_validator("revocation_authority")
+    @classmethod
+    def _warn_alias(cls, v: RevocationAuthority) -> RevocationAuthority:
+        _warn_deprecated_value("sovereign_profile.revocation_authority", v)
+        return v
+
     @model_validator(mode="after")
     def _enabled_requires_quorum(self) -> "SovereignProfile":
         if self.enabled:
-            if self.revocation_authority is not RevocationAuthority.quorum:
+            if self.revocation_authority.canonical is not RevocationAuthority.quorum:
                 raise ValueError(
                     "sovereign_profile.enabled requires revocation_authority='quorum'"
                 )
@@ -341,10 +410,22 @@ class ReleasePolicy(_Strict):
     key_release_mode: KeyReleaseMode = KeyReleaseMode.attestation_gated
     replay_protection: ReplayProtection = ReplayProtection.kbs_nonce_required
     attestation_revocation_check: Optional[str] = None
+    # The default stays the pre-0.31 spelling on purpose. Verifiers materialize
+    # defaults before computing the signing pre-image, so changing it would
+    # change the pre-image of every signed manifest that omits this field and
+    # break its signatures. Both spellings mean the same thing; new manifests
+    # get the current one written out explicitly (see
+    # WeightCustodyManifest.with_current_values, used by `wcm sign`).
     revocation_authority: RevocationAuthority = (
-        RevocationAuthority.builder_and_custodian_joint
+        RevocationAuthority.builder_and_opaque_joint
     )
     sovereign_profile: SovereignProfile = Field(default_factory=SovereignProfile)
+
+    @field_validator("revocation_authority")
+    @classmethod
+    def _warn_alias(cls, v: RevocationAuthority) -> RevocationAuthority:
+        _warn_deprecated_value("release_policy.revocation_authority", v)
+        return v
 
 
 class KbsImage(_Strict):
@@ -360,6 +441,12 @@ class Custody(_Strict):
     enclave_id: str
     attestation_cadence: str
     kbs_attestation_cadence: Optional[str] = None
+
+    @field_validator("custodian_type")
+    @classmethod
+    def _warn_alias(cls, v: CustodianType) -> CustodianType:
+        _warn_deprecated_value("custody.custodian_type", v)
+        return v
 
 
 class ManifestSignature(_Strict):
@@ -418,7 +505,7 @@ class WeightCustodyManifest(_Strict):
         # Symmetric BYOM means one org brings its own model into infrastructure it
         # also custodies, so a hosted custodian is contradictory (SPEC.md 3.1).
         if self.deployment_model is DeploymentModel.byom_symmetric:
-            if self.custody.custodian_type is not CustodianType.customer_self_custody:
+            if self.custody.custodian_type.canonical is not CustodianType.customer_self_custody:
                 raise ValueError(
                     "deployment_model 'byom-symmetric' requires "
                     "custody.custodian_type 'customer-self-custody'"
@@ -430,7 +517,10 @@ class WeightCustodyManifest(_Strict):
         # When the sovereign profile is on, top-level revocation is quorum-based
         # and the unilateral path is gone (SPEC.md 3.1, 3.2).
         if self.release_policy.sovereign_profile.enabled:
-            if self.release_policy.revocation_authority is not RevocationAuthority.quorum:
+            if (
+                self.release_policy.revocation_authority.canonical
+                is not RevocationAuthority.quorum
+            ):
                 raise ValueError(
                     "with sovereign_profile.enabled, release_policy.revocation_authority "
                     "must be 'quorum'"
@@ -445,6 +535,23 @@ class WeightCustodyManifest(_Strict):
         no cryptographic difference, but excluding it keeps intent clear.
         """
         return self.model_dump(mode="json", exclude_none=True, exclude={"signatures"})
+
+    def with_current_values(self) -> "WeightCustodyManifest":
+        """Copy with an omitted ``revocation_authority`` written as the 0.31 value.
+
+        For a manifest nobody has signed yet: an omitted
+        ``release_policy.revocation_authority`` would otherwise materialize as
+        the deprecated default spelling. Explicit values, deprecated or not, are
+        left alone (the author chose them), and a manifest that already carries
+        a signature is returned unchanged, because rewriting a signed field would
+        invalidate that signature.
+        """
+        if self.signatures or "revocation_authority" in self.release_policy.model_fields_set:
+            return self
+        policy = self.release_policy.model_copy(
+            update={"revocation_authority": RevocationAuthority.builder_and_custodian_joint}
+        )
+        return self.model_copy(update={"release_policy": policy})
 
     def signed_roles(self) -> set[SignatureRole]:
         return {s.role for s in self.signatures}
