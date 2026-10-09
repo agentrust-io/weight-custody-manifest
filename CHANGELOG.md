@@ -4,7 +4,40 @@ Notable changes to the Weight Custody Manifest specification and Python SDK.
 Format loosely follows [Keep a Changelog](https://keepachangelog.com/); the SDK
 uses semantic-ish versioning while pre-1.0.
 
-## Unreleased (0.30.1)
+## 0.31.0 - 2026-10-08
+
+**Added.** Vendor-neutral spellings for two manifest enum values (spec v0.16,
+section 3.1): `builder-and-custodian-joint` for `revocation_authority` (in
+`release_policy` and `sovereign_profile`) and `custodian-hosted` for
+`custody.custodian_type`. The frozen v1 schema gains them in place, as its
+additive-only rule allows, so its `$id` does not change. `RevocationAuthority`
+and `CustodianType` gain a `canonical` property that maps an alias to its
+replacement; the model's cross-field rules compare through it, so both
+spellings get the same verdict. `wcm sign` writes an omitted
+`revocation_authority` as `builder-and-custodian-joint` when it adds the first
+signature, and the example manifest uses the new values. Six conformance
+vectors (L1 now 38, 103 in total): alias acceptance, the new values, a
+new-spelling twin for each of the three cross-field reject vectors that use the
+old ones, and a signature vector signed over the new values.
+
+**Deprecated.** `builder-and-opaque-joint` and `opaque-hosted`. Both still
+validate against the schema and the model and mean exactly what their
+replacements mean; the model emits a `DeprecationWarning` when a manifest spells
+one out. They will be removed only in a v2 schema. The
+`revocation_authority` default stays `builder-and-opaque-joint` for v1, because
+verifiers materialize defaults into the signing pre-image and moving it would
+break the signatures on every manifest that omits the field. Existing signed
+manifests and conformance vectors that carry the old spellings are unchanged.
+
+**Migration.** Nothing breaks. New manifests should use
+`builder-and-custodian-joint` and `custodian-hosted` and write
+`revocation_authority` out explicitly. Do not edit a signed manifest to change
+the spelling: re-issue and re-sign it. Code that compared a field against
+`RevocationAuthority.builder_and_custodian_joint` or `CustodianType.hosted`
+should compare `value.canonical` instead, since those members now carry the new
+strings and the old strings parse to `builder_and_opaque_joint` and
+`opaque_hosted`.
+
 
 **Fixed.** `wcm verify-quote` printed a traceback for an input it could not
 use. A `--kind tdx` quote that does not parse (`QuoteFormatError` is not a

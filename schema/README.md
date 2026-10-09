@@ -39,6 +39,26 @@ The specification itself is still pre-1.0 and evolving (see
 deliberate trade: implementers get a stable target now, and any field set the
 spec grows into arrives as an addition rather than as a redefinition.
 
+### Deprecated enum values
+
+0.31.0 added two vendor-neutral enum values under the additive rule above and
+deprecated the spellings they replace. The old spellings stay in the enum for
+the life of v1, so every manifest signed with them still validates and verifies.
+
+| Field | Current value | Deprecated alias (same meaning) |
+| --- | --- | --- |
+| `release_policy.revocation_authority`, `sovereign_profile.revocation_authority` | `builder-and-custodian-joint` | `builder-and-opaque-joint` |
+| `custody.custodian_type` | `custodian-hosted` | `opaque-hosted` |
+
+A verifier treats an alias exactly as its current value for every policy
+decision, and computes the signing pre-image over the spelling the manifest
+actually carries. The `revocation_authority` default is still
+`builder-and-opaque-joint` in v1: verifiers materialize defaults into the
+pre-image, so moving the default would break the signatures on every manifest
+that omits the field. Issuers should write the field out; `wcm sign` does so
+when it adds the first signature. Removing the aliases, and changing the
+default, is a v2 change.
+
 ## What this schema does not express
 
 The schema and the reference model

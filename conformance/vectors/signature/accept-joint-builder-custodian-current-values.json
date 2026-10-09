@@ -1,0 +1,119 @@
+{
+  "id": "accept-joint-builder-custodian-current-values",
+  "level": "L1",
+  "kind": "signature",
+  "description": "accept-joint-builder-custodian with the current enum spellings, builder-and-custodian-joint and custodian-hosted, signed fresh by both parties. accept-joint-builder-custodian itself still carries the deprecated alias builder-and-opaque-joint, so the pair checks that a signature over either spelling verifies.",
+  "expect": "accept",
+  "trusted_keys": [
+    {
+      "algorithm": "Ed25519",
+      "public_key": "0UzZcDPLKtUz_mi5tiz4mEUL91sopZWGUZRM3hJGzt8",
+      "role_hint": "builder"
+    },
+    {
+      "algorithm": "Ed25519",
+      "public_key": "wBmpFdcWUhfTqs9eaX4926nXPDDD13-9oyR3WC2In9E",
+      "role_hint": "custodian"
+    }
+  ],
+  "manifest": {
+    "manifest_version": "1.0",
+    "weights_hash": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+    "builder": {
+      "identity": "example-builder",
+      "signing_key": "ed25519:builder-key"
+    },
+    "release_terms": {
+      "license": "customer-deployment-agreement-ref:CDA-2026-0001",
+      "permitted_derivatives": "fine-tune-only, no re-export of base weights",
+      "permitted_environments": [
+        "attested-enclave"
+      ]
+    },
+    "release_policy": {
+      "required_assurance_tier": "hardware-attested",
+      "physical_hardening": "not-required",
+      "trusted_time_source": "none-best-effort",
+      "memory_fingerprint_challenge": "not-required",
+      "required_hw_platform": [
+        "amd-sev-snp"
+      ],
+      "tenancy": "shared",
+      "required_serving_image": {
+        "signer": "ed25519:builder-key",
+        "release_rule": "prefer-current",
+        "accepted_measurements": [
+          {
+            "measurement": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+            "status": "current"
+          }
+        ]
+      },
+      "key_release_mode": "attestation-gated",
+      "replay_protection": "kbs-nonce-required",
+      "revocation_authority": "builder-and-custodian-joint",
+      "sovereign_profile": {
+        "enabled": false,
+        "revocation_authority": "quorum"
+      }
+    },
+    "custody": {
+      "custodian": "example-custodian",
+      "custodian_type": "custodian-hosted",
+      "kbs_image": {
+        "measurement": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+        "signer": "ed25519:custodian-key"
+      },
+      "enclave_id": "did:example:enclave-01",
+      "attestation_cadence": "24h"
+    },
+    "base_confidentiality": "confidential",
+    "deployment_model": "builder-to-customer",
+    "signatures": [
+      {
+        "role": "builder",
+        "signer": "example-builder",
+        "algorithm": "Ed25519",
+        "key_id": "2c14a6e48d6b27b55e603830b8eeabca0ef0cbc6b69bdf2964a88344a31c8e85",
+        "key_type": "software",
+        "signed_at": "2026-10-08T00:00:00Z",
+        "signature_value": "FzpqRlb97zR3N-nwggA7BGQ8ZuyVypyC1GNjDbVsKgU3Fh11km3n6ogjPNon260RUHyXJhT3uhpxucVDnaXYCQ",
+        "signed_fields": [
+          "manifest_version",
+          "weights_hash",
+          "builder",
+          "release_terms",
+          "release_policy",
+          "custody",
+          "base_confidentiality",
+          "deployment_model",
+          "derived_from",
+          "rights_holder",
+          "provenance"
+        ]
+      },
+      {
+        "role": "custodian",
+        "signer": "example-custodian",
+        "algorithm": "Ed25519",
+        "key_id": "9115c17e78185c94b32a94145cd24a891ffbebd0a52c26eaf88a9eacbd94c513",
+        "key_type": "software",
+        "signed_at": "2026-10-08T00:00:00Z",
+        "signature_value": "bMFYTvpZtg6NelCeJNyOT5cHwoc6lcAKOplcOQNc9bBfh8AHg-ZOKQx_c8eMNuVKcQkeq62UTjUI3gEaN_YCBA",
+        "signed_fields": [
+          "manifest_version",
+          "weights_hash",
+          "builder",
+          "release_terms",
+          "release_policy",
+          "custody",
+          "base_confidentiality",
+          "deployment_model",
+          "derived_from",
+          "rights_holder",
+          "provenance"
+        ]
+      }
+    ]
+  }
+}
