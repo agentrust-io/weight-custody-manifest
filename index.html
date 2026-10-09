@@ -1709,12 +1709,12 @@ model files stay encrypted, and the key that decrypts them goes only to a progra
 that can prove, through a hardware check called attestation, that it is the
 approved one. WCM is an open, pre-1.0 specification with a reference SDK you can
 run today (<a href="https://agentrust-io.com/#plain-terms">the terms, in plain English</a>).</p>
-<p><a class="md-button md-button--primary" href="#try-it">Run the 97 conformance vectors</a>
+<p><a class="md-button md-button--primary" href="#try-it">Run the 103 conformance vectors</a>
 <a class="md-button" href="limitations/">What this proves, and what it does not</a></p>
 <div class="admonition tip">
 <p class="admonition-title">TL;DR</p>
 <p>The reference SDK (<a href="https://pypi.org/project/weight-custody-manifest/">weight-custody-manifest</a>
-0.30.0, Apache-2.0) runs its test cases on an ordinary laptop with no GPU or
+0.31.0, Apache-2.0) runs its test cases on an ordinary laptop with no GPU or
 cloud account, and checks hardware reports captured on real AMD SEV-SNP, Intel
 TDX and NVIDIA H100 machines. Against someone who physically owns the machine,
 WCM gives you a record and a way to hold them to account, not cryptographic
@@ -1821,7 +1821,7 @@ workload may keep it.</p>
 gives background on the threats; it is not a certification of WCM. Passing the
 reference test suite does not give a deployment an attacker-resistance rating.</p>
 <h2 id="what-is-checked-today">What is checked today<a class="headerlink" href="#what-is-checked-today" title="Permanent link">&para;</a></h2>
-<p>The reference implementation ships <strong>97 portable conformance vectors</strong>: 32 at L1,
+<p>The reference implementation ships <strong>103 portable conformance vectors</strong>: 38 at L1,
 43 at L2, 12 at L3, and 10 at L4. A conformance vector is a test case written as a
 JSON file, so any implementation in any language can run it. Run them yourself
 with <code>wcm conformance</code>.</p>
@@ -1889,7 +1889,7 @@ the SDK in full.</p>
 reference key-release service are free to use under Apache-2.0. Vendors may build
 compatible hosted services and protected-runtime products. Public availability
 does not establish production readiness.</p>
-<p><strong>Status:</strong> pre-1.0 · SDK 0.30.0 · Apache-2.0 · SCITT and CoSAI standards path on
+<p><strong>Status:</strong> pre-1.0 · SDK 0.31.0 · Apache-2.0 · SCITT and CoSAI standards path on
 the <a href="roadmap/">roadmap</a> · Sponsored by OPAQUE, which funds the engineering,
 infrastructure and confidential-computing work behind these projects. More
 sponsors are welcome.</p>

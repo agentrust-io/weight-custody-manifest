@@ -4,11 +4,11 @@
 
 When a company hands its AI model to a customer to run on the customer's own machines, WCM lets the model's maker decide which machines may use it. The model files stay encrypted, and the key that decrypts them goes only to a program that can prove, through a hardware check called attestation, that it is the approved one. WCM is an open, pre-1.0 specification with a reference SDK you can run today ([the terms, in plain English](https://agentrust-io.com/#plain-terms)).
 
-[Run the 97 conformance vectors](#try-it) [What this proves, and what it does not](https://wcm.agentrust-io.com/limitations/index.md)
+[Run the 103 conformance vectors](#try-it) [What this proves, and what it does not](https://wcm.agentrust-io.com/limitations/index.md)
 
 TL;DR
 
-The reference SDK ([weight-custody-manifest](https://pypi.org/project/weight-custody-manifest/) 0.30.0, Apache-2.0) runs its test cases on an ordinary laptop with no GPU or cloud account, and checks hardware reports captured on real AMD SEV-SNP, Intel TDX and NVIDIA H100 machines. Against someone who physically owns the machine, WCM gives you a record and a way to hold them to account, not cryptographic custody, because published attacks on the memory bus defeat today's confidential-computing chips.
+The reference SDK ([weight-custody-manifest](https://pypi.org/project/weight-custody-manifest/) 0.31.0, Apache-2.0) runs its test cases on an ordinary laptop with no GPU or cloud account, and checks hardware reports captured on real AMD SEV-SNP, Intel TDX and NVIDIA H100 machines. Against someone who physically owns the machine, WCM gives you a record and a way to hold them to account, not cryptographic custody, because published attacks on the memory bus defeat today's confidential-computing chips.
 
 - **Run it**
 
@@ -78,7 +78,7 @@ The [RAND weight-security report](https://www.rand.org/pubs/research_reports/RRA
 
 ## What is checked today
 
-The reference implementation ships **97 portable conformance vectors**: 32 at L1, 43 at L2, 12 at L3, and 10 at L4. A conformance vector is a test case written as a JSON file, so any implementation in any language can run it. Run them yourself with `wcm conformance`.
+The reference implementation ships **103 portable conformance vectors**: 38 at L1, 43 at L2, 12 at L3, and 10 at L4. A conformance vector is a test case written as a JSON file, so any implementation in any language can run it. Run them yourself with `wcm conformance`.
 
 This is the reference implementation testing itself, not independent certification and not a test on real deployment hardware. One L2 vector checks a genuine AMD SEV-SNP hardware report against AMD's published root certificate; Intel vendor evidence and GPU signature checks are not yet covered, and the runner prints those limits. See [Schema and conformance](https://wcm.agentrust-io.com/conformance/index.md).
 
@@ -132,4 +132,4 @@ Open an issue or a discussion on [github.com/agentrust-io/weight-custody-manifes
 
 The specification, schema, test suite, reference SDK, threat model, and reference key-release service are free to use under Apache-2.0. Vendors may build compatible hosted services and protected-runtime products. Public availability does not establish production readiness.
 
-**Status:** pre-1.0 · SDK 0.30.0 · Apache-2.0 · SCITT and CoSAI standards path on the [roadmap](https://wcm.agentrust-io.com/roadmap/index.md) · Sponsored by OPAQUE, which funds the engineering, infrastructure and confidential-computing work behind these projects. More sponsors are welcome.
+**Status:** pre-1.0 · SDK 0.31.0 · Apache-2.0 · SCITT and CoSAI standards path on the [roadmap](https://wcm.agentrust-io.com/roadmap/index.md) · Sponsored by OPAQUE, which funds the engineering, infrastructure and confidential-computing work behind these projects. More sponsors are welcome.
