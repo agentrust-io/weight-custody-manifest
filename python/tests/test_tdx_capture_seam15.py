@@ -109,5 +109,7 @@ def test_no_appraisal_threshold_is_taken_from_this_capture() -> None:
         for p in here.parent.rglob("*.py")
         if p != here and "tdx_quote_gcp_seam15" in p.read_text(encoding="utf-8")
     ]
-    assert referencing == [], referencing
+    # Vendor replay checks signatures, chain, binding and expiry. It does not
+    # derive platform appraisal thresholds from this external capture.
+    assert sorted(referencing) == ["test_vendor_vectors.py"], referencing
     assert "No appraisal rule rests on this capture alone." in _load(SEAM15)["note"]
