@@ -288,6 +288,61 @@ def test_retirement_leaves_loaded_worker_until_its_local_stop(setup, monkeypatch
     assert len(events) == 4
 
 
+@pytest.mark.parametrize("microseconds,accepted", [(-1, True), (0, True), (1, False)],
+                         ids=["before-cap", "at-cap", "after-cap"])
+def test_pending_install_cap_boundary_with_fixed_clock(setup, monkeypatch, microseconds, accepted):
+    """Receiver refuses strictly after its cap, even for an extended offer."""
+    receiver, owner, _, _, _, vcek, signing, _ = setup
+    challenge = owner.issue_challenge()
+    current = challenge.issued_at
+
+    class Clock:
+        @staticmethod
+        def now(_):
+            return current
+
+    monkeypatch.setattr("wcm.broker_receiver.datetime", Clock)
+    offered = replace(challenge, expires_at=current + timedelta(days=1))
+    report = signed_report(signing, receiver.provisioning_report_data(offered))
+    envelope = owner.provision(nonce=challenge.nonce, report=report, vcek=vcek, intermediates=[],
+                               transport_public_key=receiver.transport_public_key, model_key=KEY)
+    current += timedelta(seconds=60, microseconds=microseconds)
+    if accepted:
+        receiver.install(envelope)
+        assert receiver.issue_challenge().nonce
+    else:
+        with pytest.raises(ValueError, match="stale"):
+            receiver.install(envelope)
+        with pytest.raises(RuntimeError, match="not provisioned"):
+            receiver.issue_challenge()
+        with pytest.raises(RuntimeError, match="not awaiting"):
+            receiver.install(envelope)
+
+
+@pytest.mark.parametrize("microseconds,accepted", [(-1, True), (0, False), (1, False)],
+                         ids=["before-deadline", "at-deadline", "after-deadline"])
+def test_worker_custody_deadline_boundary_with_fixed_clock(microseconds, accepted):
+    """Worker expiry is inclusive and invokes the configured stop exactly once."""
+    current = datetime(2026, 10, 14, 6, tzinfo=timezone.utc)
+    stopped = []
+    session = EnclaveSession(KEY, cadence_seconds=10, now=lambda: current,
+                             on_stop=lambda: stopped.append("stopped"))
+    session.authorize_operation()
+    current += timedelta(seconds=10, microseconds=microseconds)
+    if accepted:
+        session.authorize_operation()
+        assert not session.is_wiped
+        assert stopped == []
+        session.zeroize()
+    else:
+        with pytest.raises(KeyWipedError):
+            session.authorize_operation()
+        assert session.is_wiped
+        assert stopped == ["stopped"]
+        session.zeroize()
+        assert stopped == ["stopped"]
+
+
 def test_stalled_clock_does_not_supply_a_real_time_bound():
     current = datetime.now(timezone.utc)
     session = EnclaveSession(KEY, cadence_seconds=10, now=lambda: current)
