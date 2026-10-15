@@ -140,7 +140,7 @@ Open an issue or a discussion on [github.com/agentrust-io/weight-custody-manifes
 
 The specification, schema, test suite, reference SDK, threat model, and reference key-release service are free to use under Apache-2.0. Vendors may build compatible hosted services and protected-runtime products. Public availability does not establish production readiness.
 
-**Status:** pre-1.0 · SDK 0.31.0 · Apache-2.0 · SCITT and CoSAI standards path on the [roadmap](https://wcm.agentrust-io.com/roadmap/index.md) · Sponsored by OPAQUE, which funds the engineering, infrastructure and confidential-computing work behind these projects. More sponsors are welcome.
+**Status:** pre-1.0 · SDK 0.31.0 · Apache-2.0 · SCITT and CoSAI standards path on the [roadmap](https://wcm.agentrust-io.com/roadmap/index.md) · AgenTrust is an independent open-source project. No company funds, owns or directs it; contributions are voluntary.
 
 # Getting started
 
@@ -723,11 +723,11 @@ See also the [Code of Conduct](https://github.com/agentrust-io/weight-custody-ma
 
 # Sponsors
 
-Who funds the work on WCM, and where to look if your organisation wants to support it.
+AgenTrust is an independent open-source project. No company funds, owns or directs it; contributions are voluntary.
 
-The canonical sponsor list and sponsorship policy are in [`SPONSORS.md`](https://github.com/agentrust-io/weight-custody-manifest/blob/main/SPONSORS.md).
+OPAQUE Systems sponsored early development until October 2026.
 
-Weight Custody Manifest is sponsored by OPAQUE Systems, which funds the engineering, infrastructure and confidential-computing work behind it. More sponsors are welcome; see [`SPONSORS.md`](https://github.com/agentrust-io/weight-custody-manifest/blob/main/SPONSORS.md) for how to take part.
+The canonical record is [`SPONSORS.md`](https://github.com/agentrust-io/weight-custody-manifest/blob/main/SPONSORS.md).
 
 # Contributing
 

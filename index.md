@@ -132,4 +132,4 @@ Open an issue or a discussion on [github.com/agentrust-io/weight-custody-manifes
 
 The specification, schema, test suite, reference SDK, threat model, and reference key-release service are free to use under Apache-2.0. Vendors may build compatible hosted services and protected-runtime products. Public availability does not establish production readiness.
 
-**Status:** pre-1.0 · SDK 0.31.0 · Apache-2.0 · SCITT and CoSAI standards path on the [roadmap](https://wcm.agentrust-io.com/roadmap/index.md) · Sponsored by OPAQUE, which funds the engineering, infrastructure and confidential-computing work behind these projects. More sponsors are welcome.
+**Status:** pre-1.0 · SDK 0.31.0 · Apache-2.0 · SCITT and CoSAI standards path on the [roadmap](https://wcm.agentrust-io.com/roadmap/index.md) · AgenTrust is an independent open-source project. No company funds, owns or directs it; contributions are voluntary.
