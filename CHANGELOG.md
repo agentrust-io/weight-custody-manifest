@@ -4,7 +4,7 @@ Notable changes to the Weight Custody Manifest specification and Python SDK.
 Format loosely follows [Keep a Changelog](https://keepachangelog.com/); the SDK
 uses semantic-ish versioning while pre-1.0.
 
-## Unreleased (0.32.0)
+## 0.32.0 - 2026-10-15
 
 **Fixed, security (GHSA-vwq2-c539-xpr6), breaking.** `AzureSnpVtpmVerifier`
 never checked that the SNP report came from Azure's paravisor. It checked that
