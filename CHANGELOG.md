@@ -1,6 +1,3 @@
-Warning: truncated output (original token count: 20027)
-Total output lines: 1287
-
 # Changelog
 
 Notable changes to the Weight Custody Manifest specification and Python SDK.
@@ -654,7 +651,8 @@ ship rather than an editable checkout, so a packaging regression fails before a
 release instead of after one.
 
 **[ci]** The leak scan matched its `ALLOWLIST` keys against native path strings,
-so o…27 tokens truncated…ed green throughout. It now compares POSIX paths,
+so on Windows every exemption missed and a clean tree failed with eleven false
+findings. CI is Linux and stayed green throughout. It now compares POSIX paths,
 and `tests/test_leak_scan.py` pins the separator contract, the exemption
 behaviour, and that no allowlist key has gone stale against the tree.
 
