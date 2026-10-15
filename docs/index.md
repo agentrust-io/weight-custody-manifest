@@ -209,6 +209,5 @@ compatible hosted services and protected-runtime products. Public availability
 does not establish production readiness.
 
 **Status:** pre-1.0 · SDK 0.31.0 · Apache-2.0 · SCITT and CoSAI standards path on
-the [roadmap](roadmap.md) · Sponsored by OPAQUE, which funds the engineering,
-infrastructure and confidential-computing work behind these projects. More
-sponsors are welcome.
+the [roadmap](roadmap.md) · AgenTrust is an independent open-source project. No
+company funds, owns or directs it; contributions are voluntary.
