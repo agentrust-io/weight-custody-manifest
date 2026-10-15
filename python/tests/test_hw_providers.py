@@ -16,8 +16,6 @@ import sys
 from types import SimpleNamespace
 
 import pytest
-from wcm.renewal import manifest_identity
-
 from wcm import (
     AttestationUnavailableError,
     ChallengeStore,
@@ -30,6 +28,8 @@ from wcm import (
     select_cpu_provider,
     select_provider,
 )
+from wcm._hw_providers import AzureSnpVtpmProvider, AzureTdxVtpmProvider
+from wcm.renewal import manifest_identity
 
 KEY = b"hw-released-decryption-key-32byte"
 
@@ -71,6 +71,50 @@ def test_select_provider_require_hardware_raises(monkeypatch):
     _force_no_hardware(monkeypatch)
     with pytest.raises(AttestationUnavailableError):
         select_provider(require_hardware=True)
+
+
+@pytest.mark.parametrize("device,tool", [(False, False), (False, True),
+                                        (True, False), (True, True)])
+def test_required_hardware_diagnostic_names_missing_azure_prerequisites(
+    monkeypatch, device, tool,
+):
+    _force_no_hardware(monkeypatch)
+    with monkeypatch.context() as probes:
+        probes.setattr("wcm._hw_providers.os.path.exists", lambda path: device)
+        probes.setattr("wcm._hw_providers.shutil.which",
+                       lambda name: "/usr/bin/tpm2_nvread" if tool else None)
+        with pytest.raises(AttestationUnavailableError) as error:
+            select_provider(require_hardware=True)
+
+    message = str(error.value)
+    assert ("/dev/tpmrm0 missing" in message) is (not device)
+    assert ("tpm2_nvread missing (install tpm2-tools)" in message) is (not tool)
+    assert ("prerequisites present, but no usable Azure provider detected" in message) is (
+        device and tool
+    )
+    assert "/dev/sev-guest" in message and "/dev/tdx-guest" in message
+
+
+@pytest.mark.parametrize("kind", ["snp", "tdx", "azure-snp", "azure-tdx"])
+def test_available_cpu_provider_does_not_run_failure_diagnostics(monkeypatch, kind):
+    _force_no_hardware(monkeypatch)
+    provider = {
+        "snp": SevSnpProvider,
+        "tdx": TdxProvider,
+        "azure-snp": AzureSnpVtpmProvider,
+        "azure-tdx": AzureTdxVtpmProvider,
+    }[kind]
+    monkeypatch.setattr(provider, "is_available", lambda: True)
+
+    def unexpected_probe(*args):
+        pytest.fail("failure diagnostic probed after hardware selection")
+
+    with monkeypatch.context() as probes:
+        probes.setattr("wcm._hw_providers.os.path.exists", unexpected_probe)
+        probes.setattr("wcm._hw_providers.shutil.which", unexpected_probe)
+        result = select_provider(require_hardware=True)
+    assert isinstance(result, HardwareCompositeProvider)
+    assert isinstance(result._cpu, provider)
 
 
 def test_nvidia_available_only_with_env(monkeypatch):

@@ -664,8 +664,17 @@ def select_provider(*, require_hardware: bool = False) -> AttestationProvider:
     cpu = select_cpu_provider()
     if cpu is None:
         if require_hardware:
+            missing = []
+            if not os.path.exists(AzureSnpVtpmProvider._TPM_DEV):
+                missing.append("/dev/tpmrm0 missing")
+            if shutil.which("tpm2_nvread") is None:
+                missing.append("tpm2_nvread missing (install tpm2-tools)")
+            azure = "; ".join(missing) if missing else (
+                "prerequisites present, but no usable Azure provider detected"
+            )
             raise AttestationUnavailableError(
-                "no hardware CPU attestation available (/dev/sev-guest, /dev/tdx-guest); "
+                "no hardware CPU attestation available "
+                f"(bare-metal: /dev/sev-guest, /dev/tdx-guest; Azure vTPM: {azure}); "
                 "set require_hardware=False only for development"
             )
         return SoftwareProvider()
