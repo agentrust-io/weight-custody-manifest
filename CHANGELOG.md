@@ -28,6 +28,24 @@ tools `azure_attestation_controls.py`, `azure_measured_launch_receipt.py` and
 `paired_hardware_release.py` take a repeatable `--paravisor-measurement`, and
 the controls diagnostic gains an `unlisted-paravisor-measurement` case.
 
+**Fixed, security (GHSA-vwq2-c539-xpr6, second defect).** The
+`platform_integrity` release check read PLATFORM_INFO by base64-decoding
+`evidence.cpu.quote_b64` and parsing it as an SNP report. On the Azure path that
+field is a JSON bundle, and on the reference server a JSON container, so the
+eight bytes at the PLATFORM_INFO offset were text the sender wrote. Padding the
+JSON could make a report with both integrity bits clear pass, and a genuine
+report with both set could be denied. Also reported by Patrick Schmitt.
+
+`QuoteVerification` now carries `snp_report`, the full report whose signature
+the verifier checked, set only on success. `QuoteVerifier` (through
+`SnpQuoteParser`) and `AzureSnpVtpmVerifier` fill it. The KBS runs the CPU quote
+check before `platform_integrity`, still reporting both in their usual order,
+and `platform_integrity` reads PLATFORM_INFO only from that authenticated
+report. **Behaviour change:** a manifest that requires either integrity bit is
+now denied when no CPU quote verifier is configured or verification fails,
+with "required but no cryptographically verified SNP report". Requiring a
+hardware bit without verifying the hardware report never meant anything.
+
 **Migration.** Read the `MEASUREMENT` field from an SNP report captured on a
 confidential VM you deployed and trust (`parse_snp_report(...).measurement`),
 and pass every such value: `AzureSnpVtpmVerifier(trust,

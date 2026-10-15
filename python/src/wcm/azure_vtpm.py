@@ -251,4 +251,6 @@ class AzureSnpVtpmVerifier:
             ak.verify(signature, quote, padding.PKCS1v15(), hashes.SHA256())
         except (ValueError, InvalidSignature) as exc:
             return QuoteVerification(False, f"TPM quote verification failed: {exc}")
-        return QuoteVerification(True, leaf_subject=vcek.subject.rfc4514_string())
+        return QuoteVerification(
+            True, leaf_subject=vcek.subject.rfc4514_string(), snp_report=report
+        )
