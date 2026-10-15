@@ -2,6 +2,8 @@
 
 WCM is an open specification and reference SDK for protecting model weights when a builder deploys them into a customer's own or sovereign infrastructure. Contributions are welcome in three areas: the specification (`SPEC.md`, `THREAT-MODEL.md`), the Python reference SDK (`python/`), and the tests.
 
+AgenTrust is an independent open-source project. No company funds, owns or directs it; contributions are voluntary.
+
 ## Before you start
 
 This is a **pre-1.0 design under review**. Its public release is a deliberate call by the Project Lead, not gated on open question 8.8 (the hostile-owner residual is documented as an honest limitation, not a release blocker). Breaking spec changes (schema incompatibilities, changed release/attestation semantics, guarantee-scope changes) require an issue and discussion before a PR. Non-breaking additions and bug fixes can go straight to a PR.

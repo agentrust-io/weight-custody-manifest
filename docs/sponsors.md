@@ -1,10 +1,7 @@
 # Sponsors
 
-Who funds the work on WCM, and where to look if your organisation wants to
-support it.
+AgenTrust is an independent open-source project. No company funds, owns or directs it; contributions are voluntary.
 
-The canonical sponsor list and sponsorship policy are in [`SPONSORS.md`](https://github.com/agentrust-io/weight-custody-manifest/blob/main/SPONSORS.md).
+OPAQUE Systems sponsored early development until October 2026.
 
-Weight Custody Manifest is sponsored by OPAQUE Systems, which funds the engineering, infrastructure and confidential-computing work behind it. More sponsors are welcome; see
-[`SPONSORS.md`](https://github.com/agentrust-io/weight-custody-manifest/blob/main/SPONSORS.md)
-for how to take part.
+The canonical record is [`SPONSORS.md`](https://github.com/agentrust-io/weight-custody-manifest/blob/main/SPONSORS.md).
