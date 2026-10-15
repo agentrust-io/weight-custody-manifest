@@ -167,7 +167,9 @@ class _AuthenticatedReport:
 
     def verify(self, quote_b64, **kwargs):
         if not self._verified:
-            return QuoteVerification(False, "stub: not verified")
+            # A failed verification that still carries report bytes: the KBS
+            # must not treat them as authenticated.
+            return QuoteVerification(False, "stub: not verified", snp_report=self._report)
         return QuoteVerification(True, snp_report=self._report)
 
 
@@ -334,6 +336,8 @@ def test_gate_accepts_bits_set_in_the_authenticated_report(example_dict):
 
 
 def test_gate_denies_when_the_cpu_quote_does_not_verify(example_dict):
+    # The stub returns the report bytes even though verification failed, and
+    # the report has the required bit set, so only the verified flag decides.
     manifest = _manifest_requiring(
         example_dict, alias_check_complete=PlatformIntegrityRequirement.required
     )
