@@ -251,6 +251,36 @@ ctx.add_key(custodian.public_bytes)
 print(verify_manifest(manifest, ctx).ok)  # True
 ```
 
+### Opt-in signer role binding
+
+Without bindings, any trusted key may sign any role, subject to the existing
+distinct-key rule. For a verifier trusting keys from several parties, bind each
+key to its intended role and the exact identity named in the manifest:
+
+```python
+from wcm import SignatureRole
+
+ctx = VerificationContext()
+ctx.bind_key(ctx.add_key(builder.public_bytes), role=SignatureRole.builder,
+             signer=manifest.builder.identity)
+ctx.bind_key(ctx.add_key(custodian.public_bytes), role=SignatureRole.custodian,
+             signer=manifest.custody.custodian)
+print(verify_manifest(manifest, ctx).ok)
+```
+
+The first binding enables strict authorization for **every required role**.
+Binding only the builder does not authorize an unbound custodian. If the sovereign
+profile is enabled, bind its key to `SignatureRole.sovereign` and the declared
+`sovereign_signer` too. Multiple keys may be bound to the same role and identity
+for rotation. Self-custody still needs both role bindings, even when its permitted
+builder/custodian key is shared.
+
+These are local verifier trust-policy bindings. They do not change the manifest
+schema or cryptographic pre-image: signature-block role and signer labels remain
+outside that pre-image, and authorization checks them against the local policy
+and manifest identities. CLI and other callers remain flat unless they explicitly
+configure this library API. Layer 2 attestation and key release are unchanged.
+
 ## Quickstart (Layer 2 release gate)
 
 ```python

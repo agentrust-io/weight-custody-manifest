@@ -6,6 +6,12 @@ uses semantic-ish versioning while pre-1.0.
 
 ## Unreleased (0.31.1)
 
+**Added.** Opt-in `VerificationContext.bind_key` authorization of trusted keys
+for required signer roles and manifest identities. Any binding enables strict
+checks for all required roles; missing bindings refuse without flat-trust fallback.
+Unbound contexts retain existing behavior; schema, signed fields, and Layer 2
+release checks are unchanged.
+
 **Fixed.** `parse_tdx_quote`, and through it `verify_tdx_quote` and `wcm
 verify-quote --kind tdx`, ignored the signature section's certification-data
 type, did not tie the certification-data size to the signature-section length,
