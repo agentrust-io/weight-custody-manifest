@@ -204,6 +204,10 @@ def extract_snp_report_from_hcl(hcl: bytes) -> bytes:
         raise QuoteFormatError(
             f"not an Azure HCL report (signature {hcl[:4]!r}, expected {_HCL_SIGNATURE!r})"
         )
+    if len(hcl) < _HCL_SNP_OFFSET + _REPORT_LEN:
+        raise QuoteFormatError(
+            f"Azure HCL report is {len(hcl)} bytes, shorter than its header and SNP report"
+        )
     return hcl[_HCL_SNP_OFFSET : _HCL_SNP_OFFSET + _REPORT_LEN]
 
 
