@@ -15,6 +15,7 @@ import pathlib
 import pytest
 
 from wcm import KeyBrokerService, SoftwareProvider, WeightCustodyManifest, manifest_identity
+from wcm._quote_verify import QuoteVerification
 from wcm._signing import signing_pre_image
 from wcm.models import PlatformIntegrity, PlatformIntegrityRequirement
 from wcm.snp import parse_snp_report
@@ -36,9 +37,9 @@ def _gcp_milan_report_bytes() -> bytes:
 def _with_version(report: bytes, version: int) -> bytes:
     """Return *report* with its VERSION field rewritten.
 
-    This invalidates the report signature, which is fine here: the
-    platform_integrity gate is a field check and the signature is verified by a
-    different check entirely. It exists to exercise version gating, for which no
+    This invalidates the report signature, which is fine here: the gate tests
+    hand it to the KBS through a stub verifier, so the field logic is what is
+    exercised. It exists to exercise version gating, for which no
     real pre-v3 capture is on hand.
     """
     out = bytearray(report)
@@ -152,10 +153,31 @@ def _manifest_requiring(example_dict: dict, **kwargs) -> WeightCustodyManifest:
     return WeightCustodyManifest.model_validate(doc)
 
 
-def _kbs_for(manifest):
+class _AuthenticatedReport:
+    """Stub CPU quote verifier that reports *report* as the bytes it authenticated.
+
+    Signature and chain verification have their own tests. These tests are about
+    which bytes the platform_integrity gate reads, so the verifier's output is
+    fixed and the evidence the sender submits is varied independently.
+    """
+
+    def __init__(self, report, verified=True):
+        self._report = report
+        self._verified = verified
+
+    def verify(self, quote_b64, **kwargs):
+        if not self._verified:
+            # A failed verification that still carries report bytes: the KBS
+            # must not treat them as authenticated.
+            return QuoteVerification(False, "stub: not verified", snp_report=self._report)
+        return QuoteVerification(True, snp_report=self._report)
+
+
+def _kbs_for(manifest, report=None, verified=True):
     return KeyBrokerService(
         {manifest.weights_hash: KEY},
         trusted_manifest_identities={manifest_identity(manifest)},
+        cpu_quote_verifier=None if report is None else _AuthenticatedReport(report, verified),
     )
 
 
@@ -177,7 +199,7 @@ def test_gate_passes_when_alias_check_required_and_set(example_dict):
     manifest = _manifest_requiring(
         example_dict, alias_check_complete=PlatformIntegrityRequirement.required
     )
-    kbs = _kbs_for(manifest)
+    kbs = _kbs_for(manifest, _azure_report_bytes())
     evidence = _evidence_with_report(kbs, manifest, _azure_report_bytes())
 
     decision = kbs.verify_and_release(manifest, evidence)
@@ -190,7 +212,7 @@ def test_gate_denies_ciphertext_hiding_on_the_real_azure_platform(example_dict):
     manifest = _manifest_requiring(
         example_dict, ciphertext_hiding=PlatformIntegrityRequirement.required
     )
-    kbs = _kbs_for(manifest)
+    kbs = _kbs_for(manifest, _azure_report_bytes())
     evidence = _evidence_with_report(kbs, manifest, _azure_report_bytes())
 
     decision = kbs.verify_and_release(manifest, evidence)
@@ -205,7 +227,7 @@ def test_gate_denies_alias_check_when_report_version_cannot_carry_it(example_dic
     manifest = _manifest_requiring(
         example_dict, alias_check_complete=PlatformIntegrityRequirement.required
     )
-    kbs = _kbs_for(manifest)
+    kbs = _kbs_for(manifest, _with_version(_azure_report_bytes(), 2))
     evidence = _evidence_with_report(
         kbs, manifest, _with_version(_azure_report_bytes(), 2)
     )
@@ -235,7 +257,7 @@ def test_gate_denies_when_evidence_carries_no_report(example_dict):
 
     check = _check(decision, "platform_integrity")
     assert not check.passed
-    assert "no SNP report" in check.detail
+    assert "no cryptographically verified SNP report" in check.detail
 
 
 def test_gate_denies_on_a_non_snp_platform(example_dict):
@@ -266,6 +288,81 @@ def test_gate_denies_on_a_non_snp_platform(example_dict):
     check = _check(decision, "platform_integrity")
     assert not check.passed
     assert "SEV-SNP-only" in check.detail
+
+
+def _with_platform_info(report: bytes, value: int) -> bytes:
+    out = bytearray(report)
+    out[0x40:0x48] = value.to_bytes(8, "little")
+    return bytes(out)
+
+
+def test_gate_reads_the_authenticated_report_not_the_submitted_evidence(example_dict):
+    """GHSA-vwq2-c539-xpr6, second defect.
+
+    The gate used to re-parse ``evidence.cpu.quote_b64``. On the Azure path that
+    is a JSON bundle and on the reference server a JSON container, so the bytes
+    at the PLATFORM_INFO offset were the sender's. Here the submitted evidence
+    claims ciphertext hiding while the report the verifier authenticated has it
+    clear; the gate must believe the authenticated report.
+    """
+    manifest = _manifest_requiring(
+        example_dict, ciphertext_hiding=PlatformIntegrityRequirement.required
+    )
+    authenticated = _azure_report_bytes()
+    assert not parse_snp_report(authenticated).platform_info.ciphertext_hiding_en
+    claimed = _with_platform_info(authenticated, 0x35)
+    assert parse_snp_report(claimed).platform_info.ciphertext_hiding_en
+
+    kbs = _kbs_for(manifest, authenticated)
+    decision = kbs.verify_and_release(manifest, _evidence_with_report(kbs, manifest, claimed))
+
+    check = _check(decision, "platform_integrity")
+    assert not check.passed
+    assert "bit 4" in check.detail
+
+
+def test_gate_accepts_bits_set_in_the_authenticated_report(example_dict):
+    """The false-deny half: the authenticated report decides, whatever was submitted."""
+    manifest = _manifest_requiring(
+        example_dict, ciphertext_hiding=PlatformIntegrityRequirement.required
+    )
+    authenticated = _with_platform_info(_azure_report_bytes(), 0x35)
+    kbs = _kbs_for(manifest, authenticated)
+    decision = kbs.verify_and_release(
+        manifest, _evidence_with_report(kbs, manifest, b'{"not": "an SNP report"}')
+    )
+
+    assert _check(decision, "platform_integrity").passed
+
+
+def test_gate_denies_when_the_cpu_quote_does_not_verify(example_dict):
+    # The stub returns the report bytes even though verification failed, and
+    # the report has the required bit set, so only the verified flag decides.
+    manifest = _manifest_requiring(
+        example_dict, alias_check_complete=PlatformIntegrityRequirement.required
+    )
+    kbs = _kbs_for(manifest, _azure_report_bytes(), verified=False)
+    decision = kbs.verify_and_release(
+        manifest, _evidence_with_report(kbs, manifest, _azure_report_bytes())
+    )
+
+    check = _check(decision, "platform_integrity")
+    assert not check.passed
+    assert "no cryptographically verified SNP report" in check.detail
+
+
+def test_gate_denies_without_a_verifier_even_when_evidence_carries_a_report(example_dict):
+    manifest = _manifest_requiring(
+        example_dict, alias_check_complete=PlatformIntegrityRequirement.required
+    )
+    kbs = _kbs_for(manifest)
+    decision = kbs.verify_and_release(
+        manifest, _evidence_with_report(kbs, manifest, _azure_report_bytes())
+    )
+
+    check = _check(decision, "platform_integrity")
+    assert not check.passed
+    assert "no cryptographically verified SNP report" in check.detail
 
 
 # --------------------------------------------------------------------------

@@ -35,7 +35,7 @@ def _split_pems(blob: str) -> list[str]:
     ]
 
 
-def _verifier() -> AzureSnpVtpmVerifier:
+def _verifier(paravisor_measurements: list[str]) -> AzureSnpVtpmVerifier:
     request = urllib.request.Request(THIM_URL, headers={"Metadata": "true"})
     with urllib.request.urlopen(request, timeout=10) as response:  # nosec B310
         thim = json.loads(response.read())
@@ -44,7 +44,7 @@ def _verifier() -> AzureSnpVtpmVerifier:
         raise RuntimeError("Azure THIM did not return an AMD certificate chain")
     trust = TrustStore()
     trust.add_root_pem(chain[-1])
-    return AzureSnpVtpmVerifier(trust)
+    return AzureSnpVtpmVerifier(trust, paravisor_measurements=paravisor_measurements)
 
 
 def _tool_version() -> str:
@@ -63,6 +63,8 @@ def main() -> int:
     parser.add_argument("--out", required=True, type=Path)
     parser.add_argument("--release-candidate", required=True)
     parser.add_argument("--vm-sku", required=True)
+    parser.add_argument("--paravisor-measurement", action="append", required=True,
+                        help="allowed Azure paravisor SNP launch measurement (96 lowercase hex); repeat for each trusted build")
     args = parser.parse_args()
 
     if not AzureSnpVtpmProvider.is_available():
@@ -75,7 +77,7 @@ def main() -> int:
         serving_image_measurement=SERVING_IMAGE,
         transport_public_key=transport_public_key,
     )
-    verifier = _verifier()
+    verifier = _verifier(args.paravisor_measurement)
     channel_binding = bytes.fromhex(transport_public_key)
     positive = verifier.verify(
         evidence.quote_b64 or "",

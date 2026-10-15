@@ -185,7 +185,7 @@ def test_gate_mutation_is_detected(prepared, tmp_path, monkeypatch, mutation, fa
         check = KeyBrokerService._check_cpu_quote
         def allow_absent(self, manifest, evidence, nonce, binding):
             if evidence.cpu.quote_b64 is None:
-                return CheckResult('cpu_quote_verified', True)
+                return CheckResult('cpu_quote_verified', True), None
             return check(self, manifest, evidence, nonce, binding)
         monkeypatch.setattr(KeyBrokerService, '_check_cpu_quote', allow_absent)
     elif mutation == 'model':
