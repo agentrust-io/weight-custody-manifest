@@ -76,6 +76,11 @@ identifiers, hostnames, IPs, customer names, or event-specific material.
 ## What this proves
 
 It proves that the authenticated AK (the TPM's own signing key) signed the
-expected PCR state for this fresh release attempt. It does not prove immunity to physical extraction, forged
+expected PCR state for this fresh release attempt. It does not prove that the
+approved image is the code running: root in the guest can reset PCR 23 and
+extend it with the approved digest, so on this path the PCR records the digest
+the guest supplied (see
+[LIMITATIONS.md](https://github.com/agentrust-io/weight-custody-manifest/blob/main/LIMITATIONS.md)).
+It also does not prove immunity to physical extraction, forged
 attestation after hardware-key compromise, or memory-bus attacks. See the
 [threat model](threat-model.md).

@@ -12,7 +12,7 @@ import pytest
 from cryptography.hazmat.primitives.serialization import Encoding
 from wcm import SoftwareProvider
 
-from tests.test_azure_vtpm_verify import BINDING, MEASUREMENT, NONCE, NOW, _bundle
+from tests.test_azure_vtpm_verify import BINDING, MEASUREMENT, NONCE, NOW, PARAVISOR, _bundle
 
 MODULE = Path(__file__).parents[1] / "tools" / "paired_hardware_release.py"
 spec = importlib.util.spec_from_file_location("paired_hardware_release_inputs", MODULE)
@@ -69,8 +69,8 @@ def test_manifest_without_gpu_requirement_is_not_paired_validation(example_dict)
 def test_cpu_root_is_pinned_not_chosen_by_evidence():
     raw, trust = _bundle()
     _, untrusted = _bundle()
-    verifier = paired._cpu_verifier(trust.roots[0].public_bytes(Encoding.PEM))
-    wrong_verifier = paired._cpu_verifier(untrusted.roots[0].public_bytes(Encoding.PEM))
+    verifier = paired._cpu_verifier(trust.roots[0].public_bytes(Encoding.PEM), [PARAVISOR])
+    wrong_verifier = paired._cpu_verifier(untrusted.roots[0].public_bytes(Encoding.PEM), [PARAVISOR])
     kwargs = dict(expected_nonce=NONCE, channel_binding=BINDING,
                   expected_workload_measurement=MEASUREMENT, now=NOW)
     assert verifier.verify(raw, **kwargs).verified
@@ -105,13 +105,14 @@ def test_harness_uses_approved_gpu_and_reports_only_its_test_scope(monkeypatch, 
         "--cpu-root", str(root), "--gpu-root", str(root), "--manifest", str(manifest),
         "--manifest-sha256", hashlib.sha256(raw).hexdigest(),
         "--serving-image", _selected(example_dict),
+        "--paravisor-measurement", PARAVISOR,
     ])
     monkeypatch.setattr(paired.AzureSnpVtpmProvider, "is_available", lambda: True)
     monkeypatch.setattr(paired.NvidiaCcProvider, "is_available", lambda: True)
     class SyntheticVerifier:
         def verify(self, *args, **kwargs):
             return SimpleNamespace(verified=True, reason="synthetic test", leaf_subject="synthetic")
-    monkeypatch.setattr(paired, "_cpu_verifier", lambda root: SyntheticVerifier())
+    monkeypatch.setattr(paired, "_cpu_verifier", lambda root, paravisor_measurements: SyntheticVerifier())
     monkeypatch.setattr(paired, "build_gpu_verifier", lambda root: SyntheticVerifier())
     class SyntheticProvider:
         def produce(self, challenge, **kwargs):

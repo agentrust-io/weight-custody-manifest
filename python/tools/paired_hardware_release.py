@@ -39,12 +39,12 @@ from wcm import (
 DEK = hashlib.sha256(b"wcm-issue-77-live-validation-dek").digest()
 
 
-def _cpu_verifier(root_pem: bytes) -> AzureSnpVtpmVerifier:
+def _cpu_verifier(root_pem: bytes, paravisor_measurements: list[str]) -> AzureSnpVtpmVerifier:
     # Endorsements may arrive with evidence, but the evidence source must never
     # get to choose the relying party's trust root.
     trust = TrustStore()
     trust.add_root_pem(root_pem.decode("ascii"))
-    return AzureSnpVtpmVerifier(trust)
+    return AzureSnpVtpmVerifier(trust, paravisor_measurements=paravisor_measurements)
 
 
 def _manifest(raw: bytes, expected_sha256: str, serving_image: str) -> WeightCustodyManifest:
@@ -116,12 +116,14 @@ def main() -> int:
                         help="independently approved digest of the exact manifest file bytes")
     parser.add_argument("--serving-image", required=True,
                         help="current serving-image measurement from the pinned manifest")
+    parser.add_argument("--paravisor-measurement", action="append", required=True,
+                        help="allowed Azure paravisor SNP launch measurement (96 lowercase hex); repeat for each trusted build")
     args = parser.parse_args()
     manifest_raw = args.manifest.read_bytes()
     manifest = _manifest(manifest_raw, args.manifest_sha256, args.serving_image)
     cpu_root = args.cpu_root.read_bytes()
     gpu_root = args.gpu_root.read_bytes()
-    cpu_verifier = _cpu_verifier(cpu_root)
+    cpu_verifier = _cpu_verifier(cpu_root, args.paravisor_measurement)
     gpu_verifier = build_gpu_verifier(gpu_root)
     if not AzureSnpVtpmProvider.is_available() or not NvidiaCcProvider.is_available():
         raise SystemExit("paired Azure SNP/vTPM and NVIDIA providers are required")
