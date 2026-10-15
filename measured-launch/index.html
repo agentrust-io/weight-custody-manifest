@@ -1720,7 +1720,12 @@ certificates tied to a tenant, provider tokens, subscription/resource
 identifiers, hostnames, IPs, customer names, or event-specific material.</p>
 <h2 id="what-this-proves">What this proves<a class="headerlink" href="#what-this-proves" title="Permanent link">&para;</a></h2>
 <p>It proves that the authenticated AK (the TPM's own signing key) signed the
-expected PCR state for this fresh release attempt. It does not prove immunity to physical extraction, forged
+expected PCR state for this fresh release attempt. It does not prove that the
+approved image is the code running: root in the guest can reset PCR 23 and
+extend it with the approved digest, so on this path the PCR records the digest
+the guest supplied (see
+<a href="https://github.com/agentrust-io/weight-custody-manifest/blob/main/LIMITATIONS.md">LIMITATIONS.md</a>).
+It also does not prove immunity to physical extraction, forged
 attestation after hardware-key compromise, or memory-bus attacks. See the
 <a href="../threat-model/">threat model</a>.</p>
 
