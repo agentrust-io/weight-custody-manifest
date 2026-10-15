@@ -10,7 +10,7 @@
     "part": "GCP c3-standard-4",
     "tcb": "TEE_TCB_SVN 0f010a00000000000000000000000000 (observed bytes, not an appraisal)",
     "captured_at": "2026-09-12T19:37:42+00:00",
-    "source": "External capture by Mohammed Zoheb Shaik, weight-custody-manifest#117; python/tests/fixtures/tdx_quote_gcp_seam15.json and retained run-log; configfs TSM tdx_guest"
+    "source": "External capture by Mohammed Zoheb Shaik, weight-custody-manifest#117; python/tests/fixtures/tdx_quote_gcp_seam15.json and python/tests/fixtures/tdx_quote_gcp_seam15.run-log.txt; configfs TSM tdx_guest"
   },
   "evidence": {
     "format": "tdx-quote",
