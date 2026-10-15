@@ -217,6 +217,35 @@ def test_bound_roles_accept_and_flat_trust_keeps_legacy_behavior(example_manifes
     assert verify_manifest(wrong, flat).ok
 
 
+def test_bound_signer_must_match_declared_manifest_identity(example_manifest):
+    builder, custodian = generate_ed25519(), generate_ed25519()
+    ctx = VerificationContext()
+    ctx.bind_key(ctx.add_key(builder.public_bytes), role=SignatureRole.builder,
+                 signer="acme-build")
+    ctx.bind_key(ctx.add_key(custodian.public_bytes), role=SignatureRole.custodian,
+                 signer=example_manifest.custody.custodian)
+
+    def signed(manifest):
+        return manifest.with_signatures([
+            _sign(manifest, builder, "builder", "acme-build"),
+            _sign(manifest, custodian, "custodian", manifest.custody.custodian),
+        ])
+
+    # The key/role/signer binding exists, but the declared builder differs.
+    result = verify_manifest(signed(example_manifest), ctx)
+    assert not result.ok
+    assert SignatureRole.builder in result.missing_roles
+    assert not result.signatures[0].valid
+    assert "not bound" in result.signatures[0].reason
+    assert result.signatures[1].valid
+
+    # A conformant twin with the same keys and bindings must still verify.
+    matching = example_manifest.model_copy(update={
+        "builder": example_manifest.builder.model_copy(update={"identity": "acme-build"}),
+    })
+    assert verify_manifest(signed(matching), ctx).ok
+
+
 @pytest.mark.parametrize("case", ["only-builder", "wrong-role", "wrong-identity", "relabel"])
 def test_binding_refusals_never_fall_back_to_flat_trust(example_manifest, case):
     builder, custodian = generate_ed25519(), generate_ed25519()
