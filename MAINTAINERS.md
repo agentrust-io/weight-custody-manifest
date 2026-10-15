@@ -8,6 +8,13 @@
 
 The Project Lead has final decision authority on specification changes, publication timing, and maintainer appointments. Publication is not gated on closing open question 8.8; its residual limitation remains mandatory disclosure.
 
+## Repository Maintainers
+
+| Name | GitHub | Appointment |
+|---|---|---|
+| Zoheb | [@zohebk8s](https://github.com/zohebk8s) | [Community handover](https://github.com/agentrust-io/.github/issues/60) |
+| Srinivasa Consultants | [@dinakarjs](https://github.com/dinakarjs) | [Community handover](https://github.com/agentrust-io/.github/issues/60) |
+
 ## How to become a maintainer
 
 **Reviewer**: 3+ merged PRs with substantive contributions (not typo fixes). Nominated by a Maintainer, approved by the Project Lead.
