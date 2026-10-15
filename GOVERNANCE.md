@@ -38,7 +38,9 @@ WCM is part of the agentrust-io family (alongside TRACE, cMCP, Agent Manifest, c
 
 ## Sponsorship and independence
 
-The project may accept financial, engineering, infrastructure, or other support from sponsors listed in [SPONSORS.md](SPONSORS.md). Sponsorship and contributor affiliations are informational. They do not confer ownership of the project, additional decision rights, preferential treatment in specification or conformance decisions, or endorsement of a sponsor's implementation.
+AgenTrust is an independent open-source project. No company funds, owns or directs it; contributions are voluntary. OPAQUE Systems sponsored early development until October 2026; see [SPONSORS.md](SPONSORS.md).
+
+Any future sponsorship and every contributor affiliation are informational. They do not confer ownership of the project, additional decision rights, preferential treatment in specification or conformance decisions, or endorsement of a sponsor's implementation.
 
 Maintainers and the Project Lead participate in their project roles as individuals. They must disclose a material conflict of interest and recuse from a decision when their employer, sponsor, or commercial interest would prevent impartial project judgment.
 

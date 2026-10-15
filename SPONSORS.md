@@ -1,15 +1,7 @@
 # Sponsors
 
-The Weight Custody Manifest project recognizes organizations that provide financial, engineering, infrastructure, or other material support.
+AgenTrust is an independent open-source project. No company funds, owns or directs it; contributions are voluntary.
 
-Weight Custody Manifest is sponsored by OPAQUE Systems, which funds the engineering, infrastructure and confidential-computing work behind it. Organisations that want to support the project are welcome to join as sponsors.
+OPAQUE Systems sponsored early development until October 2026.
 
-## Current sponsors
-
-| Organization | Support |
-|---|---|
-| OPAQUE Systems | Founding engineering and infrastructure support, including contributions to the initial specification, threat model, and reference SDK |
-
-## Adding or updating a sponsor
-
-Sponsor recognition must describe the support factually and must not imply certification or endorsement. Open a pull request updating this file with the organization name and a concise description of its support.
+Sponsorship does not confer ownership of the project, specification control, conformance preference, or endorsement. Project decisions follow [GOVERNANCE.md](GOVERNANCE.md).
