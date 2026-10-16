@@ -5,7 +5,7 @@ contact_links:
     url: https://github.com/agentrust-io/weight-custody-manifest/security/advisories/new
     about: Report a security vulnerability via private disclosure. Do not file a public issue. Read SECURITY.md first - the hardware-owner limitation is documented, not a vulnerability.
   - name: Question or discussion
-    url: https://github.com/agentrust-io/weight-custody-manifest/discussions
+    url: https://github.com/agentrust-io/.github/discussions
     about: Ask a question or start a discussion about the spec or SDK.
   - name: Spec change proposal
     url: https://github.com/agentrust-io/weight-custody-manifest/issues/new?template=spec_change.md

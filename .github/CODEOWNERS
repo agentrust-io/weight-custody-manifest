@@ -1,12 +1,12 @@
 # Default owners for everything
-* @agentrust-io/maintainers
+* @agentrust-io/maintainers @dinakarjs
 
 # Spec + threat model require spec-editor review
-/SPEC.md @agentrust-io/spec-editors
-/THREAT-MODEL.md @agentrust-io/spec-editors
+/SPEC.md @agentrust-io/spec-editors @dinakarjs
+/THREAT-MODEL.md @agentrust-io/spec-editors @dinakarjs
 
 # SDK changes require SDK maintainer review
-/python/ @agentrust-io/sdk-maintainers
+/python/ @agentrust-io/sdk-maintainers @dinakarjs
 
 # CI and governance changes require maintainer review
-/.github/ @agentrust-io/maintainers
+/.github/ @agentrust-io/maintainers @dinakarjs

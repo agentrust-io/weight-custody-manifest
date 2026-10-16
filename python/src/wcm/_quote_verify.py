@@ -49,6 +49,8 @@ class ParsedQuote:
     # The workload launch measurement, sliced from report_body (so it is signed).
     # None when the format carries no launch measurement.
     launch_measurement: Optional[bytes] = None
+    # The full SEV-SNP report when the format is one, for QuoteVerification.
+    snp_report: Optional[bytes] = None
 
 
 class QuoteParser(Protocol):
@@ -157,6 +159,12 @@ class QuoteVerification:
     verified: bool
     reason: Optional[str] = None
     leaf_subject: Optional[str] = None
+    # The full SEV-SNP report whose signature this verification checked, set
+    # only on success and only when the evidence is an SNP report. Anything
+    # that reads report fields after verification (PLATFORM_INFO, for one)
+    # must read them from here, never by re-parsing the submitted evidence,
+    # whose outer container the sender writes.
+    snp_report: Optional[bytes] = None
 
 
 def _utcnow() -> datetime:
@@ -352,4 +360,6 @@ class QuoteVerifier:
                         False, "signed workload launch measurement mismatch"
                     )
 
-        return QuoteVerification(True, leaf_subject=q.leaf.subject.rfc4514_string())
+        return QuoteVerification(
+            True, leaf_subject=q.leaf.subject.rfc4514_string(), snp_report=q.snp_report
+        )
