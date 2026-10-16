@@ -594,6 +594,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Install">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#azure-confidential-vms" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Azure confidential VMs
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -1557,6 +1574,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Install">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#azure-confidential-vms" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Azure confidential VMs
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -1674,6 +1708,20 @@ tested against real hardware.</p>
 pip<span class="w"> </span>install<span class="w"> </span>--require-hashes<span class="w"> </span>-r<span class="w"> </span>../requirements/dev.txt<span class="w">   </span><span class="c1"># includes the KBS server deps</span>
 pip<span class="w"> </span>install<span class="w"> </span>--no-deps<span class="w"> </span>-e<span class="w"> </span>.
 </code></pre></div>
+<h3 id="azure-confidential-vms">Azure confidential VMs<a class="headerlink" href="#azure-confidential-vms" title="Permanent link">&para;</a></h3>
+<p>Both Azure providers (<code>AzureSnpVtpmProvider</code>, <code>AzureTdxVtpmProvider</code>) read the
+HCL report from the vTPM with <code>tpm2_nvread</code> from <code>tpm2-tools</code>, and need
+<code>/dev/tpmrm0</code>. The SNP provider's measured-launch quote also runs
+<code>tpm2_pcrreset</code>, <code>tpm2_pcrextend</code>, <code>tpm2_readpublic</code> and <code>tpm2_quote</code>:</p>
+<div class="highlight"><pre><span></span><code>sudo<span class="w"> </span>apt-get<span class="w"> </span>install<span class="w"> </span>-y<span class="w"> </span>tpm2-tools
+</code></pre></div>
+<p>Without the package both providers report unavailable. On an Azure CVM, where
+the bare-metal providers (<code>/dev/sev-guest</code>, <code>/dev/tdx_guest</code>) are absent, that
+leaves no CPU provider, so <code>select_provider()</code> falls back to <code>SoftwareProvider</code>
+unless it is called with <code>require_hardware=True</code>; the error it raises then names
+only <code>/dev/sev-guest</code> and <code>/dev/tdx-guest</code>, not the missing tool. The Canonical
+<code>ubuntu-24_04-lts:cvm</code> image (<code>24.04.202608260</code>, observed on 2026-09-10) ships
+<code>/dev/tpmrm0</code> and <code>libtss2-*</code> but not <code>tpm2-tools</code>.</p>
 <h2 id="build-sign-verify-a-manifest">Build, sign, verify a manifest<a class="headerlink" href="#build-sign-verify-a-manifest" title="Permanent link">&para;</a></h2>
 <p>A manifest is a short signed document that names the model files and the rules
 for releasing their key. Two parties sign it: the builder (who made the model)

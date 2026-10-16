@@ -1685,10 +1685,10 @@ value must match.</p>
    transport-key binding.</li>
 </ol>
 <p>The reference Azure provider performs steps 1 to 4 with <code>tpm2_pcrreset 23</code> followed
-by <code>tpm2_pcrextend 23:sha256=&lt;serving-image-digest&gt;</code>, then immediately requests
-the AK-signed quote. Missing tools, an invalid measurement, or either TPM command
-failing aborts evidence production; the provider never falls back to quoting an
-unmeasured PCR state.</p>
+by <code>tpm2_pcrextend 23:sha256=&lt;serving-image-digest&gt;</code> (both from the <code>tpm2-tools</code>
+package), then immediately requests the AK-signed quote. Missing tools, an
+invalid measurement, or either TPM command failing aborts evidence production;
+the provider never falls back to quoting an unmeasured PCR state.</p>
 <p>PCR 23 after the reset and extend is:</p>
 <div class="highlight"><pre><span></span><code>SHA256(00 × 32 || serving_image_digest)
 </code></pre></div>
