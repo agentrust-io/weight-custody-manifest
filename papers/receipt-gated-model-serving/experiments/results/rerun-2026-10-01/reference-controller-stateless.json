@@ -1,0 +1,134 @@
+{
+  "experiment": "receipt-gated-controller-fake-api",
+  "backend": "reference",
+  "variant": "stateless",
+  "cases": [
+    {
+      "case": "admission creates Pod and Service bound to the receipt",
+      "controller": {
+        "applied": true,
+        "reason": "service create 201"
+      },
+      "ok": true
+    },
+    {
+      "case": "duplicate admission is idempotent",
+      "controller": {
+        "applied": true,
+        "reason": "already present"
+      },
+      "ok": true
+    },
+    {
+      "case": "revocation removes the Service",
+      "pod_still_present": true,
+      "controller": {
+        "deleted": true
+      },
+      "ok": true
+    },
+    {
+      "case": "restart then replay of the old admission stays unroutable",
+      "controller": {
+        "applied": true,
+        "reason": "service create 201"
+      },
+      "ok": false
+    },
+    {
+      "case": "revocation before admission processing: never routable",
+      "controller": [
+        {
+          "deleted": true
+        },
+        {
+          "applied": true,
+          "reason": "service create 201"
+        }
+      ],
+      "ok": false
+    },
+    {
+      "case": "altered selector is detected and restored by reconcile",
+      "controller": {
+        "actions": []
+      },
+      "ok": false
+    },
+    {
+      "case": "out-of-band Service for a revoked session is deleted by reconcile",
+      "controller": {
+        "actions": []
+      },
+      "ok": false
+    },
+    {
+      "case": "partial apply failure leaves no Service; reconcile completes it",
+      "after_failure": {
+        "pod": true,
+        "service": false
+      },
+      "controller": [
+        {
+          "applied": false,
+          "reason": "service create 500"
+        },
+        {
+          "actions": []
+        }
+      ],
+      "ok": false
+    },
+    {
+      "case": "partial failure then revocation: reconcile and replay never route",
+      "controller": [
+        {
+          "deleted": true
+        },
+        {
+          "actions": []
+        },
+        {
+          "applied": true,
+          "reason": "service create 201"
+        }
+      ],
+      "ok": false
+    },
+    {
+      "case": "receipt replaced after verification does not change the applied Service",
+      "controller": {
+        "applied": true,
+        "reason": "service create 201"
+      },
+      "ok": true
+    },
+    {
+      "case": "revocation after served requests removes the Service",
+      "served_receipt_sequence": 2,
+      "controller": {
+        "deleted": true
+      },
+      "ok": true
+    },
+    {
+      "case": "final sweep: all revoked sessions have no Service",
+      "sweep": {
+        "model-host-0": false,
+        "model-host-1": false,
+        "model-host-4": false,
+        "model-host-6": true
+      },
+      "ok": false
+    }
+  ],
+  "cases_passed": 5,
+  "cases_total": 12,
+  "criterion_met": false,
+  "observation_pods_remain_after_revocation": {
+    "model-host-0": true,
+    "model-host-1": true,
+    "model-host-4": true,
+    "model-host-6": true
+  }
+}

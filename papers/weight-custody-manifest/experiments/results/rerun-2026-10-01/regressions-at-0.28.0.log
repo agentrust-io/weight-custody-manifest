@@ -1,0 +1,35 @@
+.F.F.FFFF                                                                [100%]
+================================== FAILURES ===================================
+E   AssertionError: assert not True
+     +  where True = ReleaseDecision(released=True, key=None, checks=[CheckResult(name='nonce_fresh', passed=True, detail=None), CheckResul...bc99c53658ebc66bb9e4f895ff9536f4832ec5599a9b', renewal_public_key_b64url='8CdY14gX9TsrMmqD9GQEku9u0LKOfzUFvOPU4Q-Uy38').released
+<repo>/python\tests\test_poc_measurement.py:123: AssertionError: assert not True
+E   AssertionError: assert True is False
+     +  where True = QuoteVerification(verified=True, reason=None, leaf_subject='CN=vcek').verified
+     +  and   False = <built-in method endswith of str object at 0x0000022C31AF8340>('5efeb085680ca66a4b1811af255666f1ae21442f3c3ec525d33e443648b3413c')
+     +    where <built-in method endswith of str object at 0x0000022C31AF8340> = 'sha256:0000000000000000000000000000000000000000000000000000000000000000'.endswith
+     +    and   '5efeb085680ca66a4b1811af255666f1ae21442f3c3ec525d33e443648b3413c' = <built-in method hexdigest of _hashlib.HASH object at 0x0000022C31B18650>()
+     +      where <built-in method hexdigest of _hashlib.HASH object at 0x0000022C31B18650> = <sha256 _hashlib.HASH object @ 0x0000022C31B18650>.hexdigest
+     +        where <sha256 _hashlib.HASH object @ 0x0000022C31B18650> = <built-in function openssl_sha256>((b'\xee' * 48))
+     +          where <built-in function openssl_sha256> = hashlib.sha256
+<repo>/python\tests\test_poc_measurement.py:151: AssertionError: assert True is False
+E   AssertionError: assert not True
+     +  where True = VerificationResult(ok=True, signatures=[SignatureResult(role=<SignatureRole.builder: 'builder'>, signer='example-build...368bb856ca6b1b9b15d5a4489dda329f5818e44458496fadb03', valid=True, reason=None)], missing_roles=[], errors=[], notes=[]).ok
+<repo>/python\tests\test_poc_verify.py:139: AssertionError: assert not True
+E   AssertionError: assert not True
+     +  where True = VerificationResult(ok=True, signatures=[SignatureResult(role=<SignatureRole.builder: 'builder'>, signer='example-build...3ad5c329a374f814d769f217916130508a0e3dfa061be972775', valid=True, reason=None)], missing_roles=[], errors=[], notes=[]).ok
+<repo>/python\tests\test_poc_verify.py:162: AssertionError: assert not True
+E   assert (None is not None)
+<repo>/python\tests\test_poc_chain.py:398: assert (None is not None)
+E   AssertionError: assert ['ok', 'ok'] == ['ok', 'refused']
+      
+      At index 1 diff: 'ok' != 'refused'
+      Use -v to get more diff
+<repo>/python\tests\test_poc_challenge.py:112: AssertionError: assert ['ok', 'ok'] == ['ok', 'refused']
+=========================== short test summary info ===========================
+FAILED tests/test_poc_measurement.py::test_unapproved_signed_measurement_is_refused_even_when_the_claim_names_an_approved_one
+FAILED tests/test_poc_measurement.py::test_verifier_compares_the_signed_measurement[sha256:0000000000000000000000000000000000000000000000000000000000000000]
+FAILED tests/test_poc_verify.py::test_one_key_cannot_sign_as_both_builder_and_custodian
+FAILED tests/test_poc_verify.py::test_builder_key_cannot_stand_in_for_the_sovereign
+FAILED tests/test_poc_chain.py::test_end_entity_certificate_cannot_issue - as...
+FAILED tests/test_poc_challenge.py::test_concurrent_presentations_of_one_nonce_release_once
+6 failed, 3 passed in 0.24s

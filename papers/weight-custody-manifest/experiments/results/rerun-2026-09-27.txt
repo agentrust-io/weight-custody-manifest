@@ -1,0 +1,24 @@
+WCM software rerun, 2026-09-27
+Repository: https://github.com/agentrust-io/weight-custody-manifest
+Commit: 2acedfa883204f7d1fd457d3ee603198d85be82c (WCM 0.28.0, main as of 2026-09-03)
+Python: 3.12.10 on Windows 11
+Dependencies: resolved on 2026-09-27 from python/pyproject.toml (not pinned to 2026-09-03)
+  cryptography==50.0.1 fastapi==0.141.1 pydantic==2.13.5 pytest==9.1.1 rfc8785==0.1.4 
+
+## pytest -q (from python/)
+SKIPPED [1] tests\test_artifact_digest.py:214: symlink creation needs privilege
+SKIPPED [1] tests\test_artifact_digest.py:226: symlink creation needs privilege
+SKIPPED [1] tests\test_artifact_digest.py:238: symlink creation needs privilege
+618 passed, 3 skipped, 1 warning
+
+## wcm conformance (reference self-test)
+vectors   : conformance/vectors (in the repository at the commit above)
+subject   : reference implementation (this SDK)
+L1  PASS  32/32  Manifest and joint signature
+L2  PASS  37/37  Attestation-gated release
+L3  PASS  12/12  Runtime custody
+L4  PASS  10/10  Derivative lineage
+note      : reference self-test; verdicts and WCM-* codes both checked
+levels ok : L1, L2, L3, L4
+NOT COVERED: GPU-side cryptographic verification is not vectored. The L2 quote vectors verify the CPU quote (chain, signature, REPORT_DATA binding) through the reference JSON container. The NVIDIA path is a different verifier over a real device chain, and the H100 fixture in the SDK's own tests is what covers it today; a vector would need the device chain and the raw-nonce-at-offset-4 convention expressed in the corpus.
+NOT COVERED: Quote vectors use a synthetic PKI, not vendor roots. They prove an implementation verifies a chain, a signature and a nonce binding correctly. They do NOT prove it can parse a real AMD, Intel or NVIDIA quote, which is vendor-format work the SDK covers with committed real-silicon fixtures.
