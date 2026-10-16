@@ -1056,7 +1056,7 @@ No change to the spec or to any security claim.
 
 **[repo]** Moved the runnable examples and demos out of this repo into the public
 [agentrust-io/examples](https://github.com/agentrust-io/integrations/tree/main/examples/weight-custody-manifest)
-(per-product catalog) and [agentrust-io/demos](https://github.com/agentrust-io/demos)
+(per-product catalog) and [agentrust-io/demos](https://github.com/agentrust-io/integrations/tree/main/demos)
 (talk track), where they depend on the published `weight-custody-manifest` PyPI
 package rather than an in-repo checkout. The SDK keeps `examples/manifest.example.json`
 as a CLI docs fixture. The demo notes below describe those examples as originally
