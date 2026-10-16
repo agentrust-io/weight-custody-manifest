@@ -13,11 +13,11 @@ gets scored.
 | Level | Title | Vectors | Shape |
 | --- | --- | --- | --- |
 | L1 | Manifest and joint signature | **38** | documents |
-| L2 | Attestation-gated release | **43** | scenarios and vendor evidence |
+| L2 | Attestation-gated release | **44** | scenarios and vendor evidence |
 | L3 | Runtime custody | **12** | scenarios |
 | L4 | Derivative lineage | **10** | documents |
 
-103 vectors. All four levels are vectored and **every reportable error code is
+104 vectors. All four levels are vectored and **every reportable error code is
 exercised by at least one vector**, which a test enforces. L1 and L4 ask a question
 about a document. Most L2 vectors and every L3 vector ask what a system does over
 *time*, so they are ordered scenarios; L2 also carries vendor evidence (see
@@ -27,10 +27,11 @@ That is the point at which a pass gets over-read, so here is what it still does
 **not** mean. Both limits are printed by `wcm conformance` on every full run, from
 `COVERAGE_NOTES` in `wcm.conformance`:
 
-- **The vendor corpus covers AMD SEV-SNP, but not Intel TDX.** The AMD vector
-  verifies a genuine Azure report against the staged AMD Milan root and applies
-  all six refusal mutations. Intel remains covered only by SDK fixtures and the
-  synthetic quote vectors do not prove an implementation can parse real TDX bytes.
+- **Vendor evidence is offline replay.** The corpus contains an Azure AMD
+  SEV-SNP report and an externally captured GCP Intel TDX quote, each verified
+  against an independently staged vendor root with the mandatory refusal matrix.
+  Injected time and a recorded nonce do not establish fresh hardware observation,
+  transport-key binding or complete platform TCB/revocation appraisal.
 - **GPU-side cryptographic verification is not vectored.** The L2 quote vectors
   verify the CPU quote. The NVIDIA path is a separate verifier over a real device
   chain with a raw nonce at offset 4, and the H100 fixture in the SDK's own tests
@@ -560,3 +561,11 @@ trusting that the implementation is right:
   fails closed: a deadline you cannot read is not a deadline that has not passed.
 - **Signing needs defaults materialized first**, or valid signatures are rejected
   (see the L1 section above).
+
+
+The Intel capture `vectors/vendor/accept-tdx-gcp-seam15-nonce-digest.json`
+reuses Mohammed Zoheb Shaik's external GCP C3 capture from #117, dated
+2026-09-12T19:37:42+00:00. It declares guest nonce-digest binding and a
+2033-05-21T10:50:10+00:00 shortest certificate horizon. Its root is staged
+separately from Intel's public provisioning certificate endpoint; see roots/README.md.
+The recorded TEE_TCB_SVN bytes are observations, not a current security appraisal.

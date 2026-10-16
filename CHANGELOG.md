@@ -12,6 +12,12 @@ checks for all required roles; missing bindings refuse without flat-trust fallba
 Unbound contexts retain existing behavior; schema, signed fields, and Layer 2
 release checks are unchanged.
 
+**Added.** A committed Intel TDX vendor conformance vector reusing the dated
+external GCP C3 SEAM SVN 15 capture, with a separately staged public Intel root,
+nonce-digest binding, pinned clock and all six refusal controls. The corpus now
+has 104 vectors (44 at L2). This is offline replay, not fresh hardware acceptance,
+transport-key binding or complete TCB/revocation appraisal.
+
 ## 0.32.0 - 2026-10-15
 
 **Fixed, security (GHSA-vwq2-c539-xpr6), breaking.** `AzureSnpVtpmVerifier`
@@ -1055,8 +1061,8 @@ corrected. The README was the only file left claiming the document was being wit
 No change to the spec or to any security claim.
 
 **[repo]** Moved the runnable examples and demos out of this repo into the public
-[agentrust-io/examples](https://github.com/agentrust-io/examples/tree/main/weight-custody-manifest)
-(per-product catalog) and [agentrust-io/demos](https://github.com/agentrust-io/demos)
+[agentrust-io/examples](https://github.com/agentrust-io/integrations/tree/main/examples/weight-custody-manifest)
+(per-product catalog) and [agentrust-io/demos](https://github.com/agentrust-io/integrations/tree/main/demos)
 (talk track), where they depend on the published `weight-custody-manifest` PyPI
 package rather than an in-repo checkout. The SDK keeps `examples/manifest.example.json`
 as a CLI docs fixture. The demo notes below describe those examples as originally
