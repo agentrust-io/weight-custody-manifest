@@ -6,6 +6,11 @@ uses semantic-ish versioning while pre-1.0.
 
 ## Unreleased
 
+**Fixed.** Challenge-store expiry pruning uses constant-time front removal
+instead of repeatedly scanning a deleted dictionary prefix while holding the
+store lock. Single-use and expiry acceptance rules are unchanged. This does not
+add a request-rate or absolute storage cap.
+
 **Added.** A committed Intel TDX vendor conformance vector reusing the dated
 external GCP C3 SEAM SVN 15 capture, with a separately staged public Intel root,
 nonce-digest binding, pinned clock and all six refusal controls. The corpus now
