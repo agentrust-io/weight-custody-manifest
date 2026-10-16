@@ -64,6 +64,13 @@ That is one paravisor build on one VM size, not a list to copy. The
 reference server wires the generic `QuoteVerifier`, not this class, and is
 unchanged.
 
+**Fixed, security.** `AzureSnpVtpmVerifier` now requires the SNP report to be
+at VMPL 0 and denies any other with "SNP report is from VMPL <n>, not VMPL 0".
+The paravisor runs at VMPL 0 and requests the report itself, so a report from
+VMPL 1 to 3 came from less privileged guest software. `broker_receiver` and
+provisioning already required VMPL 0. The Azure capture in this repository is
+VMPL 0. Raised by @rajnisht7 in review (#204).
+
 **Fixed.** `parse_tdx_quote`, and through it `verify_tdx_quote` and `wcm
 verify-quote --kind tdx`, ignored the signature section's certification-data
 type, did not tie the certification-data size to the signature-section length,
