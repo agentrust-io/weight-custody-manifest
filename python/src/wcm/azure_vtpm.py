@@ -5,7 +5,7 @@ import base64
 import hashlib
 import json
 from datetime import datetime, timezone
-from typing import Any, Optional
+from typing import Any, Iterable, Optional, Union
 
 from cryptography import x509
 from cryptography.exceptions import InvalidSignature, UnsupportedAlgorithm
@@ -57,6 +57,28 @@ def _b64url_uint(value: str) -> int:
     return int.from_bytes(base64.b64decode(std + "=" * (-len(std) % 4), validate=True), "big")
 
 
+_MEASUREMENT_LEN = 48
+_POLICY_DEBUG = 1 << 19
+
+
+def _paravisor_measurement(value: Union[str, bytes]) -> bytes:
+    """Normalise one allowed SNP launch measurement to its 48 raw bytes."""
+    if isinstance(value, bytes):
+        raw = value
+    elif isinstance(value, str):
+        if value != value.lower():
+            raise ValueError("paravisor measurement hex must be lowercase")
+        try:
+            raw = bytes.fromhex(value)
+        except ValueError as exc:
+            raise ValueError("paravisor measurement contains non-hex characters") from exc
+    else:
+        raise TypeError("paravisor measurement must be hex str or bytes")
+    if len(raw) != _MEASUREMENT_LEN:
+        raise ValueError(f"paravisor measurement must be {_MEASUREMENT_LEN} bytes (SHA-384)")
+    return raw
+
+
 def _take_u16(blob: bytes, offset: int) -> tuple[bytes, int]:
     if offset + 2 > len(blob):
         raise ValueError("truncated TPM2B")
@@ -75,10 +97,30 @@ class AzureSnpVtpmVerifier:
     ``tpm_quote_b64``, ``tpm_signature_b64``, ``vcek_pem``,
     ``intermediates_pem`` and ``root_pem``. The TPM quote must use
     SHA-256(nonce || channel_binding) as qualifying data and select PCR 23.
+
+    ``paravisor_measurements`` is the operator's allowlist of SNP launch
+    measurements for the Azure paravisor builds it trusts. The REPORT_DATA
+    binding below proves only that whoever requested the SNP report chose the
+    HCL runtime data; any SNP guest that controls REPORT_DATA can do that. The
+    launch measurement is what ties the report to Azure's paravisor rather than
+    to an arbitrary guest, so it is required and there is no default. Azure
+    updates the paravisor, so this is an allowlist the operator maintains, not
+    a constant.
     """
 
-    def __init__(self, trust_store: TrustStore) -> None:
+    def __init__(
+        self,
+        trust_store: TrustStore,
+        *,
+        paravisor_measurements: Iterable[Union[str, bytes]],
+    ) -> None:
+        if isinstance(paravisor_measurements, (str, bytes)):
+            raise TypeError("paravisor_measurements must be a collection, not one value")
+        allowed = frozenset(_paravisor_measurement(m) for m in paravisor_measurements)
+        if not allowed:
+            raise ValueError("at least one Azure paravisor launch measurement is required")
         self._trust = trust_store
+        self._paravisor_measurements = allowed
 
     def verify(
         self,
@@ -123,6 +165,16 @@ class AzureSnpVtpmVerifier:
             return QuoteVerification(False, chain_error)
         if not verify_snp_report_signature(report, vcek):
             return QuoteVerification(False, "SNP report signature does not verify")
+        if parsed.measurement not in self._paravisor_measurements:
+            return QuoteVerification(
+                False, "SNP launch measurement is not an allowed Azure paravisor measurement"
+            )
+        if parsed.policy & _POLICY_DEBUG:
+            return QuoteVerification(False, "SNP guest policy allows debugging")
+        # The paravisor runs at VMPL 0 and requests this report itself; a report
+        # requested at VMPL 1 to 3 came from less privileged guest software.
+        if parsed.vmpl != 0:
+            return QuoteVerification(False, f"SNP report is from VMPL {parsed.vmpl}, not VMPL 0")
 
         runtime = hcl[32 + 1184 :]
         if len(runtime) < 20:
@@ -203,4 +255,6 @@ class AzureSnpVtpmVerifier:
             ak.verify(signature, quote, padding.PKCS1v15(), hashes.SHA256())
         except (ValueError, InvalidSignature) as exc:
             return QuoteVerification(False, f"TPM quote verification failed: {exc}")
-        return QuoteVerification(True, leaf_subject=vcek.subject.rfc4514_string())
+        return QuoteVerification(
+            True, leaf_subject=vcek.subject.rfc4514_string(), snp_report=report
+        )

@@ -4,15 +4,22 @@
 
 | Name | Project affiliation | GitHub | Role |
 |------|-------------|--------|------|
-| Imran Siddique | AgenTrust-io | @agentrust-io | Project Lead, Spec Author |
+| Imran Siddique | AgenTrust-io | @imran-siddique | Project Lead, Spec Author |
 
 The Project Lead has final decision authority on specification changes, publication timing, and maintainer appointments. Publication is not gated on closing open question 8.8; its residual limitation remains mandatory disclosure.
+
+## Repository Maintainers
+
+| Name | GitHub | Appointment |
+|---|---|---|
+| Zoheb | [@zohebk8s](https://github.com/zohebk8s) | [Community handover](https://github.com/agentrust-io/.github/issues/60) |
+| Srinivasa Dinakar Jainti | [@dinakarjs](https://github.com/dinakarjs) | [Community handover](https://github.com/agentrust-io/.github/issues/60) |
 
 ## How to become a maintainer
 
 **Reviewer**: 3+ merged PRs with substantive contributions (not typo fixes). Nominated by a Maintainer, approved by the Project Lead.
 
-**Maintainer**: active Reviewer for 60+ days, 5+ merged PRs, demonstrated judgment on spec or SDK design questions. Nominated by any Maintainer, approved by the Project Lead. Maintainers hold publish rights on the `weight-custody-manifest` package.
+**Maintainer**: active Reviewer for 60+ days, 5+ merged PRs, demonstrated judgment on spec or SDK design questions. Nominated by any Maintainer, approved by the Project Lead. Publishing `weight-custody-manifest` runs through the `pypi` release environment, whose approvers are set separately from this list.
 
 We are actively recruiting maintainers across independent organizations - in particular frontier labs and sovereign/on-prem operators who face the builder-into-customer-infrastructure trust direction WCM addresses. If you are evaluating WCM and want to participate in governance, open an issue tagged `maintainer-interest`.
 

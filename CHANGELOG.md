@@ -4,13 +4,65 @@ Notable changes to the Weight Custody Manifest specification and Python SDK.
 Format loosely follows [Keep a Changelog](https://keepachangelog.com/); the SDK
 uses semantic-ish versioning while pre-1.0.
 
-## Unreleased (0.31.1)
+## Unreleased
 
 **Added.** Opt-in `VerificationContext.bind_key` authorization of trusted keys
 for required signer roles and manifest identities. Any binding enables strict
 checks for all required roles; missing bindings refuse without flat-trust fallback.
 Unbound contexts retain existing behavior; schema, signed fields, and Layer 2
 release checks are unchanged.
+
+## 0.32.0 - 2026-10-15
+
+**Fixed, security (GHSA-vwq2-c539-xpr6), breaking.** `AzureSnpVtpmVerifier`
+never checked that the SNP report came from Azure's paravisor. It checked that
+`REPORT_DATA` hashes the HCL runtime JSON, but any SNP guest that controls
+`REPORT_DATA` can produce a genuine, correctly chained report over runtime JSON
+naming its own attestation key, then sign a TPM quote under that key for any
+nonce, transport key and PCR 23 value. The key broker would seal the model key
+to that guest's transport key although the approved serving image never ran.
+Reported privately by Patrick Schmitt (@patschmittdev).
+
+The constructor now takes a required keyword argument,
+`paravisor_measurements`: the SNP launch measurements (48 bytes, as raw bytes
+or lowercase hex) of the Azure paravisor builds the operator trusts. A report
+whose `MEASUREMENT` is not in that set is denied with "SNP launch measurement
+is not an allowed Azure paravisor measurement". There is no default and an
+empty set is refused at construction, because Azure updates the paravisor and
+only the operator can say which builds it accepts. A report whose guest policy
+allows debugging (policy bit 19) is denied as well, and an HCL blob shorter
+than its header plus the SNP report is refused before any slicing. The live
+tools `azure_attestation_controls.py`, `azure_measured_launch_receipt.py` and
+`paired_hardware_release.py` take a repeatable `--paravisor-measurement`, and
+the controls diagnostic gains an `unlisted-paravisor-measurement` case.
+
+**Fixed, security (GHSA-vwq2-c539-xpr6, second defect).** The
+`platform_integrity` release check read PLATFORM_INFO by base64-decoding
+`evidence.cpu.quote_b64` and parsing it as an SNP report. On the Azure path that
+field is a JSON bundle, and on the reference server a JSON container, so the
+eight bytes at the PLATFORM_INFO offset were text the sender wrote. Padding the
+JSON could make a report with both integrity bits clear pass, and a genuine
+report with both set could be denied. Also reported by Patrick Schmitt.
+
+`QuoteVerification` now carries `snp_report`, the full report whose signature
+the verifier checked, set only on success. `QuoteVerifier` (through
+`SnpQuoteParser`) and `AzureSnpVtpmVerifier` fill it. The KBS runs the CPU quote
+check before `platform_integrity`, still reporting both in their usual order,
+and `platform_integrity` reads PLATFORM_INFO only from that authenticated
+report. **Behaviour change:** a manifest that requires either integrity bit is
+now denied when no CPU quote verifier is configured or verification fails,
+with "required but no cryptographically verified SNP report". Requiring a
+hardware bit without verifying the hardware report never meant anything.
+
+**Migration.** Read the `MEASUREMENT` field from an SNP report captured on a
+confidential VM you deployed and trust (`parse_snp_report(...).measurement`),
+and pass every such value: `AzureSnpVtpmVerifier(trust,
+paravisor_measurements=[...])`. The Azure capture in this repository,
+`python/tests/fixtures/snp_quote_azure.json`, reports
+`5b0ce64ad1c1f6375dbda5f760b98526ca1bcf91b8195091afc28e7b024251d68fe32e05af34048d6607678cd23283ff`.
+That is one paravisor build on one VM size, not a list to copy. The
+reference server wires the generic `QuoteVerifier`, not this class, and is
+unchanged.
 
 **Fixed.** `parse_tdx_quote`, and through it `verify_tdx_quote` and `wcm
 verify-quote --kind tdx`, ignored the signature section's certification-data
@@ -29,6 +81,13 @@ compatibility with how quotes are captured. Each refusal is a
 value could be changed through these fields: the attestation key signs the
 header and TD report, the QE report binds that key, and the PCK chain signs the
 QE report.
+
+**Changed.** The docs name `tpm2-tools` as a prerequisite for both Azure vTPM
+providers (getting started, README, measured launch). Both gate `is_available()`
+on `tpm2_nvread`; without it, on an Azure CVM with no other CPU provider,
+`select_provider()` falls back to `SoftwareProvider`. The Canonical
+`ubuntu-24_04-lts:cvm` image `24.04.202608260` (observed 2026-09-10) shipped
+without the package. No runtime behavior changes.
 
 ## 0.31.0 - 2026-10-08
 

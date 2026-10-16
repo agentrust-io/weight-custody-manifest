@@ -30,7 +30,7 @@ def nonce(value: str) -> str:
     return value
 
 
-def controls(verifier, encoded, expected_nonce, key, measurement):
+def controls(verifier, encoded, expected_nonce, key, measurement, *, trust, paravisor_measurements):
     def verify(quote=encoded, challenge=expected_nonce, binding=key, digest=measurement):
         return verifier.verify(quote, expected_nonce=challenge, channel_binding=binding,
                                expected_workload_measurement=digest)
@@ -56,13 +56,20 @@ def controls(verifier, encoded, expected_nonce, key, measurement):
         doc[field] = base64.b64encode(raw).decode()
         altered = base64.b64encode(json.dumps(doc).encode()).decode()
         record("tampered-" + field, verify(quote=altered), False)
-    record("untrusted-root", AzureSnpVtpmVerifier(TrustStore()).verify(
+    record("untrusted-root", AzureSnpVtpmVerifier(
+        TrustStore(), paravisor_measurements=paravisor_measurements).verify(
+        encoded, expected_nonce=expected_nonce, channel_binding=key,
+        expected_workload_measurement=measurement), False)
+    listed = [bytes.fromhex(m) if isinstance(m, str) else m for m in paravisor_measurements]
+    unlisted = [bytes([m[0] ^ 1]) + m[1:] for m in listed]
+    record("unlisted-paravisor-measurement", AzureSnpVtpmVerifier(
+        trust, paravisor_measurements=[m for m in unlisted if m not in listed]).verify(
         encoded, expected_nonce=expected_nonce, channel_binding=key,
         expected_workload_measurement=measurement), False)
     return results
 
 
-def run(root: Path, first: str, second: str, output: Path):
+def run(root: Path, first: str, second: str, output: Path, paravisor_measurements: list[str]):
     first, second = nonce(first), nonce(second)
     if first == second:
         raise ValueError("distinct owner nonces required")
@@ -72,7 +79,7 @@ def run(root: Path, first: str, second: str, output: Path):
         raise ValueError("exactly one independently pinned AMD root required")
     trust = TrustStore()
     trust.add_root(roots[0])
-    verifier = AzureSnpVtpmVerifier(trust)
+    verifier = AzureSnpVtpmVerifier(trust, paravisor_measurements=paravisor_measurements)
     if not AzureSnpVtpmProvider.is_available():
         raise RuntimeError("Azure SNP/vTPM unavailable; no software fallback")
     provider = AzureSnpVtpmProvider()
@@ -93,7 +100,8 @@ def run(root: Path, first: str, second: str, output: Path):
     (output / "private-evidence.json").write_text(json.dumps({
         "quote_b64": quote, "nonce": first, "transport_public_key": public,
         "workload_digest": digest}, indent=2) + "\n")
-    results = controls(verifier, quote, first, key, digest)
+    results = controls(verifier, quote, first, key, digest,
+                       trust=trust, paravisor_measurements=paravisor_measurements)
     # Executable counterexample to calling PCR23 an enforced app measurement:
     # this API accepts a caller-provided digest; it does not hash the file.
     sample.write_bytes(b"print('changed diagnostic file')\n")
@@ -142,5 +150,7 @@ if __name__ == "__main__":
     parser.add_argument("--nonce", required=True)
     parser.add_argument("--second-nonce", required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--paravisor-measurement", action="append", required=True,
+                        help="allowed Azure paravisor SNP launch measurement (96 lowercase hex); repeat for each trusted build")
     args = parser.parse_args()
-    run(args.root, args.nonce, args.second_nonce, args.output)
+    run(args.root, args.nonce, args.second_nonce, args.output, args.paravisor_measurement)
