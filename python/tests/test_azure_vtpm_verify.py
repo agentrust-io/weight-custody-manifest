@@ -5,6 +5,7 @@ import hashlib
 import json
 import struct
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 
 import pytest
 from cryptography import x509
@@ -15,6 +16,7 @@ from cryptography.x509.oid import NameOID
 
 from wcm import AzureSnpVtpmVerifier, TrustStore
 from wcm.azure_vtpm import expected_pcr23_digest
+from wcm.snp import parse_snp_report
 
 NOW = datetime(2026, 8, 12, tzinfo=timezone.utc)
 NONCE = "ab" * 32
@@ -55,7 +57,7 @@ def _b64url(value: int, size: int) -> str:
 
 
 def _bundle(*, wrong_binding=False, wrong_ak=False, no_pcr23=False, pcr_digest=None, jwk=None,
-            launch_measurement=PARAVISOR, policy=0x3001F, hcl_truncate=None):
+            launch_measurement=PARAVISOR, policy=0x3001F, vmpl=0, hcl_truncate=None):
     root_key, inter_key, vcek_key = (ec.generate_private_key(ec.SECP384R1()) for _ in range(3))
     root = _cert("root", "root", root_key, root_key, ca=True)
     inter = _cert("inter", "root", inter_key, root_key, ca=True)
@@ -76,6 +78,7 @@ def _bundle(*, wrong_binding=False, wrong_ak=False, no_pcr23=False, pcr_digest=N
     report = bytearray(1184)
     struct.pack_into("<I", report, 0, 3)
     struct.pack_into("<Q", report, 0x08, policy)
+    struct.pack_into("<I", report, 0x30, vmpl)
     report[0x90:0xC0] = bytes.fromhex(launch_measurement)
     report[0x50:0x70] = hashlib.sha256(runtime_json).digest()
     der = vcek_key.sign(bytes(report[:0x2A0]), ec.ECDSA(hashes.SHA384()))
@@ -326,6 +329,19 @@ def test_azure_snp_vtpm_rejects_debuggable_guest_policy():
     bundle, trust = _bundle(policy=0x3001F | (1 << 19))
     result = _verify(bundle, trust)
     assert not result.verified and result.reason == "SNP guest policy allows debugging"
+
+
+@pytest.mark.parametrize("vmpl", [1, 2, 3])
+def test_azure_snp_vtpm_rejects_report_not_at_vmpl0(vmpl):
+    bundle, trust = _bundle(vmpl=vmpl)
+    result = _verify(bundle, trust)
+    assert not result.verified and result.reason == f"SNP report is from VMPL {vmpl}, not VMPL 0"
+
+
+def test_genuine_azure_vtpm_report_is_at_vmpl0():
+    """The check must not reject real evidence: the captured Azure report is VMPL 0."""
+    fixture = json.loads((Path(__file__).parent / "fixtures" / "snp_quote_azure.json").read_text())
+    assert parse_snp_report(base64.b64decode(fixture["report_b64"])).vmpl == 0
 
 
 def test_azure_snp_vtpm_denies_truncated_hcl():
