@@ -1,0 +1,276 @@
+{
+  "report": "model-key-broker-provisioning",
+  "started_utc": "2026-10-01T18:28:38Z",
+  "finished_utc": "2026-10-01T18:29:29Z",
+  "software_only": true,
+  "repository": "https://github.com/agentrust-io/weight-custody-manifest",
+  "revision": "db8f10638bb9d6dac7b1e115b7760dffc9e2635d",
+  "is_evaluated_revision": true,
+  "python": "3.12.10",
+  "platform": "Windows-11-10.0.26200-SP0",
+  "machine": "ARM64",
+  "git": "git version 2.54.0.windows.1",
+  "package_versions": {
+    "cryptography": "50.0.1",
+    "pytest": "9.1.1",
+    "pytest-asyncio": "1.4.0",
+    "pydantic": "2.13.5",
+    "jsonschema": "4.26.0"
+  },
+  "all_installed_distributions": {
+    "agentrust-trace": "0.5.0",
+    "agent-manifest": "0.12.0",
+    "annotated-types": "0.8.0",
+    "anyio": "4.15.1",
+    "attrs": "26.1.0",
+    "cbor2": "6.1.5",
+    "cedarpy": "4.8.7",
+    "certifi": "2026.7.22",
+    "cffi": "2.1.1",
+    "click": "8.5.0",
+    "colorama": "0.4.6",
+    "cryptography": "50.0.1",
+    "h11": "0.16.0",
+    "httpcore": "1.0.9",
+    "httpx": "0.28.1",
+    "idna": "3.20",
+    "iniconfig": "2.3.0",
+    "jsonschema": "4.26.0",
+    "jsonschema-specifications": "2025.9.1",
+    "packaging": "26.3",
+    "pip": "25.0.1",
+    "pluggy": "1.6.0",
+    "pycparser": "3.0",
+    "pydantic": "2.13.5",
+    "pydantic_core": "2.46.5",
+    "Pygments": "2.21.0",
+    "pytest": "9.1.1",
+    "pytest-asyncio": "1.4.0",
+    "PyYAML": "6.0.3",
+    "referencing": "0.37.0",
+    "rfc8785": "0.1.4",
+    "rpds-py": "2026.6.3",
+    "starlette": "1.3.1",
+    "typing_extensions": "4.16.0",
+    "typing-inspection": "0.4.4",
+    "uvicorn": "0.54.0"
+  },
+  "command": "python -B rerun.py --repo <repo> --output <output> --revision db8f10638bb9d6dac7b1e115b7760dffc9e2635d",
+  "harness_sha256": {
+    "lifecycle.py": "7727de5ad85058a794955d3d581d52bdfb18e79627416debcfbceb66be7e2ead",
+    "rerun.py": "77c768c11296b0d242b61fd5438830ec2b97a4522db4a95a2e48ce66283b6dd6"
+  },
+  "runs": [
+    {
+      "label": "baseline",
+      "kind": "suite",
+      "exit_code": 0,
+      "seconds": 4.3,
+      "command": "python -B -m pytest -p no:cacheprovider -p pytest_asyncio.plugin -q --tb=short tests/test_provisioning.py tests/test_broker_receiver.py tests/test_deployment_identity.py",
+      "removal": null,
+      "tests": 84,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "failed_cases": [],
+      "valid": true
+    },
+    {
+      "label": "configuration",
+      "kind": "suite",
+      "exit_code": 1,
+      "seconds": 4.5,
+      "command": "python -B -m pytest -p no:cacheprovider -p pytest_asyncio.plugin -q --tb=short tests/test_provisioning.py tests/test_broker_receiver.py tests/test_deployment_identity.py",
+      "removal": {
+        "file": "python/src/wcm/broker_receiver.py",
+        "fragment": "if configuration.digest() != policy.configuration_sha256:",
+        "replacement": "if False:",
+        "applicable": true,
+        "original_sha256": "473b813caffa84b038045a42af35c94117e63f9790e99b63cebd6664fcf6edc2"
+      },
+      "tests": 84,
+      "failures": 5,
+      "errors": 0,
+      "skipped": 0,
+      "failed_cases": [
+        "test_changed_effective_inputs_fail_owner_digest[cpu_root_der]",
+        "test_changed_effective_inputs_fail_owner_digest[cpu_vcek_der]",
+        "test_changed_effective_inputs_fail_owner_digest[gpu_root_der]",
+        "test_changed_effective_inputs_fail_owner_digest[owner_public_key]",
+        "test_changed_effective_inputs_fail_owner_digest[trusted_manifest_identities]"
+      ],
+      "valid": true
+    },
+    {
+      "label": "measurement",
+      "kind": "suite",
+      "exit_code": 1,
+      "seconds": 4.3,
+      "command": "python -B -m pytest -p no:cacheprovider -p pytest_asyncio.plugin -q --tb=short tests/test_provisioning.py tests/test_broker_receiver.py tests/test_deployment_identity.py",
+      "removal": {
+        "file": "python/src/wcm/provisioning.py",
+        "fragment": "if parsed.version < 2 or parsed.measurement.hex() != policy.measurement_hex:",
+        "replacement": "if False:",
+        "applicable": true,
+        "original_sha256": "58abb76a3799b29e19f619119314b4f702ca678dcb21e7f7b492a7b421a2995d"
+      },
+      "tests": 84,
+      "failures": 3,
+      "errors": 0,
+      "skipped": 0,
+      "failed_cases": [
+        "test_identity_constrained_provisioning_uses_real_signed_report_and_sealed_key[measurement]",
+        "test_report_is_snapshotted_before_authentication",
+        "test_substitution_is_denied_before_provisioning[image]"
+      ],
+      "valid": true
+    },
+    {
+      "label": "lifecycle",
+      "kind": "experiment",
+      "script": "lifecycle.py",
+      "exit_code": 0,
+      "criterion_met": true,
+      "cases_passed": 10,
+      "cases_total": 10,
+      "seconds": 12.0,
+      "command": "python -B lifecycle.py run <scratch>",
+      "removal": null,
+      "valid": true
+    },
+    {
+      "label": "lifecycle-control-retirement-flag",
+      "kind": "experiment",
+      "script": "lifecycle.py",
+      "exit_code": 1,
+      "criterion_met": false,
+      "cases_passed": 9,
+      "cases_total": 10,
+      "seconds": 12.3,
+      "command": "python -B lifecycle.py run <scratch>",
+      "removal": {
+        "file": "python/src/wcm/broker_receiver.py",
+        "fragment": "self._retired = True",
+        "replacement": "self._retired = False",
+        "applicable": true,
+        "original_sha256": "473b813caffa84b038045a42af35c94117e63f9790e99b63cebd6664fcf6edc2"
+      },
+      "valid": true
+    },
+    {
+      "label": "lifecycle-control-epoch-floor",
+      "kind": "experiment",
+      "script": "lifecycle.py",
+      "exit_code": 1,
+      "criterion_met": false,
+      "cases_passed": 7,
+      "cases_total": 10,
+      "seconds": 11.8,
+      "command": "python -B lifecycle.py run <scratch>",
+      "removal": {
+        "file": "python/src/wcm/provisioning_state.py",
+        "fragment": "if epoch < floor or (epoch == floor and digest != row[1]):",
+        "replacement": "if False:",
+        "applicable": true,
+        "original_sha256": "f6ddb45177757626b5edc82c032c218433ac4de9dd3e7a8c8b640314ca6fc0f6"
+      },
+      "valid": true
+    }
+  ],
+  "comparison_with_recorded_values": {
+    "baseline": {
+      "expected": {
+        "tests": 84,
+        "failures": 0
+      },
+      "observed": {
+        "tests": 84,
+        "failures": 0
+      },
+      "matches": true
+    },
+    "configuration": {
+      "expected": {
+        "tests": 84,
+        "failed_cases": [
+          "test_changed_effective_inputs_fail_owner_digest[cpu_root_der]",
+          "test_changed_effective_inputs_fail_owner_digest[cpu_vcek_der]",
+          "test_changed_effective_inputs_fail_owner_digest[gpu_root_der]",
+          "test_changed_effective_inputs_fail_owner_digest[owner_public_key]",
+          "test_changed_effective_inputs_fail_owner_digest[trusted_manifest_identities]"
+        ]
+      },
+      "observed": {
+        "tests": 84,
+        "failed_cases": [
+          "test_changed_effective_inputs_fail_owner_digest[cpu_root_der]",
+          "test_changed_effective_inputs_fail_owner_digest[cpu_vcek_der]",
+          "test_changed_effective_inputs_fail_owner_digest[gpu_root_der]",
+          "test_changed_effective_inputs_fail_owner_digest[owner_public_key]",
+          "test_changed_effective_inputs_fail_owner_digest[trusted_manifest_identities]"
+        ]
+      },
+      "matches": true
+    },
+    "measurement": {
+      "expected": {
+        "tests": 84,
+        "failed_cases": [
+          "test_identity_constrained_provisioning_uses_real_signed_report_and_sealed_key[measurement]",
+          "test_report_is_snapshotted_before_authentication",
+          "test_substitution_is_denied_before_provisioning[image]"
+        ]
+      },
+      "observed": {
+        "tests": 84,
+        "failed_cases": [
+          "test_identity_constrained_provisioning_uses_real_signed_report_and_sealed_key[measurement]",
+          "test_report_is_snapshotted_before_authentication",
+          "test_substitution_is_denied_before_provisioning[image]"
+        ]
+      },
+      "matches": true
+    },
+    "lifecycle": {
+      "expected": {
+        "cases_passed": 10,
+        "cases_total": 10,
+        "criterion_met": true
+      },
+      "observed": {
+        "cases_passed": 10,
+        "cases_total": 10,
+        "criterion_met": true
+      },
+      "matches": true
+    },
+    "lifecycle-control-retirement-flag": {
+      "expected": {
+        "cases_passed": 9,
+        "cases_total": 10,
+        "criterion_met": false
+      },
+      "observed": {
+        "cases_passed": 9,
+        "cases_total": 10,
+        "criterion_met": false
+      },
+      "matches": true
+    },
+    "lifecycle-control-epoch-floor": {
+      "expected": {
+        "cases_passed": 7,
+        "cases_total": 10,
+        "criterion_met": false
+      },
+      "observed": {
+        "cases_passed": 7,
+        "cases_total": 10,
+        "criterion_met": false
+      },
+      "matches": true
+    }
+  },
+  "all_runs_valid": true,
+  "all_match_recorded_values": true
+}

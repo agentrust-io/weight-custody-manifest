@@ -1,0 +1,37 @@
+...................................FFFFF................................ [ 85%]
+............                                                             [100%]
+================================== FAILURES ===================================
+________ test_changed_effective_inputs_fail_owner_digest[cpu_root_der] ________
+tests\test_broker_receiver.py:113: in test_changed_effective_inputs_fail_owner_digest
+    with pytest.raises(ValueError, match="configuration"):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE ValueError
+________ test_changed_effective_inputs_fail_owner_digest[cpu_vcek_der] ________
+tests\test_broker_receiver.py:113: in test_changed_effective_inputs_fail_owner_digest
+    with pytest.raises(ValueError, match="configuration"):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE ValueError
+______ test_changed_effective_inputs_fail_owner_digest[owner_public_key] ______
+tests\test_broker_receiver.py:113: in test_changed_effective_inputs_fail_owner_digest
+    with pytest.raises(ValueError, match="configuration"):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE ValueError
+_ test_changed_effective_inputs_fail_owner_digest[trusted_manifest_identities] _
+tests\test_broker_receiver.py:113: in test_changed_effective_inputs_fail_owner_digest
+    with pytest.raises(ValueError, match="configuration"):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE ValueError
+________ test_changed_effective_inputs_fail_owner_digest[gpu_root_der] ________
+tests\test_broker_receiver.py:113: in test_changed_effective_inputs_fail_owner_digest
+    with pytest.raises(ValueError, match="configuration"):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE ValueError
+=========================== short test summary info ===========================
+FAILED tests/test_broker_receiver.py::test_changed_effective_inputs_fail_owner_digest[cpu_root_der]
+FAILED tests/test_broker_receiver.py::test_changed_effective_inputs_fail_owner_digest[cpu_vcek_der]
+FAILED tests/test_broker_receiver.py::test_changed_effective_inputs_fail_owner_digest[owner_public_key]
+FAILED tests/test_broker_receiver.py::test_changed_effective_inputs_fail_owner_digest[trusted_manifest_identities]
+FAILED tests/test_broker_receiver.py::test_changed_effective_inputs_fail_owner_digest[gpu_root_der]
+5 failed, 79 passed in 3.55s
+
+STDERR

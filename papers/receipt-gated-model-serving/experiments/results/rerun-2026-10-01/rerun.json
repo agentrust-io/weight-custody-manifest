@@ -1,0 +1,430 @@
+{
+  "run": "receipt-gated-model-serving rerun",
+  "finished_utc": "2026-10-01T18:36:11Z",
+  "python": "3.12.10",
+  "platform": "Windows-11-10.0.26200-SP0",
+  "packages": [
+    "cffi==2.1.1",
+    "colorama==0.4.6",
+    "cryptography==50.0.1",
+    "iniconfig==2.3.0",
+    "packaging==26.3",
+    "pip==25.0.1",
+    "pluggy==1.6.0",
+    "pycparser==3.0",
+    "Pygments==2.21.0",
+    "pytest==9.1.1",
+    "pytest-asyncio==1.4.0",
+    "typing_extensions==4.16.0"
+  ],
+  "software_only": true,
+  "targets": [
+    {
+      "target": "reference",
+      "runs": [
+        {
+          "label": "reference-baseline",
+          "exit_code": 0,
+          "duration_seconds": 0.7,
+          "command": "python -m pytest test_receipt_gate.py",
+          "pytest_summary": [
+            "8 passed in 0.17s"
+          ],
+          "tests": 8,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "failed_cases": []
+        },
+        {
+          "label": "reference-control-admission-check-skipped",
+          "exit_code": 1,
+          "duration_seconds": 0.8,
+          "command": "python -m pytest test_receipt_gate.py",
+          "pytest_summary": [
+            "2 failed, 6 passed in 0.22s"
+          ],
+          "tests": 8,
+          "failures": 2,
+          "errors": 0,
+          "skipped": 0,
+          "failed_cases": [
+            "test_tampered_or_denied_admission_refused",
+            "test_wrong_signer_or_session_refused"
+          ],
+          "mutation": {
+            "file": "receipt_gate.py",
+            "old": "failures = self.admission_failures(admission_receipt)",
+            "new": "failures = []"
+          }
+        },
+        {
+          "label": "reference-control-restart-policy-always",
+          "exit_code": 1,
+          "duration_seconds": 0.8,
+          "command": "python -m pytest test_receipt_gate.py",
+          "pytest_summary": [
+            "1 failed, 7 passed in 0.21s"
+          ],
+          "tests": 8,
+          "failures": 1,
+          "errors": 0,
+          "skipped": 0,
+          "failed_cases": [
+            "test_workload_contains_ciphertext_but_no_key_or_secret"
+          ],
+          "mutation": {
+            "file": "receipt_gate.py",
+            "old": "\"restartPolicy\": \"Never\"",
+            "new": "\"restartPolicy\": \"Always\""
+          }
+        },
+        {
+          "label": "reference-boundary",
+          "exit_code": 0,
+          "duration_seconds": 0.2,
+          "command": "python boundary_experiment.py"
+        },
+        {
+          "label": "reference-controller-durable",
+          "exit_code": 0,
+          "duration_seconds": 7.2,
+          "cases_passed": 12,
+          "cases_total": 12,
+          "criterion_met": true,
+          "failed_cases": [],
+          "rollback_limit_restored_ledger_replay_routes_again": true,
+          "command": "python controller_experiment.py run <scratch> durable"
+        },
+        {
+          "label": "reference-controller-stateless",
+          "exit_code": 1,
+          "duration_seconds": 7.0,
+          "cases_passed": 5,
+          "cases_total": 12,
+          "criterion_met": false,
+          "failed_cases": [
+            "restart then replay of the old admission stays unroutable",
+            "revocation before admission processing: never routable",
+            "altered selector is detected and restored by reconcile",
+            "out-of-band Service for a revoked session is deleted by reconcile",
+            "partial apply failure leaves no Service; reconcile completes it",
+            "partial failure then revocation: reconcile and replay never route",
+            "final sweep: all revoked sessions have no Service"
+          ],
+          "rollback_limit_restored_ledger_replay_routes_again": null,
+          "command": "python controller_experiment.py run <scratch> stateless"
+        },
+        {
+          "label": "reference-controller-memory-ledger",
+          "exit_code": 1,
+          "duration_seconds": 7.8,
+          "cases_passed": 5,
+          "cases_total": 12,
+          "criterion_met": false,
+          "failed_cases": [
+            "restart then replay of the old admission stays unroutable",
+            "revocation before admission processing: never routable",
+            "altered selector is detected and restored by reconcile",
+            "out-of-band Service for a revoked session is deleted by reconcile",
+            "partial apply failure leaves no Service; reconcile completes it",
+            "partial failure then revocation: reconcile and replay never route",
+            "final sweep: all revoked sessions have no Service"
+          ],
+          "rollback_limit_restored_ledger_replay_routes_again": null,
+          "command": "python controller_experiment.py run <scratch> memory-ledger"
+        },
+        {
+          "label": "reference-controller-admission-predecessor",
+          "exit_code": 1,
+          "duration_seconds": 8.1,
+          "cases_passed": 10,
+          "cases_total": 12,
+          "criterion_met": false,
+          "failed_cases": [
+            "revocation after served requests removes the Service",
+            "final sweep: all revoked sessions have no Service"
+          ],
+          "rollback_limit_restored_ledger_replay_routes_again": null,
+          "command": "python controller_experiment.py run <scratch> admission-predecessor"
+        }
+      ]
+    },
+    {
+      "target": "pinned-52632cc",
+      "commit": "52632cce4d21098cf00283075254c3e0de2a461a",
+      "planner_sha256": "72457274a0a329479069170c73f5ca94d3741704280801afe19c363cf831e544",
+      "model_host_sha256": "e36770589e0cda24bb582d9ec2827561587a9c4ba9c16f7f2f6acd9c96c74ad7",
+      "runs": [
+        {
+          "label": "pinned-52632cc-baseline",
+          "exit_code": 0,
+          "duration_seconds": 1.1,
+          "command": "python -m pytest <evaluated test selection>",
+          "pytest_summary": [
+            "6 passed, 97 deselected in 0.53s"
+          ],
+          "tests": 6,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "failed_cases": []
+        },
+        {
+          "label": "pinned-52632cc-control-admission-check-skipped",
+          "exit_code": 1,
+          "duration_seconds": 1.2,
+          "command": "python -m pytest <evaluated test selection>",
+          "pytest_summary": [
+            "1 failed, 5 passed, 97 deselected in 0.58s"
+          ],
+          "tests": 6,
+          "failures": 1,
+          "errors": 0,
+          "skipped": 0,
+          "failed_cases": [
+            "evaluated test 1 (tampered or denied admission refused)"
+          ],
+          "mutation": {
+            "file": "<evaluated planner module>",
+            "old": "<evaluated planner: admission check call>",
+            "new": "failures = []"
+          }
+        },
+        {
+          "label": "pinned-52632cc-control-restart-policy-always",
+          "exit_code": 1,
+          "duration_seconds": 1.3,
+          "command": "python -m pytest <evaluated test selection>",
+          "pytest_summary": [
+            "2 failed, 4 passed, 97 deselected in 0.67s"
+          ],
+          "tests": 6,
+          "failures": 2,
+          "errors": 0,
+          "skipped": 0,
+          "failed_cases": [
+            "evaluated test 2 (documented self-test)",
+            "evaluated test 3 (workload carries ciphertext, no key or secret)"
+          ],
+          "mutation": {
+            "file": "<evaluated planner module>",
+            "old": "\"restartPolicy\": \"Never\"",
+            "new": "\"restartPolicy\": \"Always\""
+          }
+        },
+        {
+          "label": "pinned-52632cc-boundary",
+          "exit_code": 0,
+          "duration_seconds": 0.3,
+          "command": "python boundary_experiment.py"
+        },
+        {
+          "label": "pinned-52632cc-controller-durable",
+          "exit_code": 0,
+          "duration_seconds": 9.0,
+          "cases_passed": 12,
+          "cases_total": 12,
+          "criterion_met": true,
+          "failed_cases": [],
+          "rollback_limit_restored_ledger_replay_routes_again": true,
+          "command": "python controller_experiment.py run <scratch> durable"
+        },
+        {
+          "label": "pinned-52632cc-controller-stateless",
+          "exit_code": 1,
+          "duration_seconds": 8.1,
+          "cases_passed": 5,
+          "cases_total": 12,
+          "criterion_met": false,
+          "failed_cases": [
+            "restart then replay of the old admission stays unroutable",
+            "revocation before admission processing: never routable",
+            "altered selector is detected and restored by reconcile",
+            "out-of-band Service for a revoked session is deleted by reconcile",
+            "partial apply failure leaves no Service; reconcile completes it",
+            "partial failure then revocation: reconcile and replay never route",
+            "final sweep: all revoked sessions have no Service"
+          ],
+          "rollback_limit_restored_ledger_replay_routes_again": null,
+          "command": "python controller_experiment.py run <scratch> stateless"
+        },
+        {
+          "label": "pinned-52632cc-controller-memory-ledger",
+          "exit_code": 1,
+          "duration_seconds": 8.9,
+          "cases_passed": 5,
+          "cases_total": 12,
+          "criterion_met": false,
+          "failed_cases": [
+            "restart then replay of the old admission stays unroutable",
+            "revocation before admission processing: never routable",
+            "altered selector is detected and restored by reconcile",
+            "out-of-band Service for a revoked session is deleted by reconcile",
+            "partial apply failure leaves no Service; reconcile completes it",
+            "partial failure then revocation: reconcile and replay never route",
+            "final sweep: all revoked sessions have no Service"
+          ],
+          "rollback_limit_restored_ledger_replay_routes_again": null,
+          "command": "python controller_experiment.py run <scratch> memory-ledger"
+        },
+        {
+          "label": "pinned-52632cc-controller-admission-predecessor",
+          "exit_code": 1,
+          "duration_seconds": 8.4,
+          "cases_passed": 10,
+          "cases_total": 12,
+          "criterion_met": false,
+          "failed_cases": [
+            "revocation after served requests removes the Service",
+            "final sweep: all revoked sessions have no Service"
+          ],
+          "rollback_limit_restored_ledger_replay_routes_again": null,
+          "command": "python controller_experiment.py run <scratch> admission-predecessor"
+        }
+      ]
+    },
+    {
+      "target": "pinned-3d5b48a",
+      "commit": "3d5b48a5294bc73d42a2bd4fbd23415027e773a7",
+      "planner_sha256": "72457274a0a329479069170c73f5ca94d3741704280801afe19c363cf831e544",
+      "model_host_sha256": "e36770589e0cda24bb582d9ec2827561587a9c4ba9c16f7f2f6acd9c96c74ad7",
+      "runs": [
+        {
+          "label": "pinned-3d5b48a-baseline",
+          "exit_code": 0,
+          "duration_seconds": 1.1,
+          "command": "python -m pytest <evaluated test selection>",
+          "pytest_summary": [
+            "6 passed, 109 deselected in 0.48s"
+          ],
+          "tests": 6,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "failed_cases": []
+        },
+        {
+          "label": "pinned-3d5b48a-control-admission-check-skipped",
+          "exit_code": 1,
+          "duration_seconds": 1.1,
+          "command": "python -m pytest <evaluated test selection>",
+          "pytest_summary": [
+            "1 failed, 5 passed, 109 deselected in 0.52s"
+          ],
+          "tests": 6,
+          "failures": 1,
+          "errors": 0,
+          "skipped": 0,
+          "failed_cases": [
+            "evaluated test 1 (tampered or denied admission refused)"
+          ],
+          "mutation": {
+            "file": "<evaluated planner module>",
+            "old": "<evaluated planner: admission check call>",
+            "new": "failures = []"
+          }
+        },
+        {
+          "label": "pinned-3d5b48a-control-restart-policy-always",
+          "exit_code": 1,
+          "duration_seconds": 1.1,
+          "command": "python -m pytest <evaluated test selection>",
+          "pytest_summary": [
+            "2 failed, 4 passed, 109 deselected in 0.59s"
+          ],
+          "tests": 6,
+          "failures": 2,
+          "errors": 0,
+          "skipped": 0,
+          "failed_cases": [
+            "evaluated test 2 (documented self-test)",
+            "evaluated test 3 (workload carries ciphertext, no key or secret)"
+          ],
+          "mutation": {
+            "file": "<evaluated planner module>",
+            "old": "\"restartPolicy\": \"Never\"",
+            "new": "\"restartPolicy\": \"Always\""
+          }
+        },
+        {
+          "label": "pinned-3d5b48a-boundary",
+          "exit_code": 0,
+          "duration_seconds": 0.3,
+          "command": "python boundary_experiment.py"
+        },
+        {
+          "label": "pinned-3d5b48a-controller-durable",
+          "exit_code": 0,
+          "duration_seconds": 7.9,
+          "cases_passed": 12,
+          "cases_total": 12,
+          "criterion_met": true,
+          "failed_cases": [],
+          "rollback_limit_restored_ledger_replay_routes_again": true,
+          "command": "python controller_experiment.py run <scratch> durable"
+        },
+        {
+          "label": "pinned-3d5b48a-controller-stateless",
+          "exit_code": 1,
+          "duration_seconds": 7.0,
+          "cases_passed": 5,
+          "cases_total": 12,
+          "criterion_met": false,
+          "failed_cases": [
+            "restart then replay of the old admission stays unroutable",
+            "revocation before admission processing: never routable",
+            "altered selector is detected and restored by reconcile",
+            "out-of-band Service for a revoked session is deleted by reconcile",
+            "partial apply failure leaves no Service; reconcile completes it",
+            "partial failure then revocation: reconcile and replay never route",
+            "final sweep: all revoked sessions have no Service"
+          ],
+          "rollback_limit_restored_ledger_replay_routes_again": null,
+          "command": "python controller_experiment.py run <scratch> stateless"
+        },
+        {
+          "label": "pinned-3d5b48a-controller-memory-ledger",
+          "exit_code": 1,
+          "duration_seconds": 8.0,
+          "cases_passed": 5,
+          "cases_total": 12,
+          "criterion_met": false,
+          "failed_cases": [
+            "restart then replay of the old admission stays unroutable",
+            "revocation before admission processing: never routable",
+            "altered selector is detected and restored by reconcile",
+            "out-of-band Service for a revoked session is deleted by reconcile",
+            "partial apply failure leaves no Service; reconcile completes it",
+            "partial failure then revocation: reconcile and replay never route",
+            "final sweep: all revoked sessions have no Service"
+          ],
+          "rollback_limit_restored_ledger_replay_routes_again": null,
+          "command": "python controller_experiment.py run <scratch> memory-ledger"
+        },
+        {
+          "label": "pinned-3d5b48a-controller-admission-predecessor",
+          "exit_code": 1,
+          "duration_seconds": 8.1,
+          "cases_passed": 10,
+          "cases_total": 12,
+          "criterion_met": false,
+          "failed_cases": [
+            "revocation after served requests removes the Service",
+            "final sweep: all revoked sessions have no Service"
+          ],
+          "rollback_limit_restored_ledger_replay_routes_again": null,
+          "command": "python controller_experiment.py run <scratch> admission-predecessor"
+        }
+      ]
+    }
+  ],
+  "harness_sha256": {
+    "backend.py": "62ed46b8deea23203154e41272140c7ca76825c0ae6b9c0086e34fa09278ed8f",
+    "boundary_experiment.py": "20984e4889b4c0124b27b6e409f2b5d5be71613e31c17f457a98a852ef4a8ba0",
+    "controller_experiment.py": "9f2662f7487e7d056f0f080b46c9c7fa39ea09fd4c508c812396d5509d26e311",
+    "reference/receipt_gate.py": "dd7c351069ca4ac55ed4d6fd97528774f6b7f9b21aa52ac5b4e727d6099ef141",
+    "reference/test_receipt_gate.py": "d1d9f4080f3ae8abe9c66ba9b79593ffac9322fbca7361f69aff7778bf6b0205",
+    "rerun.py": "52b4924c2703a0321639ec94448388801eb383c93fd05d6fd510dca71624e356"
+  }
+}

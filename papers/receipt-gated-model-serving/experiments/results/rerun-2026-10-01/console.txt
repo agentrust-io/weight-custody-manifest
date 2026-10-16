@@ -1,0 +1,22 @@
+{"label": "reference-baseline", "exit_code": 0, "tests": 8, "failures": 0, "errors": 0}
+{"label": "reference-control-admission-check-skipped", "exit_code": 1, "tests": 8, "failures": 2, "errors": 0}
+{"label": "reference-control-restart-policy-always", "exit_code": 1, "tests": 8, "failures": 1, "errors": 0}
+{"label": "reference-controller-durable", "exit_code": 0, "cases_passed": 12}
+{"label": "reference-controller-stateless", "exit_code": 1, "cases_passed": 5}
+{"label": "reference-controller-memory-ledger", "exit_code": 1, "cases_passed": 5}
+{"label": "reference-controller-admission-predecessor", "exit_code": 1, "cases_passed": 10}
+{"label": "pinned-52632cc-baseline", "exit_code": 0, "tests": 6, "failures": 0, "errors": 0}
+{"label": "pinned-52632cc-control-admission-check-skipped", "exit_code": 1, "tests": 6, "failures": 1, "errors": 0}
+{"label": "pinned-52632cc-control-restart-policy-always", "exit_code": 1, "tests": 6, "failures": 2, "errors": 0}
+{"label": "pinned-52632cc-controller-durable", "exit_code": 0, "cases_passed": 12}
+{"label": "pinned-52632cc-controller-stateless", "exit_code": 1, "cases_passed": 5}
+{"label": "pinned-52632cc-controller-memory-ledger", "exit_code": 1, "cases_passed": 5}
+{"label": "pinned-52632cc-controller-admission-predecessor", "exit_code": 1, "cases_passed": 10}
+{"label": "pinned-3d5b48a-baseline", "exit_code": 0, "tests": 6, "failures": 0, "errors": 0}
+{"label": "pinned-3d5b48a-control-admission-check-skipped", "exit_code": 1, "tests": 6, "failures": 1, "errors": 0}
+{"label": "pinned-3d5b48a-control-restart-policy-always", "exit_code": 1, "tests": 6, "failures": 2, "errors": 0}
+{"label": "pinned-3d5b48a-controller-durable", "exit_code": 0, "cases_passed": 12}
+{"label": "pinned-3d5b48a-controller-stateless", "exit_code": 1, "cases_passed": 5}
+{"label": "pinned-3d5b48a-controller-memory-ledger", "exit_code": 1, "cases_passed": 5}
+{"label": "pinned-3d5b48a-controller-admission-predecessor", "exit_code": 1, "cases_passed": 10}
+{"path_leftovers": []}
