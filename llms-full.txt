@@ -12,7 +12,7 @@ Weight Custody Manifest (WCM) is an open, pre-1.0 specification for releasing mo
 
 When a company hands its AI model to a customer to run on the customer's own machines, WCM lets the model's maker decide which machines may use it. The model files stay encrypted, and the key that decrypts them goes only to a program that can prove, through a hardware check called attestation, that it is the approved one. WCM is an open, pre-1.0 specification with a reference SDK you can run today ([the terms, in plain English](https://agentrust-io.com/#plain-terms)).
 
-[Run the 103 conformance vectors](#try-it) [What this proves, and what it does not](https://wcm.agentrust-io.com/limitations/index.md)
+[Run the 104 conformance vectors](#try-it) [What this proves, and what it does not](https://wcm.agentrust-io.com/limitations/index.md)
 
 TL;DR
 
@@ -86,7 +86,7 @@ The [RAND weight-security report](https://www.rand.org/pubs/research_reports/RRA
 
 ## What is checked today
 
-The reference implementation ships **103 portable conformance vectors**: 38 at L1, 43 at L2, 12 at L3, and 10 at L4. A conformance vector is a test case written as a JSON file, so any implementation in any language can run it. Run them yourself with `wcm conformance`.
+The reference implementation ships **104 portable conformance vectors**: 38 at L1, 44 at L2, 12 at L3, and 10 at L4. A conformance vector is a test case written as a JSON file, so any implementation in any language can run it. Run them yourself with `wcm conformance`.
 
 This is the reference implementation testing itself, not independent certification and not a test on real deployment hardware. One L2 vector checks a genuine AMD SEV-SNP hardware report against AMD's published root certificate; Intel vendor evidence and GPU signature checks are not yet covered, and the runner prints those limits. See [Schema and conformance](https://wcm.agentrust-io.com/conformance/index.md).
 
@@ -537,15 +537,15 @@ schema = manifest_schema()
 | Level | Title                        | Vectors | Shape                         |
 | ----- | ---------------------------- | ------- | ----------------------------- |
 | L1    | Manifest and joint signature | 38      | documents                     |
-| L2    | Attestation-gated release    | 43      | scenarios and vendor evidence |
+| L2    | Attestation-gated release    | 44      | scenarios and vendor evidence |
 | L3    | Runtime custody              | 12      | scenarios                     |
 | L4    | Derivative lineage           | 10      | documents                     |
 
-103 vectors. All four levels are vectored and every reportable error code is exercised by at least one vector, which a test enforces. L1 and L4 ask a question about a document. Most L2 vectors and every L3 vector ask what a system does over *time*, so they are ordered scenarios with an injected clock and named nonces; L2 also carries vendor evidence.
+104 vectors. All four levels are vectored and every reportable error code is exercised by at least one vector, which a test enforces. L1 and L4 ask a question about a document. Most L2 vectors and every L3 vector ask what a system does over *time*, so they are ordered scenarios with an injected clock and named nonces; L2 also carries vendor evidence.
 
 Two limits remain, and `wcm conformance` prints both on every full run rather than leaving a green result to be over-read:
 
-- **The vendor corpus covers AMD SEV-SNP, but not Intel TDX.** The AMD vector verifies a genuine Azure report against the staged AMD Milan root and applies the mandatory refusal matrix. Intel remains covered by SDK fixtures, not a language-neutral vendor vector.
+- **Vendor evidence is offline replay.** The corpus contains an Azure AMD SEV-SNP report and an externally captured GCP Intel TDX quote, each verified against an independently staged vendor root with the mandatory refusal matrix. Injected time and a recorded nonce do not establish fresh hardware observation, transport-key binding or complete platform TCB/revocation appraisal.
 - **GPU-side cryptographic verification is not vectored.** The quote vectors cover the CPU quote; the NVIDIA device chain is covered by the SDK's H100 fixture.
 
 Running it (the first command tests this SDK itself; the last one scores another implementation's results):
