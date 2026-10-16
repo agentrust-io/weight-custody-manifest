@@ -9,6 +9,7 @@ never carries the root itself, and nothing in the suite fetches one.
 | File | Subject | DER SHA-256 | Why it is here |
 | --- | --- | --- | --- |
 | `amd-ark-milan.pem` | `CN=ARK-Milan, O=Advanced Micro Devices` | `69d063b45344d26a2e94e1f4210de49ef555308287d4c174445c95639a540bcd` | Public AMD Milan root for the committed Azure SEV-SNP vendor vector; independently staged instead of carried by the vector. |
+| `intel-sgx-root-ca.pem` | `CN=Intel SGX Root CA, O=Intel Corporation` | `44a0196b2b99f889b8e149e95b807a350e7424964399e885a7cbb8ccfab674d3` | Public Intel provisioning root for the external GCP TDX vendor capture; independently staged. |
 | `out-of-chain-root.pem` | `CN=wcm-conformance-out-of-chain-root, O=WCM conformance suite` | `e2993cf147a1b4198a2cbe4d9e7517082773b0cbdcb5186099e7aafe3acbbdc2` | The untrusted anchor in the refusal matrix. Shipped so every runner fails that case for the same reason. |
 
 The out-of-chain root is a test certificate. It signs nothing, it anchors
@@ -60,3 +61,15 @@ Only for roots this project may redistribute, and only with the table above
 updated: file, subject, digest, and why. A root in this directory is trusted by
 every runner that uses the suite, so an unexplained one is a supply chain
 question nobody can answer later.
+
+
+## Intel root provenance
+
+`intel-sgx-root-ca.pem` was downloaded independently on 2026-10-14 from
+https://certificates.trustedservices.intel.com/Intel_SGX_Provisioning_Certification_RootCA.pem
+and its DER SHA-256 checked against the separately recorded SDK capture pin.
+It was not extracted from the quote to establish trust. The public root is valid
+from 2018-05-21T10:45:10Z to 2049-12-31T23:59:59Z; the vector records the
+shortest-lived certificate in its full chain. Conformance replay performs no
+network fetch. Staging this certificate does not establish current revocation
+status, full Intel collateral appraisal or current trust-store suitability.

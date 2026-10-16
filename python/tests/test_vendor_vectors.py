@@ -920,3 +920,43 @@ def test_a_derived_horizon_makes_the_expiry_case_step_past_a_real_date(
     refused, reason = evaluate_vendor(vector, store=store).refusals["expired-at-now"]
     assert refused
     assert "validity window" in reason
+
+
+# Committed Intel vector consumes externally captured bytes and a root staged
+# independently from Intel's public provisioning certificate endpoint.
+TDX_VENDOR = _artifact(Path("conformance/vectors/vendor/accept-tdx-gcp-seam15-nonce-digest.json"))
+INTEL_ROOT = _artifact(Path("conformance/roots/intel-sgx-root-ca.pem"))
+
+
+def test_committed_tdx_capture_root_provenance_and_schema() -> None:
+    from wcm.schema import vendor_vector_schema
+    import jsonschema
+
+    vector = json.loads(TDX_VENDOR.read_text(encoding="utf-8"))
+    capture = json.loads((FIXTURES / "tdx_quote_gcp_seam15.json").read_text(encoding="utf-8"))
+    jsonschema.validate(vector, vendor_vector_schema())
+    assert vector["evidence"]["report_b64"] == capture["quote_b64"]
+    assert vector["capture"]["captured_at"] == capture["capture"]["captured_at"]
+    assert vector["binding"]["nonce_hex"] == capture["expected_nonce"]
+    assert _digest(INTEL_ROOT.read_text(encoding="ascii")) == (
+        "sha256:44a0196b2b99f889b8e149e95b807a350e7424964399e885a7cbb8ccfab674d3")
+    assert vector["chain"]["root"]["der_sha256"] == _digest(INTEL_ROOT.read_text(encoding="ascii"))
+    assert vector["validity"]["not_after"] == "2033-05-21T10:50:10+00:00"
+
+
+@pytest.mark.parametrize("case", MATRIX)
+def test_committed_tdx_vector_refusal_matrix(case: str) -> None:
+    vector = json.loads(TDX_VENDOR.read_text(encoding="utf-8"))
+    outcome = evaluate_vendor(vector)
+    assert outcome.verified, outcome.reason
+    refused, reason = outcome.refusals[case]
+    assert refused, reason
+    assert vector["refusals"][case]["reason_contains"] in reason
+
+
+def test_committed_tdx_vector_cannot_anchor_itself(stage: Path) -> None:
+    from wcm._vendor_vectors import RootStore
+
+    vector = json.loads(TDX_VENDOR.read_text(encoding="utf-8"))
+    with pytest.raises(VendorVectorError, match="root not staged"):
+        evaluate_vendor(vector, store=RootStore({}))

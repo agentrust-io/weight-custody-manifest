@@ -4,6 +4,14 @@ Notable changes to the Weight Custody Manifest specification and Python SDK.
 Format loosely follows [Keep a Changelog](https://keepachangelog.com/); the SDK
 uses semantic-ish versioning while pre-1.0.
 
+## Unreleased
+
+**Added.** A committed Intel TDX vendor conformance vector reusing the dated
+external GCP C3 SEAM SVN 15 capture, with a separately staged public Intel root,
+nonce-digest binding, pinned clock and all six refusal controls. The corpus now
+has 104 vectors (44 at L2). This is offline replay, not fresh hardware acceptance,
+transport-key binding or complete TCB/revocation appraisal.
+
 ## 0.32.0 - 2026-10-15
 
 **Fixed, security (GHSA-vwq2-c539-xpr6), breaking.** `AzureSnpVtpmVerifier`
