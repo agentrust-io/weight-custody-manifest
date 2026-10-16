@@ -171,6 +171,10 @@ class AzureSnpVtpmVerifier:
             )
         if parsed.policy & _POLICY_DEBUG:
             return QuoteVerification(False, "SNP guest policy allows debugging")
+        # The paravisor runs at VMPL 0 and requests this report itself; a report
+        # requested at VMPL 1 to 3 came from less privileged guest software.
+        if parsed.vmpl != 0:
+            return QuoteVerification(False, f"SNP report is from VMPL {parsed.vmpl}, not VMPL 0")
 
         runtime = hcl[32 + 1184 :]
         if len(runtime) < 20:
