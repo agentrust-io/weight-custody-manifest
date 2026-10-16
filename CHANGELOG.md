@@ -6,6 +6,12 @@ uses semantic-ish versioning while pre-1.0.
 
 ## Unreleased
 
+**Added.** Opt-in `VerificationContext.bind_key` authorization of trusted keys
+for required signer roles and manifest identities. Any binding enables strict
+checks for all required roles; missing bindings refuse without flat-trust fallback.
+Unbound contexts retain existing behavior; schema, signed fields, and Layer 2
+release checks are unchanged.
+
 **Added.** A committed Intel TDX vendor conformance vector reusing the dated
 external GCP C3 SEAM SVN 15 capture, with a separately staged public Intel root,
 nonce-digest binding, pinned clock and all six refusal controls. The corpus now

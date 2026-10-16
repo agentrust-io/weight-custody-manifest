@@ -49,12 +49,42 @@ class VerificationContext:
     not in this set is treated as untrusted, not merely unverified. Each key is
     trusted for exactly one algorithm; a signature whose algorithm does not match
     the trusted key's is rejected.
+
+    With no bindings, any trusted key may sign any role, subject to the
+    distinct-key rule. ``bind_key`` opts into strict role-and-identity checks
+    for every required role; a missing binding never falls back to flat trust.
     """
 
     def __init__(self) -> None:
         # key_id -> (algorithm value, material). Material is raw public bytes for
         # Ed25519 / ML-DSA-65, or (ed25519_pub, ml_dsa65_pub) for hybrid.
         self._keys: dict[str, tuple[str, object]] = {}
+        self._bindings: set[tuple[str, SignatureRole, str]] = set()
+
+    def bind_key(self, key_id: str, *, role: SignatureRole, signer: str) -> None:
+        """Authorize an already trusted key for a role and exact signer identity.
+
+        Multiple keys may be bound for rotation. The first binding enables
+        strict checks for all required roles, including roles not yet bound.
+        This local trust policy does not change the signed manifest pre-image.
+        """
+        role = SignatureRole(role)
+        if key_id not in self._keys:
+            raise ValueError("cannot bind an untrusted key_id")
+        if not isinstance(signer, str) or not signer.strip():
+            raise ValueError("signer binding must be a nonempty identity")
+        self._bindings.add((key_id, role, signer))
+
+    def _role_authorized(self, key_id: str, role: SignatureRole, signer: str,
+                         manifest: WeightCustodyManifest) -> bool:
+        if not self._bindings or role not in _required_roles(manifest):
+            return True
+        identity = {
+            SignatureRole.builder: manifest.builder.identity,
+            SignatureRole.custodian: manifest.custody.custodian,
+            SignatureRole.sovereign: manifest.release_policy.sovereign_profile.sovereign_signer,
+        }[role]
+        return signer == identity and (key_id, role, signer) in self._bindings
 
     def add_key(self, public_key_bytes: bytes) -> str:
         """Trust a raw Ed25519 public key (standard profile). Returns its key_id."""
@@ -294,6 +324,14 @@ def verify_manifest(
             continue
         try:
             _verify_one(want, material, unsigned, sig)
+            if not context._role_authorized(sig.key_id, sig.role, sig.signer, manifest):
+                results.append(
+                    SignatureResult(
+                        role=sig.role, signer=sig.signer, key_id=sig.key_id, valid=False,
+                        reason="key is not bound to required role and manifest signer identity",
+                    )
+                )
+                continue
             results.append(
                 SignatureResult(
                     role=sig.role, signer=sig.signer, key_id=sig.key_id, valid=True
