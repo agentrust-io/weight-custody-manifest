@@ -78,6 +78,10 @@ def test_select_provider_require_hardware_raises(monkeypatch):
 def test_required_hardware_diagnostic_names_missing_azure_prerequisites(
     monkeypatch, device, tool,
 ):
+    # Forcing selection unavailable lets the both-present case exercise a
+    # defensive diagnostic. Today, the real Azure SNP availability check is
+    # exactly device + tpm2_nvread, so both present selects that provider and
+    # cannot reach this branch. Keep the guard if availability tightens later.
     _force_no_hardware(monkeypatch)
     with monkeypatch.context() as probes:
         probes.setattr("wcm._hw_providers.os.path.exists", lambda path: device)

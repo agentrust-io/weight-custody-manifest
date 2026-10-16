@@ -52,6 +52,8 @@ _TRUST = TrustStore()
 _TRUST.add_root(_unrelated_root())
 _NONCE = "ab" * 32
 _MEASUREMENT = "sha256:" + "42" * 32
+# Any well-formed allowlist: nothing in _TRUST chains, so nothing may verify.
+_PARAVISOR = [bytes(48)]
 
 # (parser, the exception it is allowed to raise)
 _PARSERS = [
@@ -66,7 +68,7 @@ def _verifiers(blob: bytes) -> None:
     text = base64.b64encode(blob).decode()
     results = [
         verify_tdx_quote(blob, _TRUST, expected_nonce=_NONCE),
-        AzureSnpVtpmVerifier(_TRUST).verify(
+        AzureSnpVtpmVerifier(_TRUST, paravisor_measurements=_PARAVISOR).verify(
             text, expected_nonce=_NONCE, expected_workload_measurement=_MEASUREMENT
         ),
         QuoteVerifier(JsonQuoteParser(), _TRUST).verify(text, expected_nonce=_NONCE),

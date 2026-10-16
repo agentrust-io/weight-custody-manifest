@@ -5,7 +5,9 @@ import hashlib
 import json
 import struct
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 
+import pytest
 from cryptography import x509
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import ec, padding, rsa
@@ -14,11 +16,14 @@ from cryptography.x509.oid import NameOID
 
 from wcm import AzureSnpVtpmVerifier, TrustStore
 from wcm.azure_vtpm import expected_pcr23_digest
+from wcm.snp import parse_snp_report
 
 NOW = datetime(2026, 8, 12, tzinfo=timezone.utc)
 NONCE = "ab" * 32
 BINDING = b"\xcd" * 32
 MEASUREMENT = "sha256:" + "42" * 32
+# SNP launch measurement of the (synthetic) paravisor build the operator trusts.
+PARAVISOR = "5a" * 48
 
 
 def test_expected_pcr23_quote_digest_has_both_tpm_hash_stages() -> None:
@@ -51,7 +56,8 @@ def _b64url(value: int, size: int) -> str:
     return base64.urlsafe_b64encode(value.to_bytes(size, "big")).rstrip(b"=").decode()
 
 
-def _bundle(*, wrong_binding=False, wrong_ak=False, no_pcr23=False, pcr_digest=None, jwk=None):
+def _bundle(*, wrong_binding=False, wrong_ak=False, no_pcr23=False, pcr_digest=None, jwk=None,
+            launch_measurement=PARAVISOR, policy=0x3001F, vmpl=0, hcl_truncate=None):
     root_key, inter_key, vcek_key = (ec.generate_private_key(ec.SECP384R1()) for _ in range(3))
     root = _cert("root", "root", root_key, root_key, ca=True)
     inter = _cert("inter", "root", inter_key, root_key, ca=True)
@@ -71,6 +77,9 @@ def _bundle(*, wrong_binding=False, wrong_ak=False, no_pcr23=False, pcr_digest=N
     runtime_json = json.dumps({"keys": [hcl_jwk]}, separators=(",", ":")).encode()
     report = bytearray(1184)
     struct.pack_into("<I", report, 0, 3)
+    struct.pack_into("<Q", report, 0x08, policy)
+    struct.pack_into("<I", report, 0x30, vmpl)
+    report[0x90:0xC0] = bytes.fromhex(launch_measurement)
     report[0x50:0x70] = hashlib.sha256(runtime_json).digest()
     der = vcek_key.sign(bytes(report[:0x2A0]), ec.ECDSA(hashes.SHA384()))
     r, s = decode_dss_signature(der)
@@ -78,6 +87,8 @@ def _bundle(*, wrong_binding=False, wrong_ak=False, no_pcr23=False, pcr_digest=N
     report[0x2E8:0x318] = s.to_bytes(48, "little")
     runtime = bytes(16) + len(runtime_json).to_bytes(4, "little") + runtime_json
     hcl = b"HCLA" + bytes(28) + bytes(report) + runtime
+    if hcl_truncate is not None:
+        hcl = hcl[:hcl_truncate]
 
     extra = hashlib.sha256(bytes.fromhex("ef" * 32) + BINDING).digest() if wrong_binding else hashlib.sha256(bytes.fromhex(NONCE) + BINDING).digest()
     selection = b"\x00\x0b\x03" + (b"\x00\x00\x80" if not no_pcr23 else b"\x01\x00\x00")
@@ -101,49 +112,49 @@ def _bundle(*, wrong_binding=False, wrong_ak=False, no_pcr23=False, pcr_digest=N
 
 def test_azure_snp_vtpm_full_chain_verifies():
     bundle, trust = _bundle()
-    result = AzureSnpVtpmVerifier(trust).verify(bundle, expected_nonce=NONCE, channel_binding=BINDING, expected_workload_measurement=MEASUREMENT, now=NOW)
+    result = AzureSnpVtpmVerifier(trust, paravisor_measurements=[PARAVISOR]).verify(bundle, expected_nonce=NONCE, channel_binding=BINDING, expected_workload_measurement=MEASUREMENT, now=NOW)
     assert result.verified
 
 
 def test_azure_snp_vtpm_rejects_wrong_nonce_binding():
     bundle, trust = _bundle(wrong_binding=True)
-    result = AzureSnpVtpmVerifier(trust).verify(bundle, expected_nonce=NONCE, channel_binding=BINDING, expected_workload_measurement=MEASUREMENT, now=NOW)
+    result = AzureSnpVtpmVerifier(trust, paravisor_measurements=[PARAVISOR]).verify(bundle, expected_nonce=NONCE, channel_binding=BINDING, expected_workload_measurement=MEASUREMENT, now=NOW)
     assert not result.verified and "qualifying data" in (result.reason or "")
 
 
 def test_azure_snp_vtpm_rejects_unlinked_ak():
     bundle, trust = _bundle(wrong_ak=True)
-    result = AzureSnpVtpmVerifier(trust).verify(bundle, expected_nonce=NONCE, channel_binding=BINDING, expected_workload_measurement=MEASUREMENT, now=NOW)
+    result = AzureSnpVtpmVerifier(trust, paravisor_measurements=[PARAVISOR]).verify(bundle, expected_nonce=NONCE, channel_binding=BINDING, expected_workload_measurement=MEASUREMENT, now=NOW)
     assert not result.verified and "does not match" in (result.reason or "")
 
 
 def test_azure_snp_vtpm_requires_pcr23():
     bundle, trust = _bundle(no_pcr23=True)
-    result = AzureSnpVtpmVerifier(trust).verify(bundle, expected_nonce=NONCE, channel_binding=BINDING, expected_workload_measurement=MEASUREMENT, now=NOW)
+    result = AzureSnpVtpmVerifier(trust, paravisor_measurements=[PARAVISOR]).verify(bundle, expected_nonce=NONCE, channel_binding=BINDING, expected_workload_measurement=MEASUREMENT, now=NOW)
     assert not result.verified and "PCR 23" in (result.reason or "")
 
 
 def test_azure_snp_vtpm_rejects_changed_pcr_state():
     bundle, trust = _bundle(pcr_digest=b"\xff" * 32)
-    result = AzureSnpVtpmVerifier(trust).verify(bundle, expected_nonce=NONCE, channel_binding=BINDING, expected_workload_measurement=MEASUREMENT, now=NOW)
+    result = AzureSnpVtpmVerifier(trust, paravisor_measurements=[PARAVISOR]).verify(bundle, expected_nonce=NONCE, channel_binding=BINDING, expected_workload_measurement=MEASUREMENT, now=NOW)
     assert not result.verified and "approved workload" in (result.reason or "")
 
 
 def test_azure_snp_vtpm_rejects_wrong_policy_measurement():
     bundle, trust = _bundle()
-    result = AzureSnpVtpmVerifier(trust).verify(bundle, expected_nonce=NONCE, channel_binding=BINDING, expected_workload_measurement="sha256:" + "43" * 32, now=NOW)
+    result = AzureSnpVtpmVerifier(trust, paravisor_measurements=[PARAVISOR]).verify(bundle, expected_nonce=NONCE, channel_binding=BINDING, expected_workload_measurement="sha256:" + "43" * 32, now=NOW)
     assert not result.verified and "approved workload" in (result.reason or "")
 
 
 def test_azure_snp_vtpm_rejects_malformed_pcr_digest():
     bundle, trust = _bundle(pcr_digest=b"short")
-    result = AzureSnpVtpmVerifier(trust).verify(bundle, expected_nonce=NONCE, channel_binding=BINDING, expected_workload_measurement=MEASUREMENT, now=NOW)
+    result = AzureSnpVtpmVerifier(trust, paravisor_measurements=[PARAVISOR]).verify(bundle, expected_nonce=NONCE, channel_binding=BINDING, expected_workload_measurement=MEASUREMENT, now=NOW)
     assert not result.verified and "32-byte SHA-256" in (result.reason or "")
 
 
 def test_azure_snp_vtpm_requires_policy_measurement():
     bundle, trust = _bundle()
-    result = AzureSnpVtpmVerifier(trust).verify(bundle, expected_nonce=NONCE, channel_binding=BINDING, now=NOW)
+    result = AzureSnpVtpmVerifier(trust, paravisor_measurements=[PARAVISOR]).verify(bundle, expected_nonce=NONCE, channel_binding=BINDING, now=NOW)
     assert not result.verified and "release policy" in (result.reason or "")
 
 
@@ -155,7 +166,7 @@ def _mutated(**changes):
 
 
 def _verify(bundle, trust):
-    return AzureSnpVtpmVerifier(trust).verify(
+    return AzureSnpVtpmVerifier(trust, paravisor_measurements=[PARAVISOR]).verify(
         bundle, expected_nonce=NONCE, channel_binding=BINDING,
         expected_workload_measurement=MEASUREMENT, now=NOW,
     )
@@ -240,7 +251,7 @@ def test_azure_snp_vtpm_rejects_exponent_one_forgery():
         tpm_signature_b64=base64.b64encode(b"\x00\x14\x00\x0b" + _tpm2b(forged)).decode(),
     )
     evil = base64.b64encode(json.dumps(doc).encode()).decode()
-    result = AzureSnpVtpmVerifier(trust).verify(
+    result = AzureSnpVtpmVerifier(trust, paravisor_measurements=[PARAVISOR]).verify(
         evil, expected_nonce=nonce, channel_binding=binding,
         expected_workload_measurement=measurement, now=NOW,
     )
@@ -289,3 +300,74 @@ def test_azure_snp_vtpm_rejects_malformed_hcl_ak_jwk():
         result = _verify(bundle, trust)
         assert not result.verified, label
         assert "invalid HCLAkPub" in (result.reason or ""), label
+
+
+def _verify(bundle, trust, measurements=(PARAVISOR,)):
+    return AzureSnpVtpmVerifier(trust, paravisor_measurements=measurements).verify(
+        bundle, expected_nonce=NONCE, channel_binding=BINDING,
+        expected_workload_measurement=MEASUREMENT, now=NOW)
+
+
+def test_azure_snp_vtpm_rejects_report_from_a_guest_that_is_not_the_paravisor():
+    # GHSA-vwq2-c539-xpr6. A guest that controls REPORT_DATA can make a genuine,
+    # correctly chained SNP report bind its own runtime JSON and AK, and sign a
+    # TPM quote that passes every other check. Only the launch measurement says
+    # the report came from an allowed Azure paravisor build.
+    bundle, trust = _bundle(launch_measurement="77" * 48)
+    result = _verify(bundle, trust)
+    assert not result.verified
+    assert result.reason == "SNP launch measurement is not an allowed Azure paravisor measurement"
+
+
+def test_azure_snp_vtpm_accepts_any_listed_paravisor_measurement():
+    bundle, trust = _bundle()
+    assert _verify(bundle, trust, measurements=("77" * 48, PARAVISOR)).verified
+    assert _verify(bundle, trust, measurements=(bytes.fromhex(PARAVISOR),)).verified
+
+
+def test_azure_snp_vtpm_rejects_debuggable_guest_policy():
+    bundle, trust = _bundle(policy=0x3001F | (1 << 19))
+    result = _verify(bundle, trust)
+    assert not result.verified and result.reason == "SNP guest policy allows debugging"
+
+
+@pytest.mark.parametrize("vmpl", [1, 2, 3])
+def test_azure_snp_vtpm_rejects_report_not_at_vmpl0(vmpl):
+    bundle, trust = _bundle(vmpl=vmpl)
+    result = _verify(bundle, trust)
+    assert not result.verified and result.reason == f"SNP report is from VMPL {vmpl}, not VMPL 0"
+
+
+def test_genuine_azure_vtpm_report_is_at_vmpl0():
+    """The check must not reject real evidence: the captured Azure report is VMPL 0."""
+    fixture = json.loads((Path(__file__).parent / "fixtures" / "snp_quote_azure.json").read_text())
+    assert parse_snp_report(base64.b64decode(fixture["report_b64"])).vmpl == 0
+
+
+def test_azure_snp_vtpm_denies_truncated_hcl():
+    bundle, trust = _bundle(hcl_truncate=32 + 1000)
+    result = _verify(bundle, trust)
+    assert not result.verified and "shorter than its header and SNP report" in (result.reason or "")
+
+
+@pytest.mark.parametrize(
+    "measurements, error",
+    [
+        ((), ValueError),
+        (PARAVISOR, TypeError),
+        (("5A" * 48,), ValueError),
+        (("5a" * 32,), ValueError),
+        (("zz" * 48,), ValueError),
+        ((48,), TypeError),
+    ],
+)
+def test_azure_snp_vtpm_requires_a_valid_paravisor_allowlist(measurements, error):
+    _, trust = _bundle()
+    with pytest.raises(error):
+        AzureSnpVtpmVerifier(trust, paravisor_measurements=measurements)
+
+
+def test_azure_snp_vtpm_has_no_default_allowlist():
+    _, trust = _bundle()
+    with pytest.raises(TypeError):
+        AzureSnpVtpmVerifier(trust)  # type: ignore[call-arg]

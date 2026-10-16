@@ -15,7 +15,6 @@ not in this module.
 """
 from __future__ import annotations
 
-import base64
 
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timedelta, timezone
@@ -35,7 +34,7 @@ from .models import (
     ServingImageStatus,
     WeightCustodyManifest,
 )
-from .snp import extract_snp_report_from_hcl, parse_snp_report
+from .snp import parse_snp_report
 from .renewal import (
     RenewalDecision,
     evidence_identity,
@@ -273,7 +272,13 @@ class KeyBrokerService:
         checks.append(self._check_memory_fingerprint(manifest, evidence, nonce))
 
         # 6b. Hardware-reported platform integrity (PLATFORM_INFO) when required.
-        checks.append(self._check_platform_integrity(manifest, evidence))
+        #     PLATFORM_INFO is read only from the report the CPU quote verifier
+        #     authenticated, so that check runs first; it is still reported at
+        #     7b, keeping the order of the decision's checks stable.
+        cpu_quote_check, verified_snp_report = self._check_cpu_quote(
+            manifest, evidence, nonce, channel_binding
+        )
+        checks.append(self._check_platform_integrity(manifest, evidence, verified_snp_report))
 
         # 7. Attestation-key revocation freshness (v0.8) when required.
         revocation_check, evidence_not_after = self._check_attestation_revocation(
@@ -283,7 +288,7 @@ class KeyBrokerService:
 
         # 7b. Cryptographic quote verification (signature + cert chain + nonce +
         #     transport-key binding) when a verifier is configured.
-        checks.append(self._check_cpu_quote(manifest, evidence, nonce, channel_binding))
+        checks.append(cpu_quote_check)
 
         # 7c. Cryptographic GPU-report verification (signature + cert chain to
         #     NVIDIA's device root + nonce binding) when a verifier is configured.
@@ -544,32 +549,33 @@ class KeyBrokerService:
         evidence: CompositeEvidence,
         nonce: str,
         channel_binding: bytes,
-    ) -> CheckResult:
+    ) -> tuple[CheckResult, Optional[bytes]]:
+        """Return the check and, on success, the authenticated SNP report."""
         if self._cpu_quote_verifier is None:
             if self._require_cpu_quote_verification:
                 return CheckResult(
                     "cpu_quote_verified",
                     False,
                     "cryptographic CPU quote verifier required but not configured",
-                )
+                ), None
             if manifest.release_policy.require_evidence_verification is not False:
                 return CheckResult(
                     "cpu_quote_verified",
                     False,
                     "cryptographic CPU quote verification required by the manifest "
                     "but no verifier is configured",
-                )
+                ), None
             return CheckResult(
                 "cpu_quote_verified",
                 True,
                 "waived by require_evidence_verification: false: structural trust "
                 "only (no cryptographic quote verification)",
-            )
+            ), None
         quote_b64 = evidence.cpu.quote_b64
         if quote_b64 is None:
             return CheckResult(
                 "cpu_quote_verified", False, "verifier configured but evidence has no raw quote"
-            )
+            ), None
         result = self._cpu_quote_verifier.verify(
             quote_b64,
             expected_nonce=nonce,
@@ -577,7 +583,10 @@ class KeyBrokerService:
             expected_workload_measurement=str(evidence.cpu.serving_image_measurement),
             now=self._now(),
         )
-        return CheckResult("cpu_quote_verified", result.verified, result.reason)
+        # A verifier written before ``snp_report`` existed returns no such field;
+        # platform_integrity then fails closed rather than the release crashing.
+        verified_report = getattr(result, "snp_report", None) if result.verified else None
+        return CheckResult("cpu_quote_verified", result.verified, result.reason), verified_report
 
     def _check_gpu_report(
         self, manifest: WeightCustodyManifest, evidence: CompositeEvidence, nonce: str
@@ -620,7 +629,10 @@ class KeyBrokerService:
         return CheckResult("gpu_report_verified", result.verified, result.reason)
 
     def _check_platform_integrity(
-        self, manifest: WeightCustodyManifest, evidence: CompositeEvidence
+        self,
+        manifest: WeightCustodyManifest,
+        evidence: CompositeEvidence,
+        verified_snp_report: Optional[bytes],
     ) -> CheckResult:
         """Enforce ``release_policy.platform_integrity`` against PLATFORM_INFO.
 
@@ -646,15 +658,19 @@ class KeyBrokerService:
                 f"platform_integrity is SEV-SNP-only; evidence platform is "
                 f"'{evidence.cpu.platform}'",
             )
-        if not evidence.cpu.quote_b64:
+        # Never re-parse evidence.cpu.quote_b64: on the Azure path it is a JSON
+        # bundle and on the reference server a JSON container, so its bytes at
+        # the PLATFORM_INFO offset are whatever the sender wrote
+        # (GHSA-vwq2-c539-xpr6). Only the verifier's authenticated report counts.
+        if verified_snp_report is None:
             return CheckResult(
-                "platform_integrity", False, "required but evidence carries no SNP report"
+                "platform_integrity",
+                False,
+                "required but no cryptographically verified SNP report: PLATFORM_INFO "
+                "is read only from a report whose signature the CPU quote verifier checked",
             )
         try:
-            raw = base64.b64decode(evidence.cpu.quote_b64)
-            if raw[:4] == b"HCLA":
-                raw = extract_snp_report_from_hcl(raw)
-            report = parse_snp_report(raw)
+            report = parse_snp_report(verified_snp_report)
         except (ValueError, TypeError, QuoteFormatError) as exc:
             return CheckResult(
                 "platform_integrity", False, f"unparseable SNP report: {exc}"

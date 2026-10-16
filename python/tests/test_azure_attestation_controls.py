@@ -7,7 +7,7 @@ import pytest
 
 from wcm import AzureSnpVtpmVerifier
 from wcm._quote_verify import QuoteVerification
-from tests.test_azure_vtpm_verify import _bundle, NONCE, BINDING, MEASUREMENT, NOW
+from tests.test_azure_vtpm_verify import _bundle, NONCE, BINDING, MEASUREMENT, NOW, PARAVISOR
 
 spec = importlib.util.spec_from_file_location("azure_controls",
     Path(__file__).parents[1] / "tools/azure_attestation_controls.py")
@@ -16,14 +16,17 @@ spec.loader.exec_module(probe)
 
 
 def fixture_verifier(trust):
-    verifier = AzureSnpVtpmVerifier(trust)
+    verifier = AzureSnpVtpmVerifier(trust, paravisor_measurements=[PARAVISOR])
     return SimpleNamespace(verify=lambda quote, **kwargs: verifier.verify(quote, now=NOW, **kwargs))
 
 
 def test_live_oracle_accepts_all_expected_signed_fixture_outcomes():
     encoded, trust = _bundle()
-    results = probe.controls(fixture_verifier(trust), encoded, NONCE, BINDING, MEASUREMENT)
-    assert len(results) == 7
+    results = probe.controls(fixture_verifier(trust), encoded, NONCE, BINDING, MEASUREMENT,
+                             trust=trust, paravisor_measurements=[PARAVISOR])
+    assert len(results) == 8
+    assert results[-1]["case"] == "unlisted-paravisor-measurement"
+    assert results[-1]["reason"] == "SNP launch measurement is not an allowed Azure paravisor measurement"
     assert all(item["verified"] == item["expected"] for item in results)
 
 
@@ -38,4 +41,5 @@ def test_live_oracle_detects_a_weakened_nonce_gate():
             return actual.verify(quote, **kwargs)
 
     with pytest.raises(AssertionError, match="wrong-nonce"):
-        probe.controls(Weakened(), encoded, NONCE, BINDING, MEASUREMENT)
+        probe.controls(Weakened(), encoded, NONCE, BINDING, MEASUREMENT,
+                       trust=trust, paravisor_measurements=[PARAVISOR])
