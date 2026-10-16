@@ -1,0 +1,12 @@
+{
+  "baseline.log": "0f24dffabf150b04e10b000141b5c6711a6ee810448da072a44f911ad24b4c94",
+  "baseline.xml": "2831dad6e52d5a11e916262b9813735a01dbfe80a859023c915afa4f4ea100b2",
+  "configuration.log": "9e02a626ff2286fc41b4d62e25f833df5954d3472f9573ed482038be39312760",
+  "configuration.xml": "4430bb8e7c5f4ab488663ff3a22c0e1e6dd4f7d056028ab3cfb0281b369db9d8",
+  "lifecycle-control-epoch-floor.json": "edcdd202240dfe00ea0e5db254b464b1d56b5f6226bcce427d77fb509a709d9e",
+  "lifecycle-control-retirement-flag.json": "7a2961d1c82a65a2ca35b09366ce405fc7249d6ffb0cfbb39a917b4e2b6f9a0f",
+  "lifecycle.json": "1430d8b4739c0807b1e80b3676c9361a6e7cedf89e9ab1ffc53c1bfaceb60d52",
+  "measurement.log": "83403fdd4e0f4031d4bf04a53663db3936d694472ddf7dcc20a5763baa48d639",
+  "measurement.xml": "f781e74e9be132b26a0361c1b9b59ad455e6e8aa6fcc3a94cb84f4c6d542358b",
+  "summary.json": "60e42326e0593e9dbeb62680950fb4716ffe18101dc17dabf0cb81e5d481aa64"
+}

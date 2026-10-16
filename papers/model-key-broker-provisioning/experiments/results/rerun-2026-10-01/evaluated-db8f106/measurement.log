@@ -1,0 +1,25 @@
+............F...................F....................................... [ 85%]
+......F.....                                                             [100%]
+================================== FAILURES ===================================
+___________ test_substitution_is_denied_before_provisioning[image] ____________
+tests\test_provisioning.py:112: in test_substitution_is_denied_before_provisioning
+    with pytest.raises(ValueError, match="broker"):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE ValueError
+______________ test_report_is_snapshotted_before_authentication _______________
+tests\test_provisioning.py:203: in test_report_is_snapshotted_before_authentication
+    with pytest.raises(ValueError, match="image measurement"):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE ValueError
+_ test_identity_constrained_provisioning_uses_real_signed_report_and_sealed_key[measurement] _
+tests\test_deployment_identity.py:140: in test_identity_constrained_provisioning_uses_real_signed_report_and_sealed_key
+    with pytest.raises(ValueError):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE ValueError
+=========================== short test summary info ===========================
+FAILED tests/test_provisioning.py::test_substitution_is_denied_before_provisioning[image]
+FAILED tests/test_provisioning.py::test_report_is_snapshotted_before_authentication
+FAILED tests/test_deployment_identity.py::test_identity_constrained_provisioning_uses_real_signed_report_and_sealed_key[measurement]
+3 failed, 81 passed in 3.43s
+
+STDERR

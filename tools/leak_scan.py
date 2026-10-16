@@ -61,6 +61,14 @@ ALLOWLIST = {
         "local-workspace-path": "synthetic negative control",
     },
     "python/tests/test_final_launch.py": {"private-key-block": "synthetic test key"},
+    # Published report packages: these lines are the regexes the rerun scripts use
+    # to refuse output that still contains a workspace path, not paths themselves.
+    "papers/model-key-broker-provisioning/experiments/rerun.py": {
+        "local-workspace-path": "path-detection regex in the published package",
+    },
+    "papers/receipt-gated-model-serving/experiments/rerun.py": {
+        "local-workspace-path": "path-detection regex in the published package",
+    },
 }
 
 # Exact public QEMU/OVMF hash-table GUIDs, scoped to their implementation/tests.

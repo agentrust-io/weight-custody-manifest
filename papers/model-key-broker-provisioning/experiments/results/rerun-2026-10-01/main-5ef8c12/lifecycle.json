@@ -1,0 +1,126 @@
+{
+  "experiment": "broker-retirement-and-epoch-recovery",
+  "retirement": {
+    "installed": true,
+    "served_before_retirement": {
+      "ok": true,
+      "released": true,
+      "key_matches": true
+    },
+    "after_retirement": {
+      "report_data_fresh_challenge": "RuntimeError",
+      "install_previous_envelope": "RuntimeError",
+      "issue_challenge": "RuntimeError",
+      "release": "RuntimeError"
+    },
+    "all_paths_refused_after_retirement": true,
+    "old_envelope_in_replacement_process": "ValueError",
+    "replacement_with_fresh_provisioning": {
+      "installed": true,
+      "ok": true,
+      "released": true,
+      "key_matches": true
+    },
+    "memory_scan": {
+      "platform_supported": true,
+      "model_key_copies_before_retirement": 1,
+      "model_key_copies_after_retirement": 1,
+      "random_never_loaded_control_copies": 0,
+      "note": "observation only; retirement is an API state, not erasure"
+    },
+    "ok": true
+  },
+  "epoch_recovery": {
+    "steps": [
+      {
+        "step": "epoch-1 owner starts and provisions",
+        "constructed": true,
+        "provisioned": true,
+        "error": null,
+        "floor_after": 1,
+        "expected_provisioned": true,
+        "ok": true
+      },
+      {
+        "step": "epoch-2 owner admits a new policy",
+        "constructed": true,
+        "provisioned": true,
+        "error": null,
+        "floor_after": 2,
+        "expected_provisioned": true,
+        "ok": true
+      },
+      {
+        "step": "stale live epoch-1 owner provisions after the update",
+        "constructed": true,
+        "provisioned": false,
+        "error": "owner policy rollback or same-epoch substitution",
+        "floor_after": 2,
+        "expected_provisioned": false,
+        "ok": true
+      },
+      {
+        "step": "epoch-1 owner restarts",
+        "constructed": false,
+        "provisioned": false,
+        "error": "owner policy rollback or same-epoch substitution",
+        "floor_after": 2,
+        "expected_provisioned": false,
+        "ok": true
+      },
+      {
+        "step": "same-epoch substitution (epoch 2, other configuration)",
+        "constructed": false,
+        "provisioned": false,
+        "error": "owner policy rollback or same-epoch substitution",
+        "floor_after": 2,
+        "expected_provisioned": false,
+        "ok": true
+      },
+      {
+        "step": "epoch-2 owner restarts with the admitted policy",
+        "constructed": true,
+        "provisioned": true,
+        "error": null,
+        "floor_after": 2,
+        "expected_provisioned": true,
+        "ok": true
+      },
+      {
+        "step": "epoch-3 admission killed inside the floor transaction",
+        "exit": 73,
+        "floor_after": 2,
+        "ok": true
+      },
+      {
+        "step": "epoch-2 owner after the killed admission",
+        "constructed": true,
+        "provisioned": true,
+        "error": null,
+        "floor_after": 2,
+        "expected_provisioned": true,
+        "ok": true
+      },
+      {
+        "step": "epoch-3 owner admits normally",
+        "constructed": true,
+        "provisioned": true,
+        "error": null,
+        "floor_after": 3,
+        "expected_provisioned": true,
+        "ok": true
+      }
+    ],
+    "steps_passed": 9,
+    "steps_total": 9,
+    "rollback_limit_observations": {
+      "restored_epoch1_snapshot_then_epoch1_owner_provisions": true,
+      "deleted_store_then_epoch1_owner_provisions": true,
+      "note": "expected rollback limit of an unprotected store"
+    },
+    "ok": true
+  },
+  "cases_passed": 10,
+  "cases_total": 10,
+  "criterion_met": true
+}
