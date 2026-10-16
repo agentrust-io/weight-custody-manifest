@@ -1,0 +1,14 @@
+{
+  "backend": "reference",
+  "valid_signature_wrong_binding_rejections": [
+    "tenant_fingerprint",
+    "weights_hash",
+    "encrypted_artifact_hash",
+    "workload_hash",
+    "policy_hash",
+    "transport_hash"
+  ],
+  "rejections": 6,
+  "old_admission_after_revocation_accepted_by_planner": true,
+  "limit": "A controller must persist lifecycle state and refuse a stale admission; the planner cannot."
+}

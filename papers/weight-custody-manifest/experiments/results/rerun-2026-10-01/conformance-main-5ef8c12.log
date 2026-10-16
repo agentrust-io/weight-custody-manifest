@@ -1,0 +1,12 @@
+vectors   : conformance/vectors (repository at 5ef8c12)
+subject   : reference implementation (this SDK)
+L1  PASS  32/32  Manifest and joint signature
+L2  PASS  43/43  Attestation-gated release
+L3  PASS  12/12  Runtime custody
+L4  PASS  10/10  Derivative lineage
+
+live  1/1 vendor captures verify against the wall clock (reported, not scored)
+note      : reference self-test; verdicts and WCM-* codes both checked
+levels ok : L1, L2, L3, L4
+NOT COVERED: GPU-side cryptographic verification is not vectored. The L2 quote vectors verify the CPU quote (chain, signature, REPORT_DATA binding) through the reference JSON container. The NVIDIA path is a different verifier over a real device chain, and the H100 fixture in the SDK's own tests is what covers it today; a vector would need the device chain and the raw-nonce-at-offset-4 convention expressed in the corpus.
+NOT COVERED: The vendor corpus covers one real AMD SEV-SNP report and its full refusal matrix. Intel TDX is not yet represented by a vendor vector, so the synthetic quote vectors still do not prove an implementation can parse real Intel evidence.
