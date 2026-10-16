@@ -23,7 +23,7 @@ the **policy gate** (nonce freshness and single use, platform, tier, serving-ima
 status and prefer-current, composite CPU-to-GPU binding, memory fingerprint,
 revocation freshness, channel binding, key availability), synthetic quote
 verification, and one genuine AMD SEV-SNP report against the staged AMD root.
-Intel TDX and NVIDIA vendor vectors remain uncovered and are printed as coverage
+NVIDIA vendor vectors remain uncovered and are printed as coverage
 notes rather than hidden behind a green score.
 """
 from __future__ import annotations
@@ -203,10 +203,10 @@ COVERAGE_NOTES: tuple[str, ...] = (
     "device chain, and the H100 fixture in the SDK's own tests is what covers it "
     "today; a vector would need the device chain and the raw-nonce-at-offset-4 "
     "convention expressed in the corpus.",
-    "The vendor corpus covers one real AMD SEV-SNP report and its full refusal "
-    "matrix. Intel TDX is not yet represented by a vendor vector, so the synthetic "
-    "quote vectors still do not prove an implementation can parse real Intel "
-    "evidence.",
+    "The vendor corpus covers one real AMD SEV-SNP report and one externally "
+    "captured Intel TDX quote with their full refusal matrices. These are pinned-clock "
+    "offline replays, not fresh hardware observations, transport-key binding or "
+    "complete platform TCB/revocation appraisal.",
 )
 
 

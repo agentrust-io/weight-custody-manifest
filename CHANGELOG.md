@@ -11,6 +11,12 @@ device/tool prerequisites, including the `tpm2-tools` install hint when
 `tpm2_nvread` is absent. Prerequisites present without a usable provider are
 reported separately. Provider selection and software fallback are unchanged.
 
+**Added.** A committed Intel TDX vendor conformance vector reusing the dated
+external GCP C3 SEAM SVN 15 capture, with a separately staged public Intel root,
+nonce-digest binding, pinned clock and all six refusal controls. The corpus now
+has 104 vectors (44 at L2). This is offline replay, not fresh hardware acceptance,
+transport-key binding or complete TCB/revocation appraisal.
+
 ## 0.32.0 - 2026-10-15
 
 **Fixed, security (GHSA-vwq2-c539-xpr6), breaking.** `AzureSnpVtpmVerifier`
@@ -62,6 +68,13 @@ paravisor_measurements=[...])`. The Azure capture in this repository,
 That is one paravisor build on one VM size, not a list to copy. The
 reference server wires the generic `QuoteVerifier`, not this class, and is
 unchanged.
+
+**Fixed, security.** `AzureSnpVtpmVerifier` now requires the SNP report to be
+at VMPL 0 and denies any other with "SNP report is from VMPL <n>, not VMPL 0".
+The paravisor runs at VMPL 0 and requests the report itself, so a report from
+VMPL 1 to 3 came from less privileged guest software. `broker_receiver` and
+provisioning already required VMPL 0. The Azure capture in this repository is
+VMPL 0. Raised by @rajnisht7 in review (#204).
 
 **Fixed.** `parse_tdx_quote`, and through it `verify_tdx_quote` and `wcm
 verify-quote --kind tdx`, ignored the signature section's certification-data
@@ -1047,8 +1060,8 @@ corrected. The README was the only file left claiming the document was being wit
 No change to the spec or to any security claim.
 
 **[repo]** Moved the runnable examples and demos out of this repo into the public
-[agentrust-io/examples](https://github.com/agentrust-io/examples/tree/main/weight-custody-manifest)
-(per-product catalog) and [agentrust-io/demos](https://github.com/agentrust-io/demos)
+[agentrust-io/examples](https://github.com/agentrust-io/integrations/tree/main/examples/weight-custody-manifest)
+(per-product catalog) and [agentrust-io/demos](https://github.com/agentrust-io/integrations/tree/main/demos)
 (talk track), where they depend on the published `weight-custody-manifest` PyPI
 package rather than an in-repo checkout. The SDK keeps `examples/manifest.example.json`
 as a CLI docs fixture. The demo notes below describe those examples as originally
