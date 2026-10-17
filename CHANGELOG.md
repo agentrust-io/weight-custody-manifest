@@ -6,6 +6,11 @@ uses semantic-ish versioning while pre-1.0.
 
 ## Unreleased
 
+**Fixed.** Hardware-required provider selection now reports missing Azure vTPM
+device/tool prerequisites, including the `tpm2-tools` install hint when
+`tpm2_nvread` is absent. Prerequisites present without a usable provider are
+reported separately. Provider selection and software fallback are unchanged.
+
 **Added.** Opt-in `VerificationContext.bind_key` authorization of trusted keys
 for required signer roles and manifest identities. Any binding enables strict
 checks for all required roles; missing bindings refuse without flat-trust fallback.
