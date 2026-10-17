@@ -11,6 +11,12 @@ instead of repeatedly scanning a deleted dictionary prefix while holding the
 store lock. Single-use and expiry acceptance rules are unchanged. This does not
 add a request-rate or absolute storage cap.
 
+**Added.** Opt-in `VerificationContext.bind_key` authorization of trusted keys
+for required signer roles and manifest identities. Any binding enables strict
+checks for all required roles; missing bindings refuse without flat-trust fallback.
+Unbound contexts retain existing behavior; schema, signed fields, and Layer 2
+release checks are unchanged.
+
 **Added.** A committed Intel TDX vendor conformance vector reusing the dated
 external GCP C3 SEAM SVN 15 capture, with a separately staged public Intel root,
 nonce-digest binding, pinned clock and all six refusal controls. The corpus now
