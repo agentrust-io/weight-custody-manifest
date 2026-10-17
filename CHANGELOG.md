@@ -6,11 +6,6 @@ uses semantic-ish versioning while pre-1.0.
 
 ## Unreleased
 
-**Fixed.** Challenge-store expiry pruning uses constant-time front removal
-instead of repeatedly scanning a deleted dictionary prefix while holding the
-store lock. Single-use and expiry acceptance rules are unchanged. This does not
-add a request-rate or absolute storage cap.
-
 **Added.** Opt-in `VerificationContext.bind_key` authorization of trusted keys
 for required signer roles and manifest identities. Any binding enables strict
 checks for all required roles; missing bindings refuse without flat-trust fallback.
