@@ -126,3 +126,40 @@ def test_expired_challenges_do_not_accumulate():
     # Dropped nonces are still refused, as unknown.
     with pytest.raises(ChallengeError):
         store.consume(old[1].nonce)
+
+
+def test_prune_expired_prefix_preserves_live_challenges_and_replay_markers():
+    clock = _clock()
+    store = ChallengeStore(ttl_seconds=60, now=clock)
+    old = [store.issue() for _ in range(2000)]
+    for challenge in old[::2]:
+        store.consume(challenge.nonce)
+    clock.advance(30)
+    live = [store.issue() for _ in range(20)]
+    for challenge in live[::2]:
+        store.consume(challenge.nonce)
+
+    clock.advance(31)
+    store.issue()
+    assert len(store._issued) == 11
+    assert len(store._consumed) == 10
+    for challenge in old:
+        with pytest.raises(ChallengeError, match="unknown"):
+            store.consume(challenge.nonce)
+    for challenge in live[::2]:
+        with pytest.raises(ChallengeError, match="replay"):
+            store.consume(challenge.nonce)
+    for challenge in live[1::2]:
+        store.consume(challenge.nonce)
+
+
+def test_prune_keeps_challenges_at_exact_expiry():
+    clock = _clock()
+    store = ChallengeStore(ttl_seconds=60, now=clock)
+    unused, used = store.issue(), store.issue()
+    store.consume(used.nonce)
+    clock.advance(60)
+    store.issue()
+    store.consume(unused.nonce)
+    with pytest.raises(ChallengeError, match="replay"):
+        store.consume(used.nonce)
