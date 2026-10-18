@@ -48,6 +48,10 @@ Treat a passing revocation check as evidence that the vendor has not published a
 
 The measurement-forgery half of forged attestation (BadRAM-class) is detectable and closed by the `memory_fingerprint_challenge`. The **key-extraction half** (TEE.fail-class) is **not**: a physically-extracted attestation key produces a cryptographically valid quote that no gate-side verification can distinguish from a real one. Compensating controls (live revocation-freshness checks, vendor short-lived certs, mandatory hardening, fleet anomaly monitoring) narrow it; they do not close it. This is why publication is staged.
 
+## Genuine evidence is not proof of the operator's machine
+
+A verified quote shows a genuine, unrevoked chip ran the approved image. It does not show the chip is one the operator controls. A key extracted from any such chip, anywhere, can satisfy the gate (GHSA-jr5r-w684-fg5m). `allowed_platform_instances` pins release to listed SEV-SNP CHIP_IDs and closes this for SNP deployments that set it. It is off by default because the list is operator-maintained, and Intel TDX is not yet covered: the quote carries no per-chip identity, and platform-owner endorsements (Intel POE) have no published distribution channel.
+
 ## Trusted time is an assumption
 
 Wipe-on-lapse bounds exposure only if the enclave's clock cannot be stalled by the host. `trusted_time_source` names the clock per deployment (`secure-tsc` sound, hybrid weaker, best-effort none), and the SDK's `time_floor` reports which - but the SDK cannot make an untrusted clock trustworthy, and cannot self-detect a stalled clock.
