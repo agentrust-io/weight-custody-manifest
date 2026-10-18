@@ -16,7 +16,9 @@ from wcm.kbs import KeyBrokerService
 from wcm.renewal import manifest_identity
 
 from tests.test_gpu_revocation import WHEN, chain, client_for, held_key, nonce_of
-from tests.test_gpu_revocation_gate import evidence, kbs_for, requires_revocation
+from tests.test_gpu_revocation_gate import (
+    _TRANSPORT_PRIV, evidence, kbs_for, requires_revocation,
+)
 
 
 def offline(url: str, body: bytes) -> bytes:
@@ -26,7 +28,10 @@ def offline(url: str, body: bytes) -> bytes:
 def session_for(kbs, manifest, at):
     release = kbs.verify_and_release(manifest, evidence(kbs.issue_challenge().nonce, manifest))
     assert release.released is True, [c for c in release.checks if not c.passed]
-    return EnclaveSession.from_release(manifest, release, max_operations=100, now=lambda: at)
+    return EnclaveSession.from_release(
+        manifest, release, max_operations=100, now=lambda: at,
+        transport_private_key=_TRANSPORT_PRIV,
+    )
 
 
 # 1 -------------------------------------------------------------------------

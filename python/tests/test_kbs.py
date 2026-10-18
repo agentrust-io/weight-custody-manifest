@@ -319,10 +319,12 @@ def test_memory_fingerprint_clean_releases(example_dict):
     )
     current, _, _, rim = _measurements(manifest)
     challenge = kbs.issue_challenge()
+    enclave_priv, enclave_pub = generate_transport_keypair()
     ev = SoftwareProvider().produce(
         challenge,
         serving_image_measurement=current,
         gpu_measurement=rim,
+        transport_public_key=enclave_pub,
     )
     sweep = run_memory_sweep(
         BytearrayMemoryRange(4 * 64, page_size=64),
@@ -333,7 +335,8 @@ def test_memory_fingerprint_clean_releases(example_dict):
     ev = ev.model_copy(update={"memory_fingerprint": sweep})
     decision = kbs.verify_and_release(manifest, ev)
     assert decision.released
-    assert decision.key == KEY
+    assert decision.key is None
+    assert open_sealed(decision.sealed_key, enclave_priv) == KEY
 
 
 def test_memory_fingerprint_host_authored_and_replayed_results_are_denied(example_dict):
@@ -470,6 +473,7 @@ def _decide(manifest, measurement, *, now):
         challenge,
         serving_image_measurement=measurement,
         gpu_measurement=rim.rim_pin if rim else None,
+        transport_public_key=generate_transport_keypair()[1],
     )
     decision = kbs.verify_and_release(manifest, ev)
     return decision, [c for c in decision.checks if c.name == "serving_image"][0]
@@ -578,6 +582,7 @@ def test_gpu_cc_mode_waived_only_by_explicit_false(example_dict):
         serving_image_measurement=current,
         gpu_measurement=rim,
         gpu_cc_mode=False,
+        transport_public_key=generate_transport_keypair()[1],
     )
     decision = kbs.verify_and_release(manifest, ev)
     assert decision.released

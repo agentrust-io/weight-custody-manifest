@@ -21,6 +21,12 @@ from wcm import (
     parse_cadence,
 )
 
+from wcm._seal import generate_transport_keypair  # noqa: E402
+
+# Enclave transport keypair: the KBS seals every release to it by default.
+_TRANSPORT_PRIV, _TRANSPORT_PUB = generate_transport_keypair()
+
+
 KEY = b"a-released-decryption-key-32bytes"
 
 
@@ -169,6 +175,7 @@ def test_from_release_passes_stop_hook(structural_manifest):
     session = EnclaveSession.from_release(
         structural_manifest, _released_decision(structural_manifest, clock),
         now=clock, on_stop=lambda: stopped.append(True),
+        transport_private_key=_TRANSPORT_PRIV,
     )
     session.zeroize()
     assert stopped == [True]
@@ -327,7 +334,8 @@ def _released_decision(manifest, clock):
     rim = manifest.release_policy.required_gpu_measurement.rim_pin
     ch = kbs.issue_challenge()
     ev = SoftwareProvider().produce(
-        ch, serving_image_measurement=current, gpu_measurement=rim
+        ch, serving_image_measurement=current, gpu_measurement=rim,
+        transport_public_key=_TRANSPORT_PUB,
     )
     return kbs.verify_and_release(manifest, ev)
 
@@ -337,7 +345,7 @@ def test_from_release_starts_custody(structural_manifest):
     decision = _released_decision(structural_manifest, clock)
     assert decision.released
 
-    session = EnclaveSession.from_release(structural_manifest, decision, now=clock)
+    session = EnclaveSession.from_release(structural_manifest, decision, now=clock, transport_private_key=_TRANSPORT_PRIV)
     assert session.use_key() == KEY
     # example cadence is 24h.
     assert session.remaining_seconds() == pytest.approx(86400.0)
@@ -352,7 +360,7 @@ def test_from_release_rejects_unreleased(example_manifest):
 
     denied = ReleaseDecision(released=False, key=None, checks=[])
     with pytest.raises(ValueError):
-        EnclaveSession.from_release(example_manifest, denied)
+        EnclaveSession.from_release(example_manifest, denied, transport_private_key=_TRANSPORT_PRIV)
 
 
 # -- operation-count-anchored renewal (hybrid serving case) --------------------
@@ -448,7 +456,8 @@ def test_from_release_passes_max_operations(structural_manifest):
     clock = _clock()
     decision = _released_decision(structural_manifest, clock)
     session = EnclaveSession.from_release(
-        structural_manifest, decision, max_operations=1, now=clock
+        structural_manifest, decision, max_operations=1, now=clock,
+        transport_private_key=_TRANSPORT_PRIV,
     )
     session.use_key()
     with pytest.raises(ReattestationRequired):
@@ -477,11 +486,13 @@ def _session_and_kbs(
     challenge = kbs.issue_challenge()
     evidence = SoftwareProvider().produce(
         challenge, serving_image_measurement=current, gpu_measurement=rim,
+        transport_public_key=_TRANSPORT_PUB,
     )
     release = kbs.verify_and_release(manifest, evidence)
     session = EnclaveSession.from_release(
         manifest, release, max_operations=max_operations, now=clock,
         on_stop=on_stop,
+        transport_private_key=_TRANSPORT_PRIV,
     )
     return session, kbs, current, rim
 
@@ -495,6 +506,7 @@ def _renew(kbs, manifest, current, rim):
     challenge = kbs.issue_challenge()
     evidence = SoftwareProvider().produce(
         challenge, serving_image_measurement=current, gpu_measurement=rim,
+        transport_public_key=_TRANSPORT_PUB,
     )
     decision = kbs.verify_for_renewal(manifest, evidence)
     _SUBMITTED[decision.signature_b64url] = evidence
@@ -535,6 +547,7 @@ def test_kbs_nonce_replay_produces_signed_failed_renewal(structural_manifest):
     challenge = kbs.issue_challenge()
     evidence = SoftwareProvider().produce(
         challenge, serving_image_measurement=current, gpu_measurement=rim,
+        transport_public_key=_TRANSPORT_PUB,
     )
     first = kbs.verify_for_renewal(structural_manifest, evidence)
     replay = kbs.verify_for_renewal(structural_manifest, evidence)
@@ -577,6 +590,7 @@ def test_signed_denial_is_distinguishable_from_a_malformed_decision(structural_m
     challenge = kbs.issue_challenge()
     evidence = SoftwareProvider().produce(
         challenge, serving_image_measurement=current, gpu_measurement=rim,
+        transport_public_key=_TRANSPORT_PUB,
     )
     malformed = sign_renewal_decision(
         signing_key=signer,
@@ -671,6 +685,7 @@ def test_renewal_refuses_signed_truncated_gate_list(structural_manifest):
     challenge = kbs.issue_challenge()
     evidence = SoftwareProvider().produce(
         challenge, serving_image_measurement=current, gpu_measurement=rim,
+        transport_public_key=_TRANSPORT_PUB,
     )
     truncated = sign_renewal_decision(
         signing_key=signer,
@@ -700,6 +715,7 @@ def test_renewal_refuses_success_claimed_over_a_failed_gate(structural_manifest)
     challenge = kbs.issue_challenge()
     evidence = SoftwareProvider().produce(
         challenge, serving_image_measurement=current, gpu_measurement=rim,
+        transport_public_key=_TRANSPORT_PUB,
     )
     # Every required gate is present, one failed, and the issuer still claims success.
     checks = [dict(check) for check in valid.checks]
@@ -769,6 +785,7 @@ def test_renewal_refuses_expired_failed_and_post_wipe_decisions(structural_manif
     challenge = kbs.issue_challenge()
     bad_evidence = SoftwareProvider().produce(
         challenge, serving_image_measurement=current, gpu_measurement="wrong-rim",
+        transport_public_key=_TRANSPORT_PUB,
     )
     failed = kbs.verify_for_renewal(structural_manifest, bad_evidence)
     assert not failed.renewed
@@ -790,7 +807,7 @@ def test_from_release_rejects_a_manifest_other_than_the_released_one(structural_
     stretched = structural_manifest.model_copy(deep=True)
     stretched.custody.attestation_cadence = "3650d"
     with pytest.raises(ValueError, match="released against"):
-        EnclaveSession.from_release(stretched, decision, now=clock)
+        EnclaveSession.from_release(stretched, decision, now=clock, transport_private_key=_TRANSPORT_PRIV)
 
 
 

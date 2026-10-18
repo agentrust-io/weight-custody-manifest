@@ -249,7 +249,7 @@ def test_rsa_pss_chain_verifies():
 # -- KBS integration -----------------------------------------------------------
 
 
-def _evidence(nonce: str, *, quote_b64, current, rim):
+def _evidence(nonce: str, *, quote_b64, current, rim, transport_public_key=None):
     return CompositeEvidence(
         cpu=CpuQuote(
             platform="amd-sev-snp",
@@ -258,6 +258,7 @@ def _evidence(nonce: str, *, quote_b64, current, rim):
             nonce_echo=nonce,
             attestation_key_id="vcek:test",
             quote_b64=quote_b64,
+            transport_public_key=transport_public_key,
         ),
         gpu=GpuReport(platform="nvidia-cc-gpu", measurement=rim, cc_mode=True, nonce_echo=nonce),
     )
@@ -280,8 +281,12 @@ def test_kbs_releases_with_verified_quote(structural_manifest):
         trusted_manifest_identities={manifest_identity(structural_manifest)},
     )
     challenge = kbs.issue_challenge()
-    q = _container(pki, _report_body(challenge.nonce))
-    ev = _evidence(challenge.nonce, quote_b64=q, current=current, rim=rim)
+    _, enclave_pub = generate_transport_keypair()
+    q = _container(pki, _report_body_cb(challenge.nonce, bytes.fromhex(enclave_pub)))
+    ev = _evidence(
+        challenge.nonce, quote_b64=q, current=current, rim=rim,
+        transport_public_key=enclave_pub,
+    )
 
     decision = kbs.verify_and_release(structural_manifest, ev)
     assert decision.released
@@ -331,7 +336,10 @@ def test_kbs_without_verifier_notes_structural_only(structural_manifest):
         trusted_manifest_identities={manifest_identity(structural_manifest)},
     )
     challenge = kbs.issue_challenge()
-    ev = _evidence(challenge.nonce, quote_b64=None, current=current, rim=rim)
+    ev = _evidence(
+        challenge.nonce, quote_b64=None, current=current, rim=rim,
+        transport_public_key=generate_transport_keypair()[1],
+    )
 
     decision = kbs.verify_and_release(structural_manifest, ev)
     assert decision.released

@@ -6,6 +6,18 @@ uses semantic-ish versioning while pre-1.0.
 
 ## Unreleased
 
+**Fixed, security (GHSA-x3w3-7mvg-hxw5), breaking.** `KeyBrokerService` now
+defaults to `require_channel_binding=True`. A caller that constructed it without
+the flag got the model key back in the clear, so a relay that forwarded a live,
+valid quote could collect it. The shipped server and broker receiver already set
+the flag and are unaffected. Evidence must now carry an attested
+`transport_public_key`, and a release returns only `sealed_key`.
+`EnclaveSession.from_release` takes a new `transport_private_key` argument and
+opens the sealed key itself; before this it could not start custody from a
+sealed release at all. Pass `require_channel_binding=False` to restore the
+unsealed shape; the conformance runner keeps its per-vector setting. Reported by
+Muhammad Usama Sardar.
+
 **Fixed.** Hardware-required provider selection now reports missing Azure vTPM
 device/tool prerequisites, including the `tpm2-tools` install hint when
 `tpm2_nvread` is absent. Prerequisites present without a usable provider are

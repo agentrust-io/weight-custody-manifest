@@ -115,7 +115,7 @@ class KeyBrokerService:
         gpu_revocation_client: "Optional[NvidiaOcspClient]" = None,
         cpu_quote_verifier: Optional[QuoteVerifier] = None,
         gpu_report_verifier: Optional[NvidiaGpuVerifier] = None,
-        require_channel_binding: bool = False,
+        require_channel_binding: bool = True,
         require_cpu_quote_verification: bool = False,
         require_gpu_report_verification: bool = False,
         renewal_signing_key: Optional[Ed25519PrivateKey] = None,
@@ -148,8 +148,11 @@ class KeyBrokerService:
         self._gpu_report_verifier = gpu_report_verifier
         # When True, the evidence must carry an attested transport public key and
         # the released key is sealed to it (never returned in the clear), so a
-        # relayed quote yields only ciphertext (SPEC 3.2 channel binding). Off by
-        # default: the pre-channel-binding release shape is unchanged.
+        # relayed quote yields only ciphertext (SPEC 3.2 channel binding). On by
+        # default (GHSA-x3w3-7mvg-hxw5): a caller that built the service without
+        # it got the key in the clear, which a relayed quote could collect.
+        # Passing False restores the unsealed release shape and should be reserved
+        # for tests and channels the caller has bound some other way.
         self._require_channel_binding = require_channel_binding
         self._require_cpu_quote_verification = require_cpu_quote_verification
         self._require_gpu_report_verification = require_gpu_report_verification

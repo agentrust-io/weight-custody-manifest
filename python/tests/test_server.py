@@ -229,7 +229,8 @@ def test_required_gpu_verification_rejects_structural_claim(structural_manifest)
         trusted_manifest_identities={manifest_identity(structural_manifest)},
     )
     evidence = SoftwareProvider().produce(
-        kbs.issue_challenge(), serving_image_measurement=current, gpu_measurement=rim
+        kbs.issue_challenge(), serving_image_measurement=current, gpu_measurement=rim,
+        transport_public_key=generate_transport_keypair()[1],
     )
     decision = kbs.verify_and_release(structural_manifest, evidence)
     assert not decision.released
@@ -246,6 +247,7 @@ def test_required_gpu_verification_allows_cpu_only_manifest(structural_manifest)
         trusted_manifest_identities={manifest_identity(manifest)},
     )
     evidence = SoftwareProvider().produce(
-        kbs.issue_challenge(), serving_image_measurement=current, include_gpu=False
+        kbs.issue_challenge(), serving_image_measurement=current, include_gpu=False,
+        transport_public_key=generate_transport_keypair()[1],
     )
     assert kbs.verify_and_release(manifest, evidence).released

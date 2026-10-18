@@ -159,7 +159,9 @@ def _gate(manifest, emitted, nonce):
     measurement mismatch. That is the point: the refusal has to be about the
     mode, not about something else being wrong.
     """
-    from wcm import KeyBrokerService, SoftwareProvider, manifest_identity
+    from wcm import (
+        KeyBrokerService, SoftwareProvider, generate_transport_keypair, manifest_identity,
+    )
 
     policy = manifest.release_policy
     manifest = manifest.model_copy(update={"release_policy": policy.model_copy(update={
@@ -178,6 +180,7 @@ def _gate(manifest, emitted, nonce):
     evidence = SoftwareProvider().produce(
         challenge, serving_image_measurement=current,
         gpu_measurement=emitted["measurement"],
+        transport_public_key=generate_transport_keypair()[1],
     )
     evidence = evidence.model_copy(
         update={"gpu": _gpu_report_from(emitted, challenge.nonce)}

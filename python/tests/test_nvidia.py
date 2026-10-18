@@ -33,6 +33,7 @@ from wcm import (
     KeyBrokerService,
     NvidiaGpuVerifier,
     build_gpu_verifier,
+    generate_transport_keypair,
     parse_gpu_report,
 )
 
@@ -191,6 +192,9 @@ def _evidence(nonce, *, gpu_quote_b64, current, rim):
             serving_image_measurement=current,
             nonce_echo=nonce,
             attestation_key_id="vcek:test",
+            # These cases are about the GPU report; the CPU side carries the
+            # transport key the KBS seals to by default.
+            transport_public_key=generate_transport_keypair()[1],
         ),
         gpu=GpuReport(
             platform="nvidia-cc-gpu", measurement=rim, cc_mode=True, nonce_echo=nonce,

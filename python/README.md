@@ -192,8 +192,9 @@ app = create_app(KeyBrokerService(
 # uvicorn module:app
 ```
 
-Reference-only: configure channel binding before exposing the app. The image-built
-server requires it and returns only a key sealed to the attested transport key.
+Channel binding is on by default, so the app returns only a key sealed to the
+attested transport key. Passing `require_channel_binding=False` turns that off and is
+for tests only.
 
 ## Install
 
@@ -284,7 +285,10 @@ configure this library API. Layer 2 attestation and key release are unchanged.
 ## Quickstart (Layer 2 release gate)
 
 ```python
-from wcm import KeyBrokerService, SoftwareProvider, WeightCustodyManifest, manifest_identity
+from wcm import (
+    KeyBrokerService, SoftwareProvider, WeightCustodyManifest, generate_transport_keypair,
+    manifest_identity,
+)
 import json
 
 manifest = WeightCustodyManifest.model_validate(
@@ -298,17 +302,21 @@ kbs = KeyBrokerService(
 )
 
 # 1. KBS issues a fresh nonce. 2. Enclave attests over it (mock here).
+# The enclave binds its transport public key into the quote alongside the nonce.
 challenge = kbs.issue_challenge()
+enclave_private_key, enclave_public_key = generate_transport_keypair()
 evidence = SoftwareProvider().produce(
     challenge,
     serving_image_measurement="sha256:" + "5e2d" * 16,  # a 'current' accepted image
     gpu_measurement="nvidia-rim:driver+vbios golden measurement id",
+    transport_public_key=enclave_public_key,
 )
 
 # 3. Composite verification, then gated release.
 decision = kbs.verify_and_release(manifest, evidence)
 print(decision.released)                 # True
-print(decision.key)                      # b"the-decryption-key"
+print(decision.key)                      # None: never returned in the clear
+print(decision.sealed_key is not None)   # True: only the enclave can open it
 # On failure: decision.released is False and decision.failures names each check.
 ```
 
@@ -318,7 +326,9 @@ print(decision.key)                      # b"the-decryption-key"
 from wcm import EnclaveSession
 
 # The enclave takes custody of the key the KBS just released.
-session = EnclaveSession.from_release(manifest, decision)
+session = EnclaveSession.from_release(
+    manifest, decision, transport_private_key=enclave_private_key
+)
 
 session.use_key()          # serves while holding
 session.reattest()         # renew before the cadence window closes
