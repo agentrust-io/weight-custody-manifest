@@ -6,6 +6,10 @@ uses semantic-ish versioning while pre-1.0.
 
 ## Unreleased
 
+**Added.** Repository-wide OIDC permission regression coverage preserves the
+existing publishing and Scorecard grants and rejects new job grants, broad
+workflow defaults and allowance drift across `.yml` and `.yaml` workflows.
+
 **Fixed.** Hardware-required provider selection now reports missing Azure vTPM
 device/tool prerequisites, including the `tpm2-tools` install hint when
 `tpm2_nvread` is absent. Prerequisites present without a usable provider are
