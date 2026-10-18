@@ -13,12 +13,18 @@ import pathlib
 
 import pytest
 
-from wcm import KeyBrokerService, SoftwareProvider, manifest_identity
+from wcm import (
+    KeyBrokerService, SoftwareProvider, generate_transport_keypair, manifest_identity, open_sealed,
+)
 from wcm._quote_verify import QuoteVerification
 from wcm.snp import parse_snp_report
 
+from tests.conftest import waive
+
 FIXTURES = pathlib.Path(__file__).parent / "fixtures"
 KEY = b"decryption-key-for-these-weights"
+# The KBS seals every release to the enclave transport key by default.
+TRANSPORT_PRIV, TRANSPORT_PUB = generate_transport_keypair()
 
 
 def _report(name: str) -> bytes:
@@ -60,7 +66,7 @@ def _evidence(kbs, manifest, report: bytes, platform: str = "amd-sev-snp"):
     rim = manifest.release_policy.required_gpu_measurement.rim_pin
     evidence = SoftwareProvider().produce(
         kbs.issue_challenge(), serving_image_measurement=current, gpu_measurement=rim,
-        platform=platform,
+        platform=platform, transport_public_key=TRANSPORT_PUB,
     )
     return evidence.model_copy(
         update={"cpu": evidence.cpu.model_copy(
@@ -87,9 +93,14 @@ def test_unset_list_is_not_required(example_manifest):
 
 
 def test_listed_chip_passes(example_manifest):
+    # The GPU side here is mock evidence with no verifier, so only its
+    # requirements are waived; the CPU report still goes through the verifier.
+    example_manifest = waive(example_manifest)
     kbs = _kbs(example_manifest, AZURE, allowed=[AZURE_CHIP.upper()])
     decision = kbs.verify_and_release(example_manifest, _evidence(kbs, example_manifest, AZURE))
     assert _check(decision).passed
+    assert decision.released, [c for c in decision.checks if not c.passed]
+    assert open_sealed(decision.sealed_key, TRANSPORT_PRIV) == KEY
 
 
 def test_genuine_report_from_another_chip_is_denied(example_manifest):
