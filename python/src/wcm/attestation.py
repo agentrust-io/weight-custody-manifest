@@ -48,7 +48,10 @@ class GpuReport(_Strict):
     """GPU attestation report, a separate evidence chain from the CPU quote."""
 
     platform: str  # e.g. "nvidia-cc-gpu"
-    measurement: str  # matches release_policy.required_gpu_measurement.rim_pin
+    # The requester's claim. With a GPU verifier configured the KBS matches
+    # rim_pin against the identity read from the signed report instead, and does
+    # not read this field (GHSA-5mg4-8gw3-3xmm).
+    measurement: str
     # DEPRECATED, to be removed in a later release. Confidential-compute mode as
     # an adapter states it. No signed NVIDIA evidence carries the mode (#159), so
     # the gate no longer reads True or None from here: require_cc_mode is met

@@ -32,6 +32,19 @@ is not. 3,969 bytes were stable there. This verifier checks chain, signature and
 nonce rather than a report digest, so it is unaffected; an implementer pinning a
 measurement is not.
 
+What the KBS pins instead (GHSA-5mg4-8gw3-3xmm). The report is an SPDM
+GET_MEASUREMENTS request and response, and the response's opaque data carries
+the driver version (field 3) and the VBIOS version (field 6) inside the signed
+bytes. ``gpu_measurement_from_report`` reads both, adds the architecture from the
+verified device certificate (``GH...`` is Hopper, ``GB...`` is Blackwell), and
+returns ``nvidia-rim:arch=<A>;driver=<D>;vbios=<V>``, the same identity
+``tools/nvat_adapter.py`` emits after NVIDIA's own appraisal. The KBS compares
+``required_gpu_measurement.rim_pin`` against that value. The structured
+``GpuReport.measurement`` is the requester's claim and no longer decides release
+when a verifier is configured. This binds the pin to the identity the signed
+report states; it is not a RIM golden-value comparison, which stays with
+NVIDIA's appraisal.
+
 Honesty, matching ``_quote_verify``: WCM ships only NVIDIA's public device root
 (the caller supplies it to ``build_gpu_verifier``; the pinned fixture is the root
 only, not any per-GPU cert). And as everywhere in WCM, a physically-extracted
@@ -107,6 +120,102 @@ def verify_gpu_report_signature(report: bytes, leaf_cert: x509.Certificate) -> N
     pub.verify(der, parsed.signed_body, ec.ECDSA(hashes.SHA384()))
 
 
+# SPDM 1.1 GET_MEASUREMENTS transcript, as NVIDIA's report carries it: a 37-byte
+# request (4-byte header, 32-byte nonce, slot id), then the response header,
+# measurement record, responder nonce, opaque data and the signature.
+_SPDM_REQUEST_LEN = 4 + _NONCE_LEN + 1
+_SPDM_GET_MEASUREMENTS = 0xE0
+_SPDM_MEASUREMENTS = 0x60
+_OPAQUE_DRIVER_VERSION = 3
+_OPAQUE_VBIOS_VERSION = 6
+# Device-certificate chip prefix -> the architecture name nvattest reports.
+_ARCH_BY_CHIP_PREFIX = {"GH": "HOPPER", "GB": "BLACKWELL"}
+
+
+def parse_gpu_opaque_fields(report: bytes) -> dict[int, bytes]:
+    """Return the SPDM opaque-data fields of an NVIDIA report, by field id.
+
+    Strict: the response must follow the request immediately, every length must
+    land inside the report, and the opaque data must end exactly where the
+    signature starts, so no byte between them is unaccounted for. Raises
+    ``GpuReportFormatError`` otherwise. A repeated field id is refused rather
+    than resolved, since either choice would let the sender pick.
+    """
+    end = len(report) - _SIG_LEN
+    if end < _SPDM_REQUEST_LEN + 8 or report[1] != _SPDM_GET_MEASUREMENTS:
+        raise GpuReportFormatError("report is not an SPDM GET_MEASUREMENTS transcript")
+    pos = _SPDM_REQUEST_LEN
+    if report[pos + 1] != _SPDM_MEASUREMENTS:
+        raise GpuReportFormatError("report carries no SPDM MEASUREMENTS response")
+    record_len = int.from_bytes(report[pos + 5 : pos + 8], "little")
+    pos += 8 + record_len + _NONCE_LEN
+    if pos + 2 > end:
+        raise GpuReportFormatError("SPDM measurement record overruns the report")
+    opaque_len = int.from_bytes(report[pos : pos + 2], "little")
+    pos += 2
+    if pos + opaque_len != end:
+        raise GpuReportFormatError("SPDM opaque data does not end at the signature")
+    fields: dict[int, bytes] = {}
+    while pos < end:
+        if pos + 4 > end:
+            raise GpuReportFormatError("truncated SPDM opaque field header")
+        field_id = int.from_bytes(report[pos : pos + 2], "little")
+        size = int.from_bytes(report[pos + 2 : pos + 4], "little")
+        pos += 4
+        if pos + size > end:
+            raise GpuReportFormatError("SPDM opaque field overruns the opaque data")
+        if field_id in fields:
+            raise GpuReportFormatError(f"SPDM opaque field {field_id} is repeated")
+        fields[field_id] = report[pos : pos + size]
+        pos += size
+    return fields
+
+
+def _format_vbios(value: bytes) -> str:
+    # NVIDIA's own formatting: the low four bytes big-endian, then the fifth.
+    if len(value) != 8:
+        raise GpuReportFormatError("VBIOS version field is not 8 bytes")
+    return ".".join(f"{b:02X}" for b in (value[3], value[2], value[1], value[0], value[4]))
+
+
+def _format_driver(value: bytes) -> str:
+    text = value.split(b"\x00", 1)[0]
+    try:
+        driver = text.decode("ascii")
+    except UnicodeDecodeError as exc:
+        raise GpuReportFormatError("driver version field is not ASCII") from exc
+    if not driver or not driver.isprintable() or ";" in driver or "=" in driver:
+        raise GpuReportFormatError("driver version field is empty or malformed")
+    return driver
+
+
+def _arch_from_leaf(leaf_cert: x509.Certificate) -> str:
+    names = leaf_cert.subject.get_attributes_for_oid(x509.NameOID.COMMON_NAME)
+    chip = str(names[0].value).split(" ", 1)[0] if names else ""
+    arch = _ARCH_BY_CHIP_PREFIX.get(chip[:2])
+    if arch is None:
+        raise GpuReportFormatError(
+            f"device certificate names chip {chip!r}, whose architecture is not known"
+        )
+    return arch
+
+
+def gpu_measurement_from_report(report: bytes, leaf_cert: x509.Certificate) -> str:
+    """The GPU identity the signed report states, in ``rim_pin`` form.
+
+    Call only on a report whose signature has verified under ``leaf_cert``.
+    """
+    fields = parse_gpu_opaque_fields(report)
+    try:
+        driver = _format_driver(fields[_OPAQUE_DRIVER_VERSION])
+        vbios = _format_vbios(fields[_OPAQUE_VBIOS_VERSION])
+    except KeyError as exc:
+        raise GpuReportFormatError(
+            f"signed report has no SPDM opaque field {exc.args[0]}"
+        ) from exc
+    return f"nvidia-rim:arch={_arch_from_leaf(leaf_cert)};driver={driver};vbios={vbios}"
+
+
 def _utcnow() -> datetime:
     return datetime.now(timezone.utc)
 
@@ -172,7 +281,16 @@ class NvidiaGpuVerifier:
                 False, "GPU report does not bind the challenge nonce (raw nonce mismatch)"
             )
 
-        return QuoteVerification(True, leaf_subject=leaf.subject.rfc4514_string())
+        # Read only after the signature verified, so every byte is NVIDIA's. A
+        # report whose identity cannot be read still verifies; the KBS refuses
+        # to match a measurement pin against it (see kbs._check_gpu).
+        try:
+            measurement: Optional[str] = gpu_measurement_from_report(report, leaf)
+        except GpuReportFormatError:
+            measurement = None
+        return QuoteVerification(
+            True, leaf_subject=leaf.subject.rfc4514_string(), gpu_measurement=measurement
+        )
 
 
 def build_gpu_verifier(device_root_pem: Union[str, bytes]) -> NvidiaGpuVerifier:
