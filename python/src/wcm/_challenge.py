@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import secrets
 import threading
+from collections import OrderedDict
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from typing import Callable, Optional
@@ -50,9 +51,9 @@ class ChallengeStore:
     ) -> None:
         self._ttl = ttl_seconds
         self._now = now or _utcnow
-        self._issued: dict[str, Challenge] = {}
+        self._issued: OrderedDict[str, Challenge] = OrderedDict()
         # nonce -> its challenge's expiry, kept only until that expiry passes.
-        self._consumed: dict[str, datetime] = {}
+        self._consumed: OrderedDict[str, datetime] = OrderedDict()
         self._lock = threading.Lock()
 
     def _prune(self, now: datetime) -> None:
@@ -65,7 +66,9 @@ class ChallengeStore:
                 expires = entry.expires_at if isinstance(entry, Challenge) else entry
                 if now <= expires:
                     break
-                del table[nonce]
+                # OrderedDict removes the oldest entry without rescanning the
+                # deleted prefix of a plain dict on every fresh iterator.
+                table.popitem(last=False)
 
     def issue(self) -> Challenge:
         with self._lock:
