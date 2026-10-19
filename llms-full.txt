@@ -201,17 +201,23 @@ A manifest is valid only when **both** the builder and custodian have signed (an
 The key broker service (KBS) holds the decryption key. It sends a one-time challenge, checks the evidence that comes back, and releases the key only if everything matches the manifest.
 
 ```
-from wcm import KeyBrokerService, SoftwareProvider, manifest_identity
+from wcm import (
+    KeyBrokerService, SoftwareProvider, generate_transport_keypair, manifest_identity,
+)
 
 kbs = KeyBrokerService(
     {manifest.weights_hash: b"the-decryption-key"},
     trusted_manifest_identities={manifest_identity(manifest)},
 )
 challenge = kbs.issue_challenge()
+# The enclave's transport key. The KBS seals the released key to it, so the key
+# never crosses the channel in the clear and a relay gets only ciphertext.
+enclave_private_key, enclave_public_key = generate_transport_keypair()
 evidence = SoftwareProvider().produce(
     challenge,
     serving_image_measurement="sha256:" + "5e2d" * 16,
     gpu_measurement="nvidia-rim:driver+vbios golden measurement id",
+    transport_public_key=enclave_public_key,
 )
 decision = kbs.verify_and_release(manifest, evidence)
 print(decision.released)   # True on a passing gate

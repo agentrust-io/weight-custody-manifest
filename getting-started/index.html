@@ -1754,17 +1754,23 @@ and the custodian (who runs the key service).</p>
 <p>The key broker service (KBS) holds the decryption key. It sends a one-time
 challenge, checks the evidence that comes back, and releases the key only if
 everything matches the manifest.</p>
-<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">wcm</span><span class="w"> </span><span class="kn">import</span> <span class="n">KeyBrokerService</span><span class="p">,</span> <span class="n">SoftwareProvider</span><span class="p">,</span> <span class="n">manifest_identity</span>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">wcm</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">KeyBrokerService</span><span class="p">,</span> <span class="n">SoftwareProvider</span><span class="p">,</span> <span class="n">generate_transport_keypair</span><span class="p">,</span> <span class="n">manifest_identity</span><span class="p">,</span>
+<span class="p">)</span>
 
 <span class="n">kbs</span> <span class="o">=</span> <span class="n">KeyBrokerService</span><span class="p">(</span>
     <span class="p">{</span><span class="n">manifest</span><span class="o">.</span><span class="n">weights_hash</span><span class="p">:</span> <span class="sa">b</span><span class="s2">"the-decryption-key"</span><span class="p">},</span>
     <span class="n">trusted_manifest_identities</span><span class="o">=</span><span class="p">{</span><span class="n">manifest_identity</span><span class="p">(</span><span class="n">manifest</span><span class="p">)},</span>
 <span class="p">)</span>
 <span class="n">challenge</span> <span class="o">=</span> <span class="n">kbs</span><span class="o">.</span><span class="n">issue_challenge</span><span class="p">()</span>
+<span class="c1"># The enclave's transport key. The KBS seals the released key to it, so the key</span>
+<span class="c1"># never crosses the channel in the clear and a relay gets only ciphertext.</span>
+<span class="n">enclave_private_key</span><span class="p">,</span> <span class="n">enclave_public_key</span> <span class="o">=</span> <span class="n">generate_transport_keypair</span><span class="p">()</span>
 <span class="n">evidence</span> <span class="o">=</span> <span class="n">SoftwareProvider</span><span class="p">()</span><span class="o">.</span><span class="n">produce</span><span class="p">(</span>
     <span class="n">challenge</span><span class="p">,</span>
     <span class="n">serving_image_measurement</span><span class="o">=</span><span class="s2">"sha256:"</span> <span class="o">+</span> <span class="s2">"5e2d"</span> <span class="o">*</span> <span class="mi">16</span><span class="p">,</span>
     <span class="n">gpu_measurement</span><span class="o">=</span><span class="s2">"nvidia-rim:driver+vbios golden measurement id"</span><span class="p">,</span>
+    <span class="n">transport_public_key</span><span class="o">=</span><span class="n">enclave_public_key</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="n">decision</span> <span class="o">=</span> <span class="n">kbs</span><span class="o">.</span><span class="n">verify_and_release</span><span class="p">(</span><span class="n">manifest</span><span class="p">,</span> <span class="n">evidence</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="n">decision</span><span class="o">.</span><span class="n">released</span><span class="p">)</span>   <span class="c1"># True on a passing gate</span>
