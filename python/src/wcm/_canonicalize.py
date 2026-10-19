@@ -14,7 +14,8 @@ one tool verifies under another.
 Rules:
   - Null-valued optional fields are EXCLUDED from canonical form by default.
   - Object keys are sorted by Unicode code point (RFC 8785 section 3.2.3).
-  - Strings are NFC-normalized before escaping.
+  - Strings (values and keys) must already be NFC; anything else is refused
+    rather than normalized, so distinct inputs never share a pre-image.
 """
 from __future__ import annotations
 
@@ -126,9 +127,16 @@ def _serialize_dict(d: dict[str, Any], *, exclude_none: bool, depth: int) -> str
 def _quote(s: str) -> str:
     """Serialize a Python string as a JSON string per RFC 8785 section 3.2.2.2.
 
-    Applies NFC normalization before escaping.
+    Refuses any string that is not already in NFC. Normalizing instead would
+    map two distinct inputs to one pre-image, so a signature over one would
+    verify for the other (GHSA-99p4). For NFC input the output is exactly
+    RFC 8785, which does not normalize.
     """
-    s = unicodedata.normalize("NFC", s)
+    if not unicodedata.is_normalized("NFC", s):
+        raise ValueError(
+            "string is not NFC-normalized; normalize it before signing "
+            f"(first 40 chars: {s[:40]!r})"
+        )
     buf: list[str] = ['"']
     for ch in s:
         cp = ord(ch)
