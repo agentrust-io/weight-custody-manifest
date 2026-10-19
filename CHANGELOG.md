@@ -4,7 +4,7 @@ Notable changes to the Weight Custody Manifest specification and Python SDK.
 Format loosely follows [Keep a Changelog](https://keepachangelog.com/); the SDK
 uses semantic-ish versioning while pre-1.0.
 
-## Unreleased
+## 0.33.0 - 2026-10-18
 
 **Fixed, security (GHSA-x3w3-7mvg-hxw5), breaking.** `KeyBrokerService` now
 defaults to `require_channel_binding=True`. A caller that constructed it without
@@ -30,6 +30,10 @@ Reported by Muhammad Usama Sardar. The new check reports `not required` when
 unset. Intel TDX has no comparable per-chip field in the quote and is not yet
 covered.
 
+**Added.** Repository-wide OIDC permission regression coverage preserves the
+existing publishing and Scorecard grants and rejects new job grants, broad
+workflow defaults and allowance drift across `.yml` and `.yaml` workflows.
+
 **Fixed.** Hardware-required provider selection now reports missing Azure vTPM
 device/tool prerequisites, including the `tpm2-tools` install hint when
 `tpm2_nvread` is absent. Prerequisites present without a usable provider are
@@ -40,6 +44,11 @@ for required signer roles and manifest identities. Any binding enables strict
 checks for all required roles; missing bindings refuse without flat-trust fallback.
 Unbound contexts retain existing behavior; schema, signed fields, and Layer 2
 release checks are unchanged.
+
+**Fixed.** Challenge-store expiry pruning uses constant-time front removal
+instead of repeatedly scanning a deleted dictionary prefix while holding the
+store lock. Single-use and expiry acceptance rules are unchanged. This does not
+add a request-rate or absolute storage cap.
 
 **Added.** A committed Intel TDX vendor conformance vector reusing the dated
 external GCP C3 SEAM SVN 15 capture, with a separately staged public Intel root,
