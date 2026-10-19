@@ -25,6 +25,12 @@ from tests.test_gpu_revocation import (  # noqa: F401
 )
 
 
+from wcm._seal import generate_transport_keypair  # noqa: E402
+
+# Enclave transport keypair: the KBS seals every release to it by default.
+_TRANSPORT_PRIV, _TRANSPORT_PUB = generate_transport_keypair()
+
+
 def gpu_evidence_b64() -> str:
     """The committed H100 evidence, as the runtime would present it."""
     document = json.loads((FIXTURES / "gpu_h100_attestation.json").read_text(encoding="utf-8"))
@@ -41,6 +47,7 @@ def evidence(nonce: str, manifest) -> CompositeEvidence:
             serving_image_measurement=current,
             nonce_echo=nonce,
             attestation_key_id="vcek:test",
+            transport_public_key=_TRANSPORT_PUB,
         ),
         gpu=GpuReport(
             platform="nvidia-cc-gpu",
@@ -248,6 +255,7 @@ def test_the_custody_window_is_bounded_by_the_evidence(example_manifest):
     assert release.released is True
     session = EnclaveSession.from_release(
         manifest, release, max_operations=10, now=lambda: WHEN,
+        transport_private_key=_TRANSPORT_PRIV,
     )
     cadence = session._cadence  # noqa: SLF001
 
@@ -285,6 +293,7 @@ def test_a_decision_with_no_evidence_bound_keeps_the_cadence(example_manifest):
     )
     session = EnclaveSession.from_release(
         manifest, release, max_operations=10, now=lambda: WHEN,
+        transport_private_key=_TRANSPORT_PRIV,
     )
     submitted = evidence(plain.issue_challenge().nonce, manifest)
     decision = plain.verify_for_renewal(manifest, submitted)

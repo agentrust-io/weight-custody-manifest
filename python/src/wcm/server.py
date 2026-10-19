@@ -118,6 +118,10 @@ def build_kbs_from_env() -> KeyBrokerService:
     release always denies with ``key_available`` false). Keys are supplied at
     runtime (mounted secret / KMS), never baked into the image.
 
+    ``WCM_ALLOWED_PLATFORM_INSTANCES_FILE``, optional, is a JSON array of
+    SEV-SNP CHIP_IDs (128 hex characters each). When set, release also requires
+    the verified report's CHIP_ID to be listed.
+
     ``WCM_CPU_TRUST_ROOT_FILE`` enables CPU quote verification and requires
     ``WCM_CPU_LAUNCH_MEASUREMENT_OFFSET``: the serving-image measurement is
     taken from the signed report at that offset, and evidence whose report
@@ -165,6 +169,18 @@ def build_kbs_from_env() -> KeyBrokerService:
                 "WCM_TRUSTED_MANIFEST_IDENTITIES_FILE must contain a JSON string array"
             )
         trusted_manifest_identities.update(configured_identities)
+    # Optional hardware-instance pinning (GHSA-jr5r-w684-fg5m): a JSON string
+    # array of SEV-SNP CHIP_IDs. Unset leaves the check off; a malformed file
+    # refuses to start rather than run unpinned.
+    allowed_instances = None
+    instances_path = os.environ.get("WCM_ALLOWED_PLATFORM_INSTANCES_FILE")
+    if instances_path:
+        with open(instances_path, "r", encoding="utf-8") as fh:
+            allowed_instances = json.load(fh)
+        if not isinstance(allowed_instances, list):
+            raise ValueError(
+                "WCM_ALLOWED_PLATFORM_INSTANCES_FILE must contain a JSON string array"
+            )
     # A network release surface must not silently downgrade to structural CPU
     # evidence. Without a trusted root it serves health/challenges but refuses
     # every release.
@@ -176,6 +192,7 @@ def build_kbs_from_env() -> KeyBrokerService:
         require_cpu_quote_verification=True,
         require_gpu_report_verification=True,
         trusted_manifest_identities=trusted_manifest_identities,
+        allowed_platform_instances=allowed_instances,
     )
 
 

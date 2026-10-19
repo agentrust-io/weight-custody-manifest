@@ -101,6 +101,32 @@ class ReleaseDecision:
         return [c for c in self.checks if not c.passed]
 
 
+def _normalize_platform_instances(
+    values: Optional[Iterable[str]],
+) -> Optional[frozenset[str]]:
+    """Validate an operator CHIP_ID list; None means the check is not required."""
+    if values is None:
+        return None
+    out: set[str] = set()
+    for value in values:
+        if not isinstance(value, str):
+            raise ValueError("allowed_platform_instances entries must be hex strings")
+        chip = value.strip().lower()
+        if len(chip) != 128 or any(c not in "0123456789abcdef" for c in chip):
+            raise ValueError(
+                "allowed_platform_instances entries must be a 64-byte SEV-SNP CHIP_ID "
+                "as 128 hex characters"
+            )
+        if not any(int(chip[i : i + 2], 16) for i in range(0, 128, 2)):
+            raise ValueError("allowed_platform_instances cannot list a zero (masked) CHIP_ID")
+        out.add(chip)
+    if not out:
+        # An empty list would deny every release; refuse it at construction
+        # rather than ship a broker that can never release.
+        raise ValueError("allowed_platform_instances is empty; pass None to disable the check")
+    return frozenset(out)
+
+
 class KeyBrokerService:
     """A minimal attested key release service (SPEC.md section 3.2)."""
 
@@ -115,7 +141,7 @@ class KeyBrokerService:
         gpu_revocation_client: "Optional[NvidiaOcspClient]" = None,
         cpu_quote_verifier: Optional[QuoteVerifier] = None,
         gpu_report_verifier: Optional[NvidiaGpuVerifier] = None,
-        require_channel_binding: bool = False,
+        require_channel_binding: bool = True,
         require_cpu_quote_verification: bool = False,
         require_gpu_report_verification: bool = False,
         renewal_signing_key: Optional[Ed25519PrivateKey] = None,
@@ -123,6 +149,7 @@ class KeyBrokerService:
         memory_fingerprint_public_key_b64url: Optional[str] = None,
         allow_legacy_memory_fingerprint: bool = False,
         trusted_manifest_identities: Optional[Iterable[str]] = None,
+        allowed_platform_instances: Optional[Iterable[str]] = None,
     ) -> None:
         if renewal_decision_ttl_seconds <= 0:
             raise ValueError("renewal_decision_ttl_seconds must be positive")
@@ -148,8 +175,11 @@ class KeyBrokerService:
         self._gpu_report_verifier = gpu_report_verifier
         # When True, the evidence must carry an attested transport public key and
         # the released key is sealed to it (never returned in the clear), so a
-        # relayed quote yields only ciphertext (SPEC 3.2 channel binding). Off by
-        # default: the pre-channel-binding release shape is unchanged.
+        # relayed quote yields only ciphertext (SPEC 3.2 channel binding). On by
+        # default (GHSA-x3w3-7mvg-hxw5): a caller that built the service without
+        # it got the key in the clear, which a relayed quote could collect.
+        # Passing False restores the unsealed release shape and should be reserved
+        # for tests and channels the caller has bound some other way.
         self._require_channel_binding = require_channel_binding
         self._require_cpu_quote_verification = require_cpu_quote_verification
         self._require_gpu_report_verification = require_gpu_report_verification
@@ -158,6 +188,14 @@ class KeyBrokerService:
         self._memory_fingerprint_public_key = memory_fingerprint_public_key_b64url
         self._allow_legacy_memory_fingerprint = allow_legacy_memory_fingerprint
         self._trusted_manifest_identities = set(trusted_manifest_identities or ())
+        # When set, release additionally requires the hardware instance that
+        # produced the evidence to be one the operator listed: SEV-SNP CHIP_ID
+        # as 128 lowercase hex characters (GHSA-jr5r-w684-fg5m). Genuine evidence
+        # proves a genuine chip, not this operator's chip; without the list, a
+        # key extracted from any unrevoked chip in the world can pass.
+        self._allowed_platform_instances = _normalize_platform_instances(
+            allowed_platform_instances
+        )
 
     def issue_challenge(self) -> Challenge:
         return self._challenges.issue()
@@ -279,6 +317,7 @@ class KeyBrokerService:
             manifest, evidence, nonce, channel_binding
         )
         checks.append(self._check_platform_integrity(manifest, evidence, verified_snp_report))
+        checks.append(self._check_platform_instance(evidence, verified_snp_report))
 
         # 7. Attestation-key revocation freshness (v0.8) when required.
         revocation_check, evidence_not_after = self._check_attestation_revocation(
@@ -698,6 +737,55 @@ class KeyBrokerService:
         if failures:
             return CheckResult("platform_integrity", False, "; ".join(failures))
         return CheckResult("platform_integrity", True)
+
+    def _check_platform_instance(
+        self, evidence: CompositeEvidence, verified_snp_report: Optional[bytes]
+    ) -> CheckResult:
+        """Enforce ``allowed_platform_instances`` against the verified CHIP_ID.
+
+        Unset passes. Set, it fails closed whenever the instance cannot be read
+        from authenticated bytes: a non-SNP platform (TDX carries no comparable
+        per-chip field in the quote), no verified report, or a masked CHIP_ID.
+        """
+        allowed = self._allowed_platform_instances
+        if allowed is None:
+            return CheckResult("platform_instance_allowed", True, "not required")
+        if evidence.cpu.platform != "amd-sev-snp":
+            return CheckResult(
+                "platform_instance_allowed",
+                False,
+                f"allowed_platform_instances is SEV-SNP-only (CHIP_ID); evidence "
+                f"platform is '{evidence.cpu.platform}'",
+            )
+        # As with PLATFORM_INFO, only the verifier's authenticated report counts
+        # (GHSA-vwq2-c539-xpr6): the sender's quote_b64 bytes are not evidence.
+        if verified_snp_report is None:
+            return CheckResult(
+                "platform_instance_allowed",
+                False,
+                "required but no cryptographically verified SNP report: CHIP_ID is "
+                "read only from a report whose signature the CPU quote verifier checked",
+            )
+        try:
+            report = parse_snp_report(verified_snp_report)
+        except (ValueError, TypeError, QuoteFormatError) as exc:
+            return CheckResult(
+                "platform_instance_allowed", False, f"unparseable SNP report: {exc}"
+            )
+        if not any(report.chip_id):
+            return CheckResult(
+                "platform_instance_allowed",
+                False,
+                "CHIP_ID is zero (masked by guest policy), so the instance cannot be checked",
+            )
+        chip = report.chip_id.hex()
+        if chip not in allowed:
+            return CheckResult(
+                "platform_instance_allowed",
+                False,
+                f"CHIP_ID {chip[:16]}... is not in allowed_platform_instances",
+            )
+        return CheckResult("platform_instance_allowed", True)
 
     def _check_attestation_revocation(
         self, manifest: WeightCustodyManifest, evidence: CompositeEvidence,
