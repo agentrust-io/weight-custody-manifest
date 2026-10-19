@@ -6,6 +6,21 @@ uses semantic-ish versioning while pre-1.0.
 
 ## Unreleased
 
+## 0.33.1 - 2026-10-19
+
+**Fixed, security (GHSA-99p4-597j-8m5m).** The canonicalizer NFC-normalized
+every string before signing, so the NFC and NFD spellings of a value, or two
+keys that normalize alike, produced one pre-image. On a `byom-symmetric`
+manifest whose builder identity spelled an accented character precomposed
+(U+00E9) and whose custodian spelled it decomposed (U+0065 U+0301), flipping
+only the custodian's spelling moved `verify_manifest()` from rejection to
+acceptance on unchanged signatures. `canonicalize` now refuses any string or key
+that is not already NFC instead of normalizing it. NFC input canonicalizes
+exactly as RFC 8785 does, so existing signatures over NFC text keep verifying;
+none of the 183 JSON and YAML files in this repository contain non-NFC text. A
+signature block over non-NFC text now fails with the refusal as its reason.
+Reported privately by @solloek369-arch.
+
 **Fixed, security (GHSA-5mg4-8gw3-3xmm).** With a GPU report verifier
 configured, the key broker matched `required_gpu_measurement.rim_pin` against
 `GpuReport.measurement`, a field the requester writes and no signature covers.
