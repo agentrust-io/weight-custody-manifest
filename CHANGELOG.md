@@ -6,6 +6,11 @@ uses semantic-ish versioning while pre-1.0.
 
 ## Unreleased
 
+**Fixed.** Challenge-store expiry pruning uses constant-time front removal
+instead of repeatedly scanning a deleted dictionary prefix while holding the
+store lock. Single-use and expiry acceptance rules are unchanged. This does not
+add a request-rate or absolute storage cap.
+
 **Fixed, security (GHSA-x3w3-7mvg-hxw5), breaking.** `KeyBrokerService` now
 defaults to `require_channel_binding=True`. A caller that constructed it without
 the flag got the model key back in the clear, so a relay that forwarded a live,
