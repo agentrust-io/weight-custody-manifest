@@ -16,7 +16,7 @@ When a company hands its AI model to a customer to run on the customer's own mac
 
 TL;DR
 
-The reference SDK ([weight-custody-manifest](https://pypi.org/project/weight-custody-manifest/) 0.32.0, Apache-2.0) runs its test cases on an ordinary laptop with no GPU or cloud account, and checks hardware reports captured on real AMD SEV-SNP, Intel TDX and NVIDIA H100 machines. Against someone who physically owns the machine, WCM gives you a record and a way to hold them to account, not cryptographic custody, because published attacks on the memory bus defeat today's confidential-computing chips.
+The reference SDK ([weight-custody-manifest](https://pypi.org/project/weight-custody-manifest/) 0.33.0, Apache-2.0) runs its test cases on an ordinary laptop with no GPU or cloud account, and checks hardware reports captured on real AMD SEV-SNP, Intel TDX and NVIDIA H100 machines. Against someone who physically owns the machine, WCM gives you a record and a way to hold them to account, not cryptographic custody, because published attacks on the memory bus defeat today's confidential-computing chips.
 
 - **Run it**
 
@@ -140,7 +140,7 @@ Open an issue or a discussion on [github.com/agentrust-io/weight-custody-manifes
 
 The specification, schema, test suite, reference SDK, threat model, and reference key-release service are free to use under Apache-2.0. Vendors may build compatible hosted services and protected-runtime products. Public availability does not establish production readiness.
 
-**Status:** pre-1.0 · SDK 0.32.0 · Apache-2.0 · SCITT and CoSAI standards path on the [roadmap](https://wcm.agentrust-io.com/roadmap/index.md) · AgenTrust is an independent open-source project. No company funds, owns or directs it; contributions are voluntary.
+**Status:** pre-1.0 · SDK 0.33.0 · Apache-2.0 · SCITT and CoSAI standards path on the [roadmap](https://wcm.agentrust-io.com/roadmap/index.md) · AgenTrust is an independent open-source project. No company funds, owns or directs it; contributions are voluntary.
 
 # Getting started
 
