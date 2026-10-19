@@ -49,6 +49,9 @@ from datetime import datetime, timedelta, timezone
 from enum import Enum
 from typing import Callable, Optional
 
+from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PrivateKey
+
+from ._seal import SealError, open_sealed
 from .attestation import CompositeEvidence
 from .models import TrustedTimeSource, WeightCustodyManifest
 from .renewal import (
@@ -268,8 +271,15 @@ class EnclaveSession:
         max_operations: Optional[int] = None,
         now: Optional[Callable[[], datetime]] = None,
         on_stop: Optional[Callable[[], None]] = None,
+        transport_private_key: "Optional[X25519PrivateKey]" = None,
     ) -> "EnclaveSession":
         """Start custody from a KBS ``ReleaseDecision`` that released a key.
+
+        A channel-bound release (the KBS default since GHSA-x3w3-7mvg-hxw5)
+        carries only ``sealed_key``; it is opened here with
+        ``transport_private_key``, the enclave half of the transport key whose
+        public half the quote bound. Without that key a sealed release cannot
+        start custody.
 
         Reads the cadence from ``custody.attestation_cadence`` and the floor from
         ``release_policy.trusted_time_source``. ``max_operations`` (the op-count
@@ -278,6 +288,17 @@ class EnclaveSession:
         """
         released = getattr(decision, "released", False)
         key = getattr(decision, "key", None)
+        sealed = getattr(decision, "sealed_key", None)
+        if released and key is None and sealed is not None:
+            if transport_private_key is None:
+                raise ValueError(
+                    "cannot start custody: the key was released sealed and no "
+                    "transport_private_key was given to open it"
+                )
+            try:
+                key = open_sealed(sealed, transport_private_key)
+            except SealError as exc:
+                raise ValueError(f"cannot start custody: sealed key did not open: {exc}") from None
         if not released or key is None:
             raise ValueError("cannot start custody: the release decision has no key")
         # The cadence and time floor below come from *manifest*, so it has to

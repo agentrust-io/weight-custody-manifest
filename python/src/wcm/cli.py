@@ -44,6 +44,7 @@ from ._quote_verify import (
     TrustStore,
     verify_cert_chain,
 )
+from ._seal import generate_transport_keypair
 from ._signing import Ed25519Signer, ed25519_from_private_b64url, generate_ed25519
 from ._verify import VerificationContext, verify_manifest
 from .kbs import KeyBrokerService
@@ -260,6 +261,9 @@ def cmd_gate(args: argparse.Namespace) -> int:
         trusted_manifest_identities={manifest_identity(m)},
     )
     challenge = kbs.issue_challenge()
+    # The KBS seals releases to an attested transport key by default, so the
+    # mock enclave presents one, as a real enclave would.
+    _, transport_public_key = generate_transport_keypair()
     evidence = SoftwareProvider().produce(
         challenge,
         serving_image_measurement=serving,
@@ -267,6 +271,7 @@ def cmd_gate(args: argparse.Namespace) -> int:
         assurance_tier=rp.required_assurance_tier.value,
         gpu_measurement=gpu_meas,
         include_memory_fingerprint=want_mf,
+        transport_public_key=transport_public_key,
     )
     decision = kbs.verify_and_release(m, evidence)
 

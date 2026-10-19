@@ -25,6 +25,8 @@ from wcm import (
     SevSnpProvider,
     SoftwareProvider,
     TdxProvider,
+    generate_transport_keypair,
+    open_sealed,
     select_cpu_provider,
     select_provider,
 )
@@ -317,8 +319,12 @@ def test_hardware_composite_releases_through_gate(structural_manifest, monkeypat
     gpu._run_tool = lambda nonce_hex: {"measurement": rim, "cc_mode": True}  # type: ignore[method-assign]
 
     provider = HardwareCompositeProvider(cpu, gpu)
-    evidence = provider.produce(challenge, serving_image_measurement=current)
+    enclave_priv, enclave_pub = generate_transport_keypair()
+    evidence = provider.produce(
+        challenge, serving_image_measurement=current, transport_public_key=enclave_pub
+    )
 
     decision = kbs.verify_and_release(structural_manifest, evidence)
     assert decision.released
-    assert decision.key == KEY
+    assert decision.key is None
+    assert open_sealed(decision.sealed_key, enclave_priv) == KEY

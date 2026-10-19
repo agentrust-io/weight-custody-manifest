@@ -6,6 +6,30 @@ uses semantic-ish versioning while pre-1.0.
 
 ## Unreleased
 
+**Fixed, security (GHSA-x3w3-7mvg-hxw5), breaking.** `KeyBrokerService` now
+defaults to `require_channel_binding=True`. A caller that constructed it without
+the flag got the model key back in the clear, so a relay that forwarded a live,
+valid quote could collect it. The shipped server and broker receiver already set
+the flag and are unaffected. Evidence must now carry an attested
+`transport_public_key`, and a release returns only `sealed_key`.
+`EnclaveSession.from_release` takes a new `transport_private_key` argument and
+opens the sealed key itself; before this it could not start custody from a
+sealed release at all. Pass `require_channel_binding=False` to restore the
+unsealed shape; the conformance runner keeps its per-vector setting. Reported by
+Muhammad Usama Sardar.
+
+**Added, security (GHSA-jr5r-w684-fg5m).** Opt-in hardware-instance pinning.
+`KeyBrokerService(allowed_platform_instances=...)` and the server's
+`WCM_ALLOWED_PLATFORM_INSTANCES_FILE` take a list of SEV-SNP CHIP_IDs. When set,
+release requires the CHIP_ID in the report the CPU quote verifier authenticated
+to be listed, and fails closed on a non-SNP platform, an unverified report or a
+masked CHIP_ID. Without it the gate accepts genuine evidence from any unrevoked
+chip with approved measurements, so an attestation or transport key extracted
+from a machine the operator does not control can still obtain the model key.
+Reported by Muhammad Usama Sardar. The new check reports `not required` when
+unset. Intel TDX has no comparable per-chip field in the quote and is not yet
+covered.
+
 **Fixed.** Hardware-required provider selection now reports missing Azure vTPM
 device/tool prerequisites, including the `tpm2-tools` install hint when
 `tpm2_nvread` is absent. Prerequisites present without a usable provider are
