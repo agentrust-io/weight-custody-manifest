@@ -12,6 +12,8 @@ floats are handled; the pathological float suite is out of scope.
 """
 from __future__ import annotations
 
+import pytest
+
 from wcm import canonicalize
 
 
@@ -38,10 +40,12 @@ def test_string_escaping():
     assert canonicalize("\x00") == b'"\\u0000"'
 
 
-def test_nfc_normalization():
-    # NFC: precomposed e-acute (U+00E9) and decomposed (e + U+0301) canonicalize
-    # to identical bytes.
-    assert canonicalize("é") == canonicalize("é")
+def test_decomposed_string_is_refused_not_normalized():
+    # GHSA-99p4: precomposed e-acute (U+00E9) is plain RFC 8785; the decomposed
+    # spelling (e + U+0301) used to share its bytes and is now refused.
+    assert canonicalize("\u00e9") == b'"\xc3\xa9"'
+    with pytest.raises(ValueError, match="not NFC"):
+        canonicalize("e\u0301")
 
 
 def test_primitives():

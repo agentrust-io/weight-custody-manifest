@@ -185,6 +185,35 @@ def test_byom_symmetric_single_identity_may_use_one_key(example_dict):
     assert verify_manifest(signed, ctx).ok
 
 
+def test_ghsa_99p4_non_nfc_identity_is_refused_not_normalized(example_dict):
+    # GHSA-99p4: with builder "caf\u00e9" (NFC) and custodian "cafe\u0301" (NFD),
+    # NFC normalization gave both worlds one pre-image, so flipping only the
+    # custodian's spelling turned ok=false into ok=true on unchanged signatures.
+    from wcm import WeightCustodyManifest
+
+    nfc, nfd = "caf\u00e9", "cafe\u0301"
+    example_dict["deployment_model"] = "byom-symmetric"
+    example_dict["custody"]["custodian_type"] = "customer-self-custody"
+    example_dict["builder"]["identity"] = nfc
+    example_dict["custody"]["custodian"] = nfd
+    world_a = WeightCustodyManifest.model_validate(example_dict)
+    org = generate_ed25519()
+    ctx = VerificationContext()
+    ctx.add_key(org.public_bytes)
+
+    with pytest.raises(ValueError, match="not NFC"):
+        _sign(world_a, org, "builder", nfc)
+
+    example_dict["custody"]["custodian"] = nfc
+    world_b = WeightCustodyManifest.model_validate(example_dict)
+    block = _sign(world_b, org, "builder", nfc)
+    # Blocks that verified for one spelling no longer carry over to the other.
+    signed_a = world_a.with_signatures([block, _relabel(block, "custodian", nfd)])
+    result = verify_manifest(signed_a, ctx)
+    assert not result.ok
+    assert any("not NFC" in (r.reason or "") for r in result.signatures)
+
+
 def _bound_context(manifest, builder, custodian):
     ctx = VerificationContext()
     ctx.bind_key(ctx.add_key(builder.public_bytes), role=SignatureRole.builder,

@@ -28,9 +28,24 @@ def test_bool_before_int():
     assert canonicalize({"t": True, "f": False}) == b'{"f":false,"t":true}'
 
 
-def test_unicode_nfc_normalization():
-    # U+00E9 (é) and U+0065 U+0301 (e + combining acute) normalize equal.
-    assert canonicalize("é") == canonicalize("é")
+NFC_E = "caf\u00e9"
+NFD_E = "cafe\u0301"
+
+
+def test_nfc_string_is_plain_rfc8785():
+    assert canonicalize(NFC_E) == b'"caf\xc3\xa9"'
+
+
+def test_non_nfc_value_is_refused():
+    # GHSA-99p4: normalizing made the NFD spelling share the NFC pre-image.
+    with pytest.raises(ValueError, match="not NFC"):
+        canonicalize({"name": NFD_E})
+
+
+def test_non_nfc_key_is_refused():
+    # Two keys that normalized alike used to serialize as duplicate names.
+    with pytest.raises(ValueError, match="not NFC"):
+        canonicalize({NFC_E: 1, NFD_E: 2})
 
 
 def test_control_chars_escaped():

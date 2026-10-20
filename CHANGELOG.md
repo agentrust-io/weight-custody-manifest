@@ -4,6 +4,42 @@ Notable changes to the Weight Custody Manifest specification and Python SDK.
 Format loosely follows [Keep a Changelog](https://keepachangelog.com/); the SDK
 uses semantic-ish versioning while pre-1.0.
 
+## Unreleased
+
+## 0.33.1 - 2026-10-19
+
+**Fixed, security (GHSA-99p4-597j-8m5m).** The canonicalizer NFC-normalized
+every string before signing, so the NFC and NFD spellings of a value, or two
+keys that normalize alike, produced one pre-image. On a `byom-symmetric`
+manifest whose builder identity spelled an accented character precomposed
+(U+00E9) and whose custodian spelled it decomposed (U+0065 U+0301), flipping
+only the custodian's spelling moved `verify_manifest()` from rejection to
+acceptance on unchanged signatures. `canonicalize` now refuses any string or key
+that is not already NFC instead of normalizing it. NFC input canonicalizes
+exactly as RFC 8785 does, so existing signatures over NFC text keep verifying;
+none of the 183 JSON and YAML files in this repository contain non-NFC text. A
+signature block over non-NFC text now fails with the refusal as its reason.
+Reported privately by @solloek369-arch.
+
+**Fixed, security (GHSA-5mg4-8gw3-3xmm).** With a GPU report verifier
+configured, the key broker matched `required_gpu_measurement.rim_pin` against
+`GpuReport.measurement`, a field the requester writes and no signature covers.
+The verifier checked the report's chain, signature and nonce but read no
+measurement from it, so one genuine signed report satisfied any pin: changing
+only that string moved the decision from refusal to release. The verifier now
+reads the driver version and VBIOS version from the SPDM opaque data inside the
+signed report, takes the architecture from the verified device certificate, and
+returns `nvidia-rim:arch=<A>;driver=<D>;vbios=<V>`, the identity
+`tools/nvat_adapter.py` already emits. The broker compares the pin against that
+value and ignores the structured claim. A verified report whose identity cannot
+be read (no SPDM response, a missing or repeated field, an unknown chip) is
+refused when a pin is set. Manifests pinned from `nvat_adapter.py` output need
+no change; a pin in any other form no longer matches a verified report. The
+path without a GPU verifier, reachable only when the manifest waives evidence
+verification and confidential-compute mode, still compares the structured field.
+This binds the pin to what the signed report states; it is not a RIM
+golden-value appraisal. Reported privately by @solloek369-arch.
+
 ## 0.33.0 - 2026-10-18
 
 **Fixed, security (GHSA-x3w3-7mvg-hxw5), breaking.** `KeyBrokerService` now

@@ -18,6 +18,7 @@ import json
 import pathlib
 from datetime import datetime, timedelta, timezone
 
+import pytest
 from cryptography import x509
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import ec
@@ -36,6 +37,7 @@ from wcm import (
     generate_transport_keypair,
     parse_gpu_report,
 )
+from wcm.nvidia import GpuReportFormatError, gpu_measurement_from_report, parse_gpu_opaque_fields
 
 FIXTURES = pathlib.Path(__file__).parent / "fixtures"
 NOW = datetime(2026, 7, 28, 12, 0, 0, tzinfo=timezone.utc)
@@ -150,7 +152,8 @@ class _Pki:
         self.inter_key = _p384()
         self.inter = _cert("nv-test-inter", "nv-test-root", self.inter_key, self.root_key, ca=True)
         self.leaf_key = _p384()
-        self.leaf = _cert("nv-test-gsp-fmc-lf", "nv-test-inter", self.leaf_key, self.inter_key)
+        # The chip prefix matters: the KBS reads the architecture from it.
+        self.leaf = _cert("GH100 A01 GSP FMC LF", "nv-test-inter", self.leaf_key, self.inter_key)
 
     def chain_pem(self) -> str:
         return _pem(self.leaf) + _pem(self.inter) + _pem(self.root)
@@ -165,7 +168,43 @@ def _nv_report(nonce_hex: str, leaf_key, measurements: bytes = b"synthetic-gpu-m
     return signed_body + raw
 
 
-def _synth_evidence(pki: _Pki, nonce_hex: str) -> str:
+SYNTH_DRIVER = "595.71.05"
+SYNTH_VBIOS = bytes.fromhex("0088009611000000")  # formats as 96.00.88.00.11
+SYNTH_MEASUREMENT = "nvidia-rim:arch=HOPPER;driver=595.71.05;vbios=96.00.88.00.11"
+
+
+def _opaque(fields) -> bytes:
+    return b"".join(
+        fid.to_bytes(2, "little") + len(val).to_bytes(2, "little") + val for fid, val in fields
+    )
+
+
+def _spdm_body(driver: str = SYNTH_DRIVER, vbios: bytes = SYNTH_VBIOS, *, fields=None,
+               opaque_len_delta: int = 0) -> bytes:
+    """SPDM MEASUREMENTS response after the request: header, record, nonce, opaque."""
+    if fields is None:
+        fields = [(3, driver.encode() + b"\x00"), (6, vbios)]
+    opaque = _opaque(fields)
+    record = b"\x01\x01\x33\x00" + b"\x01" + b"\x30\x00" + b"\x5a" * 48
+    return (
+        b"\x11\x60\x00\x00" + b"\x01" + len(record).to_bytes(3, "little") + record
+        + b"\xee" * 32  # responder nonce, changes per call on real devices
+        + (len(opaque) + opaque_len_delta).to_bytes(2, "little") + opaque
+    )
+
+
+def _spdm_report(nonce_hex: str, leaf_key, **kwargs) -> bytes:
+    """Build an SPDM GET_MEASUREMENTS transcript in NVIDIA's layout."""
+    return _nv_report(nonce_hex, leaf_key, measurements=b"\x00" + _spdm_body(**kwargs))
+
+
+def _synth_evidence(pki: _Pki, nonce_hex: str, **kwargs) -> str:
+    report = _spdm_report(nonce_hex, pki.leaf_key, **kwargs)
+    return _evidence_b64(base64.b64encode(report).decode(), pki.chain_pem())
+
+
+def _legacy_evidence(pki: _Pki, nonce_hex: str) -> str:
+    """A correctly signed report with no SPDM response, so no readable identity."""
     report = _nv_report(nonce_hex, pki.leaf_key)
     return _evidence_b64(base64.b64encode(report).decode(), pki.chain_pem())
 
@@ -203,6 +242,14 @@ def _evidence(nonce, *, gpu_quote_b64, current, rim):
     )
 
 
+def _pin_gpu(m, rim_pin):
+    policy = m.release_policy
+    gpu = policy.required_gpu_measurement.model_copy(update={"rim_pin": rim_pin})
+    return m.model_copy(update={
+        "release_policy": policy.model_copy(update={"required_gpu_measurement": gpu})
+    })
+
+
 def _measurements(m):
     ams = m.release_policy.required_serving_image.accepted_measurements
     current = next(x.measurement for x in ams if x.status.value == "current")
@@ -216,7 +263,7 @@ def test_kbs_releases_with_verified_gpu(example_manifest):
     Only CPU verification is waived: the manifest still requires the mode, and
     nothing states it except the report having verified.
     """
-    example_manifest = waive(example_manifest, cc_mode=False)
+    example_manifest = _pin_gpu(waive(example_manifest, cc_mode=False), SYNTH_MEASUREMENT)
     pki = _Pki()
     current, rim = _measurements(example_manifest)
     kbs = KeyBrokerService(
@@ -312,3 +359,115 @@ def test_non_string_cert_chain_is_a_denial_not_an_exception():
     )
     assert not result.verified
     assert "unparseable GPU evidence" in (result.reason or "")
+
+
+# -- GHSA-5mg4-8gw3-3xmm: rim_pin is matched against the signed report ---------
+
+REAL_H100_MEASUREMENT = "nvidia-rim:arch=HOPPER;driver=595.71.05;vbios=96.00.88.00.11"
+
+
+def test_real_h100_report_states_its_identity():
+    """Driver and VBIOS come from the signed SPDM opaque data of the real capture."""
+    b = _real_bundle()
+    result = build_gpu_verifier(_real_root_pem()).verify(
+        _evidence_b64(b["report_b64"], b["cert_chain_pem"]), expected_nonce=b["nonce"], now=NOW
+    )
+    assert result.verified, result.reason
+    assert result.gpu_measurement == REAL_H100_MEASUREMENT
+
+
+def test_real_h100_opaque_fields_end_at_the_signature():
+    report = base64.b64decode(_real_bundle()["report_b64"])
+    fields = parse_gpu_opaque_fields(report)
+    assert fields[3] == b"595.71.05\x00"
+    assert len(fields[6]) == 8
+
+
+def _gpu_kbs(manifest, pki):
+    return KeyBrokerService(
+        {manifest.weights_hash: b"KEY"},
+        now=lambda: NOW,
+        gpu_report_verifier=build_gpu_verifier(_pem(pki.root)),
+        require_gpu_report_verification=True,
+        trusted_manifest_identities={manifest_identity(manifest)},
+    )
+
+
+def _gpu_check(decision):
+    return next(c for c in decision.checks if c.name == "gpu")
+
+
+def test_caller_measurement_cannot_satisfy_pin_the_report_does_not_state(example_manifest):
+    """The advisory's world B: the signed report states another driver, and the
+    requester writes the approved pin into gpu.measurement. That used to release."""
+    manifest = _pin_gpu(waive(example_manifest, cc_mode=False), SYNTH_MEASUREMENT)
+    pki = _Pki()
+    current, rim = _measurements(manifest)
+    kbs = _gpu_kbs(manifest, pki)
+    challenge = kbs.issue_challenge()
+    other = _synth_evidence(pki, challenge.nonce, driver="550.00.01")
+    decision = kbs.verify_and_release(
+        manifest, _evidence(challenge.nonce, gpu_quote_b64=other, current=current, rim=rim)
+    )
+    assert not decision.released
+    assert any(c.name == "gpu_report_verified" and c.passed for c in decision.checks)
+    gpu = _gpu_check(decision)
+    assert not gpu.passed
+    assert gpu.detail == "verified GPU report measurement does not match rim_pin"
+
+
+def test_caller_measurement_does_not_decide_when_report_matches(example_manifest):
+    """The structured claim is not read on the verified path, either way."""
+    manifest = _pin_gpu(waive(example_manifest, cc_mode=False), SYNTH_MEASUREMENT)
+    pki = _Pki()
+    current, _ = _measurements(manifest)
+    kbs = _gpu_kbs(manifest, pki)
+    challenge = kbs.issue_challenge()
+    ev = _evidence(
+        challenge.nonce, gpu_quote_b64=_synth_evidence(pki, challenge.nonce),
+        current=current, rim="nvidia-rim:whatever-the-caller-wrote",
+    )
+    decision = kbs.verify_and_release(manifest, ev)
+    assert decision.released, decision.failures()
+
+
+def test_verified_report_without_identity_cannot_match_a_pin(example_manifest):
+    manifest = _pin_gpu(waive(example_manifest, cc_mode=False), SYNTH_MEASUREMENT)
+    pki = _Pki()
+    current, rim = _measurements(manifest)
+    kbs = _gpu_kbs(manifest, pki)
+    challenge = kbs.issue_challenge()
+    ev = _evidence(
+        challenge.nonce, gpu_quote_b64=_legacy_evidence(pki, challenge.nonce),
+        current=current, rim=rim,
+    )
+    decision = kbs.verify_and_release(manifest, ev)
+    assert not decision.released
+    assert any(c.name == "gpu_report_verified" and c.passed for c in decision.checks)
+    assert "states no measurement" in (_gpu_check(decision).detail or "")
+
+
+def test_unknown_chip_states_no_identity():
+    pki = _Pki()
+    pki.leaf = _cert("GZ999 A01 GSP FMC LF", "nv-test-inter", pki.leaf_key, pki.inter_key)
+    result = build_gpu_verifier(_pem(pki.root)).verify(
+        _synth_evidence(pki, "ab" * 32), expected_nonce="ab" * 32, now=NOW
+    )
+    assert result.verified and result.gpu_measurement is None
+
+
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"opaque_len_delta": -1},  # opaque data stops short of the signature
+        {"opaque_len_delta": 1},  # opaque data overruns into the signature
+        {"fields": [(3, b"595.71.05\x00"), (6, SYNTH_VBIOS), (3, b"999.99.99\x00")]},
+        {"fields": [(3, b"595.71.05\x00")]},  # no VBIOS field
+        {"fields": [(3, b"595.71.05;vbios=0\x00"), (6, SYNTH_VBIOS)]},
+        {"vbios": b"\x00" * 7},
+    ],
+)
+def test_malformed_identity_is_refused(kwargs):
+    report = _spdm_report("ab" * 32, _p384(), **kwargs)
+    with pytest.raises(GpuReportFormatError):
+        gpu_measurement_from_report(report, _Pki().leaf)

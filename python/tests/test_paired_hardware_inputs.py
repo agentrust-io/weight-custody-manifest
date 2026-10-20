@@ -111,7 +111,10 @@ def test_harness_uses_approved_gpu_and_reports_only_its_test_scope(monkeypatch, 
     monkeypatch.setattr(paired.NvidiaCcProvider, "is_available", lambda: True)
     class SyntheticVerifier:
         def verify(self, *args, **kwargs):
-            return SimpleNamespace(verified=True, reason="synthetic test", leaf_subject="synthetic")
+            # The KBS matches rim_pin against the identity the verified report
+            # states (GHSA-5mg4-8gw3-3xmm), so the synthetic verifier states one.
+            return SimpleNamespace(verified=True, reason="synthetic test", leaf_subject="synthetic",
+                                   gpu_measurement=approved_gpu)
     monkeypatch.setattr(paired, "_cpu_verifier", lambda root, paravisor_measurements: SyntheticVerifier())
     monkeypatch.setattr(paired, "build_gpu_verifier", lambda root: SyntheticVerifier())
     class SyntheticProvider:

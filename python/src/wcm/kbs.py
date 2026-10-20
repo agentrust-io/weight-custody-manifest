@@ -298,13 +298,17 @@ class KeyBrokerService:
         #    Confidential-compute mode is met only by a cryptographically
         #    verified report, so the report is verified first; its check is still
         #    reported at 7c, keeping the order of the decision's checks stable.
-        gpu_report_check = self._check_gpu_report(manifest, evidence, nonce)
+        gpu_report_check, verified_gpu_measurement = self._check_gpu_report(
+            manifest, evidence, nonce
+        )
         gpu_verified = (
             gpu_report_check.passed
             and self._gpu_report_verifier is not None
             and evidence.gpu is not None
         )
-        checks.append(self._check_gpu(manifest, evidence, gpu_verified))
+        checks.append(
+            self._check_gpu(manifest, evidence, gpu_verified, verified_gpu_measurement)
+        )
 
         # 6. Memory-fingerprint challenge (v0.8) when the posture requires it.
         checks.append(self._check_memory_fingerprint(manifest, evidence, nonce))
@@ -459,6 +463,7 @@ class KeyBrokerService:
         manifest: WeightCustodyManifest,
         evidence: CompositeEvidence,
         gpu_verified: bool,
+        verified_measurement: Optional[str] = None,
     ) -> CheckResult:
         req = manifest.release_policy.required_gpu_measurement
         if req is None:
@@ -470,7 +475,25 @@ class KeyBrokerService:
             return CheckResult(
                 "gpu", False, "GPU report not bound to CPU quote (nonce echo mismatch)"
             )
-        if gpu.measurement != req.rim_pin:
+        if gpu_verified:
+            # GHSA-5mg4-8gw3-3xmm: the pin is matched against the identity read
+            # from the signed report, never against gpu.measurement, which the
+            # requester writes and no signature covers.
+            if verified_measurement is None:
+                return CheckResult(
+                    "gpu",
+                    False,
+                    "the verified GPU report states no measurement the KBS can read, "
+                    "so rim_pin cannot be matched",
+                )
+            if verified_measurement != req.rim_pin:
+                return CheckResult(
+                    "gpu", False, "verified GPU report measurement does not match rim_pin"
+                )
+        elif gpu.measurement != req.rim_pin:
+            # Unverified path: structural trust only. Release still needs the
+            # report verified unless the manifest waives evidence verification
+            # and confidential-compute mode, which is that signer's decision.
             return CheckResult("gpu", False, "GPU measurement does not match rim_pin")
         if req.require_cc_mode is False:
             return CheckResult(
@@ -629,35 +652,35 @@ class KeyBrokerService:
 
     def _check_gpu_report(
         self, manifest: WeightCustodyManifest, evidence: CompositeEvidence, nonce: str
-    ) -> CheckResult:
+    ) -> tuple[CheckResult, Optional[str]]:
         gpu = evidence.gpu
         if gpu is None:
             # Required-but-absent GPU evidence is rejected by _check_gpu.
-            return CheckResult("gpu_report_verified", True, "no GPU report present")
+            return CheckResult("gpu_report_verified", True, "no GPU report present"), None
         if self._gpu_report_verifier is None:
             if self._require_gpu_report_verification:
                 return CheckResult(
                     "gpu_report_verified",
                     False,
                     "cryptographic GPU report verifier required but not configured",
-                )
+                ), None
             if manifest.release_policy.require_evidence_verification is not False:
                 return CheckResult(
                     "gpu_report_verified",
                     False,
                     "cryptographic GPU report verification required by the manifest "
                     "but no verifier is configured",
-                )
+                ), None
             return CheckResult(
                 "gpu_report_verified",
                 True,
                 "waived by require_evidence_verification: false: structural trust "
                 "only (no cryptographic GPU verification)",
-            )
+            ), None
         if gpu.quote_b64 is None:
             return CheckResult(
                 "gpu_report_verified", False, "verifier configured but GPU report has no raw quote"
-            )
+            ), None
         # The GPU evidence bundles the report and its device cert chain; the
         # report echoes the raw KBS nonce (offset 4), which is what ties it to
         # the CPU quote (composite binding in _check_gpu). No transport key on
@@ -665,7 +688,8 @@ class KeyBrokerService:
         result = self._gpu_report_verifier.verify(
             gpu.quote_b64, expected_nonce=nonce, now=self._now()
         )
-        return CheckResult("gpu_report_verified", result.verified, result.reason)
+        measurement = getattr(result, "gpu_measurement", None) if result.verified else None
+        return CheckResult("gpu_report_verified", result.verified, result.reason), measurement
 
     def _check_platform_integrity(
         self,

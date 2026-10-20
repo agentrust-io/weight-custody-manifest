@@ -165,6 +165,11 @@ class QuoteVerification:
     # must read them from here, never by re-parsing the submitted evidence,
     # whose outer container the sender writes.
     snp_report: Optional[bytes] = None
+    # The GPU identity read from the signed body of a verified NVIDIA report
+    # (``nvidia.gpu_measurement_from_report``), set only on success. The KBS
+    # compares ``required_gpu_measurement.rim_pin`` against this, never against
+    # the structured ``GpuReport.measurement`` the requester writes.
+    gpu_measurement: Optional[str] = None
 
 
 def _utcnow() -> datetime:
