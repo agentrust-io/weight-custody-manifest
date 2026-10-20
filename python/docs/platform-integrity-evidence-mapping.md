@@ -21,11 +21,11 @@ The Arm finding prevents a blanket claim that CCA provides no platform-property 
 
 A future mapping can be reviewed one platform/profile at a time. Its packet would identify the exact vendor specification/version, authenticated claim path, verifier trust roots, implementation identity, decoder, reference values, threat coverage and evidence freshness. It would retain original evidence and independently reproducible appraisal inputs. Report failures separately as authenticated negative, unsupported interpretation, missing evidence or verification failure, even where all prevent release.
 
-The following are planned review pairs, not executed tests or a new release contract.
+The following are planned review pairs, not executed tests or a new release contract. Semantic negatives need separately authenticated evidence that reaches appraisal: flipping a signed report bit without re-authentication only tests signature failure. Synthetic fixtures injected at the verified-report gate can test its branching, but do not count as captured vendor evidence or hardware validation.
 
 | ID | Valid control | Perturbation and expected distinction |
 | --- | --- | --- |
-| PI-01 | Authenticated SNP report satisfies both configured properties. | Clear each required bit separately; release remains denied for the corresponding negative evidence. |
+| PI-01 | Authenticated SNP report satisfies both configured properties. | Use separately authenticated reports with each required bit clear; release remains denied for the corresponding negative evidence. Availability of those captures is a prerequisite, not assumed. |
 | PI-02 | Supported authenticated report version exposes the alias field. | Older version lacks it; report unsupported evidence rather than an observed clear bit. |
 | PI-03 | Claim bytes come from the verified report. | Put positive values only in an unauthenticated wrapper; they cannot satisfy the gate. |
 | PI-04 | Matching CCA implementation profile decodes an authenticated configuration. | Unknown profile or changed encoding remains uninterpretable, not a default positive. |
