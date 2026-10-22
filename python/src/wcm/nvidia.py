@@ -154,7 +154,7 @@ def parse_gpu_opaque_fields(report: bytes) -> dict[int, bytes]:
     extraction retains the versioned value types internally. Parsing establishes
     no authenticity; call the verifier before trusting these fields.
 
-    Versioned-path hardware validation is provisional; the committed NVIDIA
+    Versioned-path hardware validation is provisional; the separately supplied NVIDIA
     versioned vector has no device certificate chain. See
     ``python/docs/nvdaod-identity.md`` for the separate evidence classes.
     """
