@@ -128,8 +128,17 @@ _SPDM_GET_MEASUREMENTS = 0xE0
 _SPDM_MEASUREMENTS = 0x60
 _OPAQUE_DRIVER_VERSION = 3
 _OPAQUE_VBIOS_VERSION = 6
+_OPAQUE_DATA_VERSION = 0x22
+_NVDAOD_MAGIC = b"NVDAOD"
+_MAX_OPAQUE_MAJOR = 2
 # Device-certificate chip prefix -> the architecture name nvattest reports.
 _ARCH_BY_CHIP_PREFIX = {"GH": "HOPPER", "GB": "BLACKWELL"}
+
+
+@dataclass(frozen=True)
+class _GpuOpaqueField:
+    value: bytes
+    value_type: int | None  # None for the legacy two-field entry header.
 
 
 def parse_gpu_opaque_fields(report: bytes) -> dict[int, bytes]:
@@ -140,7 +149,19 @@ def parse_gpu_opaque_fields(report: bytes) -> dict[int, bytes]:
     signature starts, so no byte between them is unaccounted for. Raises
     ``GpuReportFormatError`` otherwise. A repeated field id is refused rather
     than resolved, since either choice would let the sender pick.
+    Versioned NVDAOD profile 0 through major 2 is supported; minor/patch changes
+    do not change parsing. This compatibility API returns payloads only. Identity
+    extraction retains the versioned value types internally. Parsing establishes
+    no authenticity; call the verifier before trusting these fields.
+
+    Versioned-path hardware validation is provisional; the committed NVIDIA
+    versioned vector has no device certificate chain. See
+    ``python/docs/nvdaod-identity.md`` for the separate evidence classes.
     """
+    return {field_id: field.value for field_id, field in _parse_gpu_opaque_entries(report).items()}
+
+
+def _parse_gpu_opaque_entries(report: bytes) -> dict[int, _GpuOpaqueField]:
     end = len(report) - _SIG_LEN
     if end < _SPDM_REQUEST_LEN + 8 or report[1] != _SPDM_GET_MEASUREMENTS:
         raise GpuReportFormatError("report is not an SPDM GET_MEASUREMENTS transcript")
@@ -155,19 +176,37 @@ def parse_gpu_opaque_fields(report: bytes) -> dict[int, bytes]:
     pos += 2
     if pos + opaque_len != end:
         raise GpuReportFormatError("SPDM opaque data does not end at the signature")
-    fields: dict[int, bytes] = {}
+    versioned = report[pos : pos + len(_NVDAOD_MAGIC)] == _NVDAOD_MAGIC
+    if versioned:
+        if end - pos < 12:
+            raise GpuReportFormatError("truncated NVDAOD header")
+        if int.from_bytes(report[pos + 6 : pos + 8], "little") != 0:
+            raise GpuReportFormatError("unsupported NVDAOD profile")
+        if report[pos + 8] > _MAX_OPAQUE_MAJOR:
+            raise GpuReportFormatError("unsupported NVDAOD major version")
+        pos += 12
+    fields: dict[int, _GpuOpaqueField] = {}
+    header_size = 6 if versioned else 4
     while pos < end:
-        if pos + 4 > end:
+        if pos + header_size > end:
             raise GpuReportFormatError("truncated SPDM opaque field header")
         field_id = int.from_bytes(report[pos : pos + 2], "little")
-        size = int.from_bytes(report[pos + 2 : pos + 4], "little")
-        pos += 4
+        value_type = int.from_bytes(report[pos + 2 : pos + 4], "little") if versioned else None
+        size = int.from_bytes(report[pos + header_size - 2 : pos + header_size], "little")
+        pos += header_size
         if pos + size > end:
             raise GpuReportFormatError("SPDM opaque field overruns the opaque data")
         if field_id in fields:
             raise GpuReportFormatError(f"SPDM opaque field {field_id} is repeated")
-        fields[field_id] = report[pos : pos + size]
+        fields[field_id] = _GpuOpaqueField(report[pos : pos + size], value_type)
         pos += size
+    # The header is authoritative on the versioned path. Legacy captures without
+    # a version field keep their existing behavior; an explicit future version
+    # cannot silently select today's identity interpretation.
+    if not versioned and _OPAQUE_DATA_VERSION in fields:
+        version = fields[_OPAQUE_DATA_VERSION].value
+        if len(version) != 2 or int.from_bytes(version, "little") > _MAX_OPAQUE_MAJOR:
+            raise GpuReportFormatError("unsupported legacy opaque major version")
     return fields
 
 
@@ -205,10 +244,14 @@ def gpu_measurement_from_report(report: bytes, leaf_cert: x509.Certificate) -> s
 
     Call only on a report whose signature has verified under ``leaf_cert``.
     """
-    fields = parse_gpu_opaque_fields(report)
+    fields = _parse_gpu_opaque_entries(report)
     try:
-        driver = _format_driver(fields[_OPAQUE_DRIVER_VERSION])
-        vbios = _format_vbios(fields[_OPAQUE_VBIOS_VERSION])
+        driver_field = fields[_OPAQUE_DRIVER_VERSION]
+        vbios_field = fields[_OPAQUE_VBIOS_VERSION]
+        if any(field.value_type not in (None, 0x86) for field in (driver_field, vbios_field)):
+            raise GpuReportFormatError("GPU identity field has an unsupported value type")
+        driver = _format_driver(driver_field.value)
+        vbios = _format_vbios(vbios_field.value)
     except KeyError as exc:
         raise GpuReportFormatError(
             f"signed report has no SPDM opaque field {exc.args[0]}"

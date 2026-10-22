@@ -6,6 +6,15 @@ uses semantic-ish versioning while pre-1.0.
 
 ## Unreleased
 
+**Fixed, provisional compatibility (#217).** GPU identity extraction recognizes
+NVDAOD profile 0 through major 2, retains versioned entry value types and rejects
+future major versions, unknown profiles, truncated/overrunning entries and
+duplicate IDs. Driver/VBIOS identity fields require their documented value type.
+The payload-only parser API and legacy H100 controls remain; explicit legacy
+version entries now reject malformed u16 values and unsupported future majors.
+Vendor structural and synthetic signed/KBS tests do not establish live versioned
+GPU acceptance. See `python/docs/nvdaod-identity.md` for provenance and limits.
+
 ## 0.33.1 - 2026-10-19
 
 **Fixed, security (GHSA-99p4-597j-8m5m).** The canonicalizer NFC-normalized
