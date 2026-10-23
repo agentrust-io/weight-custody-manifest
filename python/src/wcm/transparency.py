@@ -15,6 +15,7 @@ layer honest; it does not make adversary-owned silicon honest (open question 8.8
 """
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from enum import Enum
@@ -40,6 +41,9 @@ def make_leaf_preimage(statement: dict[str, Any], entry_type: EntryType) -> byte
     return canonicalize({"type": entry_type.value, "statement": statement})
 
 
+_STH_ROOT_RE = re.compile(r"sha256:[0-9a-f]{64}")
+
+
 @dataclass(frozen=True)
 class SignedTreeHead:
     tree_size: int
@@ -49,6 +53,8 @@ class SignedTreeHead:
     signature_b64: str
 
     def root_bytes(self) -> bytes:
+        if not isinstance(self.root, str) or not _STH_ROOT_RE.fullmatch(self.root):
+            raise ValueError("malformed SignedTreeHead root")
         return bytes.fromhex(self.root.split(":", 1)[1])
 
 
@@ -122,6 +128,14 @@ class TransparencyLog:
 
 def verify_sth(sth: SignedTreeHead, log_public_key: bytes) -> bool:
     """Verify a signed tree head's signature under the log's public key."""
+    if (
+        isinstance(sth.tree_size, bool)
+        or not isinstance(sth.tree_size, int)
+        or sth.tree_size < 0
+        or not isinstance(sth.root, str)
+        or not _STH_ROOT_RE.fullmatch(sth.root)
+    ):
+        return False
     preimage = _sth_preimage(sth.tree_size, sth.root, sth.signed_at)
     try:
         Ed25519PublicKey.from_public_bytes(log_public_key).verify(
