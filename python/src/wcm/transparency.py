@@ -41,7 +41,7 @@ def make_leaf_preimage(statement: dict[str, Any], entry_type: EntryType) -> byte
     return canonicalize({"type": entry_type.value, "statement": statement})
 
 
-_STH_ROOT_RE = re.compile(r"sha256:[0-9a-f]{64}")
+_STH_ROOT_RE = re.compile(r"^sha256:[0-9a-f]{64}$")
 
 
 @dataclass(frozen=True)

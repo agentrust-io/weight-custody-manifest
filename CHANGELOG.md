@@ -6,6 +6,13 @@ uses semantic-ish versioning while pre-1.0.
 
 ## Unreleased
 
+**Fixed, security (#227).** `SignedTreeHead.root_bytes`, `verify_sth`,
+`seal_to_public_key`, `KeyBrokerService._check_channel_binding`, and
+`provisioning_binding` now require canonical lowercase hex (`^sha256:[0-9a-f]{64}$`
+for STH roots and `^[0-9a-f]{64}$` for 32-byte X25519 transport public keys),
+refusing uppercase or whitespace-padded hex strings at the gate rather than
+later at key sealing or with unhandled `TypeError`/`ValueError`.
+
 ## 0.33.1 - 2026-10-19
 
 **Fixed, security (GHSA-99p4-597j-8m5m).** The canonicalizer NFC-normalized

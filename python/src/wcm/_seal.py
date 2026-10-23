@@ -41,7 +41,7 @@ _EPH_LEN = 32
 _NONCE_LEN = 12
 _HEADER_LEN = 1 + _EPH_LEN + _NONCE_LEN  # version || ephemeral pub || AEAD nonce
 _TAG_LEN = 16
-_HEX_32_RE = re.compile(r"[0-9a-f]{64}")
+_HEX_32_RE = re.compile(r"^[0-9a-f]{64}$")
 
 
 class SealError(Exception):
