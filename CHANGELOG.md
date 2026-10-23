@@ -6,6 +6,8 @@ uses semantic-ish versioning while pre-1.0.
 
 ## Unreleased
 
+- **Fixed (#223).** `azure_vtpm._b64url_uint` now enforces canonical unpadded base64url and RFC 7518 section 2 minimal big-endian `Base64urlUInt` encoding (rejecting leading `0x00` bytes and non-zero trailing base64url bits), and `AzureSnpVtpmVerifier.verify` rejects `HCLAkPub` JWKs carrying RFC 7517/7518 private or symmetric key parameters (`d`, `p`, `q`, `dp`, `dq`, `qi`, `oth`, `k`). `JsonQuoteParser.parse`, `AzureSnpVtpmVerifier.verify`, and `NvidiaGpuVerifier.verify` reject duplicate JSON object keys via `object_pairs_hook`, and `QuoteVerifier.verify`, `verify_tdx_quote`, `AzureSnpVtpmVerifier.verify`, and `NvidiaGpuVerifier.verify` validate `expected_nonce` as 64 lowercase hexadecimal characters before decoding instead of accepting whitespace or raising `ValueError`.
+
 ## 0.33.1 - 2026-10-19
 
 **Fixed, security (GHSA-99p4-597j-8m5m).** The canonicalizer NFC-normalized
