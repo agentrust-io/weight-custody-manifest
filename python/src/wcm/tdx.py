@@ -40,6 +40,7 @@ from ._quote_verify import (
     QuoteFormatError,
     QuoteVerification,
     TrustStore,
+    _nonce_bytes,
     _utcnow,
     verify_cert_chain,
 )
@@ -381,7 +382,11 @@ def verify_tdx_quote(
     #    Skipped when expected_nonce is None, and then nothing here binds the
     #    quote to a point in time (see the docstring for the Azure vTPM case).
     if expected_nonce is not None:
-        expected = hashlib.sha256(bytes.fromhex(expected_nonce) + channel_binding).digest()
+        try:
+            nonce_raw = _nonce_bytes(expected_nonce)
+        except ValueError as exc:
+            return QuoteVerification(False, str(exc))
+        expected = hashlib.sha256(nonce_raw + channel_binding).digest()
         if q.report.report_data[:32] != expected:
             reason = (
                 "REPORT_DATA does not bind the challenge nonce and transport key (possible relay)"

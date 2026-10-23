@@ -67,7 +67,7 @@ from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import ec, utils
 
-from ._quote_verify import QuoteVerification, TrustStore, verify_cert_chain
+from ._quote_verify import QuoteVerification, TrustStore, _nonce_bytes, _unique_object, verify_cert_chain
 
 # The report's 4-byte header is followed by the raw 32-byte challenge nonce.
 NVIDIA_NONCE_OFFSET = 4
@@ -249,7 +249,9 @@ class NvidiaGpuVerifier:
         """
         current = now if now is not None else _utcnow()
         try:
-            doc = json.loads(base64.b64decode(evidence_b64))
+            doc = json.loads(base64.b64decode(evidence_b64), object_pairs_hook=_unique_object)
+            if not isinstance(doc, dict):
+                raise ValueError("GPU evidence must be a JSON object")
             report = base64.b64decode(doc["report_b64"])
             certs = load_pem_certificates(doc["cert_chain_pem"].encode())
         except (KeyError, ValueError, TypeError, AttributeError, binascii.Error) as exc:
@@ -272,7 +274,7 @@ class NvidiaGpuVerifier:
             )
 
         try:
-            expected = bytes.fromhex(expected_nonce)
+            expected = _nonce_bytes(expected_nonce)
         except ValueError:
             return QuoteVerification(False, "expected_nonce is not valid hex")
         actual = report[NVIDIA_NONCE_OFFSET : NVIDIA_NONCE_OFFSET + _NONCE_LEN]
