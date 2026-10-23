@@ -151,11 +151,12 @@ class AzureSnpVtpmVerifier:
             report = extract_snp_report_from_hcl(hcl)
             parsed = parse_snp_report(report)
         except (
-            KeyError, ValueError, TypeError, AttributeError,
+            KeyError, ValueError, TypeError, AttributeError, RecursionError,
             UnsupportedAlgorithm, QuoteFormatError,
         ) as exc:
             # The bundle is attacker-supplied: every malformed shape is a
             # denial with a reason, never an exception out of the release path.
+            # RecursionError is json.loads on deeply nested input.
             return QuoteVerification(False, f"invalid Azure vTPM evidence: {exc}")
         if not isinstance(ak, rsa.RSAPublicKey):
             return QuoteVerification(False, "HCL AK is not RSA")
@@ -194,7 +195,9 @@ class AzureSnpVtpmVerifier:
                 raise ValueError(f"kty {jwk['kty']!r} is not RSA")
             modulus = _b64url_uint(jwk["n"])
             exponent = _b64url_uint(jwk["e"])
-        except (KeyError, StopIteration, ValueError, TypeError, AttributeError) as exc:
+        except (
+            KeyError, StopIteration, ValueError, TypeError, AttributeError, RecursionError,
+        ) as exc:
             return QuoteVerification(False, f"invalid HCLAkPub: {exc}")
         if exponent != _AK_EXPONENT:
             return QuoteVerification(False, f"HCLAkPub exponent {exponent} is not {_AK_EXPONENT}")

@@ -129,7 +129,8 @@ class JsonQuoteParser:
                 report_signature_algorithm=self._report_signature_algorithm,
                 launch_measurement=launch,
             )
-        except (KeyError, ValueError, TypeError, AttributeError) as exc:
+        except (KeyError, ValueError, TypeError, AttributeError, RecursionError) as exc:
+            # RecursionError is json.loads on deeply nested input.
             raise QuoteFormatError(f"unparseable quote container: {exc}") from exc
 
 
