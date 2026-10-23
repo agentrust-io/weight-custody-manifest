@@ -6,6 +6,16 @@ uses semantic-ish versioning while pre-1.0.
 
 ## Unreleased
 
+**Fixed.** `KeyBrokerService.verify_and_release` turns an exception raised by
+its configured CPU quote verifier, GPU report verifier or GPU revocation check,
+or by reading a verifier's result, into a failed check (`cpu_quote_verified`,
+`gpu_report_verified` or `attestation_revocation`) whose detail names the
+exception type, instead of raising after the challenge nonce has been
+consumed. The GPU revocation check reads issuer keys from the chain the GPU
+evidence carries and raised `UnsupportedAlgorithm` on one whose curve
+cryptography does not support.
+No key was released in any of these cases.
+
 ## 0.33.1 - 2026-10-19
 
 **Fixed, security (GHSA-99p4-597j-8m5m).** The canonicalizer NFC-normalized
