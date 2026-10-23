@@ -71,17 +71,20 @@ def _b64url_encode(data: bytes) -> str:
     return base64.urlsafe_b64encode(data).rstrip(b"=").decode()
 
 
-_B64URL_RE = re.compile(r"^[A-Za-z0-9\-_]*$")
+_B64URL_RE = re.compile(r"[A-Za-z0-9\-_]*")
 
 
 def _b64url_decode(s: str) -> bytes:
     # Reject standard base64 (+/); only URL-safe alphabet is allowed.
-    if not _B64URL_RE.fullmatch(s):
+    if not isinstance(s, str) or not _B64URL_RE.fullmatch(s) or len(s) % 4 == 1:
         raise ValueError(
             "Invalid base64url: contains non-URL-safe characters (use - and _ not + and /)"
         )
     pad = 4 - len(s) % 4
-    return base64.urlsafe_b64decode(s + ("=" * pad if pad != 4 else ""))
+    raw = base64.urlsafe_b64decode(s + ("=" * pad if pad != 4 else ""))
+    if _b64url_encode(raw) != s:
+        raise ValueError("Invalid base64url: non-canonical encoding")
+    return raw
 
 
 def _key_id(public_key_bytes: bytes) -> str:

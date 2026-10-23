@@ -158,12 +158,26 @@ def verify_memory_sweep(
     ):
         return False, "memory sweep signer is not the policy-pinned protected key"
     try:
+        if (
+            not isinstance(result.public_key_b64url, str)
+            or not isinstance(result.signature_b64url, str)
+            or len(result.public_key_b64url) % 4 == 1
+            or len(result.signature_b64url) % 4 == 1
+        ):
+            raise ValueError("non-canonical base64url")
         public = base64.urlsafe_b64decode(
             result.public_key_b64url + "=" * (-len(result.public_key_b64url) % 4)
         )
         signature = base64.urlsafe_b64decode(
             result.signature_b64url + "=" * (-len(result.signature_b64url) % 4)
         )
+        if (
+            base64.urlsafe_b64encode(public).rstrip(b"=").decode("ascii")
+            != result.public_key_b64url
+            or base64.urlsafe_b64encode(signature).rstrip(b"=").decode("ascii")
+            != result.signature_b64url
+        ):
+            raise ValueError("non-canonical base64url")
         Ed25519PublicKey.from_public_bytes(public).verify(
             signature, canonicalize(result.signing_payload())
         )

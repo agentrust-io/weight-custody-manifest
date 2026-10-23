@@ -37,7 +37,12 @@ def _b64url(value: bytes) -> str:
 
 
 def _unb64url(value: str) -> bytes:
-    return base64.urlsafe_b64decode(value + "=" * (-len(value) % 4))
+    if not isinstance(value, str) or not value or len(value) % 4 == 1:
+        raise ValueError("invalid base64url")
+    raw = base64.urlsafe_b64decode(value + "=" * (-len(value) % 4))
+    if _b64url(raw) != value:
+        raise ValueError("non-canonical base64url")
+    return raw
 
 
 def manifest_identity(manifest: WeightCustodyManifest) -> str:

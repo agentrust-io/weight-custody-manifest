@@ -92,3 +92,21 @@ def test_keypair_repr_redacts_private():
     kp = generate_ed25519()
     assert "REDACTED" in repr(kp)
     assert kp.private_b64url() not in repr(kp)
+
+
+@pytest.mark.parametrize(
+    "bad_b64",
+    ["AQAB\n", "A", "AB", "AC", "AD", "A" * 42 + "B", "A" * 85 + "B", "AA="],
+)
+def test_canonical_base64url_enforced_across_signing_runtime_renewal_and_sweep(bad_b64: str):
+    from wcm._signing import _b64url_decode
+    from wcm.renewal import _unb64url as renewal_unb64url
+    from wcm.runtime_records import _unb64url as runtime_unb64url
+
+    with pytest.raises(ValueError):
+        _b64url_decode(bad_b64)
+    with pytest.raises(ValueError):
+        renewal_unb64url(bad_b64)
+    with pytest.raises(ValueError):
+        runtime_unb64url(bad_b64)
+
