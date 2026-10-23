@@ -51,6 +51,7 @@ from .kbs import KeyBrokerService
 from .models import MemoryFingerprintChallenge, ServingImageStatus, WeightCustodyManifest
 from .nvidia import build_gpu_verifier
 from .providers import SoftwareProvider
+from .provisioning_wire import loads_strict
 from .snp import SnpQuoteParser, parse_snp_report, verify_snp_report_signature
 from .tdx import parse_tdx_quote, verify_tdx_quote
 
@@ -73,19 +74,6 @@ class _InputFileError(Exception):
     """A user-supplied input file could not be read or decoded."""
 
 
-def _unique_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
-    out: dict[str, Any] = {}
-    for key, value in pairs:
-        if key in out:
-            raise ValueError(f"duplicate JSON object key: {key!r}")
-        out[key] = value
-    return out
-
-
-def _no_nonfinite_constant(token: str) -> Any:
-    raise ValueError(f"non-finite JSON constant is not allowed: {token}")
-
-
 def _input_file_error(path: str, exc: OSError | json.JSONDecodeError | ValueError) -> _InputFileError:
     reason = exc.strerror if isinstance(exc, OSError) and exc.strerror else str(exc)
     return _InputFileError(f"{path}: {reason}")
@@ -94,11 +82,7 @@ def _input_file_error(path: str, exc: OSError | json.JSONDecodeError | ValueErro
 def _load_manifest(path: str) -> WeightCustodyManifest:
     try:
         with open(path, "r", encoding="utf-8") as fh:
-            data = json.load(
-                fh,
-                object_pairs_hook=_unique_object,
-                parse_constant=_no_nonfinite_constant,
-            )
+            data = loads_strict(fh.read())
     except (OSError, json.JSONDecodeError, ValueError) as exc:
         raise _input_file_error(path, exc) from exc
     return WeightCustodyManifest.model_validate(data)
@@ -123,11 +107,9 @@ def _read_text(path: str) -> str:
 def _read_json(path: str) -> dict[str, Any]:
     try:
         with open(path, "r", encoding="utf-8") as fh:
-            data: dict[str, Any] = json.load(
-                fh,
-                object_pairs_hook=_unique_object,
-                parse_constant=_no_nonfinite_constant,
-            )
+            data = loads_strict(fh.read())
+        if not isinstance(data, dict):
+            raise ValueError("JSON object required")
     except (OSError, json.JSONDecodeError, ValueError) as exc:
         raise _input_file_error(path, exc) from exc
     return data

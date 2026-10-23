@@ -32,6 +32,7 @@ from .attestation import CompositeEvidence
 from .kbs import KeyBrokerService
 from .models import WeightCustodyManifest
 from .nvidia import build_gpu_verifier
+from .provisioning_wire import loads_strict
 from ._quote_verify import JsonQuoteParser, QuoteVerifier, TrustStore
 
 
@@ -111,23 +112,8 @@ def _launch_measurement_offset_from_env() -> int:
 
 
 def _load_json_strict(path: str) -> Any:
-    def _unique_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
-        out: dict[str, Any] = {}
-        for key, value in pairs:
-            if key in out:
-                raise ValueError(f"duplicate JSON object key: {key!r}")
-            out[key] = value
-        return out
-
-    def _no_nonfinite(token: str) -> Any:
-        raise ValueError(f"non-finite JSON constant is not allowed: {token}")
-
     with open(path, "r", encoding="utf-8") as fh:
-        return json.load(
-            fh,
-            object_pairs_hook=_unique_object,
-            parse_constant=_no_nonfinite,
-        )
+        return loads_strict(fh.read())
 
 
 def build_kbs_from_env() -> KeyBrokerService:
