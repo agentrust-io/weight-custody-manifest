@@ -6,6 +6,19 @@ uses semantic-ish versioning while pre-1.0.
 
 ## Unreleased
 
+**Fixed.** A certificate that loaded but did not parse further made quote
+verification raise instead of deny. cryptography parses names, extensions and
+keys lazily. `verify_cert_chain`, which `verify_tdx_quote`,
+`AzureSnpVtpmVerifier`, `QuoteVerifier` and `NvidiaGpuVerifier` share, raised
+on a CA whose extensions did not parse (`ValueError`, `DuplicateExtension`,
+`UnsupportedGeneralNameType`), `verify_tdx_quote` raised on a PCK leaf key
+that did not parse (`ValueError`, `UnsupportedAlgorithm`), and
+`NvidiaGpuVerifier` raised on a device leaf key that did not parse once the
+chain had verified. Where `AzureSnpVtpmVerifier`, `QuoteVerifier` or
+`NvidiaGpuVerifier` was configured in `KeyBrokerService`, the exception left
+`verify_and_release` after the challenge nonce had been consumed; no key was
+released. Each is now a denial whose reason names the exception type.
+
 ## 0.33.1 - 2026-10-19
 
 **Fixed, security (GHSA-99p4-597j-8m5m).** The canonicalizer NFC-normalized
