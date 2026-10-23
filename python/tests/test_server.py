@@ -251,3 +251,29 @@ def test_required_gpu_verification_allows_cpu_only_manifest(structural_manifest)
         transport_public_key=generate_transport_keypair()[1],
     )
     assert kbs.verify_and_release(manifest, evidence).released
+
+
+def test_build_kbs_from_env_rejects_duplicate_keys_and_malformed_configs(tmp_path, monkeypatch):
+    from wcm.server import build_kbs_from_env
+
+    for env_var, bad_text in (
+        ("WCM_KEYSTORE_FILE", '{"sha256:aa": "AAAA", "sha256:aa": "BBBB"}'),
+        ("WCM_KEYSTORE_FILE", '["not-a-dict"]'),
+        ("WCM_KEYSTORE_FILE", '{"sha256:aa": "not*base64!"}'),
+        ("WCM_TRUSTED_MANIFEST_IDENTITIES_FILE", '{"not": "list"}'),
+        ("WCM_TRUSTED_MANIFEST_IDENTITIES_FILE", '[123]'),
+        ("WCM_ALLOWED_PLATFORM_INSTANCES_FILE", '{"a": NaN}'),
+        ("WCM_ALLOWED_PLATFORM_INSTANCES_FILE", '{"a": 1e400}'),
+    ):
+        for var in (
+            "WCM_KEYSTORE_FILE",
+            "WCM_TRUSTED_MANIFEST_IDENTITIES_FILE",
+            "WCM_ALLOWED_PLATFORM_INSTANCES_FILE",
+        ):
+            monkeypatch.delenv(var, raising=False)
+        cfg = tmp_path / "cfg.json"
+        cfg.write_text(bad_text, encoding="utf-8")
+        monkeypatch.setenv(env_var, str(cfg))
+        with pytest.raises(ValueError):
+            build_kbs_from_env()
+

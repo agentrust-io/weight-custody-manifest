@@ -6,6 +6,14 @@ uses semantic-ish versioning while pre-1.0.
 
 ## Unreleased
 
+**Fixed, security (#228).** `wcm.cli` (`_load_manifest`, `_read_json`),
+`wcm.server` (`build_kbs_from_env`), and `wcm.provisioning_wire`
+(`loads_strict`, `json_object`) now share a strict JSON loader that refuses
+duplicate object keys, `NaN`/`Infinity`/`-Infinity`, and overflow float
+literals (`1e400`), and `build_kbs_from_env` validates the shape of
+`WCM_KEYSTORE_FILE` (strict base64) and `WCM_TRUSTED_MANIFEST_IDENTITIES_FILE`
+(string array).
+
 ## 0.33.1 - 2026-10-19
 
 **Fixed, security (GHSA-99p4-597j-8m5m).** The canonicalizer NFC-normalized
