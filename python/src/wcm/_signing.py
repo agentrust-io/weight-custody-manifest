@@ -71,7 +71,7 @@ def _b64url_encode(data: bytes) -> str:
     return base64.urlsafe_b64encode(data).rstrip(b"=").decode()
 
 
-_B64URL_RE = re.compile(r"[A-Za-z0-9\-_]*")
+_B64URL_RE = re.compile(r"^[A-Za-z0-9\-_]*$")
 
 
 def _b64url_decode(s: str) -> bytes:
