@@ -6,6 +6,12 @@ uses semantic-ish versioning while pre-1.0.
 
 ## Unreleased
 
+**Fixed, security (#226).** `KeyBrokerService.__init__` now rejects boolean or
+out-of-range `challenge_ttl_seconds`, `max_attestation_cache_age_seconds`, and
+`renewal_decision_ttl_seconds` values and bare `str`/`bytes` values in
+`_normalize_platform_instances`, and `provisioning_wire.json_object` rejects
+non-finite JSON constants (`NaN`, `Infinity`, `-Infinity`).
+
 ## 0.33.1 - 2026-10-19
 
 **Fixed, security (GHSA-99p4-597j-8m5m).** The canonicalizer NFC-normalized
