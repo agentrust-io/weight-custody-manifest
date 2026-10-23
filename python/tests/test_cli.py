@@ -130,3 +130,14 @@ def test_verify_invalid_json_reports_one_line_error(tmp_path: Path, capsys):
     assert output.err.startswith(f"error: {manifest}: ")
     assert output.err.count("\n") == 1
     assert "Traceback" not in output.err
+
+
+def test_cli_rejects_duplicate_json_keys_in_manifest(tmp_path: Path, capsys):
+    raw = (EXAMPLES / "manifest.example.json").read_text(encoding="utf-8").strip()
+    dup = tmp_path / "dup.json"
+    dup.write_text(raw[:-1] + ', "manifest_version": "0.1"}', encoding="utf-8")
+    rc = main(["inspect", str(dup)])
+    output = capsys.readouterr()
+    assert rc == 1
+    assert "duplicate JSON object key" in output.err
+

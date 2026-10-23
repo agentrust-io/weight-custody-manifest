@@ -110,6 +110,26 @@ def _launch_measurement_offset_from_env() -> int:
     return offset
 
 
+def _load_json_strict(path: str) -> Any:
+    def _unique_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+        out: dict[str, Any] = {}
+        for key, value in pairs:
+            if key in out:
+                raise ValueError(f"duplicate JSON object key: {key!r}")
+            out[key] = value
+        return out
+
+    def _no_nonfinite(token: str) -> Any:
+        raise ValueError(f"non-finite JSON constant is not allowed: {token}")
+
+    with open(path, "r", encoding="utf-8") as fh:
+        return json.load(
+            fh,
+            object_pairs_hook=_unique_object,
+            parse_constant=_no_nonfinite,
+        )
+
+
 def build_kbs_from_env() -> KeyBrokerService:
     """Construct a KeyBrokerService from environment config (for the container).
 
@@ -131,9 +151,12 @@ def build_kbs_from_env() -> KeyBrokerService:
     keystore: dict[str, bytes] = {}
     path = os.environ.get("WCM_KEYSTORE_FILE")
     if path:
-        with open(path, "r", encoding="utf-8") as fh:
-            raw = json.load(fh)
-        keystore = {wh: base64.b64decode(k) for wh, k in raw.items()}
+        raw = _load_json_strict(path)
+        if not isinstance(raw, dict) or not all(
+            isinstance(wh, str) and isinstance(k, str) for wh, k in raw.items()
+        ):
+            raise ValueError("WCM_KEYSTORE_FILE must contain a JSON object mapping weights_hash to base64 key")
+        keystore = {wh: base64.b64decode(k, validate=True) for wh, k in raw.items()}
     cpu_verifier = None
     root_path = os.environ.get("WCM_CPU_TRUST_ROOT_FILE")
     if root_path:
@@ -160,8 +183,7 @@ def build_kbs_from_env() -> KeyBrokerService:
             gpu_verifier = build_gpu_verifier(fh.read())
     manifest_identities_path = os.environ.get("WCM_TRUSTED_MANIFEST_IDENTITIES_FILE")
     if manifest_identities_path:
-        with open(manifest_identities_path, "r", encoding="utf-8") as fh:
-            configured_identities = json.load(fh)
+        configured_identities = _load_json_strict(manifest_identities_path)
         if not isinstance(configured_identities, list) or not all(
             isinstance(value, str) for value in configured_identities
         ):
@@ -175,8 +197,7 @@ def build_kbs_from_env() -> KeyBrokerService:
     allowed_instances = None
     instances_path = os.environ.get("WCM_ALLOWED_PLATFORM_INSTANCES_FILE")
     if instances_path:
-        with open(instances_path, "r", encoding="utf-8") as fh:
-            allowed_instances = json.load(fh)
+        allowed_instances = _load_json_strict(instances_path)
         if not isinstance(allowed_instances, list):
             raise ValueError(
                 "WCM_ALLOWED_PLATFORM_INSTANCES_FILE must contain a JSON string array"

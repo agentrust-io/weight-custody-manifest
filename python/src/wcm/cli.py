@@ -73,7 +73,20 @@ class _InputFileError(Exception):
     """A user-supplied input file could not be read or decoded."""
 
 
-def _input_file_error(path: str, exc: OSError | json.JSONDecodeError) -> _InputFileError:
+def _unique_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    out: dict[str, Any] = {}
+    for key, value in pairs:
+        if key in out:
+            raise ValueError(f"duplicate JSON object key: {key!r}")
+        out[key] = value
+    return out
+
+
+def _no_nonfinite_constant(token: str) -> Any:
+    raise ValueError(f"non-finite JSON constant is not allowed: {token}")
+
+
+def _input_file_error(path: str, exc: OSError | json.JSONDecodeError | ValueError) -> _InputFileError:
     reason = exc.strerror if isinstance(exc, OSError) and exc.strerror else str(exc)
     return _InputFileError(f"{path}: {reason}")
 
@@ -81,8 +94,12 @@ def _input_file_error(path: str, exc: OSError | json.JSONDecodeError) -> _InputF
 def _load_manifest(path: str) -> WeightCustodyManifest:
     try:
         with open(path, "r", encoding="utf-8") as fh:
-            data = json.load(fh)
-    except (OSError, json.JSONDecodeError) as exc:
+            data = json.load(
+                fh,
+                object_pairs_hook=_unique_object,
+                parse_constant=_no_nonfinite_constant,
+            )
+    except (OSError, json.JSONDecodeError, ValueError) as exc:
         raise _input_file_error(path, exc) from exc
     return WeightCustodyManifest.model_validate(data)
 
@@ -106,8 +123,12 @@ def _read_text(path: str) -> str:
 def _read_json(path: str) -> dict[str, Any]:
     try:
         with open(path, "r", encoding="utf-8") as fh:
-            data: dict[str, Any] = json.load(fh)
-    except (OSError, json.JSONDecodeError) as exc:
+            data: dict[str, Any] = json.load(
+                fh,
+                object_pairs_hook=_unique_object,
+                parse_constant=_no_nonfinite_constant,
+            )
+    except (OSError, json.JSONDecodeError, ValueError) as exc:
         raise _input_file_error(path, exc) from exc
     return data
 
