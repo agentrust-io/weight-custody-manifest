@@ -12,7 +12,7 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey, Ed25519PublicKey
 
 from ._canonicalize import canonical_hash, canonicalize
-from ._signing import signing_pre_image
+from ._signing import _b64url_decode, _b64url_encode, signing_pre_image
 from .attestation import CompositeEvidence
 from .models import WeightCustodyManifest
 
@@ -33,11 +33,13 @@ REQUIRED_RENEWAL_CHECKS = frozenset({
 
 
 def _b64url(value: bytes) -> str:
-    return base64.urlsafe_b64encode(value).rstrip(b"=").decode("ascii")
+    return _b64url_encode(value)
 
 
 def _unb64url(value: str) -> bytes:
-    return base64.urlsafe_b64decode(value + "=" * (-len(value) % 4))
+    if not isinstance(value, str) or not value:
+        raise ValueError("invalid base64url")
+    return _b64url_decode(value)
 
 
 def manifest_identity(manifest: WeightCustodyManifest) -> str:
