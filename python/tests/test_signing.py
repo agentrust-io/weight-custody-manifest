@@ -92,3 +92,47 @@ def test_keypair_repr_redacts_private():
     kp = generate_ed25519()
     assert "REDACTED" in repr(kp)
     assert kp.private_b64url() not in repr(kp)
+
+
+@pytest.mark.parametrize(
+    "bad_b64",
+    ["AQAB\n", "A", "AB", "AC", "AD", "A" * 42 + "B", "A" * 85 + "B", "AA=", "not+valid/base64"],
+)
+def test_canonical_base64url_enforced_across_signing_runtime_renewal_and_sweep(bad_b64: str):
+    from wcm._signing import _b64url_decode, _b64url_encode
+    from wcm.memory_sweep import (
+        BytearrayMemoryRange,
+        memory_sweep_public_key,
+        run_memory_sweep,
+        verify_memory_sweep,
+    )
+    from wcm.renewal import _unb64url as renewal_unb64url
+    from wcm.runtime_records import _unb64url as runtime_unb64url
+
+    kp = generate_ed25519()
+    assert _b64url_decode(kp.public_b64url()) == kp.public_bytes
+    assert renewal_unb64url(kp.public_b64url()) == kp.public_bytes
+    assert runtime_unb64url(kp.public_b64url()) == kp.public_bytes
+    assert _b64url_encode(kp.public_bytes) == kp.public_b64url()
+
+    with pytest.raises(ValueError):
+        _b64url_decode(bad_b64)
+    with pytest.raises(ValueError):
+        renewal_unb64url(bad_b64)
+    with pytest.raises(ValueError):
+        runtime_unb64url(bad_b64)
+
+    fp = run_memory_sweep(
+        BytearrayMemoryRange(64, page_size=64),
+        challenge_nonce="a" * 64,
+        signing_key=kp.private_key,
+        sweep_secret=b"s" * 32,
+    )
+    pub_b64 = memory_sweep_public_key(kp.private_key)
+    assert verify_memory_sweep(fp, pub_b64)[0]
+    tampered_sig = fp.model_copy(update={"signature_b64url": bad_b64})
+    assert not verify_memory_sweep(tampered_sig, pub_b64)[0]
+    tampered_pub = fp.model_copy(update={"public_key_b64url": bad_b64})
+    assert not verify_memory_sweep(tampered_pub, bad_b64)[0]
+
+
