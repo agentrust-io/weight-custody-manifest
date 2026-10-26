@@ -6,6 +6,13 @@ uses semantic-ish versioning while pre-1.0.
 
 ## Unreleased
 
+**Fixed, security (#225).** `_b64url_decode` in `wcm._signing` and base64url
+verification in `runtime_records`, `renewal`, and `memory_sweep` now enforce
+canonical unpadded RFC 4648 section 5 encoding (`^[A-Za-z0-9\-_]*$`,
+`len(s) % 4 != 1`, and round-trip equality with `_b64url_encode(raw)`),
+refusing trailing newlines and non-zero padding bits that previously forged
+distinct signature/key strings decoding to identical bytes.
+
 ## 0.33.1 - 2026-10-19
 
 **Fixed, security (GHSA-99p4-597j-8m5m).** The canonicalizer NFC-normalized
