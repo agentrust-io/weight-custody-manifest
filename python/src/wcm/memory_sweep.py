@@ -14,6 +14,7 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey, Ed25519PublicKey
 
 from ._canonicalize import canonicalize
+from ._signing import _b64url_decode, _b64url_encode
 from ._types import HashValue
 from .attestation import MemoryFingerprint
 
@@ -66,7 +67,7 @@ def memory_sweep_public_key(signing_key: Ed25519PrivateKey) -> str:
     raw = signing_key.public_key().public_bytes(
         serialization.Encoding.Raw, serialization.PublicFormat.Raw
     )
-    return base64.urlsafe_b64encode(raw).rstrip(b"=").decode("ascii")
+    return _b64url_encode(raw)
 
 
 def _page_value(secret: bytes, nonce: str, index: int, page_size: int) -> bytes:
@@ -131,9 +132,7 @@ def run_memory_sweep(
     return MemoryFingerprint(
         **{
             **unsigned.model_dump(),
-            "signature_b64url": base64.urlsafe_b64encode(signature)
-            .rstrip(b"=")
-            .decode("ascii"),
+            "signature_b64url": _b64url_encode(signature),
         }
     )
 
@@ -158,12 +157,8 @@ def verify_memory_sweep(
     ):
         return False, "memory sweep signer is not the policy-pinned protected key"
     try:
-        public = base64.urlsafe_b64decode(
-            result.public_key_b64url + "=" * (-len(result.public_key_b64url) % 4)
-        )
-        signature = base64.urlsafe_b64decode(
-            result.signature_b64url + "=" * (-len(result.signature_b64url) % 4)
-        )
+        public = _b64url_decode(result.public_key_b64url)
+        signature = _b64url_decode(result.signature_b64url)
         Ed25519PublicKey.from_public_bytes(public).verify(
             signature, canonicalize(result.signing_payload())
         )
