@@ -6,6 +6,12 @@ uses semantic-ish versioning while pre-1.0.
 
 ## Unreleased
 
+**Fixed, security (#226).** `KeyBrokerService.__init__` now rejects boolean or
+out-of-range `challenge_ttl_seconds`, `max_attestation_cache_age_seconds`, and
+`renewal_decision_ttl_seconds` values and bare `str`/`bytes` values in
+`_normalize_platform_instances`, and `provisioning_wire.json_object` rejects
+non-finite JSON constants (`NaN`, `Infinity`, `-Infinity`).
+
 **Fixed, security (#225).** `_b64url_decode` in `wcm._signing` and base64url
 verification in `runtime_records`, `renewal`, and `memory_sweep` now enforce
 canonical unpadded RFC 4648 section 5 encoding (`^[A-Za-z0-9\-_]*$`,

@@ -25,8 +25,16 @@ def _unique_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
     return result
 
 
+def _no_nonfinite_constant(token: str) -> Any:
+    raise ValueError(f"non-finite JSON constant is not allowed: {token}")
+
+
 def json_object(data: str | bytes) -> dict[str, Any]:
-    value = json.loads(data, object_pairs_hook=_unique_object)
+    value = json.loads(
+        data,
+        object_pairs_hook=_unique_object,
+        parse_constant=_no_nonfinite_constant,
+    )
     if not isinstance(value, dict):
         raise ValueError("JSON object required")
     return value
