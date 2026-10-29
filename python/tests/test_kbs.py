@@ -425,19 +425,22 @@ def test_channel_binding_required_but_absent_denied(example_manifest):
 
 
 def test_channel_binding_malformed_transport_key_denied(example_manifest):
-    kbs = _kbs(example_manifest, require_channel_binding=True)
-    current, _, _, rim = _measurements(example_manifest)
-    challenge = kbs.issue_challenge()
-    ev = SoftwareProvider().produce(
-        challenge,
-        serving_image_measurement=current,
-        gpu_measurement=rim,
-        transport_public_key="zz" * 32,  # not valid hex
-    )
-    decision = kbs.verify_and_release(example_manifest, ev)
-    assert not decision.released
-    cb = [c for c in decision.checks if c.name == "channel_binding"][0]
-    assert not cb.passed
+    _, enclave_pub = generate_transport_keypair()
+    for bad_tpk in ("zz" * 32, enclave_pub.upper(), f" {enclave_pub} "):
+        for req_cb in (True, False):
+            kbs = _kbs(example_manifest, require_channel_binding=req_cb)
+            current, _, _, rim = _measurements(example_manifest)
+            challenge = kbs.issue_challenge()
+            ev = SoftwareProvider().produce(
+                challenge,
+                serving_image_measurement=current,
+                gpu_measurement=rim,
+                transport_public_key=bad_tpk,
+            )
+            decision = kbs.verify_and_release(example_manifest, ev)
+            assert not decision.released
+            cb = [c for c in decision.checks if c.name == "channel_binding"][0]
+            assert not cb.passed
 
 
 # ---------------------------------------------------------------------------
