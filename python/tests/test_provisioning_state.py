@@ -106,7 +106,25 @@ def test_policy_advance_serializes_with_inflight_release(tmp_path):
             pass
 
 
-@pytest.mark.parametrize("path, namespace", [(":memory:", "broker"), ("owner.sqlite", "")])
+@pytest.mark.parametrize(
+    "path, namespace",
+    [(":memory:", "broker"), ("owner.sqlite", ""), ("owner.sqlite", "   "), ("owner.sqlite", 123)],
+)
 def test_nonpersistent_configuration_rejected(path, namespace):
     with pytest.raises(ValueError):
         OwnerEpochStore(path, namespace)
+
+
+def test_epoch_store_guard_validates_epoch_context_and_admit(tmp_path):
+    store = OwnerEpochStore(tmp_path / "owner.sqlite", "broker")
+    for bad_epoch in (True, False, -1, 1.5, "1"):
+        with pytest.raises(ValueError, match="epoch"):
+            with store.guard(bad_epoch, b"ctx", admit=True):  # type: ignore[arg-type]
+                pass
+    for bad_ctx in (b"", "str", None):
+        with pytest.raises(ValueError, match="context"):
+            with store.guard(1, bad_ctx, admit=True):  # type: ignore[arg-type]
+                pass
+    with pytest.raises(ValueError, match="admit"):
+        with store.guard(1, b"ctx", admit="yes"):  # type: ignore[arg-type]
+            pass

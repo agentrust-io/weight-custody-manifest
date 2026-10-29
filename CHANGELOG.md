@@ -6,6 +6,8 @@ uses semantic-ish versioning while pre-1.0.
 
 ## Unreleased
 
+Validate challenge nonce/timestamp intervals in `wcm.broker_receiver.BrokerReceiver.provisioning_report_data` and enforce strict `namespace`, `epoch`, `context`, and `admit` validation in `wcm.provisioning_state.OwnerEpochStore` (#241).
+
 **Fixed, security (#225).** `_b64url_decode` in `wcm._signing` and base64url
 verification in `runtime_records`, `renewal`, and `memory_sweep` now enforce
 canonical unpadded RFC 4648 section 5 encoding (`^[A-Za-z0-9\-_]*$`,
