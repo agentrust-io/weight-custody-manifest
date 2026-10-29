@@ -6,6 +6,14 @@ uses semantic-ish versioning while pre-1.0.
 
 ## Unreleased
 
+**Fixed, security (#228).** `wcm.cli` (`_load_manifest`, `_read_json`),
+`wcm.server` (`build_kbs_from_env`), and `wcm.provisioning_wire`
+(`loads_strict`, `json_object`) now share a strict JSON loader that refuses
+duplicate object keys, `NaN`/`Infinity`/`-Infinity`, and overflow float
+literals (`1e400`), and `build_kbs_from_env` validates the shape of
+`WCM_KEYSTORE_FILE` (strict base64 via `validate=True`, so line-wrapped or whitespace-padded key strings are no longer accepted and raise `binascii.Error`) and `WCM_TRUSTED_MANIFEST_IDENTITIES_FILE`
+(string array).
+
 **Fixed, security (#225).** `_b64url_decode` in `wcm._signing` and base64url
 verification in `runtime_records`, `renewal`, and `memory_sweep` now enforce
 canonical unpadded RFC 4648 section 5 encoding (`^[A-Za-z0-9\-_]*$`,
