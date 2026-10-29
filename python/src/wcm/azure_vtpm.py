@@ -4,6 +4,7 @@ from __future__ import annotations
 import base64
 import hashlib
 import json
+import re
 from datetime import datetime, timezone
 from typing import Any, Iterable, Optional, Union
 
@@ -12,9 +13,19 @@ from cryptography.exceptions import InvalidSignature, UnsupportedAlgorithm
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import padding, rsa
 
-from ._quote_verify import QuoteFormatError, QuoteVerification, TrustStore, verify_cert_chain
+from ._quote_verify import (
+    QuoteFormatError,
+    QuoteVerification,
+    TrustStore,
+    _nonce_bytes,
+    _unique_object,
+    verify_cert_chain,
+)
 from ._certificates import load_pem_certificate
 from .snp import extract_snp_report_from_hcl, parse_snp_report, verify_snp_report_signature
+
+_B64URL_RE = re.compile(r"^[A-Za-z0-9_-]+\Z")
+_JWK_PRIVATE_PARAMS = frozenset({"d", "p", "q", "dp", "dq", "qi", "oth", "k"})
 
 
 def expected_pcr23_digest(measurement: str) -> bytes:
@@ -50,11 +61,16 @@ _AK_MIN_BITS = 2048
 
 
 def _b64url_uint(value: str) -> int:
-    """Decode a JWK base64url unsigned integer, rejecting non-alphabet bytes."""
-    if not isinstance(value, str) or not value or any(c in value for c in "+/="):
+    """Decode a JWK Base64urlUInt (RFC 7518 section 2), rejecting non-minimal encodings."""
+    if not isinstance(value, str) or not _B64URL_RE.match(value) or len(value) % 4 == 1:
         raise ValueError("JWK integer must be an unpadded base64url string")
     std = value.replace("-", "+").replace("_", "/")
-    return int.from_bytes(base64.b64decode(std + "=" * (-len(std) % 4), validate=True), "big")
+    raw = base64.b64decode(std + "=" * (-len(std) % 4), validate=True)
+    if base64.urlsafe_b64encode(raw).rstrip(b"=").decode("ascii") != value:
+        raise ValueError("JWK integer is not canonical base64url")
+    if not raw or raw[0] == 0:
+        raise ValueError("JWK Base64urlUInt must not be empty or carry leading zero bytes")
+    return int.from_bytes(raw, "big")
 
 
 _MEASUREMENT_LEN = 48
@@ -132,7 +148,9 @@ class AzureSnpVtpmVerifier:
         now: Optional[datetime] = None,
     ) -> QuoteVerification:
         try:
-            doc: dict[str, Any] = json.loads(_b64(quote_b64))
+            doc: dict[str, Any] = json.loads(_b64(quote_b64), object_pairs_hook=_unique_object)
+            if not isinstance(doc, dict):
+                raise ValueError("quote bundle must be a JSON object")
             hcl = _b64(doc["hcl_b64"])
             quote = _b64(doc["tpm_quote_b64"])
             signature_blob = _b64(doc["tpm_signature_b64"])
@@ -188,8 +206,18 @@ class AzureSnpVtpmVerifier:
         if parsed.report_data[32:] != bytes(32):
             return QuoteVerification(False, "unexpected nonzero SNP REPORT_DATA tail")
         try:
-            runtime_doc = json.loads(runtime_json)
-            jwk = next(k for k in runtime_doc["keys"] if k["kid"] == "HCLAkPub")
+            runtime_doc = json.loads(runtime_json, object_pairs_hook=_unique_object)
+            if not isinstance(runtime_doc, dict):
+                raise ValueError("HCL runtime JSON must be a JSON object")
+            jwk = next(
+                k for k in runtime_doc["keys"]
+                if isinstance(k, dict) and k.get("kid") == "HCLAkPub"
+            )
+            private_members = sorted(_JWK_PRIVATE_PARAMS.intersection(jwk))
+            if private_members:
+                raise ValueError(
+                    f"HCLAkPub must not contain private key material ({', '.join(private_members)})"
+                )
             if jwk["kty"] != "RSA":
                 raise ValueError(f"kty {jwk['kty']!r} is not RSA")
             modulus = _b64url_uint(jwk["n"])
@@ -245,7 +273,7 @@ class AzureSnpVtpmVerifier:
                 return QuoteVerification(
                     False, "TPM PCR digest does not match the approved workload measurement"
                 )
-            if extra_data != hashlib.sha256(bytes.fromhex(expected_nonce) + channel_binding).digest():
+            if extra_data != hashlib.sha256(_nonce_bytes(expected_nonce) + channel_binding).digest():
                 return QuoteVerification(False, "TPM qualifying data does not bind nonce and transport key")
             if signature_blob[:4] != b"\x00\x14\x00\x0b":
                 raise ValueError("TPM signature is not RSASSA/SHA-256")

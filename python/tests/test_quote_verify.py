@@ -499,6 +499,21 @@ def test_end_entity_certificate_cannot_issue():
     assert reason is not None and "not a CA" in reason
 
 
+def test_quote_verifier_rejects_duplicate_json_keys_and_malformed_nonce():
+    pki = Pki()
+    q = _container(pki, _report_body(NONCE))
+    raw_json = base64.b64decode(q).decode()
+    dup_q = base64.b64encode(('{"report_b64":"AAAA",' + raw_json[1:]).encode()).decode()
+    dup_res = _verifier(pki).verify(dup_q, expected_nonce=NONCE, now=NOW)
+    assert not dup_res.verified
+    assert "duplicate JSON object key" in (dup_res.reason or "")
+
+    for bad_nonce in ("zz", "AB" * 32, "ab " * 32, "ab" * 31, 123):  # type: ignore[list-item]
+        res = _verifier(pki).verify(q, expected_nonce=bad_nonce, now=NOW)  # type: ignore[arg-type]
+        assert not res.verified
+        assert "expected_nonce" in (res.reason or "")
+
+
 def test_path_length_constraint_is_honoured():
     root_key, a_key, b_key, leaf_key = _key(), _key(), _key(), _key()
 
