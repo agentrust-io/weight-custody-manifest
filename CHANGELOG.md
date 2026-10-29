@@ -6,6 +6,8 @@ uses semantic-ish versioning while pre-1.0.
 
 ## Unreleased
 
+Validate `bytes` secrets/shares, exact `int` threshold/shares, and RNG output length in `wcm.threshold`, and validate `ttl_seconds` and `nonce` types in `wcm._challenge.ChallengeStore` (#239).
+
 **Fixed, security (#225).** `_b64url_decode` in `wcm._signing` and base64url
 verification in `runtime_records`, `renewal`, and `memory_sweep` now enforce
 canonical unpadded RFC 4648 section 5 encoding (`^[A-Za-z0-9\-_]*$`,

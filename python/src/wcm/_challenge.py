@@ -49,6 +49,8 @@ class ChallengeStore:
         ttl_seconds: int = 300,
         now: Optional[Callable[[], datetime]] = None,
     ) -> None:
+        if type(ttl_seconds) is not int or ttl_seconds <= 0:
+            raise ValueError("ttl_seconds must be a positive integer")
         self._ttl = ttl_seconds
         self._now = now or _utcnow
         self._issued: OrderedDict[str, Challenge] = OrderedDict()
@@ -89,6 +91,8 @@ class ChallengeStore:
         Raises:
             ChallengeError: unknown, expired, or already-consumed nonce.
         """
+        if not isinstance(nonce, str) or not nonce:
+            raise ChallengeError("unknown nonce (not issued by this KBS)")
         with self._lock:
             if nonce in self._consumed:
                 raise ChallengeError("nonce already used (replay)")
