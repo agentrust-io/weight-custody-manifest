@@ -1,4 +1,5 @@
 import importlib.util
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -59,3 +60,27 @@ def test_cli_fails_even_under_optimized_python(tmp_path):
         assert "missing SHA-256" in result.stderr
     finally:
         path.unlink(missing_ok=True)
+
+
+def test_renamed_required_lock_cannot_skip_the_old_dependency_baseline(tmp_path):
+    root = tmp_path / "repo"
+    (root / "tools").mkdir(parents=True)
+    (root / "requirements").mkdir()
+    shutil.copyfile(ROOT / "tools/check_lock_delta.py", root / "tools/check_lock_delta.py")
+    subprocess.run(["git", "init", "-q", str(root)], check=True)
+    lock = root / "requirements/dev.txt"
+    lock.write_text(OLD)
+    subprocess.run(["git", "-C", str(root), "add", "."], check=True)
+    subprocess.run(["git", "-C", str(root), "-c", "user.name=Fixture", "-c",
+                    "user.email=fixture@example.test", "commit", "-qm", "base"], check=True)
+    command = [sys.executable, str(root / "tools/check_lock_delta.py"),
+               "--base", "HEAD", "requirements/dev.txt"]
+    control = subprocess.run(command, cwd=root, capture_output=True, text=True)
+    assert control.returncode == 0, control.stderr
+    lock.rename(root / "requirements/renamed.txt")
+    (root / "requirements/renamed.txt").write_text("core==1" + H)
+    for optimize in ([], ["-O"]):
+        result = subprocess.run([sys.executable, *optimize, *command[1:]],
+                                cwd=root, capture_output=True, text=True)
+        assert result.returncode == 1
+        assert "FAIL" in result.stderr and "requirements/dev.txt" in result.stderr
