@@ -17,3 +17,8 @@ supplies no such exception. New locks need their own review: failure to read a
 base lock is an error rather than a reason to omit comparison. Other pip input
 forms are refused; this tool accepts only the repository's generated pin/hash
 format. It does not claim complete PEP 508 semantic equivalence.
+
+Hash options must follow the marker (when present); every trailing token must be
+a complete lowercase SHA-256 hash option. Quoted marker literals are retained.
+Marker text is compared as an identity, not evaluated or fully validated as
+PEP 508 syntax; supported-platform resolution is a separate check.
