@@ -6,6 +6,8 @@ uses semantic-ish versioning while pre-1.0.
 
 ## Unreleased
 
+Bind `proof.tree_size` to `len(tree)` and validate proof/root/size shapes in `wcm._merkle.MerkleTree.verify_inclusion` and `verify_consistency` (#238).
+
 **Fixed, security (#225).** `_b64url_decode` in `wcm._signing` and base64url
 verification in `runtime_records`, `renewal`, and `memory_sweep` now enforce
 canonical unpadded RFC 4648 section 5 encoding (`^[A-Za-z0-9\-_]*$`,

@@ -62,6 +62,8 @@ class MerkleTree:
 
     def add_leaf(self, leaf_preimage: bytes) -> bytes:
         """Hash *leaf_preimage* with domain byte 0x00 and append. Returns the leaf hash."""
+        if type(leaf_preimage) is not bytes:
+            raise TypeError("leaf_preimage must be bytes")
         leaf_hash = self._h(b"\x00" + leaf_preimage)
         self._leaf_hashes.append(leaf_hash)
         return leaf_hash
@@ -78,6 +80,8 @@ class MerkleTree:
         return f"{self._algorithm}:{self.root().hex()}"
 
     def inclusion_proof(self, leaf_index: int) -> InclusionProof:
+        if type(leaf_index) is not int:
+            raise TypeError("leaf_index must be an integer")
         n = len(self._leaf_hashes)
         if leaf_index < 0 or leaf_index >= n:
             raise IndexError(f"leaf_index {leaf_index} out of range for {n} leaves")
@@ -85,12 +89,29 @@ class MerkleTree:
         return InclusionProof(leaf_index, n, self._leaf_hashes[leaf_index], audit_path)
 
     def verify_inclusion(self, proof: InclusionProof) -> bool:
+        digest_size = len(EMPTY_TREE[self._algorithm])
+        if (
+            type(proof.leaf_index) is not int
+            or type(proof.tree_size) is not int
+            or type(proof.leaf_hash) is not bytes
+            or len(proof.leaf_hash) != digest_size
+            or not isinstance(proof.audit_path, list)
+            or any(type(p) is not bytes or len(p) != digest_size for p in proof.audit_path)
+        ):
+            return False
+        n = len(self._leaf_hashes)
+        if proof.tree_size != n or not 0 <= proof.leaf_index < n:
+            return False
+        if len(proof.audit_path) != _expected_audit_path_length(n, proof.leaf_index):
+            return False
         computed = compute_root_from_proof(
             proof.leaf_hash, proof.leaf_index, proof.tree_size, proof.audit_path, self._h
         )
         return computed == self.root()
 
     def consistency_proof(self, first_size: int) -> list[bytes]:
+        if type(first_size) is not int:
+            raise TypeError("first_size must be an integer")
         n = len(self._leaf_hashes)
         if not 0 < first_size <= n:
             raise ValueError(f"first_size {first_size} out of range 1..{n}")
@@ -136,6 +157,15 @@ def _split_point(n: int) -> int:
     return k >> 1
 
 
+def _expected_audit_path_length(n: int, index: int) -> int:
+    if n == 1:
+        return 0
+    k = _split_point(n)
+    if index < k:
+        return 1 + _expected_audit_path_length(k, index)
+    return 1 + _expected_audit_path_length(n - k, index - k)
+
+
 def compute_root_from_proof(
     leaf_hash: bytes,
     index: int,
@@ -148,7 +178,7 @@ def compute_root_from_proof(
     Returns ``b""`` on a malformed proof (more path nodes than the tree needs),
     which will not equal any real root.
     """
-    if not 0 <= index < tree_size:
+    if type(index) is not int or type(tree_size) is not int or not 0 <= index < tree_size:
         return b""  # a position outside the tree is not a position
     fn = index
     sn = tree_size - 1
@@ -187,7 +217,27 @@ def verify_consistency(
     only the roots, sizes, and proof - never the leaf data - so a monitor without
     the store can check a log advance. Tampered or truncated proofs return False.
     """
+    if not isinstance(algorithm, str) or algorithm not in _HASH_FNS:
+        return False
     h = _HASH_FNS[algorithm]
+    digest_size = len(EMPTY_TREE[algorithm])
+    if (
+        type(first_size) is not int
+        or type(second_size) is not int
+        or first_size < 0
+        or second_size < 0
+    ):
+        return False
+    if (
+        type(first_root) is not bytes
+        or len(first_root) != digest_size
+        or type(second_root) is not bytes
+        or len(second_root) != digest_size
+        or not isinstance(proof, list)
+        or len(proof) > second_size.bit_length() + 1
+        or any(type(node) is not bytes or len(node) != digest_size for node in proof)
+    ):
+        return False
     if first_size > second_size:
         return False
     if first_size == second_size:
