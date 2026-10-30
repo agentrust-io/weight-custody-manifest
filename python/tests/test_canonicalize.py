@@ -92,3 +92,38 @@ def test_canonical_hash_shake256():
 def test_canonical_hash_bad_algorithm():
     with pytest.raises(ValueError):
         canonical_hash({"a": 1}, algorithm="md5")
+
+
+@pytest.mark.parametrize("bad_int", [2**53, -(2**53), 2**53 + 1, 10**30])
+def test_reject_integers_outside_rfc8785_safe_domain(bad_int):
+    with pytest.raises(ValueError, match="safe integer domain"):
+        canonicalize({"v": bad_int})
+
+
+def test_accept_safe_integer_boundary():
+    assert canonicalize({"v": 2**53 - 1}) == b'{"v":9007199254740991}'
+    assert canonicalize({"v": -(2**53 - 1)}) == b'{"v":-9007199254740991}'
+
+
+@pytest.mark.parametrize("bad_key", [1, None, (1, 2)])
+def test_reject_non_string_dict_key(bad_key):
+    with pytest.raises(TypeError, match="not a string"):
+        canonicalize({bad_key: "v"})
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [
+        {"k": chr(0xD800)},
+        {"k2": chr(0xDFFF)},
+        {chr(0xD800): "v"},
+        [chr(0xDC00)],
+    ],
+)
+def test_reject_lone_utf16_surrogate(payload):
+    from wcm._canonicalize import _quote
+
+    with pytest.raises(ValueError, match="lone UTF-16 surrogate"):
+        canonicalize(payload)
+    with pytest.raises(ValueError, match="lone UTF-16 surrogate"):
+        _quote(chr(0xD800))

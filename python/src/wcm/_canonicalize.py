@@ -26,6 +26,7 @@ from typing import Any
 
 
 _MAX_DEPTH = 64  # prevent RecursionError from deeply nested JSON
+_MAX_SAFE_INTEGER = 9007199254740991  # 2**53 - 1 (RFC 8785 §3.2.2.3)
 
 
 def canonicalize(obj: Any, *, exclude_none: bool = True) -> bytes:
@@ -84,6 +85,11 @@ def _serialize(obj: Any, *, exclude_none: bool, depth: int) -> str:
         # bool must precede int: bool is an int subclass in Python.
         return "true" if obj else "false"
     if isinstance(obj, int):
+        if not -_MAX_SAFE_INTEGER <= obj <= _MAX_SAFE_INTEGER:
+            raise ValueError(
+                f"integer {obj} is outside the safe integer domain RFC 8785 can "
+                f"serialize (+/-{_MAX_SAFE_INTEGER})"
+            )
         return str(obj)
     if isinstance(obj, float):
         return _float_to_str(obj)
@@ -113,6 +119,13 @@ def _utf16_sort_key(s: str) -> bytes:
 
 
 def _serialize_dict(d: dict[str, Any], *, exclude_none: bool, depth: int) -> str:
+    for k in d:
+        if not isinstance(k, str):
+            raise TypeError(
+                f"JSON object key of type {type(k).__name__!r} is not a string under RFC 8785"
+            )
+        if any(0xD800 <= ord(ch) <= 0xDFFF for ch in k):
+            raise ValueError("lone UTF-16 surrogate is not valid I-JSON / RFC 8785")
     parts: list[str] = []
     for k in sorted(d.keys(), key=_utf16_sort_key):
         v = d[k]
@@ -132,6 +145,8 @@ def _quote(s: str) -> str:
     verify for the other (GHSA-99p4). For NFC input the output is exactly
     RFC 8785, which does not normalize.
     """
+    if any(0xD800 <= ord(ch) <= 0xDFFF for ch in s):
+        raise ValueError("lone UTF-16 surrogate is not valid I-JSON / RFC 8785")
     if not unicodedata.is_normalized("NFC", s):
         raise ValueError(
             "string is not NFC-normalized; normalize it before signing "
