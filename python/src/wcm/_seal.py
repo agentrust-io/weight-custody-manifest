@@ -24,6 +24,7 @@ unauthenticated plaintext.
 from __future__ import annotations
 
 import os
+import re
 
 from cryptography.exceptions import InvalidTag
 from cryptography.hazmat.primitives import hashes
@@ -40,6 +41,7 @@ _EPH_LEN = 32
 _NONCE_LEN = 12
 _HEADER_LEN = 1 + _EPH_LEN + _NONCE_LEN  # version || ephemeral pub || AEAD nonce
 _TAG_LEN = 16
+_HEX_32_RE = re.compile(r"^[0-9a-f]{64}$")
 
 
 class SealError(Exception):
@@ -69,8 +71,11 @@ def seal_to_public_key(recipient_pub_hex: str, payload: bytes, aad: bytes = b"")
     public key is the transport key the enclave attested; a relay that lacks the
     matching private key cannot open the result.
     """
+    if not isinstance(recipient_pub_hex, str) or not _HEX_32_RE.fullmatch(recipient_pub_hex):
+        raise SealError("invalid recipient transport public key: must be 64 lowercase hex characters")
+    raw_recipient = bytes.fromhex(recipient_pub_hex)
     try:
-        recipient = X25519PublicKey.from_public_bytes(bytes.fromhex(recipient_pub_hex))
+        recipient = X25519PublicKey.from_public_bytes(raw_recipient)
     except ValueError as exc:
         raise SealError(f"invalid recipient transport public key: {exc}") from exc
 
