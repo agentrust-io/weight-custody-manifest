@@ -694,3 +694,30 @@ def test_require_evidence_verification_absent_keeps_existing_preimage(
     assert "require_evidence_verification" not in (
         example_manifest.unsigned_dict()["release_policy"]
     )
+
+
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"challenge_ttl_seconds": True},
+        {"challenge_ttl_seconds": 0},
+        {"challenge_ttl_seconds": -5},
+        {"max_attestation_cache_age_seconds": True},
+        {"max_attestation_cache_age_seconds": -1},
+        {"renewal_decision_ttl_seconds": True},
+        {"renewal_decision_ttl_seconds": False},
+        {"allowed_platform_instances": "a" * 128},
+    ],
+)
+def test_kbs_rejects_boolean_or_invalid_ttl_and_bare_string_instances(kwargs):
+    with pytest.raises(ValueError):
+        KeyBrokerService({}, **kwargs)
+
+
+def test_provisioning_wire_rejects_nonfinite_json_constants():
+    from wcm.provisioning_wire import json_object
+
+    for bad_json in ('{"a": NaN}', '{"a": Infinity}', '{"a": -Infinity}'):
+        with pytest.raises(ValueError, match="non-finite"):
+            json_object(bad_json)
+

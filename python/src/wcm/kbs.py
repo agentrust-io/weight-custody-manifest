@@ -107,6 +107,8 @@ def _normalize_platform_instances(
     """Validate an operator CHIP_ID list; None means the check is not required."""
     if values is None:
         return None
+    if isinstance(values, (str, bytes)):
+        raise ValueError("allowed_platform_instances must be a collection of hex strings, not a bare string")
     out: set[str] = set()
     for value in values:
         if not isinstance(value, str):
@@ -151,7 +153,23 @@ class KeyBrokerService:
         trusted_manifest_identities: Optional[Iterable[str]] = None,
         allowed_platform_instances: Optional[Iterable[str]] = None,
     ) -> None:
-        if renewal_decision_ttl_seconds <= 0:
+        if (
+            isinstance(challenge_ttl_seconds, bool)
+            or not isinstance(challenge_ttl_seconds, int)
+            or challenge_ttl_seconds <= 0
+        ):
+            raise ValueError("challenge_ttl_seconds must be a positive integer")
+        if (
+            isinstance(max_attestation_cache_age_seconds, bool)
+            or not isinstance(max_attestation_cache_age_seconds, int)
+            or max_attestation_cache_age_seconds < 0
+        ):
+            raise ValueError("max_attestation_cache_age_seconds must be a non-negative integer")
+        if (
+            isinstance(renewal_decision_ttl_seconds, bool)
+            or not isinstance(renewal_decision_ttl_seconds, int)
+            or renewal_decision_ttl_seconds <= 0
+        ):
             raise ValueError("renewal_decision_ttl_seconds must be positive")
         # keystore maps weights_hash -> the decryption key to release.
         self._keystore: dict[str, bytes] = dict(keystore)
