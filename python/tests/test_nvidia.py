@@ -14,7 +14,9 @@ is fixed to its captured nonce.
 from __future__ import annotations
 
 import base64
+import hashlib
 import json
+import os
 import pathlib
 from datetime import datetime, timedelta, timezone
 
@@ -471,3 +473,148 @@ def test_malformed_identity_is_refused(kwargs):
     report = _spdm_report("ab" * 32, _p384(), **kwargs)
     with pytest.raises(GpuReportFormatError):
         gpu_measurement_from_report(report, _Pki().leaf)
+
+
+def _nvdaod_report(nonce, key, *, entries=None, header=b"NVDAOD\x00\x00\x02\x00\x00\x00",
+                   opaque=None):
+    if entries is None:
+        entries = [(3, 0x86, b"595.71.05\x00"), (6, 0x86, SYNTH_VBIOS)]
+    if opaque is None:
+        opaque = header + b"".join(
+            fid.to_bytes(2, "little") + value_type.to_bytes(2, "little")
+            + len(value).to_bytes(2, "little") + value
+            for fid, value_type, value in entries
+        )
+    # Keep the real SPDM framing and sign all new opaque bytes.
+    response = _spdm_body(fields=[])[:-2] + len(opaque).to_bytes(2, "little") + opaque
+    return _nv_report(nonce, key, measurements=b"\x00" + response)
+
+
+@pytest.mark.skipif(not os.environ.get("WCM_NVDAOD_VENDOR_TRANSCRIPT"),
+                    reason="optional public NVIDIA structural transcript not supplied")
+def test_vendor_nvdaod_vector_is_structural_only():
+    """NVIDIA supplies no certificate chain for this sample; do not authenticate it."""
+    source = pathlib.Path(os.environ["WCM_NVDAOD_VENDOR_TRANSCRIPT"]).read_bytes()
+    assert hashlib.sha256(source).hexdigest() == (
+        "346fff240b98f3be7ee50bf5d3ddfd1f7013df77dc5460c7dae3fd1c9634c13b"
+    )
+    report = bytes.fromhex(source.decode("ascii"))
+    fields = parse_gpu_opaque_fields(report)
+    assert len(fields) == 17
+    assert fields[3] == b"620.12\x00"  # Variable-length vendor sample, not char[16].
+    assert fields[6] == bytes.fromhex("00d900960f000000")
+
+
+@pytest.mark.parametrize("minor,patch", [(0, 0), (1, 0), (0, 1), (255, 255)])
+def test_nvdaod_supported_major_keeps_minor_patch_compatibility(minor, patch):
+    pki = _Pki()
+    header = b"NVDAOD\x00\x00" + bytes([2, minor, patch, 0])
+    report = _nvdaod_report("ab" * 32, pki.leaf_key, header=header)
+    result = build_gpu_verifier(_pem(pki.root)).verify(
+        _evidence_b64(base64.b64encode(report).decode(), pki.chain_pem()),
+        expected_nonce="ab" * 32, now=NOW,
+    )
+    assert result.verified and result.gpu_measurement == SYNTH_MEASUREMENT
+
+
+def test_nvdaod_retains_unknown_value_type_without_using_it_as_identity():
+    from wcm.nvidia import _parse_gpu_opaque_entries
+
+    pki = _Pki()
+    report = _nvdaod_report("ab" * 32, pki.leaf_key, entries=[
+        (3, 0x86, b"595.71.05\x00"), (6, 0x86, SYNTH_VBIOS), (0x1234, 0xbeef, b"new"),
+        (0x22, 0x86, b"\xff\xff"),  # Header major, not this legacy field, is authoritative.
+    ])
+    assert _parse_gpu_opaque_entries(report)[0x1234].value_type == 0xbeef
+    assert parse_gpu_opaque_fields(report)[0x1234] == b"new"
+    assert gpu_measurement_from_report(report, pki.leaf) == SYNTH_MEASUREMENT
+
+
+@pytest.mark.parametrize("opaque", [
+    b"NVDAOD", b"NVDAOD\x00\x00\x02\x00\x00",
+    b"NVDAOD\x01\x00\x02\x00\x00\x00",
+    b"NVDAOD\x00\x00\x03\x00\x00\x00",
+    b"NVDAOD\x00\x00\x02\x00\x00\x00\x03\x00\x86\x00\x01",
+    b"NVDAOD\x00\x00\x02\x00\x00\x00\x03\x00\x86\x00\xff\xff",
+    b"NVDAOD\x00\x00\x02\x00\x00\x00" + b"\x03\x00\x86\x00\x00\x00" * 2,
+])
+def test_nvdaod_refuses_truncation_profile_future_major_overrun_and_duplicate(opaque):
+    pki = _Pki()
+    valid = _nvdaod_report("ab" * 32, pki.leaf_key)
+    assert gpu_measurement_from_report(valid, pki.leaf) == SYNTH_MEASUREMENT
+    with pytest.raises(GpuReportFormatError):
+        parse_gpu_opaque_fields(_nvdaod_report("ab" * 32, pki.leaf_key, opaque=opaque))
+
+
+@pytest.mark.parametrize("entries", [
+    [(3, 0x86, b"595.71.05\x00")],
+    [(6, 0x86, SYNTH_VBIOS)],
+    [(3, 0x06, b"595.71.05\x00"), (6, 0x86, SYNTH_VBIOS)],
+    [(3, 0x86, b"595.71.05\x00"), (6, 0x06, SYNTH_VBIOS)],
+    [(3, 0x86, b"595.71.05\x00"), (6, 0x86, b"\x00" * 7)],
+])
+def test_nvdaod_unreadable_identity_still_cannot_satisfy_kbs_pin(example_manifest, entries):
+    manifest = _pin_gpu(waive(example_manifest, cc_mode=False), SYNTH_MEASUREMENT)
+    pki = _Pki()
+    current, rim = _measurements(manifest)
+    kbs = _gpu_kbs(manifest, pki)
+    challenge = kbs.issue_challenge()
+    report = _nvdaod_report(challenge.nonce, pki.leaf_key, entries=entries)
+    decision = kbs.verify_and_release(manifest, _evidence(
+        challenge.nonce, current=current, rim=rim,
+        gpu_quote_b64=_evidence_b64(base64.b64encode(report).decode(), pki.chain_pem()),
+    ))
+    assert any(c.name == "gpu_report_verified" and c.passed for c in decision.checks)
+    assert not decision.released and not _gpu_check(decision).passed
+
+
+@pytest.mark.parametrize("driver,release", [(b"595.71.05\x00", True), (b"620.12\x00", False)])
+def test_nvdaod_kbs_compares_signed_identity_instead_of_caller_claim(example_manifest, driver, release):
+    manifest = _pin_gpu(waive(example_manifest, cc_mode=False), SYNTH_MEASUREMENT)
+    pki = _Pki()
+    current, rim = _measurements(manifest)
+    kbs = _gpu_kbs(manifest, pki)
+    challenge = kbs.issue_challenge()
+    report = _nvdaod_report(challenge.nonce, pki.leaf_key, entries=[
+        (3, 0x86, driver), (6, 0x86, SYNTH_VBIOS),
+    ])
+    decision = kbs.verify_and_release(manifest, _evidence(
+        challenge.nonce, current=current, rim=rim,
+        gpu_quote_b64=_evidence_b64(base64.b64encode(report).decode(), pki.chain_pem()),
+    ))
+    assert any(c.name == "gpu_report_verified" and c.passed for c in decision.checks)
+    assert decision.released is release
+
+
+def test_nvdaod_signature_and_nonce_still_precede_identity():
+    pki = _Pki()
+    verifier = build_gpu_verifier(_pem(pki.root))
+    report = _nvdaod_report("ab" * 32, pki.leaf_key)
+    evidence = _evidence_b64(base64.b64encode(report).decode(), pki.chain_pem())
+    assert verifier.verify(evidence, expected_nonce="ab" * 32, now=NOW).gpu_measurement
+    assert not verifier.verify(evidence, expected_nonce="cd" * 32, now=NOW).verified
+    changed = report[:-1] + bytes([report[-1] ^ 1])
+    assert not verifier.verify(
+        _evidence_b64(base64.b64encode(changed).decode(), pki.chain_pem()),
+        expected_nonce="ab" * 32, now=NOW,
+    ).verified
+
+
+@pytest.mark.parametrize("version", [b"\x03\x00", b"\x01", b"\x01\x00\x00"])
+def test_legacy_explicit_unsupported_version_is_refused(version):
+    report = _spdm_report("ab" * 32, _p384(), fields=[
+        (3, b"595.71.05\x00"), (6, SYNTH_VBIOS), (0x22, version),
+    ])
+    with pytest.raises(GpuReportFormatError, match="legacy opaque major"):
+        parse_gpu_opaque_fields(report)
+
+
+def test_nvdaod_does_not_infer_unknown_architecture():
+    pki = _Pki()
+    pki.leaf = _cert("GZ999 A01 GSP FMC LF", "nv-test-inter", pki.leaf_key, pki.inter_key)
+    report = _nvdaod_report("ab" * 32, pki.leaf_key)
+    result = build_gpu_verifier(_pem(pki.root)).verify(
+        _evidence_b64(base64.b64encode(report).decode(), pki.chain_pem()),
+        expected_nonce="ab" * 32, now=NOW,
+    )
+    assert result.verified and result.gpu_measurement is None
