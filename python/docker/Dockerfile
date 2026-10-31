@@ -48,9 +48,22 @@ ARG BASE_DIGEST=sha256:d50fb7611f86d04a3b0471b46d7557818d88983fc3136726336b2a4c6
 ARG SOURCE_DATE_EPOCH=1700000000
 
 # --------------------------------------------------------------------------
+# Base CA store: remove both Debian-advised roots before either stage fetches
+# packages.  Their exact fingerprints are checked, and the generated bundle and
+# OpenSSL CA directory are verified before the build continues.
+# --------------------------------------------------------------------------
+FROM ${BASE_IMAGE}@${BASE_DIGEST} AS ca_base
+
+ARG SOURCE_DATE_EPOCH
+ENV SOURCE_DATE_EPOCH=${SOURCE_DATE_EPOCH} \
+    PIP_CERT=/etc/ssl/certs/ca-certificates.crt
+COPY python/composed/remove_affected_cas.py /tmp/remove_affected_cas.py
+RUN python /tmp/remove_affected_cas.py && rm /tmp/remove_affected_cas.py
+
+# --------------------------------------------------------------------------
 # Builder: build the wcm wheel. None of this reaches the runtime image.
 # --------------------------------------------------------------------------
-FROM ${BASE_IMAGE}@${BASE_DIGEST} AS builder
+FROM ca_base AS builder
 
 ARG SOURCE_DATE_EPOCH
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -78,7 +91,7 @@ RUN pip install --no-cache-dir --no-compile --require-hashes -r /tmp/requirement
 # --------------------------------------------------------------------------
 # Runtime: hash-locked dependencies plus the built wheel. No build tooling.
 # --------------------------------------------------------------------------
-FROM ${BASE_IMAGE}@${BASE_DIGEST} AS runtime
+FROM ca_base AS runtime
 
 ARG SOURCE_DATE_EPOCH
 # Normalization targets. Scoped deliberately: a blanket `find /` would copy every
