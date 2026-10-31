@@ -24,9 +24,10 @@ from __future__ import annotations
 import base64
 import hashlib
 import json
+import re
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from typing import Optional, Protocol
+from typing import Any, Optional, Protocol
 
 from cryptography import x509
 from cryptography.exceptions import InvalidSignature, UnsupportedAlgorithm
@@ -34,6 +35,23 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import ec, ed25519, padding, rsa
 
 from ._certificates import load_pem_certificate
+
+_NONCE_HEX_RE = re.compile(r"^[0-9a-f]{64}\Z")
+
+
+def _unique_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    out: dict[str, Any] = {}
+    for key, value in pairs:
+        if key in out:
+            raise ValueError(f"duplicate JSON object key {key!r}")
+        out[key] = value
+    return out
+
+
+def _nonce_bytes(expected_nonce: object) -> bytes:
+    if not isinstance(expected_nonce, str) or not _NONCE_HEX_RE.match(expected_nonce):
+        raise ValueError("expected_nonce must be 64 lowercase hexadecimal characters")
+    return bytes.fromhex(expected_nonce)
 
 
 @dataclass(frozen=True)
@@ -101,7 +119,9 @@ class JsonQuoteParser:
 
     def parse(self, quote_b64: str) -> ParsedQuote:
         try:
-            doc = json.loads(base64.b64decode(quote_b64))
+            doc = json.loads(base64.b64decode(quote_b64), object_pairs_hook=_unique_object)
+            if not isinstance(doc, dict):
+                raise ValueError("quote container must be a JSON object")
             claimed = doc.get("report_data_offset", self._report_data_offset)
             if type(claimed) is not int or claimed != self._report_data_offset:
                 raise ValueError(
@@ -353,7 +373,11 @@ class QuoteVerifier:
         except (InvalidSignature, UnsupportedAlgorithm, TypeError, ValueError):
             return QuoteVerification(False, "report signature does not verify under the leaf key")
 
-        expected = hashlib.sha256(bytes.fromhex(expected_nonce) + channel_binding).digest()
+        try:
+            nonce_raw = _nonce_bytes(expected_nonce)
+        except ValueError as exc:
+            return QuoteVerification(False, str(exc))
+        expected = hashlib.sha256(nonce_raw + channel_binding).digest()
         actual = q.report_body[q.report_data_offset : q.report_data_offset + 32]
         if actual != expected:
             reason = (
