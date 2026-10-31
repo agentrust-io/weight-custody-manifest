@@ -256,7 +256,27 @@ def verify_cert_chain(
     trust_store: TrustStore,
     now: datetime,
 ) -> Optional[str]:
-    """Return None if *leaf* chains to a trusted root, else a failure reason."""
+    """Return None if *leaf* chains to a trusted root, else a failure reason.
+
+    An exception while checking the chain is a failure reason, not an
+    exception. cryptography parses names, extensions and keys lazily, so a
+    certificate that loaded can still fail here (ValueError, DuplicateExtension,
+    UnsupportedGeneralNameType, ...), and the chain usually comes from the
+    evidence. The trust store's roots are read too. The leaf's own key is not
+    read here; the caller's report signature check reads it.
+    """
+    try:
+        return _chain_error(leaf, intermediates, trust_store, now)
+    except Exception as exc:  # noqa: BLE001 - an unreadable chain is not a trusted one
+        return f"malformed certificate while checking the chain: {type(exc).__name__}"
+
+
+def _chain_error(
+    leaf: x509.Certificate,
+    intermediates: list[x509.Certificate],
+    trust_store: TrustStore,
+    now: datetime,
+) -> Optional[str]:
     chain = [leaf, *intermediates]
     for i in range(len(chain) - 1):
         if not _valid_at(chain[i], now):
