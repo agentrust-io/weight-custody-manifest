@@ -24,5 +24,4 @@ jobs:
           LOCK_BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: >-
           python tools/check_lock_delta.py --base "$LOCK_BASE_SHA" --resolve
-          requirements/dev.txt requirements/composed.txt
-          requirements/docs.txt requirements/build.txt
+          --all-locks

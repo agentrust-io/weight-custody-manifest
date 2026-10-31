@@ -46,8 +46,8 @@ def test_dropped_optional_extra_is_not_a_version_only_change():
 
 
 def test_checked_in_locks_parse():
-    for name in ("dev", "composed", "docs", "build"):
-        assert guard.parse_lock((ROOT / f"requirements/{name}.txt").read_text())
+    for path in (ROOT / "requirements").glob("*.txt"):
+        assert guard.parse_lock(path.read_text())
 
 
 def test_cli_fails_even_under_optimized_python(tmp_path):
@@ -97,7 +97,9 @@ class TestHashSuffix(unittest.TestCase):
                        ' ; os_name == "value --hash=sha256:BAD"'):
             with self.subTest(marker=marker):
                 text = "demo==1" + marker + SUFFIX_HASH + SUFFIX_HASH.replace("a" * 64, "b" * 64)
-                self.assertEqual(guard.parse_lock(text), {("demo", ("",), marker.strip()): "1"})
+                self.assertEqual(guard.parse_lock(text), {
+                    ("demo", ("",), marker.strip()): (
+                        "1", frozenset([SUFFIX_HASH.strip(), SUFFIX_HASH.replace("a" * 64, "b" * 64).strip()]))})
 
     def test_entire_hash_suffix_is_validated(self):
         for marker in ('', ' ; python_version >= "3.11"'):
@@ -129,3 +131,82 @@ class TestHashSuffix(unittest.TestCase):
                         self.assertEqual(result.returncode, expected, result.stdout + result.stderr)
                         if expected:
                             self.assertIn("unsupported lock option or malformed hash", result.stderr)
+
+
+class TestHashDelta(unittest.TestCase):
+    def test_hash_only_changes_are_reported(self):
+        for marker in ('', ' ; sys_platform == "win32"'):
+            before = 'demo==1' + marker + H
+            second = H.replace('a' * 64, 'b' * 64)
+            for after in (before.replace(H, second), before + second):
+                with self.subTest(marker=marker, after=after):
+                    self.assertEqual(guard.check_delta(before, after), ['demo'])
+                    self.assertEqual(guard.check_delta(after, before), ['demo'])
+
+    def test_hash_reordering_and_duplicates_do_not_report_changes(self):
+        second = H.replace('a' * 64, 'b' * 64)
+        self.assertEqual(guard.check_delta('demo==1' + H + second,
+                                          'demo==1' + second + H + H), [])
+
+
+class TestLockInventory(unittest.TestCase):
+    def setUp(self):
+        self.directory = tempfile.TemporaryDirectory()
+        self.addCleanup(self.directory.cleanup)
+        self.root = Path(self.directory.name)
+        (self.root / 'tools').mkdir()
+        (self.root / 'requirements').mkdir()
+        shutil.copy2(ROOT / 'tools/check_lock_delta.py', self.root / 'tools/check_lock_delta.py')
+        # Read the actual workflow's command, including its lock selection.
+        workflow = (ROOT / '.github/workflows/lock-validation.yml').read_text()
+        self.command = workflow.split('run: >-', 1)[1].replace('\n', ' ').strip()
+        # Structural inventory behavior is independent of network resolution.
+        self.command = self.command.replace('--resolve', '').replace('"$LOCK_BASE_SHA"', 'HEAD')
+        for name in ('dev', 'runtime', 'server'):
+            (self.root / f'requirements/{name}.txt').write_text(OLD)
+        subprocess.run(['git', 'init', '-q', str(self.root)], check=True)
+        subprocess.run(['git', '-C', str(self.root), 'add', '.'], check=True)
+        subprocess.run(['git', '-C', str(self.root), '-c', 'user.name=Fixture',
+                        '-c', 'user.email=fixture@example.test', 'commit', '-qm', 'base'], check=True)
+
+    def run_guard(self):
+        import shlex
+        command = shlex.split(self.command)
+        return subprocess.run([sys.executable, *command[1:]], cwd=self.root,
+                              capture_output=True, text=True, check=False)
+
+    def test_all_current_locks_and_new_lock_are_checked(self):
+        (self.root / 'requirements/new.txt').write_text('new==1' + H)
+        result = self.run_guard()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        for name in ('dev', 'runtime', 'server', 'new'):
+            self.assertIn(f'PASS requirements/{name}.txt', result.stdout)
+        self.assertIn('new lock; requires dependency review', result.stdout)
+
+    def test_corruption_in_each_previously_omitted_lock_is_refused(self):
+        for name in ('runtime', 'server', 'new'):
+            path = self.root / f'requirements/{name}.txt'
+            path.write_text('broken==1')
+            result = self.run_guard()
+            self.assertNotEqual(result.returncode, 0, result.stdout)
+            self.assertIn('missing SHA-256 hash', result.stderr)
+            if name == 'new':
+                path.unlink()
+            else:
+                path.write_text(OLD)
+
+    def test_deleted_or_renamed_lock_cannot_disappear_from_inventory(self):
+        path = self.root / 'requirements/server.txt'
+        path.unlink()
+        for renamed in (False, True):
+            if renamed:
+                (self.root / 'requirements/renamed.txt').write_text('core==1' + H)
+            result = self.run_guard()
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn('requirements/server.txt', result.stderr)
+
+    def test_bad_base_does_not_turn_every_lock_into_a_new_lock(self):
+        self.command = self.command.replace('HEAD', 'absent-base')
+        result = self.run_guard()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertNotIn('new lock', result.stdout)
