@@ -61,3 +61,38 @@ def test_shake256_tree():
     t.add_leaf(b"a")
     t.add_leaf(b"b")
     assert t.root_hex().startswith("shake256:")
+
+
+def test_verify_inclusion_binds_tree_size_and_validates_types():
+    import pytest
+    from wcm._merkle import InclusionProof
+
+    t = _tree(4)
+    proof = t.inclusion_proof(0)
+    assert t.verify_inclusion(proof)
+    # Forged tree_size (8 or 3) with the same audit_path must not verify
+    for bad_size in (8, 3, True):
+        assert not t.verify_inclusion(
+            InclusionProof(proof.leaf_index, bad_size, proof.leaf_hash, proof.audit_path)
+        )
+    assert not t.verify_inclusion(
+        InclusionProof(True, proof.tree_size, proof.leaf_hash, proof.audit_path)
+    )
+    with pytest.raises(TypeError):
+        t.add_leaf("not-bytes")  # type: ignore[arg-type]
+    with pytest.raises(TypeError):
+        t.inclusion_proof(True)
+    with pytest.raises(TypeError):
+        t.consistency_proof(True)
+
+
+def test_verify_consistency_validates_algorithm_roots_sizes_and_proof():
+    m, n = 5, 9
+    small, big = _tree(m), _tree(n)
+    proof = big.consistency_proof(m)
+    assert verify_consistency(small.root(), big.root(), m, n, proof, algorithm="md5") is False
+    assert verify_consistency(b"\xab", b"\xab", 3, 3, []) is False
+    assert verify_consistency(small.root(), big.root(), True, n, proof) is False
+    assert verify_consistency(small.root(), big.root(), -1, n, proof) is False
+    assert verify_consistency("not-bytes", big.root(), m, n, proof) is False  # type: ignore[arg-type]
+    assert verify_consistency(small.root(), big.root(), m, n, ["not-bytes"]) is False  # type: ignore[list-item]
