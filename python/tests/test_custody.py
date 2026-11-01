@@ -826,3 +826,24 @@ def test_renewal_issued_to_another_enclave_does_not_renew_this_one(structural_ma
         )
     assert session.deadline == deadline
     session.apply_renewal(structural_manifest, own_decision, evidence=_submitted(own_decision))
+
+
+def test_enclave_session_and_parse_cadence_validate_types():
+    import asyncio
+    from wcm.custody import parse_cadence
+
+    for bad_key in (32, b"", bytearray(), "str", None):
+        with pytest.raises(ValueError, match="key"):
+            EnclaveSession(bad_key, cadence_seconds=60)  # type: ignore[arg-type]
+    for bad_cad in (True, False, 0, -5, 1.5, "60"):
+        with pytest.raises(ValueError, match="cadence_seconds"):
+            EnclaveSession(KEY, cadence_seconds=bad_cad)  # type: ignore[arg-type]
+    for bad_ops in (True, False, 0, -1, 1.5, "10"):
+        with pytest.raises(ValueError, match="max_operations"):
+            EnclaveSession(KEY, cadence_seconds=60, max_operations=bad_ops)  # type: ignore[arg-type]
+    s = EnclaveSession(KEY, cadence_seconds=60)
+    with pytest.raises(ValueError, match="poll_interval"):
+        asyncio.run(s.monitor(poll_interval=True))  # type: ignore[arg-type]
+    for bad_text in ("٢٤h", 24, None):
+        with pytest.raises(ValueError, match="invalid cadence"):
+            parse_cadence(bad_text)  # type: ignore[arg-type]

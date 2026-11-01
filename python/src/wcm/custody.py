@@ -97,7 +97,7 @@ class StopFloor(str, Enum):
     none = "none"
 
 _CADENCE_UNITS = {"d": 86400, "h": 3600, "m": 60, "s": 1}
-_CADENCE_RE = re.compile(r"^\s*(\d+)\s*([dhms])\s*$")
+_CADENCE_RE = re.compile(r"\s*([0-9]+)\s*([dhms])\s*", re.ASCII)
 
 
 class KeyWipedError(Exception):
@@ -149,7 +149,11 @@ class RenewalDenied(ValueError):
 
 def parse_cadence(text: str) -> int:
     """Parse a cadence like ``"24h"`` / ``"15m"`` / ``"30s"`` / ``"1d"`` to seconds."""
-    match = _CADENCE_RE.match(text)
+    if not isinstance(text, str):
+        raise ValueError(
+            f"invalid cadence {text!r}; expected an integer with unit d/h/m/s, e.g. '24h'"
+        )
+    match = _CADENCE_RE.fullmatch(text)
     if not match:
         raise ValueError(
             f"invalid cadence {text!r}; expected an integer with unit d/h/m/s, e.g. '24h'"
@@ -242,9 +246,13 @@ class EnclaveSession:
         now: Optional[Callable[[], datetime]] = None,
         on_stop: Optional[Callable[[], None]] = None,
     ) -> None:
-        if cadence_seconds <= 0:
+        if not isinstance(key, (bytes, bytearray)) or not key:
+            raise ValueError("key must be non-empty bytes")
+        if type(cadence_seconds) is not int or cadence_seconds <= 0:
             raise ValueError("cadence_seconds must be greater than zero")
-        if max_operations is not None and max_operations <= 0:
+        if max_operations is not None and (
+            type(max_operations) is not int or max_operations <= 0
+        ):
             raise ValueError("max_operations must be greater than zero when set")
         self._key = bytearray(key)
         self._cadence = cadence_seconds
@@ -373,7 +381,12 @@ class EnclaveSession:
         protected watchdog to bound execution and terminate hung cleanup.
         Supervise/await this task so shutdown failures are not lost.
         """
-        if not math.isfinite(poll_interval) or poll_interval <= 0:
+        if (
+            isinstance(poll_interval, bool)
+            or not isinstance(poll_interval, (int, float))
+            or not math.isfinite(poll_interval)
+            or poll_interval <= 0
+        ):
             raise ValueError("poll_interval must be finite and greater than zero")
         try:
             while self.tick() is SessionState.holding:
