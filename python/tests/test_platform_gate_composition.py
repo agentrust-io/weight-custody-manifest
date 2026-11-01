@@ -106,4 +106,6 @@ def test_combined_gates_recheck_each_release(example_manifest, case, failed):
         else:
             assert actual_failures == set()
             assert decision.released
+            assert decision.key is None
+            assert decision.sealed_key is not None
             assert open_sealed(decision.sealed_key, TRANSPORT_PRIV) == KEY
