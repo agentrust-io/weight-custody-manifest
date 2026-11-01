@@ -28,3 +28,7 @@ Hash options must follow the marker (when present); every trailing token must be
 a complete lowercase SHA-256 hash option. Quoted marker literals are retained.
 Marker text is compared as an identity, not evaluated or fully validated as
 PEP 508 syntax; supported-platform resolution is a separate check.
+Whitespace is normalized only outside quoted literals. Lock paths must name
+regular files inside the repository, with no symlink in any path component;
+the lexical inventory path is used for its Git baseline. This is a static
+checkout check, not protection against concurrent filesystem replacement.

@@ -134,6 +134,17 @@ class TestHashSuffix(unittest.TestCase):
 
 
 class TestHashDelta(unittest.TestCase):
+    def test_quoted_marker_whitespace_is_identity(self):
+        for quote in ('"', "'"):
+            before = f'demo==1 ; os_name == {quote}foo  bar{quote}' + H
+            after = before.replace('foo  bar', 'foo bar')
+            with self.subTest(quote=quote):
+                with self.assertRaisesRegex(ValueError, 'changed platform markers'):
+                    guard.check_delta(before, after)
+                self.assertEqual(guard.check_delta(before, after, ['demo']), ['demo'])
+                self.assertEqual(guard.check_delta(before, before.replace(
+                    '; os_name ==', ';  os_name\t ==')), [])
+
     def test_hash_only_changes_are_reported(self):
         for marker in ('', ' ; sys_platform == "win32"'):
             before = 'demo==1' + marker + H
@@ -210,3 +221,41 @@ class TestLockInventory(unittest.TestCase):
         result = self.run_guard()
         self.assertNotEqual(result.returncode, 0)
         self.assertNotIn('new lock', result.stdout)
+
+    def test_symlink_cannot_replace_a_lock_baseline(self):
+        # Following the link would silently replace the server baseline with
+        # the dev baseline. Exercise both inventory and explicit-path mode.
+        server = self.root / 'requirements/server.txt'
+        server.unlink()
+        try:
+            server.symlink_to('dev.txt')
+        except OSError as exc:
+            self.skipTest(f'symlink creation unavailable: {exc}')
+        for selection in ('--all-locks', 'requirements/server.txt'):
+            for optimize in ([], ['-O']):
+                with self.subTest(selection=selection, optimize=optimize):
+                    result = subprocess.run([
+                        sys.executable, *optimize, 'tools/check_lock_delta.py',
+                        '--base', 'HEAD', selection], cwd=self.root,
+                        capture_output=True, text=True)
+                    self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+                    self.assertIn('symlink', result.stderr)
+                    self.assertIn('requirements/server.txt', result.stderr)
+
+    def test_directory_and_parent_symlink_are_refused(self):
+        path = self.root / 'requirements/server.txt'
+        path.unlink()
+        path.mkdir()
+        result = self.run_guard()
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assertIn('regular file', result.stderr)
+        path.rmdir()
+        path.write_text(OLD)
+        (self.root / 'requirements').rename(self.root / 'real-requirements')
+        try:
+            (self.root / 'requirements').symlink_to('real-requirements', target_is_directory=True)
+        except OSError as exc:
+            self.skipTest(f'symlink creation unavailable: {exc}')
+        result = self.run_guard()
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assertIn('symlink', result.stderr)
