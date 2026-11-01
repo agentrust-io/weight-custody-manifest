@@ -694,3 +694,25 @@ def test_require_evidence_verification_absent_keeps_existing_preimage(
     assert "require_evidence_verification" not in (
         example_manifest.unsigned_dict()["release_policy"]
     )
+
+
+@pytest.mark.parametrize(
+    ("kwargs", "match"),
+    [
+        ({"challenge_ttl_seconds": True}, "challenge_ttl_seconds must be a positive integer"),
+        ({"challenge_ttl_seconds": 0}, "challenge_ttl_seconds must be a positive integer"),
+        ({"challenge_ttl_seconds": -5}, "challenge_ttl_seconds must be a positive integer"),
+        ({"challenge_ttl_seconds": 300.5}, "challenge_ttl_seconds must be a positive integer"),
+        ({"max_attestation_cache_age_seconds": True}, "max_attestation_cache_age_seconds must be a non-negative integer"),
+        ({"max_attestation_cache_age_seconds": -1}, "max_attestation_cache_age_seconds must be a non-negative integer"),
+        ({"max_attestation_cache_age_seconds": 10.5}, "max_attestation_cache_age_seconds must be a non-negative integer"),
+        ({"renewal_decision_ttl_seconds": True}, "renewal_decision_ttl_seconds must be a positive integer"),
+        ({"renewal_decision_ttl_seconds": False}, "renewal_decision_ttl_seconds must be a positive integer"),
+        ({"renewal_decision_ttl_seconds": 60.5}, "renewal_decision_ttl_seconds must be a positive integer"),
+        ({"allowed_platform_instances": "a" * 128}, "not a bare string"),
+        ({"allowed_platform_instances": b"a" * 64}, "not a bare string"),
+    ],
+)
+def test_kbs_rejects_boolean_float_or_invalid_ttl_and_bare_string_instances(kwargs, match):
+    with pytest.raises(ValueError, match=match):
+        KeyBrokerService({}, **kwargs)
