@@ -28,6 +28,14 @@ canonical unpadded RFC 4648 section 5 encoding (`^[A-Za-z0-9\-_]*$`,
 refusing trailing newlines and non-zero padding bits that previously forged
 distinct signature/key strings decoding to identical bytes.
 
+**Fixed, security (#228).** `wcm.cli` (`_load_manifest`, `_read_json`),
+`wcm.server` (`build_kbs_from_env`), and `wcm.provisioning_wire`
+(`loads_strict`, `json_object`) now share a strict JSON loader that refuses
+duplicate object keys, `NaN`/`Infinity`/`-Infinity`, and overflow float
+literals (`1e400`), and `build_kbs_from_env` validates the shape of
+`WCM_KEYSTORE_FILE` (strict base64 via `validate=True`, so line-wrapped or whitespace-padded key strings are no longer accepted and raise a `ValueError` naming `WCM_KEYSTORE_FILE` and the offending `weights_hash` entry) and `WCM_TRUSTED_MANIFEST_IDENTITIES_FILE`
+(string array).
+
 **Fixed.** A certificate that loaded but did not parse further made quote
 verification raise instead of deny. cryptography parses names, extensions and
 keys lazily. `verify_cert_chain`, which `verify_tdx_quote`,

@@ -6,6 +6,7 @@ must be protected by the deployment; this loader does not measure an image.
 from __future__ import annotations
 
 import json
+import math
 from pathlib import Path
 from typing import Any
 
@@ -20,13 +21,34 @@ def _unique_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
     result: dict[str, Any] = {}
     for key, value in pairs:
         if key in result:
-            raise ValueError("duplicate JSON member")
+            raise ValueError(f"duplicate JSON object key: {key!r}")
         result[key] = value
     return result
 
 
+def _no_nonfinite_constant(token: str) -> Any:
+    raise ValueError(f"non-finite JSON constant is not allowed: {token}")
+
+
+def _finite_float(token: str) -> float:
+    val = float(token)
+    if not math.isfinite(val):
+        raise ValueError(f"non-finite JSON number is not allowed: {token}")
+    return val
+
+
+def loads_strict(data: str | bytes) -> Any:
+    """Parse JSON while rejecting duplicate keys, NaN/Infinity, and overflow floats."""
+    return json.loads(
+        data,
+        object_pairs_hook=_unique_object,
+        parse_constant=_no_nonfinite_constant,
+        parse_float=_finite_float,
+    )
+
+
 def json_object(data: str | bytes) -> dict[str, Any]:
-    value = json.loads(data, object_pairs_hook=_unique_object)
+    value = loads_strict(data)
     if not isinstance(value, dict):
         raise ValueError("JSON object required")
     return value
