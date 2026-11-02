@@ -6,6 +6,8 @@ uses semantic-ish versioning while pre-1.0.
 
 ## Unreleased
 
+Enforce the RFC 8785 safe-integer bound (`-(2**53 - 1)..(2**53 - 1)`), reject non-string dictionary keys with `TypeError`, and reject lone UTF-16 surrogates (`0xD800..0xDFFF`) with `ValueError` in `wcm._canonicalize` (#237).
+
 **Fixed, security (#225).** `_b64url_decode` in `wcm._signing` and base64url
 verification in `runtime_records`, `renewal`, and `memory_sweep` now enforce
 canonical unpadded RFC 4648 section 5 encoding (`^[A-Za-z0-9\-_]*$`,
