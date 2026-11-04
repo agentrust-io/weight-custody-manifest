@@ -1,0 +1,293 @@
+{
+  "date": "2026-11-04",
+  "kind": "self-reported-local-validation",
+  "base_commit": "82bdaaf232804c9ed14efd7c740908f20bf67f44",
+  "tested_source_sha256": {
+    "python/src/wcm/model_memory.py": "451074cdf581ddbf3147cc3e1fe33c6f70ce151f4aa54ef9685932b22c24825b",
+    "python/tests/test_model_memory.py": "4d7aedae4163f43659663e90f2751ccc222c2c807ccf6e13ded4b4c92192cb52",
+    "python/tools/model_memory_demo.py": "261b5b759acbd633af10c0cf28e64fa420d1c07a82c02ff2427dc00775792aa2",
+    "python/tools/test_model_memory_cuda.py": "62745ddf13e86b9d734f421cd9a875a8a5d2348826d1d2ad9ebdf7fd17c1cc67"
+  },
+  "linux": {
+    "3.11": {
+      "python": "3.11.18 (main, Oct 28 2026, 02:05:49) [GCC 12.2.0]",
+      "platform": "Linux-6.6.87.1-microsoft-standard-WSL2-x86_64-with-glibc2.36",
+      "tests": {
+        "tests": 1579,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 36
+      },
+      "skip_reasons": {
+        "requires the dedicated privileged Linux loader job": 11,
+        "pinned edk2 source required; compiled control tests run in firmware CI": 7,
+        "pinned independent predictor checkout required": 17,
+        "original device-identifying receipt is not distributed publicly": 1
+      },
+      "coverage_percent": 93.0850047755492,
+      "new_module_coverage": {
+        "covered_lines": 135,
+        "num_statements": 135,
+        "percent_covered": 100.0,
+        "percent_covered_display": "100",
+        "missing_lines": 0,
+        "excluded_lines": 6,
+        "percent_statements_covered": 100.0,
+        "percent_statements_covered_display": "100"
+      },
+      "steps": [
+        {
+          "name": "dependencies",
+          "exit_code": 0,
+          "seconds": 1.8
+        },
+        {
+          "name": "mypy",
+          "exit_code": 0,
+          "seconds": 24.69
+        },
+        {
+          "name": "bandit",
+          "exit_code": 0,
+          "seconds": 2.98
+        },
+        {
+          "name": "pytest",
+          "exit_code": 0,
+          "seconds": 296.07
+        },
+        {
+          "name": "cpu-demo",
+          "exit_code": 0,
+          "seconds": 3.86
+        },
+        {
+          "name": "source-disclosure",
+          "exit_code": 0,
+          "seconds": 2.3
+        },
+        {
+          "name": "conformance",
+          "exit_code": 0,
+          "seconds": 1.63
+        }
+      ]
+    },
+    "3.12": {
+      "python": "3.12.16 (main, Oct 28 2026, 02:01:35) [GCC 12.2.0]",
+      "platform": "Linux-6.6.87.1-microsoft-standard-WSL2-x86_64-with-glibc2.36",
+      "tests": {
+        "tests": 1579,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 36
+      },
+      "skip_reasons": {
+        "requires the dedicated privileged Linux loader job": 11,
+        "pinned edk2 source required; compiled control tests run in firmware CI": 7,
+        "pinned independent predictor checkout required": 17,
+        "original device-identifying receipt is not distributed publicly": 1
+      },
+      "coverage_percent": 93.06590257879657,
+      "new_module_coverage": {
+        "covered_lines": 135,
+        "num_statements": 135,
+        "percent_covered": 100.0,
+        "percent_covered_display": "100",
+        "missing_lines": 0,
+        "excluded_lines": 6,
+        "percent_statements_covered": 100.0,
+        "percent_statements_covered_display": "100"
+      },
+      "steps": [
+        {
+          "name": "dependencies",
+          "exit_code": 0,
+          "seconds": 2.21
+        },
+        {
+          "name": "mypy",
+          "exit_code": 0,
+          "seconds": 40.45
+        },
+        {
+          "name": "bandit",
+          "exit_code": 0,
+          "seconds": 4.55
+        },
+        {
+          "name": "pytest",
+          "exit_code": 0,
+          "seconds": 150.98
+        },
+        {
+          "name": "cpu-demo",
+          "exit_code": 0,
+          "seconds": 3.91
+        },
+        {
+          "name": "source-disclosure",
+          "exit_code": 0,
+          "seconds": 2.47
+        },
+        {
+          "name": "conformance",
+          "exit_code": 0,
+          "seconds": 1.68
+        },
+        {
+          "name": "build",
+          "exit_code": 0,
+          "seconds": 21.38
+        },
+        {
+          "name": "twine",
+          "exit_code": 0,
+          "seconds": 2.54
+        },
+        {
+          "name": "archive-disclosure",
+          "exit_code": 0,
+          "seconds": 3.1
+        },
+        {
+          "name": "sdist-venv",
+          "exit_code": 0,
+          "seconds": 18.2
+        },
+        {
+          "name": "sdist-install",
+          "exit_code": 0,
+          "seconds": 49.43
+        },
+        {
+          "name": "sdist-conformance",
+          "exit_code": 0,
+          "seconds": 2.82
+        },
+        {
+          "name": "sdist-memory-import",
+          "exit_code": 0,
+          "seconds": 3.39
+        }
+      ]
+    },
+    "3.13": {
+      "python": "3.13.18 (main, Oct 28 2026, 02:02:02) [GCC 12.2.0]",
+      "platform": "Linux-6.6.87.1-microsoft-standard-WSL2-x86_64-with-glibc2.36",
+      "tests": {
+        "tests": 1579,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 36
+      },
+      "skip_reasons": {
+        "requires the dedicated privileged Linux loader job": 11,
+        "pinned edk2 source required; compiled control tests run in firmware CI": 7,
+        "pinned independent predictor checkout required": 17,
+        "original device-identifying receipt is not distributed publicly": 1
+      },
+      "coverage_percent": 93.06590257879657,
+      "new_module_coverage": {
+        "covered_lines": 135,
+        "num_statements": 135,
+        "percent_covered": 100.0,
+        "percent_covered_display": "100",
+        "missing_lines": 0,
+        "excluded_lines": 6,
+        "percent_statements_covered": 100.0,
+        "percent_statements_covered_display": "100"
+      },
+      "steps": [
+        {
+          "name": "dependencies",
+          "exit_code": 0,
+          "seconds": 2.32
+        },
+        {
+          "name": "mypy",
+          "exit_code": 0,
+          "seconds": 26.63
+        },
+        {
+          "name": "bandit",
+          "exit_code": 0,
+          "seconds": 4.36
+        },
+        {
+          "name": "pytest",
+          "exit_code": 0,
+          "seconds": 290.2
+        },
+        {
+          "name": "cpu-demo",
+          "exit_code": 0,
+          "seconds": 4.68
+        },
+        {
+          "name": "source-disclosure",
+          "exit_code": 0,
+          "seconds": 3.0
+        },
+        {
+          "name": "conformance",
+          "exit_code": 0,
+          "seconds": 3.07
+        }
+      ]
+    }
+  },
+  "h100": {
+    "hardware": "NVIDIA H100 80GB HBM3",
+    "driver": "595.71.05",
+    "kernel": "6.8.0-110-generic",
+    "python": "3.12.3",
+    "pytorch": "2.8.0+cu128",
+    "tests": {
+      "tests": 62,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "feature_tests": 51,
+    "cuda_adapter_tests": 11,
+    "demo": {
+      "device": "cuda",
+      "device_description": "NVIDIA H100 80GB HBM3",
+      "scope": "functional tiny-model memory test; no hardware attestation or DMA attack",
+      "approved_inference": 47.0,
+      "unguarded_mutated_inference": 119.0,
+      "artifact_hash_unchanged": true,
+      "genuine_observation_verified": true,
+      "replay_denied": true,
+      "changed_memory_observation_denied": true,
+      "guard_denied_dispatch": true,
+      "session_key_wiped": true,
+      "stop_callback_called_once": true,
+      "checks_passed": true,
+      "worker_alive_before_mutation": true,
+      "worker_exited": true
+    },
+    "attestation_verified": false,
+    "dma_attack_reproduced": false,
+    "production_serving_engine_tested": false
+  },
+  "downstream": {
+    "repository": "agentrust-io/integrations",
+    "commit": "deca590870634ce490e3674d046c2f41f0d62eb0",
+    "offline_demos_passed": 13,
+    "unit_tests_passed": true,
+    "excluded": [
+      "real_open_model.py",
+      "real_lora_custody.py"
+    ]
+  },
+  "evidence_checksums": {
+    "python-3.11/pytest.xml": "8eeb304346f751d00bfac2a1c3b8cc8cb2664383cd9dcb8569254d5a1d234167",
+    "python-3.12/pytest.xml": "dfeec0e7cc3a6c11e88b5819acc4836c7703fd70fd223f04942499fa6cf56e9e",
+    "python-3.13/pytest.xml": "bdc9ac32a81077f555efec2bef5d95797d088457362b8246d7e12f405a34b674",
+    "gpu-tests.xml": "503779ccce6cdeca62ab45be642ce60b4d7dd0df3687979e91d2219cfb7028c4",
+    "cuda-demo.json": "1594d03596615337972a0e7d52ac2633e36e84e202129f6c5048450303ce8a5c",
+    "downstream.log": "76f5555f0f3dd7afece2cd10074d0f2b07ab816b1e0725dbeb27ad36161604eb"
+  }
+}
