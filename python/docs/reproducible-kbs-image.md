@@ -64,6 +64,13 @@ untrusted network.
 The build pins its base and dependency inputs and normalizes selected timestamps.
 The comparison below tests whether two builds match under its stated scope.
 
+The pinned Debian base is adjusted during the build to deselect the emSign ECC
+G3 and Comodo AAA roots identified in Debian DLA-4845-1. The build verifies their
+exact fingerprints and checks both the regenerated CA bundle and OpenSSL CA
+directory. This changes the KBS image and the boot runtime that copies its CA
+bundle. Deployments must rebuild, review, and repin their expected image or
+launch measurements; an older measurement does not describe the updated store.
+
 1. **The base image is pinned by digest**, not by a moving tag (`BASE_DIGEST` in
    the Dockerfile, the multi-arch index digest for `python:3.12-slim-bookworm`).
    Dependabot moves it, since a digest pin does not pick up security updates on

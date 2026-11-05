@@ -12,6 +12,7 @@ on:
   pull_request:
     paths:
       - "python/docker/**"
+      - "python/composed/remove_affected_cas.py"
       - "python/src/wcm/**"
       - "python/pyproject.toml"
       - "schema/**"
@@ -33,6 +34,14 @@ jobs:
 
       - name: Build the provisioned receiver target
         run: docker build --target provisioned -f python/docker/Dockerfile -t wcm-kbs:provisioned-ci .
+
+      - name: Verify both built system CA stores
+        run: |
+          for image in wcm-kbs:ci wcm-kbs:provisioned-ci; do
+            docker run --rm --network none --read-only --entrypoint python \
+              -v "$PWD/python/composed/remove_affected_cas.py:/tmp/check-ca.py:ro" \
+              "$image" /tmp/check-ca.py --check
+          done
 
       - name: Run and health-check
         run: |

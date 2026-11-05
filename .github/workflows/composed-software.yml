@@ -42,6 +42,11 @@ jobs:
         run: |
           docker build --iidfile /tmp/composed-agent-image wcm/python/composed
           echo "COMPOSED_AGENT_IMAGE=$(cat /tmp/composed-agent-image)" >> "$GITHUB_ENV"
+      - name: Verify confined-agent system CA store
+        run: |
+          docker run --rm --network none --read-only --entrypoint python \
+            -v "$PWD/wcm/python/composed/remove_affected_cas.py:/tmp/check-ca.py:ro" \
+            "$(cat /tmp/composed-agent-image)" /tmp/check-ca.py --check
       - name: Compose with native agent isolation and causal controls
         shell: bash
         run: |
