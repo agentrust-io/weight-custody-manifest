@@ -34,6 +34,9 @@ chain had verified. Where `AzureSnpVtpmVerifier`, `QuoteVerifier` or
 `verify_and_release` after the challenge nonce had been consumed; no key was
 released. Each is now a denial whose reason names the exception type.
 
+- Validate challenge nonce/timestamp intervals in `wcm.broker_receiver.BrokerReceiver.provisioning_report_data` and enforce strict `namespace`, `epoch`, `context`, and `admit` validation in `wcm.provisioning_state.OwnerEpochStore` (#241).
+
+
 ## 0.33.1 - 2026-10-19
 
 **Fixed, security (GHSA-99p4-597j-8m5m).** The canonicalizer NFC-normalized
