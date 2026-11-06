@@ -103,9 +103,13 @@ def provisioning_binding(policy: BrokerProvisioningPolicy, public_key_hex: str) 
     it actually enforces. Echoing an owner's digest without checking the local
     configuration does not satisfy the protocol's trust assumption.
     """
-    public_key = bytes.fromhex(public_key_hex)
-    if len(public_key) != 32 or public_key.hex() != public_key_hex:
+    if (
+        not isinstance(public_key_hex, str)
+        or len(public_key_hex) != 64
+        or any(c not in "0123456789abcdef" for c in public_key_hex)
+    ):
         raise ValueError("transport public key must be canonical 32-byte lowercase hex")
+    public_key = bytes.fromhex(public_key_hex)
     return _DOMAIN + public_key + hashlib.sha256(policy.context()).digest()
 
 
