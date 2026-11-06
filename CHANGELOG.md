@@ -14,6 +14,15 @@ manifest, KBS or default custody behavior changes. This does not establish
 hardware integrity, prevent DMA, or prove continuous integrity. See
 `docs/model-memory-integrity.md` for bootstrap, observer trust and integration.
 
+**Fixed, provisional compatibility (#217).** GPU identity extraction recognizes
+NVDAOD profile 0 through major 2, retains versioned entry value types and rejects
+future major versions, unknown profiles, truncated/overrunning entries and
+duplicate IDs. Driver/VBIOS identity fields require their documented value type.
+The payload-only parser API and legacy H100 controls remain; explicit legacy
+version entries now reject malformed u16 values and unsupported future majors.
+Vendor structural and synthetic signed/KBS tests do not establish live versioned
+GPU acceptance. See `python/docs/nvdaod-identity.md` for provenance and limits.
+
 **Fixed, security (#225).** `_b64url_decode` in `wcm._signing` and base64url
 verification in `runtime_records`, `renewal`, and `memory_sweep` now enforce
 canonical unpadded RFC 4648 section 5 encoding (`^[A-Za-z0-9\-_]*$`,
