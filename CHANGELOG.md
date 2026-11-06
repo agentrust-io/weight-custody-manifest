@@ -14,6 +14,15 @@ manifest, KBS or default custody behavior changes. This does not establish
 hardware integrity, prevent DMA, or prove continuous integrity. See
 `docs/model-memory-integrity.md` for bootstrap, observer trust and integration.
 
+**Fixed (#252).** GPU revocation chain extraction rejects duplicate JSON members,
+non-object containers, invalid PEM field types and non-base64 input characters.
+When GPU report verification fails or raises, the KBS refuses the configured
+GPU revocation check before querying it, rather than deriving revocation state
+from evidence the verifier rejected. Explicit verification waivers retain their
+structural-only behavior for valid input. This is a software input/admission
+boundary repair, not new hardware or vendor-status assurance; verifier parsing
+changes in #224 remain separate.
+
 **Fixed, security (#225).** `_b64url_decode` in `wcm._signing` and base64url
 verification in `runtime_records`, `renewal`, and `memory_sweep` now enforce
 canonical unpadded RFC 4648 section 5 encoding (`^[A-Za-z0-9\-_]*$`,
