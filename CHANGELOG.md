@@ -6,6 +6,14 @@ uses semantic-ish versioning while pre-1.0.
 
 ## Unreleased
 
+**Added, experimental.** Opt-in `wcm.model_memory` checks of declared loaded-model
+buffers against a pinned, separately approved baseline. Signed observations bind
+the baseline, runtime transport key and single-use challenge; a pre-dispatch
+guard latches closed and invokes teardown on mismatches or reader errors. No
+manifest, KBS or default custody behavior changes. This does not establish
+hardware integrity, prevent DMA, or prove continuous integrity. See
+`docs/model-memory-integrity.md` for bootstrap, observer trust and integration.
+
 **Fixed, provisional compatibility (#217).** GPU identity extraction recognizes
 NVDAOD profile 0 through major 2, retains versioned entry value types and rejects
 future major versions, unknown profiles, truncated/overrunning entries and
@@ -21,6 +29,19 @@ canonical unpadded RFC 4648 section 5 encoding (`^[A-Za-z0-9\-_]*$`,
 `len(s) % 4 != 1`, and round-trip equality with `_b64url_encode(raw)`),
 refusing trailing newlines and non-zero padding bits that previously forged
 distinct signature/key strings decoding to identical bytes.
+
+**Fixed.** A certificate that loaded but did not parse further made quote
+verification raise instead of deny. cryptography parses names, extensions and
+keys lazily. `verify_cert_chain`, which `verify_tdx_quote`,
+`AzureSnpVtpmVerifier`, `QuoteVerifier` and `NvidiaGpuVerifier` share, raised
+on a CA whose extensions did not parse (`ValueError`, `DuplicateExtension`,
+`UnsupportedGeneralNameType`), `verify_tdx_quote` raised on a PCK leaf key
+that did not parse (`ValueError`, `UnsupportedAlgorithm`), and
+`NvidiaGpuVerifier` raised on a device leaf key that did not parse once the
+chain had verified. Where `AzureSnpVtpmVerifier`, `QuoteVerifier` or
+`NvidiaGpuVerifier` was configured in `KeyBrokerService`, the exception left
+`verify_and_release` after the challenge nonce had been consumed; no key was
+released. Each is now a denial whose reason names the exception type.
 
 ## 0.33.1 - 2026-10-19
 
