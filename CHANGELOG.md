@@ -6,6 +6,14 @@ uses semantic-ish versioning while pre-1.0.
 
 ## Unreleased
 
+**Added, experimental.** Opt-in `wcm.model_memory` checks of declared loaded-model
+buffers against a pinned, separately approved baseline. Signed observations bind
+the baseline, runtime transport key and single-use challenge; a pre-dispatch
+guard latches closed and invokes teardown on mismatches or reader errors. No
+manifest, KBS or default custody behavior changes. This does not establish
+hardware integrity, prevent DMA, or prove continuous integrity. See
+`docs/model-memory-integrity.md` for bootstrap, observer trust and integration.
+
 **Fixed (#257).** Runtime-record signing and verification reject boolean and
 other non-integer sequence values. Chain verification no longer treats `true`
 as index 1, and signing refuses a malformed previous sequence. Valid integer
