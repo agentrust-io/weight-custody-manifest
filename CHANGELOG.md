@@ -34,6 +34,9 @@ chain had verified. Where `AzureSnpVtpmVerifier`, `QuoteVerifier` or
 `verify_and_release` after the challenge nonce had been consumed; no key was
 released. Each is now a denial whose reason names the exception type.
 
+- Validate `bytes` secrets/shares, exact `int` threshold/shares, and RNG output length in `wcm.threshold`, and validate `ttl_seconds` and `nonce` types in `wcm._challenge.ChallengeStore` (#239).
+
+
 ## 0.33.1 - 2026-10-19
 
 **Fixed, security (GHSA-99p4-597j-8m5m).** The canonicalizer NFC-normalized
