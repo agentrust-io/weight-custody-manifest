@@ -32,7 +32,7 @@ from typing import Optional
 
 from cryptography import x509
 from ._certificates import load_pem_certificates
-from cryptography.exceptions import InvalidSignature
+from cryptography.exceptions import InvalidSignature, UnsupportedAlgorithm
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import ec, utils
 
@@ -356,8 +356,12 @@ def verify_tdx_quote(
     if qe_report_data[:32] != expect_binding or qe_report_data[32:] != bytes(32):
         return QuoteVerification(False, "attestation key not bound in the QE report")
 
-    # 3. PCK leaf signs the QE report.
-    pck_pub = q.pck_leaf.public_key()
+    # 3. PCK leaf signs the QE report. The key is parsed lazily, so a corrupted
+    #    leaf that loaded can still fail here.
+    try:
+        pck_pub = q.pck_leaf.public_key()
+    except (ValueError, UnsupportedAlgorithm) as exc:
+        return QuoteVerification(False, f"PCK leaf public key does not parse: {type(exc).__name__}")
     if not isinstance(pck_pub, ec.EllipticCurvePublicKey):
         return QuoteVerification(False, "PCK leaf is not an ECDSA certificate")
     try:

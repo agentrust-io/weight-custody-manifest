@@ -638,17 +638,24 @@ class KeyBrokerService:
             return CheckResult(
                 "cpu_quote_verified", False, "verifier configured but evidence has no raw quote"
             ), None
-        result = self._cpu_quote_verifier.verify(
-            quote_b64,
-            expected_nonce=nonce,
-            channel_binding=channel_binding,
-            expected_workload_measurement=str(evidence.cpu.serving_image_measurement),
-            now=self._now(),
-        )
-        # A verifier written before ``snp_report`` existed returns no such field;
-        # platform_integrity then fails closed rather than the release crashing.
-        verified_report = getattr(result, "snp_report", None) if result.verified else None
-        return CheckResult("cpu_quote_verified", result.verified, result.reason), verified_report
+        try:
+            result = self._cpu_quote_verifier.verify(
+                quote_b64,
+                expected_nonce=nonce,
+                channel_binding=channel_binding,
+                expected_workload_measurement=str(evidence.cpu.serving_image_measurement),
+                now=self._now(),
+            )
+            # A verifier written before ``snp_report`` existed returns no such field;
+            # platform_integrity then fails closed rather than the release crashing.
+            verified_report = getattr(result, "snp_report", None) if result.verified else None
+            return CheckResult("cpu_quote_verified", result.verified, result.reason), verified_report
+        except Exception as exc:  # noqa: BLE001 - failed verification must deny
+            # A verifier call or result read that raises must not take the
+            # release path down with it.
+            return CheckResult(
+                "cpu_quote_verified", False, f"CPU quote verification raised {type(exc).__name__}"
+            ), None
 
     def _check_gpu_report(
         self, manifest: WeightCustodyManifest, evidence: CompositeEvidence, nonce: str
@@ -685,11 +692,16 @@ class KeyBrokerService:
         # report echoes the raw KBS nonce (offset 4), which is what ties it to
         # the CPU quote (composite binding in _check_gpu). No transport key on
         # the GPU side.
-        result = self._gpu_report_verifier.verify(
-            gpu.quote_b64, expected_nonce=nonce, now=self._now()
-        )
-        measurement = getattr(result, "gpu_measurement", None) if result.verified else None
-        return CheckResult("gpu_report_verified", result.verified, result.reason), measurement
+        try:
+            result = self._gpu_report_verifier.verify(
+                gpu.quote_b64, expected_nonce=nonce, now=self._now()
+            )
+            measurement = getattr(result, "gpu_measurement", None) if result.verified else None
+            return CheckResult("gpu_report_verified", result.verified, result.reason), measurement
+        except Exception as exc:  # noqa: BLE001 - failed verification must deny
+            return CheckResult(
+                "gpu_report_verified", False, f"GPU report verification raised {type(exc).__name__}"
+            ), None
 
     def _check_platform_integrity(
         self,
@@ -861,7 +873,12 @@ class KeyBrokerService:
             ), None
         # Only a renewal may ride out an outage on an earlier answer. A first
         # release has no window to protect, so it has nothing to fall back to.
-        result = check_chain(chain, self._gpu_revocation, self._now(), allow_reuse=renewal)
+        try:
+            result = check_chain(chain, self._gpu_revocation, self._now(), allow_reuse=renewal)
+        except Exception as exc:  # noqa: BLE001 - a revocation check that raises has not passed
+            return CheckResult(
+                "attestation_revocation", False, f"GPU revocation check raised {type(exc).__name__}"
+            ), None
         return (
             CheckResult("attestation_revocation", result.passed, result.detail),
             result.not_after if result.passed else None,

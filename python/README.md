@@ -41,6 +41,10 @@ Reference implementation of the [Weight Custody Manifest](../SPEC.md):
 
 ## What it does
 
+An opt-in, experimental [loaded-model integrity module](../docs/model-memory-integrity.md)
+checks named serving buffers after loading and before dispatch. It supplements
+existing custody checks and does not change key-release policy by default.
+
 Layer 1 (authority):
 
 - **`models.py`** - the manifest schema as Pydantic v2 with `extra="forbid"`,

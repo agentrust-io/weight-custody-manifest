@@ -63,7 +63,7 @@ from typing import Optional, Union
 
 from cryptography import x509
 from ._certificates import load_pem_certificates
-from cryptography.exceptions import InvalidSignature
+from cryptography.exceptions import InvalidSignature, UnsupportedAlgorithm
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import ec, utils
 
@@ -269,6 +269,10 @@ class NvidiaGpuVerifier:
         except InvalidSignature:
             return QuoteVerification(
                 False, "GPU report signature does not verify under the leaf key"
+            )
+        except (ValueError, UnsupportedAlgorithm) as exc:
+            return QuoteVerification(
+                False, f"GPU report signature verification failed: {type(exc).__name__}"
             )
 
         try:
