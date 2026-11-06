@@ -6,6 +6,14 @@ uses semantic-ish versioning while pre-1.0.
 
 ## Unreleased
 
+**Added, experimental.** Opt-in `wcm.model_memory` checks of declared loaded-model
+buffers against a pinned, separately approved baseline. Signed observations bind
+the baseline, runtime transport key and single-use challenge; a pre-dispatch
+guard latches closed and invokes teardown on mismatches or reader errors. No
+manifest, KBS or default custody behavior changes. This does not establish
+hardware integrity, prevent DMA, or prove continuous integrity. See
+`docs/model-memory-integrity.md` for bootstrap, observer trust and integration.
+
 **Fixed (#252).** GPU revocation chain extraction rejects duplicate JSON members,
 non-object containers, invalid PEM field types and non-base64 input characters.
 When GPU report verification fails or raises, the KBS refuses the configured
