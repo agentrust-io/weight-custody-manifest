@@ -51,6 +51,8 @@ evidence carries and raised `UnsupportedAlgorithm` on one whose curve
 cryptography does not support.
 No key was released in any of these cases.
 
+- Validate challenge nonce/timestamp intervals in `wcm.broker_receiver.BrokerReceiver.provisioning_report_data` and enforce strict `namespace`, `epoch`, `context`, and `admit` validation in `wcm.provisioning_state.OwnerEpochStore` (#241). Passing `bytearray` or `memoryview` as `context`, or numeric `0`/`1` as `admit`, now raises `ValueError`.
+
 **Fixed.** The evidence JSON parses in `AzureSnpVtpmVerifier` (the bundle and
 the HCL runtime claims), `JsonQuoteParser` and `NvidiaGpuVerifier` raised
 `RecursionError` on deeply nested JSON instead of denying. Where
