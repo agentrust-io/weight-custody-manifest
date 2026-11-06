@@ -14,6 +14,8 @@ manifest, KBS or default custody behavior changes. This does not establish
 hardware integrity, prevent DMA, or prove continuous integrity. See
 `docs/model-memory-integrity.md` for bootstrap, observer trust and integration.
 
+**Proposed fix.** Align canonical number notation and string escapes with RFC 8785; affected historical signed bytes need the maintainer compatibility decision documented in `python/docs/canonical-byte-compatibility.md`.
+
 **Fixed, security (#225).** `_b64url_decode` in `wcm._signing` and base64url
 verification in `runtime_records`, `renewal`, and `memory_sweep` now enforce
 canonical unpadded RFC 4648 section 5 encoding (`^[A-Za-z0-9\-_]*$`,
