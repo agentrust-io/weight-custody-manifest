@@ -1,7 +1,6 @@
 """Signed, hash-chained custody runtime records for protected controllers."""
 from __future__ import annotations
 
-import base64
 import binascii
 from dataclasses import asdict, dataclass
 from enum import Enum
@@ -71,6 +70,7 @@ class RuntimeRecord:
         if (
             self.kind != "wcm-runtime-record/v1"
             or self.algorithm != "Ed25519"
+            or type(self.sequence) is not int
             or self.sequence < 0
             or self.public_key_b64url != expected_public_key_b64url
         ):
@@ -97,7 +97,11 @@ def sign_runtime_record(
     previous: Optional[RuntimeRecord] = None,
     detail: Optional[dict[str, Any]] = None,
 ) -> RuntimeRecord:
-    if sequence < 0 or (previous is None) != (sequence == 0):
+    if type(sequence) is not int or sequence < 0:
+        raise ValueError("runtime record sequence must be a non-negative integer")
+    if previous is not None and (type(previous.sequence) is not int or previous.sequence < 0):
+        raise ValueError("previous runtime record sequence must be a non-negative integer")
+    if (previous is None) != (sequence == 0):
         raise ValueError("sequence 0 must be the first record; later records require previous")
     if previous is not None and previous.sequence + 1 != sequence:
         raise ValueError("runtime record sequence is not contiguous")
@@ -136,7 +140,7 @@ def verify_runtime_record_chain(
     identity = (values[0].weights_hash, values[0].manifest_hash, values[0].lease_id)
     previous: Optional[RuntimeRecord] = None
     for index, record in enumerate(values):
-        if record.sequence != index:
+        if type(record.sequence) is not int or record.sequence != index:
             return False, "runtime record sequence is not contiguous"
         if not record.verify(expected_public_key_b64url):
             return False, f"runtime record {index} signature or format is invalid"
