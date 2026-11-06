@@ -95,3 +95,28 @@ def test_combine_rejects_x_outside_gf256_nonzero():
     for bad_x in (0, 256, -1):
         with pytest.raises(ValueError, match="1..255"):
             combine_shares([good[0], Share(x=bad_x, y=b"\x00" * 16)])
+
+
+def test_threshold_and_challenge_store_validate_types():
+    from wcm._challenge import ChallengeError, ChallengeStore
+    from wcm.threshold import Share
+
+    for bad_sec in ("str", 123, None):
+        with pytest.raises(ValueError):
+            split_secret(bad_sec, threshold=2, shares=3)  # type: ignore[arg-type]
+    for bad_t, bad_n in ((True, 3), (2, True), (2.0, 3), (2, 3.0)):
+        with pytest.raises(ValueError):
+            split_secret(SECRET, threshold=bad_t, shares=bad_n)  # type: ignore[arg-type]
+    with pytest.raises(ValueError, match="rng"):
+        split_secret(SECRET, threshold=3, shares=5, rng=lambda _n: b"\x01")
+    for bad_shares in ([Share(1, b"")], [Share(1, "str")], ["not-a-share"]):
+        with pytest.raises(ValueError):
+            combine_shares(bad_shares)  # type: ignore[arg-type]
+
+    for bad_ttl in (True, False, 0, -5, 1.5, "300"):
+        with pytest.raises(ValueError, match="ttl_seconds"):
+            ChallengeStore(ttl_seconds=bad_ttl)  # type: ignore[arg-type]
+    store = ChallengeStore(ttl_seconds=60)
+    for bad_nonce in ([1, 2], None, 123, ""):
+        with pytest.raises(ChallengeError):
+            store.consume(bad_nonce)  # type: ignore[arg-type]

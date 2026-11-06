@@ -85,15 +85,18 @@ def split_secret(
     Raises:
         ValueError: on empty secret or out-of-range threshold/shares.
     """
-    if not secret:
-        raise ValueError("secret must be non-empty")
-    if not 2 <= threshold <= shares <= 255:
-        raise ValueError("require 2 <= threshold <= shares <= 255")
+    if type(secret) is not bytes or not secret:
+        raise ValueError("secret must be non-empty bytes")
+    if type(threshold) is not int or type(shares) is not int or not 2 <= threshold <= shares <= 255:
+        raise ValueError("require integer 2 <= threshold <= shares <= 255")
 
     xs = list(range(1, shares + 1))
     ys: list[bytearray] = [bytearray() for _ in xs]
     for byte in secret:
-        coeffs = [byte] + list(rng(threshold - 1))  # a0 = secret byte, then random
+        rand_bytes = rng(threshold - 1)
+        if type(rand_bytes) is not bytes or len(rand_bytes) != threshold - 1:
+            raise ValueError(f"rng must return {threshold - 1} bytes")
+        coeffs = [byte] + list(rand_bytes)  # a0 = secret byte, then random
         for idx, x in enumerate(xs):
             acc = 0
             for c in reversed(coeffs):  # Horner evaluation at x
@@ -112,8 +115,8 @@ def combine_shares(shares: list[Share]) -> bytes:
     Raises:
         ValueError: on no shares, duplicate x, or mismatched share lengths.
     """
-    if not shares:
-        raise ValueError("need at least one share")
+    if not isinstance(shares, list) or not shares or any(not isinstance(s, Share) for s in shares):
+        raise ValueError("need at least one Share")
     xs = [s.x for s in shares]
     # x=0 is the secret's own coordinate: a share there would dictate the
     # output. Above 255 is outside GF(256).
@@ -121,6 +124,8 @@ def combine_shares(shares: list[Share]) -> bytes:
         raise ValueError("share x-coordinates must be integers in 1..255")
     if len(set(xs)) != len(xs):
         raise ValueError("shares must have distinct x-coordinates")
+    if any(type(s.y) is not bytes or not s.y for s in shares):
+        raise ValueError("share y-values must be non-empty bytes")
     length = len(shares[0].y)
     if any(len(s.y) != length for s in shares):
         raise ValueError("all shares must have the same length")
