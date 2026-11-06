@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import replace
 
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+import pytest
 
 from wcm.runtime_records import (
     RuntimeEvent,
@@ -57,6 +58,31 @@ def test_tampering_reordering_and_cross_lease_splice_fail():
     spliced = records.copy()
     spliced[2] = replace(spliced[2], lease_id="different")
     assert not verify_runtime_record_chain(spliced, public)[0]
+
+
+@pytest.mark.parametrize("sequence", [True, False])
+def test_boolean_sequence_is_rejected_during_creation_and_verification(sequence):
+    key, records = _chain()
+    public = runtime_public_key(key)
+    common = dict(
+        signing_key=key,
+        event=RuntimeEvent.renewal_succeeded,
+        occurred_at="2026-08-21T22:00:06Z",
+        weights_hash=records[0].weights_hash,
+        manifest_hash=records[0].manifest_hash,
+        lease_id=records[0].lease_id,
+        previous=records[0],
+    )
+
+    with pytest.raises(TypeError, match="non-boolean integer"):
+        sign_runtime_record(sequence=sequence, **common)
+    with pytest.raises(TypeError, match="non-boolean integer"):
+        replace(records[0], sequence=sequence)
+
+    invalid = replace(records[0])
+    object.__setattr__(invalid, "sequence", sequence)
+    assert invalid.verify(public) is False
+    assert verify_runtime_record_chain([invalid, *records[1:]], public)[0] is False
 
 
 def test_requested_without_completed_or_termination_is_not_terminal_proof():
