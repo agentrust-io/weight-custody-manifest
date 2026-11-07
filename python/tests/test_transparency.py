@@ -149,3 +149,51 @@ def test_log_consistency_checks_head_signatures_when_given_the_log_key():
         key_id=new.key_id, signature_b64=new.signature_b64,
     )
     assert not verify_log_consistency(old, broken, proof)
+
+
+def test_sth_and_seal_enforce_canonical_lowercase_hex():
+    import pytest
+    from wcm import SignedTreeHead
+    from wcm._seal import SealError, generate_transport_keypair, seal_to_public_key
+    from wcm._signing import _b64url_encode
+    from wcm.transparency import _sth_preimage
+
+    kp = generate_ed25519()
+    # Sign an STH with a non-sha256 prefix or uppercase hex root
+    for bad_root in ("md5:" + "a" * 64, "sha256:" + "A" * 64, "sha256: " + "a" * 64):
+        pre = _sth_preimage(1, bad_root, "2026-01-01T00:00:00Z")
+        sig = _b64url_encode(kp.private_key.sign(pre))
+        sth = SignedTreeHead(1, bad_root, "2026-01-01T00:00:00Z", kp.key_id, sig)
+        assert not verify_sth(sth, kp.public_bytes)
+        with pytest.raises(ValueError):
+            sth.root_bytes()
+
+    _, pub_hex = generate_transport_keypair()
+    for bad_pub in (None, 123, pub_hex.upper(), " " + pub_hex, "aa" * 31):
+        with pytest.raises(SealError):
+            seal_to_public_key(bad_pub, b"secret")  # type: ignore[arg-type]
+
+    # Sign a valid signature over a malformed tree_size so False can only come from the tree_size guard
+    valid_root = "sha256:" + "a" * 64
+    for bad_size in (True, False, -1, "1", 1.5):
+        pre = _sth_preimage(bad_size, valid_root, "2026-01-01T00:00:00Z")
+        sig = _b64url_encode(kp.private_key.sign(pre))
+        sth = SignedTreeHead(bad_size, valid_root, "2026-01-01T00:00:00Z", kp.key_id, sig)  # type: ignore[arg-type]
+        assert not verify_sth(sth, kp.public_bytes)
+
+    from wcm.provisioning import BrokerProvisioningPolicy, provisioning_binding
+
+    pol = BrokerProvisioningPolicy(
+        measurement_hex="a" * 96,
+        configuration_sha256="b" * 64,
+        weights_hash="sha256:" + "c" * 64,
+        epoch=1,
+        guest_policy=0,
+        minimum_tcb_le_hex="0" * 16,
+        required_platform_fields=frozenset(),
+        forbidden_platform_fields=frozenset(),
+    )
+    assert len(provisioning_binding(pol, pub_hex)) > 32
+    for bad_pub in (None, 123, pub_hex.upper(), " " + pub_hex, "aa" * 31):
+        with pytest.raises(ValueError, match="canonical 32-byte lowercase hex"):
+            provisioning_binding(pol, bad_pub)  # type: ignore[arg-type]
