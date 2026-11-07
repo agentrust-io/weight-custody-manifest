@@ -6,6 +6,21 @@ uses semantic-ish versioning while pre-1.0.
 
 ## Unreleased
 
+**Added, experimental.** Opt-in `wcm.model_memory` checks of declared loaded-model
+buffers against a pinned, separately approved baseline. Signed observations bind
+the baseline, runtime transport key and single-use challenge; a pre-dispatch
+guard latches closed and invokes teardown on mismatches or reader errors. No
+manifest, KBS or default custody behavior changes. This does not establish
+hardware integrity, prevent DMA, or prove continuous integrity. See
+`docs/model-memory-integrity.md` for bootstrap, observer trust and integration.
+
+**Fixed, security (#227).** `SignedTreeHead.root_bytes`, `verify_sth`,
+`seal_to_public_key`, `KeyBrokerService._check_channel_binding`, and
+`provisioning_binding` now require canonical lowercase hex (`^sha256:[0-9a-f]{64}$`
+for STH roots and `^[0-9a-f]{64}$` for 32-byte X25519 transport public keys),
+refusing uppercase or whitespace-padded hex strings at the gate rather than
+later at key sealing or with unhandled `TypeError`/`ValueError`.
+
 **Fixed, security (#225).** `_b64url_decode` in `wcm._signing` and base64url
 verification in `runtime_records`, `renewal`, and `memory_sweep` now enforce
 canonical unpadded RFC 4648 section 5 encoding (`^[A-Za-z0-9\-_]*$`,
