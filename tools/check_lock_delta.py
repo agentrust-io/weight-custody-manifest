@@ -117,16 +117,16 @@ def main(argv=None):
         # a symlink first can silently compare server.txt against dev.txt.
         absolute = root / path
         lexical = absolute.relative_to(root)
+        relative = lexical.as_posix()
         if ".." in lexical.parts:
-            raise ValueError(f"lock path must stay inside repository: {path}")
+            raise ValueError(f"lock path must stay inside repository: {relative}")
         component = root
         for part in lexical.parts:
             component /= part
             if component.is_symlink():
-                raise ValueError(f"lock path must not contain symlinks: {path}")
+                raise ValueError(f"lock path must not contain symlinks: {relative}")
         if not absolute.is_file():
-            raise ValueError(f"lock must be a regular file: {path}")
-        relative = lexical.as_posix()
+            raise ValueError(f"lock must be a regular file: {relative}")
         after = absolute.read_text(encoding="utf-8")
         parse_lock(after)
         if args.base:
