@@ -150,6 +150,9 @@ class AzureSnpVtpmVerifier:
             ]
             report = extract_snp_report_from_hcl(hcl)
             parsed = parse_snp_report(report)
+        except RecursionError as exc:
+            # RecursionError is json.loads on deeply nested input.
+            return QuoteVerification(False, f"invalid Azure vTPM evidence: {type(exc).__name__}")
         except (
             KeyError, ValueError, TypeError, AttributeError,
             UnsupportedAlgorithm, QuoteFormatError,
@@ -194,6 +197,9 @@ class AzureSnpVtpmVerifier:
                 raise ValueError(f"kty {jwk['kty']!r} is not RSA")
             modulus = _b64url_uint(jwk["n"])
             exponent = _b64url_uint(jwk["e"])
+        except RecursionError as exc:
+            # RecursionError is json.loads on deeply nested input.
+            return QuoteVerification(False, f"invalid HCLAkPub: {type(exc).__name__}")
         except (KeyError, StopIteration, ValueError, TypeError, AttributeError) as exc:
             return QuoteVerification(False, f"invalid HCLAkPub: {exc}")
         if exponent != _AK_EXPONENT:
