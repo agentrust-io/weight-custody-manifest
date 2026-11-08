@@ -11,7 +11,7 @@ jobs:
     timeout-minutes: 40
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: '3.12'
       - run: sudo apt-get update && sudo apt-get install -y build-essential uuid-dev nasm acpica-tools libssl-dev
@@ -39,7 +39,7 @@ jobs:
           ref: 8f2b337e38bc83f87cd30f3253cdfe8e3e12cc3a
           path: .measurement-tool
           persist-credentials: false
-      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: '3.12'
       - run: |
@@ -59,7 +59,7 @@ jobs:
     timeout-minutes: 40
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: '3.12'
       - run: sudo apt-get update && sudo apt-get install -y gcc libc6-dev cpio qemu-system-x86 flex bison bc libelf-dev libssl-dev
@@ -129,7 +129,7 @@ jobs:
           ref: 8f2b337e38bc83f87cd30f3253cdfe8e3e12cc3a
           path: .measurement-tool
           persist-credentials: false
-      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: '3.12'
       - run: sudo apt-get update && sudo apt-get install -y qemu-system-x86
