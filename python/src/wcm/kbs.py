@@ -589,21 +589,19 @@ class KeyBrokerService:
                     b"",
                 )
             return CheckResult("channel_binding", True, "not required"), b""
-        try:
-            raw = bytes.fromhex(tpk)
-        except ValueError:
+        if not isinstance(tpk, str) or any(c not in "0123456789abcdef" for c in tpk):
             return (
                 CheckResult("channel_binding", False, "transport_public_key is not valid hex"),
                 b"",
             )
-        if len(raw) != 32:
+        if len(tpk) != 64:
             return (
                 CheckResult(
                     "channel_binding", False, "transport_public_key is not a 32-byte X25519 key"
                 ),
                 b"",
             )
-        return CheckResult("channel_binding", True), raw
+        return CheckResult("channel_binding", True), bytes.fromhex(tpk)
 
     def _check_cpu_quote(
         self,
