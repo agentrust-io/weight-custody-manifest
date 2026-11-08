@@ -14,6 +14,13 @@ manifest, KBS or default custody behavior changes. This does not establish
 hardware integrity, prevent DMA, or prove continuous integrity. See
 `docs/model-memory-integrity.md` for bootstrap, observer trust and integration.
 
+**Fixed, security (#227).** `SignedTreeHead.root_bytes`, `verify_sth`,
+`seal_to_public_key`, `KeyBrokerService._check_channel_binding`, and
+`provisioning_binding` now require canonical lowercase hex (`^sha256:[0-9a-f]{64}$`
+for STH roots and `^[0-9a-f]{64}$` for 32-byte X25519 transport public keys),
+refusing uppercase or whitespace-padded hex strings at the gate rather than
+later at key sealing or with unhandled `TypeError`/`ValueError`.
+
 **Fixed (#252).** GPU revocation chain extraction rejects duplicate JSON members,
 non-object containers, invalid PEM field types and non-base64 input characters.
 When GPU report verification fails or raises, the KBS refuses the configured
@@ -42,6 +49,26 @@ chain had verified. Where `AzureSnpVtpmVerifier`, `QuoteVerifier` or
 `NvidiaGpuVerifier` was configured in `KeyBrokerService`, the exception left
 `verify_and_release` after the challenge nonce had been consumed; no key was
 released. Each is now a denial whose reason names the exception type.
+
+**Fixed.** `KeyBrokerService.verify_and_release` turns an exception raised by
+its configured CPU quote verifier, GPU report verifier or GPU revocation check,
+or by reading a verifier's result, into a failed check (`cpu_quote_verified`,
+`gpu_report_verified` or `attestation_revocation`) whose detail names the
+exception type, instead of raising after the challenge nonce has been
+consumed. The GPU revocation check reads issuer keys from the chain the GPU
+evidence carries and raised `UnsupportedAlgorithm` on one whose curve
+cryptography does not support.
+No key was released in any of these cases.
+
+**Fixed.** The evidence JSON parses in `AzureSnpVtpmVerifier` (the bundle and
+the HCL runtime claims), `JsonQuoteParser` and `NvidiaGpuVerifier` raised
+`RecursionError` on deeply nested JSON instead of denying. Where
+`AzureSnpVtpmVerifier`, `NvidiaGpuVerifier` or a `QuoteVerifier` using
+`JsonQuoteParser` was configured in `KeyBrokerService`, the exception left
+`verify_and_release` after the challenge nonce had been consumed; no key was
+released. Each is now a denial whose reason names the exception type
+(`JsonQuoteParser` raises `QuoteFormatError`, which `QuoteVerifier` turns into
+one).
 
 ## 0.33.1 - 2026-10-19
 

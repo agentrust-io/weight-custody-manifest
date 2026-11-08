@@ -252,6 +252,9 @@ class NvidiaGpuVerifier:
             doc = json.loads(base64.b64decode(evidence_b64))
             report = base64.b64decode(doc["report_b64"])
             certs = load_pem_certificates(doc["cert_chain_pem"].encode())
+        except RecursionError as exc:
+            # RecursionError is json.loads on deeply nested input.
+            return QuoteVerification(False, f"unparseable GPU evidence: {type(exc).__name__}")
         except (KeyError, ValueError, TypeError, AttributeError, binascii.Error) as exc:
             return QuoteVerification(False, f"unparseable GPU evidence: {exc}")
         if not certs:
