@@ -361,3 +361,6 @@ pytest
 ## License
 
 Apache-2.0. Crypto primitives adapted from the agentrust-io/agent-manifest SDK.
+
+Runtime-record construction, signing and verification sequence semantics:
+[sequence validation](docs/runtime-record-sequences.md).

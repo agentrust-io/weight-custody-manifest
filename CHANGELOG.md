@@ -61,6 +61,11 @@ released. Each is now a denial whose reason names the exception type
 (`JsonQuoteParser` raises `QuoteFormatError`, which `QuoteVerifier` turns into
 one).
 
+**Fixed (#257).** Runtime-record signing and verification reject boolean and
+other non-integer sequence values. Chain verification no longer treats `true`
+as index 1, and signing refuses a malformed previous sequence. Valid integer
+records retain their existing signed bytes and verification behavior.
+
 ## 0.33.1 - 2026-10-19
 
 **Fixed, security (GHSA-99p4-597j-8m5m).** The canonicalizer NFC-normalized
