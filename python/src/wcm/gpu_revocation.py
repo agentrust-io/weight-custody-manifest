@@ -78,6 +78,8 @@ from cryptography.x509.oid import (
     OCSPExtensionOID,
 )
 
+from ._certificates import load_pem_certificates
+
 #: NVIDIA's device responder, used for links whose certificate names no OCSP URL.
 RESPONDER = "http://ocsp.ndis.nvidia.com"
 
@@ -548,7 +550,7 @@ def chain_from_evidence(evidence_b64: str) -> list[x509.Certificate]:
     pem = document.get("cert_chain_pem")
     if not isinstance(pem, str) or not pem.strip():
         raise ValueError("GPU evidence must carry a nonempty PEM certificate chain")
-    certificates = list(x509.load_pem_x509_certificates(pem.encode()))
+    certificates = load_pem_certificates(pem.encode())
     if not certificates:
         raise ValueError("GPU evidence carries no certificate chain")
     return certificates

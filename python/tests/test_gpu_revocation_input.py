@@ -25,6 +25,7 @@ from wcm.kbs import KeyBrokerService
 from wcm.renewal import manifest_identity
 
 from tests.conftest import waive
+from tests.test_certificate_policy import _non_positive_serial_pem
 
 NOW = datetime(2026, 11, 1, tzinfo=timezone.utc)
 
@@ -232,6 +233,24 @@ def test_ambiguous_json_never_reaches_revocation_even_under_waiver(
         next(c for c in decision.checks if c.name == "attestation_revocation").passed
         is False
     )
+
+
+def test_zero_serial_chain_is_refused_before_query_even_under_waiver(
+    example_manifest, certificates
+):
+    broker, manifest, evidence, client = broker_and_evidence(
+        example_manifest, certificates, None
+    )
+    pem = _non_positive_serial_pem().decode() + pem_chain(certificates[1:])
+    quote = encode({"report_b64": "AAAA", "cert_chain_pem": pem})
+    with pytest.raises(ValueError, match="certificate"):
+        chain_from_evidence(quote)
+    evidence.gpu.quote_b64 = quote
+    decision = broker.verify_and_release(manifest, evidence)
+    assert decision.released is False
+    assert decision.key is None and decision.sealed_key is None
+    assert not next(c for c in decision.checks if c.name == "attestation_revocation").passed
+    client.status.assert_not_called()
 
 
 def test_explicit_verification_waiver_still_queries_valid_chain(
