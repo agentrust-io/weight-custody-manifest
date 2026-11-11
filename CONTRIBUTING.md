@@ -35,6 +35,14 @@ mypy src/wcm                 # strict type checking
 bandit -q -c pyproject.toml -r src/wcm   # security scan
 ```
 
+## Dependency lock policy review
+
+The lock workflow executes the checker from the pull request checkout. Changes
+to the checker, its scope or its workflow are changes to validation policy and
+require human review; a successful self-check does not independently approve
+that policy. The supported-platform resolver performs dry runs, not Windows
+execution.
+
 ## Submitting a PR
 
 
