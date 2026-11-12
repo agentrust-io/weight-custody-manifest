@@ -6,6 +6,14 @@ uses semantic-ish versioning while pre-1.0.
 
 ## Unreleased
 
+**Added, experimental.** Opt-in `wcm.hybrid_seal` and an explicit KBS
+`transport_profile` for ML-KEM-768 + X25519 key/share sealing using finalized
+NIST SP 800-227 / SP 800-56C guidance and AES-256-GCM. Versioned descriptors
+bind both keys to quote evidence; hybrid mode has no classical fallback.
+Existing X25519 APIs/defaults and the manifest schema are unchanged. This WCM
+envelope is experimental, not a NIST standard, FIPS-validated module,
+deployment or end-to-end PQ claim. See `docs/hybrid-key-sealing.md`.
+
 **Added, experimental.** Opt-in `wcm.model_memory` checks of declared loaded-model
 buffers against a pinned, separately approved baseline. Signed observations bind
 the baseline, runtime transport key and single-use challenge; a pre-dispatch

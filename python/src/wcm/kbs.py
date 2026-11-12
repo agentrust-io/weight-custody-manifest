@@ -25,6 +25,9 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from ._challenge import Challenge, ChallengeError, ChallengeStore
 from ._quote_verify import QuoteFormatError, QuoteVerifier
 from ._seal import SealError, seal_to_public_key
+from .hybrid_seal import (
+    HYBRID_TRANSPORT_PROFILE, hybrid_transport_binding, seal_to_hybrid_public_key,
+)
 from .nvidia import NvidiaGpuVerifier
 from .gpu_revocation import NvidiaOcspClient, chain_from_evidence, check_chain
 from .attestation import CompositeEvidence
@@ -150,7 +153,13 @@ class KeyBrokerService:
         allow_legacy_memory_fingerprint: bool = False,
         trusted_manifest_identities: Optional[Iterable[str]] = None,
         allowed_platform_instances: Optional[Iterable[str]] = None,
+        transport_profile: str = "x25519",
     ) -> None:
+        if transport_profile not in ("x25519", HYBRID_TRANSPORT_PROFILE):
+            raise ValueError("unsupported transport_profile")
+        if transport_profile == HYBRID_TRANSPORT_PROFILE and not require_channel_binding:
+            raise ValueError("hybrid transport requires channel binding")
+        self._transport_profile = transport_profile
         if renewal_decision_ttl_seconds <= 0:
             raise ValueError("renewal_decision_ttl_seconds must be positive")
         # keystore maps weights_hash -> the decryption key to release.
@@ -361,7 +370,10 @@ class KeyBrokerService:
             transport_public_key = evidence.cpu.transport_public_key
             if key is not None and transport_public_key is not None:
                 try:
-                    sealed_key = seal_to_public_key(transport_public_key, key)
+                    if self._transport_profile == HYBRID_TRANSPORT_PROFILE:
+                        sealed_key = seal_to_hybrid_public_key(transport_public_key, key)
+                    else:
+                        sealed_key = seal_to_public_key(transport_public_key, key)
                 except SealError as exc:
                     # Nothing can be sealed to this key, so nothing is released.
                     checks.append(CheckResult("key_sealed", False, str(exc)))
@@ -589,6 +601,12 @@ class KeyBrokerService:
                     b"",
                 )
             return CheckResult("channel_binding", True, "not required"), b""
+        if self._transport_profile == HYBRID_TRANSPORT_PROFILE:
+            try:
+                binding = hybrid_transport_binding(tpk)
+            except SealError as exc:
+                return CheckResult("channel_binding", False, str(exc)), b""
+            return CheckResult("channel_binding", True, HYBRID_TRANSPORT_PROFILE), binding
         if not isinstance(tpk, str) or any(c not in "0123456789abcdef" for c in tpk):
             return (
                 CheckResult("channel_binding", False, "transport_public_key is not valid hex"),
