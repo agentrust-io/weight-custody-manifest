@@ -21,6 +21,8 @@ for STH roots and `^[0-9a-f]{64}$` for 32-byte X25519 transport public keys),
 refusing uppercase or whitespace-padded hex strings at the gate rather than
 later at key sealing or with unhandled `TypeError`/`ValueError`.
 
+**Proposed fix.** Align canonical number notation and string escapes with RFC 8785; affected historical signed bytes need the maintainer compatibility decision documented in `python/docs/canonical-byte-compatibility.md`.
+
 **Fixed, security (#225).** `_b64url_decode` in `wcm._signing` and base64url
 verification in `runtime_records`, `renewal`, and `memory_sweep` now enforce
 canonical unpadded RFC 4648 section 5 encoding (`^[A-Za-z0-9\-_]*$`,

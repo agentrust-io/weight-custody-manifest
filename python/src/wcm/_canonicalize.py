@@ -13,7 +13,7 @@ one tool verifies under another.
 
 Rules:
   - Null-valued optional fields are EXCLUDED from canonical form by default.
-  - Object keys are sorted by Unicode code point (RFC 8785 section 3.2.3).
+  - Object keys are sorted by UTF-16 code units (RFC 8785 section 3.2.3).
   - Strings (values and keys) must already be NFC; anything else is refused
     rather than normalized, so distinct inputs never share a pre-image.
 """
@@ -154,8 +154,8 @@ def _quote(s: str) -> str:
             buf.append("\\r")
         elif ch == "\t":
             buf.append("\\t")
-        elif cp <= 0x001F or 0x007F <= cp <= 0x009F or cp in (0x2028, 0x2029):
-            # Control characters and ECMAScript line terminators.
+        elif cp <= 0x001F:
+            # JSON escapes the remaining U+0000..U+001F controls only.
             buf.append(f"\\u{cp:04x}")
         else:
             buf.append(ch)
@@ -163,17 +163,71 @@ def _quote(s: str) -> str:
     return "".join(buf)
 
 
+def _digits_and_exponent(abs_repr: str) -> tuple[str, int]:
+    """Decompose a non-negative ``repr(float)`` string into (digits, n).
+
+    ``digits`` is the shortest round-trip significant-digit string (no
+    leading or trailing zeros) and ``n`` is the decimal exponent such that
+    the value equals ``0.<digits> * 10**n`` the (s, n) pair used by the
+    ECMA-262 Number::toString algorithm that RFC 8785 §3.2.2.3 mandates.
+    """
+    if "e" in abs_repr:
+        mantissa, exp_str = abs_repr.split("e")
+        exp = int(exp_str)
+    else:
+        mantissa, exp = abs_repr, 0
+    int_part, _, frac_part = mantissa.partition(".")
+
+    if int_part.strip("0"):
+        # Leading zeros (if any) can only appear alongside a zero int_part;
+        # a nonzero int_part is never zero-padded by repr().
+        digits = (int_part + frac_part).rstrip("0") or "0"
+        n = len(int_part) + exp
+    else:
+        # int_part is "0" (or empty): the value is < 1 (before exp scaling),
+        # so significant digits start partway through frac_part.
+        stripped = frac_part.lstrip("0")
+        if not stripped:
+            return "0", 1  # the value is exactly zero
+        leading_zeros = len(frac_part) - len(stripped)
+        digits = stripped.rstrip("0") or "0"
+        n = exp - leading_zeros
+    return digits, n
+
+
 def _float_to_str(f: float) -> str:
-    """Serialize a float per RFC 8785 section 3.2.2.3 (ECMAScript numbers).
+    """Serialize a float per RFC 8785 §3.2.2.3 (ECMAScript number formatting).
+
+    Implements the ECMA-262 Number::toString placement rule directly off the
+    (digits, n) decomposition, rather than reusing Python's own `repr()`
+    notation choice: Python and ECMAScript pick fixed vs. exponential form at
+    different magnitude thresholds (e.g. Python already switches to
+    exponential at 1e16, ECMAScript only at 1e21) and Python's `repr()`
+    zero-pads single-digit exponents (``1e-07``) where ECMAScript never does
+    (``1e-7``). Producing a divergent byte string here would make signatures
+    computed by this implementation unverifiable against any spec-conformant
+    RFC 8785 canonicalizer over a manifest containing that float.
 
     Raises:
         ValueError: If *f* is NaN or Infinity (not permitted by RFC 8785).
     """
     if math.isnan(f) or math.isinf(f):
         raise ValueError(f"RFC 8785 does not permit NaN or Infinity ({f!r})")
-    if f == math.floor(f) and abs(f) < 1e15:
-        return str(int(f))
-    s = repr(f)
-    if "e" in s and "e+" not in s and "e-" not in s:
-        s = s.replace("e", "e+")
-    return s
+    if f == 0.0:
+        return "0"
+
+    sign = "-" if math.copysign(1.0, f) < 0 else ""
+    digits, n = _digits_and_exponent(repr(abs(f)))
+    k = len(digits)
+
+    if k <= n <= 21:
+        body = digits + "0" * (n - k)
+    elif 0 < n <= 21:
+        body = digits[:n] + "." + digits[n:]
+    elif -6 < n <= 0:
+        body = "0." + "0" * (-n) + digits
+    else:
+        mantissa = digits[0] + ("." + digits[1:] if k > 1 else "")
+        e = n - 1
+        body = f"{mantissa}e{'+' if e >= 0 else '-'}{abs(e)}"
+    return sign + body
