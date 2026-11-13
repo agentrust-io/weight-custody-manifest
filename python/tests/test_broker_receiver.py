@@ -188,3 +188,34 @@ def test_failed_install_consumes_pending_request_without_enabling_release(setup)
         receiver.install(envelope)
     with pytest.raises(RuntimeError, match="not provisioned"):
         receiver.issue_challenge()
+
+
+@pytest.mark.parametrize(
+    "bad_nonce",
+    [None, 123, "", "aa" * 31, "AA" * 32, "zz" * 32, " " + ("aa" * 31) + " "],
+)
+def test_provisioning_report_data_rejects_malformed_nonce(setup, bad_nonce):
+    receiver, owner, _, _, _, _, _, _ = setup
+    challenge = owner.issue_challenge()
+    with pytest.raises(ValueError, match="32-byte nonce"):
+        receiver.provisioning_report_data(replace(challenge, nonce=bad_nonce))
+    assert len(receiver.provisioning_report_data(challenge)) == 64
+
+
+@pytest.mark.parametrize(
+    "mutator",
+    [
+        lambda c: replace(c, issued_at="2026-01-01T00:00:00Z"),
+        lambda c: replace(c, expires_at="2099-01-01T00:00:00Z"),
+        lambda c: replace(c, issued_at=c.issued_at.replace(tzinfo=None)),
+        lambda c: replace(c, expires_at=c.expires_at.replace(tzinfo=None)),
+        lambda c: replace(c, issued_at=c.expires_at),
+        lambda c: replace(c, issued_at=c.expires_at + timedelta(seconds=5)),
+    ],
+)
+def test_provisioning_report_data_rejects_naive_or_inverted_intervals(setup, mutator):
+    receiver, owner, _, _, _, _, _, _ = setup
+    challenge = owner.issue_challenge()
+    with pytest.raises(ValueError, match="interval is invalid"):
+        receiver.provisioning_report_data(mutator(challenge))
+    assert len(receiver.provisioning_report_data(challenge)) == 64
