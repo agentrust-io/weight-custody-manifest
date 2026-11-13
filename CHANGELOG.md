@@ -21,12 +21,29 @@ for STH roots and `^[0-9a-f]{64}$` for 32-byte X25519 transport public keys),
 refusing uppercase or whitespace-padded hex strings at the gate rather than
 later at key sealing or with unhandled `TypeError`/`ValueError`.
 
+**Fixed (#252).** GPU revocation chain extraction rejects duplicate JSON members,
+non-object containers, invalid PEM field types and non-base64 input characters.
+When GPU report verification fails or raises, the KBS refuses the configured
+GPU revocation check before querying it, rather than deriving revocation state
+from evidence the verifier rejected. Explicit verification waivers retain their
+structural-only behavior for valid input. This is a software input/admission
+boundary repair, not new hardware or vendor-status assurance; verifier parsing
+changes in #224 remain separate.
+
 **Fixed, security (#225).** `_b64url_decode` in `wcm._signing` and base64url
 verification in `runtime_records`, `renewal`, and `memory_sweep` now enforce
 canonical unpadded RFC 4648 section 5 encoding (`^[A-Za-z0-9\-_]*$`,
 `len(s) % 4 != 1`, and round-trip equality with `_b64url_encode(raw)`),
 refusing trailing newlines and non-zero padding bits that previously forged
 distinct signature/key strings decoding to identical bytes.
+
+**Fixed, security (#228).** `wcm.cli` (`_load_manifest`, `_read_json`),
+`wcm.server` (`build_kbs_from_env`), and `wcm.provisioning_wire`
+(`loads_strict`, `json_object`) now share a strict JSON loader that refuses
+duplicate object keys, `NaN`/`Infinity`/`-Infinity`, and overflow float
+literals (`1e400`), and `build_kbs_from_env` validates the shape of
+`WCM_KEYSTORE_FILE` (strict base64 via `validate=True`, so line-wrapped or whitespace-padded key strings are no longer accepted and raise a `ValueError` naming `WCM_KEYSTORE_FILE` and the offending `weights_hash` entry) and `WCM_TRUSTED_MANIFEST_IDENTITIES_FILE`
+(string array).
 
 **Fixed.** A certificate that loaded but did not parse further made quote
 verification raise instead of deny. cryptography parses names, extensions and
@@ -40,6 +57,8 @@ chain had verified. Where `AzureSnpVtpmVerifier`, `QuoteVerifier` or
 `NvidiaGpuVerifier` was configured in `KeyBrokerService`, the exception left
 `verify_and_release` after the challenge nonce had been consumed; no key was
 released. Each is now a denial whose reason names the exception type.
+
+**Changed (#226).** `KeyBrokerService.__init__` now requires exact `int` values (rejecting `bool` and `float`) and enforces positivity/non-negativity for `challenge_ttl_seconds`, `max_attestation_cache_age_seconds`, and `renewal_decision_ttl_seconds`, and `_normalize_platform_instances` raises a specific error when given a bare `str` or `bytes` instead of a collection.
 
 **Fixed.** `KeyBrokerService.verify_and_release` turns an exception raised by
 its configured CPU quote verifier, GPU report verifier or GPU revocation check,
@@ -62,6 +81,11 @@ the HCL runtime claims), `JsonQuoteParser` and `NvidiaGpuVerifier` raised
 released. Each is now a denial whose reason names the exception type
 (`JsonQuoteParser` raises `QuoteFormatError`, which `QuoteVerifier` turns into
 one).
+
+**Fixed (#257).** Runtime-record signing and verification reject boolean and
+other non-integer sequence values. Chain verification no longer treats `true`
+as index 1, and signing refuses a malformed previous sequence. Valid integer
+records retain their existing signed bytes and verification behavior.
 
 ## 0.33.1 - 2026-10-19
 

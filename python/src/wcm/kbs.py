@@ -107,6 +107,8 @@ def _normalize_platform_instances(
     """Validate an operator CHIP_ID list; None means the check is not required."""
     if values is None:
         return None
+    if isinstance(values, (str, bytes)):
+        raise ValueError("allowed_platform_instances must be a collection of hex strings, not a bare string")
     out: set[str] = set()
     for value in values:
         if not isinstance(value, str):
@@ -151,8 +153,24 @@ class KeyBrokerService:
         trusted_manifest_identities: Optional[Iterable[str]] = None,
         allowed_platform_instances: Optional[Iterable[str]] = None,
     ) -> None:
-        if renewal_decision_ttl_seconds <= 0:
-            raise ValueError("renewal_decision_ttl_seconds must be positive")
+        if (
+            isinstance(challenge_ttl_seconds, bool)
+            or not isinstance(challenge_ttl_seconds, int)
+            or challenge_ttl_seconds <= 0
+        ):
+            raise ValueError("challenge_ttl_seconds must be a positive integer")
+        if (
+            isinstance(max_attestation_cache_age_seconds, bool)
+            or not isinstance(max_attestation_cache_age_seconds, int)
+            or max_attestation_cache_age_seconds < 0
+        ):
+            raise ValueError("max_attestation_cache_age_seconds must be a non-negative integer")
+        if (
+            isinstance(renewal_decision_ttl_seconds, bool)
+            or not isinstance(renewal_decision_ttl_seconds, int)
+            or renewal_decision_ttl_seconds <= 0
+        ):
+            raise ValueError("renewal_decision_ttl_seconds must be a positive integer")
         # keystore maps weights_hash -> the decryption key to release.
         self._keystore: dict[str, bytes] = dict(keystore)
         self._now = now or _utcnow
@@ -325,7 +343,7 @@ class KeyBrokerService:
 
         # 7. Attestation-key revocation freshness (v0.8) when required.
         revocation_check, evidence_not_after = self._check_attestation_revocation(
-            manifest, evidence, renewal
+            manifest, evidence, renewal, gpu_report_passed=gpu_report_check.passed
         )
         checks.append(revocation_check)
 
@@ -823,7 +841,7 @@ class KeyBrokerService:
 
     def _check_attestation_revocation(
         self, manifest: WeightCustodyManifest, evidence: CompositeEvidence,
-        renewal: bool = False,
+        renewal: bool = False, *, gpu_report_passed: bool,
     ) -> tuple[CheckResult, Optional[datetime]]:
         """The configured set, and then NVIDIA, when a client is configured.
 
@@ -860,6 +878,11 @@ class KeyBrokerService:
                 False,
                 "a live GPU revocation check is required and the evidence carries no "
                 "GPU certificate chain to ask about",
+            ), None
+        if not gpu_report_passed:
+            return CheckResult(
+                "attestation_revocation", False,
+                "GPU report verification did not pass; vendor revocation was not queried",
             ), None
         try:
             chain = chain_from_evidence(gpu.quote_b64)
