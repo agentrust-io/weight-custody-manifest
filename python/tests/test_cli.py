@@ -130,3 +130,27 @@ def test_verify_invalid_json_reports_one_line_error(tmp_path: Path, capsys):
     assert output.err.startswith(f"error: {manifest}: ")
     assert output.err.count("\n") == 1
     assert "Traceback" not in output.err
+
+
+def test_cli_rejects_duplicate_json_keys_in_manifest(tmp_path: Path, capsys):
+    import pytest
+    from wcm.cli import _read_json
+    from wcm.provisioning_wire import json_object
+
+    raw = (EXAMPLES / "manifest.example.json").read_text(encoding="utf-8").strip()
+    dup = tmp_path / "dup.json"
+    dup.write_text(raw[:-1] + ', "manifest_version": "0.1"}', encoding="utf-8")
+    rc = main(["inspect", str(dup)])
+    output = capsys.readouterr()
+    assert rc == 1
+    assert "duplicate JSON object key" in output.err
+
+    for idx, bad in enumerate(('{"a": 1, "a": 2}', '{"a": NaN}', '{"a": Infinity}', '{"a": -Infinity}', '{"a": 1e400}', '{"a": -1e400}')):
+        p = tmp_path / f"bad_{idx}.json"
+        p.write_text(bad, encoding="utf-8")
+        assert main(["inspect", str(p)]) == 1
+        capsys.readouterr()
+        with pytest.raises(Exception):
+            _read_json(str(p))
+        with pytest.raises(ValueError):
+            json_object(bad)
