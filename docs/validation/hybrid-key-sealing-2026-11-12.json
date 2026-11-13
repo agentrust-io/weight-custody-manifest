@@ -1,0 +1,114 @@
+{
+  "date": "2026-11-12",
+  "branch": "feat/hybrid-key-share-protection",
+  "base": "fb88cc41a8785f49fba481bfc65b1e5e88883014",
+  "profile": "mlkem768-x25519-sha3-256-aes256gcm-v1",
+  "state": "local uncommitted candidate; not deployed; not FIPS validated",
+  "platform": "Windows x86_64, Python 3.12.10",
+  "cryptography": "50.0.1",
+  "openssl": "OpenSSL 4.0.2 25 Aug 2026",
+  "focused": {
+    "passed": 99,
+    "module_line_coverage_percent": 100
+  },
+  "regression": {
+    "passed": 1667,
+    "skipped": 44,
+    "failed": 0,
+    "warnings": 72,
+    "subtests_passed": 27,
+    "coverage_percent": 93.31103678929766,
+    "excluded_file": "python/tests/test_dependabot_auto_merge.py",
+    "exclusion_reason": "Bash/jq workflow tests require Linux; no VM started"
+  },
+  "upstream_control": {
+    "passed": 1568,
+    "skipped": 44,
+    "failed": 0,
+    "warnings": 72,
+    "subtests_passed": 27,
+    "same_excluded_file": true
+  },
+  "negative_controls": [
+    {
+      "mutation": "omit-mlkem",
+      "exit_code": 1,
+      "detected": true,
+      "summary": "3 failed, 80 passed in 2.91s"
+    },
+    {
+      "mutation": "omit-x25519",
+      "exit_code": 1,
+      "detected": true,
+      "summary": "3 failed, 80 passed in 2.11s"
+    },
+    {
+      "mutation": "omit-public-keys",
+      "exit_code": 1,
+      "detected": true,
+      "summary": "2 failed, 81 passed in 2.06s"
+    },
+    {
+      "mutation": "omit-encapsulation",
+      "exit_code": 1,
+      "detected": true,
+      "summary": "2 failed, 81 passed in 1.53s"
+    },
+    {
+      "mutation": "omit-counter",
+      "exit_code": 1,
+      "detected": true,
+      "summary": "2 failed, 81 passed in 1.48s"
+    },
+    {
+      "mutation": "wrong-aead",
+      "exit_code": 1,
+      "detected": true,
+      "summary": "1 failed, 82 passed in 1.39s"
+    },
+    {
+      "mutation": "ignore-context",
+      "exit_code": 1,
+      "detected": true,
+      "summary": "7 failed, 76 passed in 1.31s"
+    },
+    {
+      "mutation": "unbounded-inputs",
+      "exit_code": 1,
+      "detected": true,
+      "summary": "4 failed, 79 passed in 1.81s"
+    }
+  ],
+  "median_ms": {
+    "generate_ms": 0.50075,
+    "seal_ms": 0.32284999999999997,
+    "open_ms": 0.1329
+  },
+  "source_sha256": {
+    "python/src/wcm/hybrid_seal.py": "814b99507b5d3022ee8399d6d9b960ea20f5591b24826e65fd523ec1173d1531",
+    "python/src/wcm/kbs.py": "9684155fee30f5c7bc33cbdf7b8b39bfb354a6f7f9c83a5a73ccc3fe32b75699",
+    "python/src/wcm/attestation.py": "1da80f410b6f269897dc349f1f55d2700177a7f6cc72a131afd6097e63a8c355",
+    "python/src/wcm/__init__.py": "49633281bf2f2120c67e94894c16fe633187c201a775cc33b801049316900e1e",
+    "python/tests/test_hybrid_seal.py": "1f3b8d30d4a48064c515506181e74ce459f3f445bc819872abfa2ae19b0da60f",
+    "python/tests/test_hybrid_release.py": "794a5294e7a77c0b95dd81e6b19033f611e1a12d2504b9381592baad420fb788",
+    "python/tests/test_hybrid_nist.py": "4cc596768a8723a271641461b5636ae492a7dcce6f769e629871158d172d8607",
+    "python/tests/fixtures/mlkem768-nist-keygen.json": "617d0e9d7456e0dd5e4cb48d0c77c481d1d52b5e3c13fec2f32db64fcd798807"
+  },
+  "test_artifact_sha256": {
+    "wcm-nist-focused.xml": "3c8dc5731d655c5d05bce878bfb32ecbc9c48837601f9f4d8bbd4d93d37879ca",
+    "wcm-nist-regression.xml": "9048ee6f0baeb3692bd1358b686ef2dcad0a1af0d0a1ac0b2d75eb9307a6b708",
+    "wcm-nist-upstream.xml": "feb0536bafbf1bea8327a96f569e66ba54b2d5070a65144d5fd4e6b3c38b0002",
+    "wcm-nist-benchmark.json": "41ec63597f7043f0255364c5a37316b01d84b7f25d08c99527b4afeb1ac3634f"
+  },
+  "follow_up_review": {
+    "report": "hybrid-key-sealing-pre-pr-review-2026-11-12.md",
+    "production_source_unchanged": true,
+    "focused_tests_passed": 100,
+    "module_line_coverage_percent": 100,
+    "additional_test": "test_x25519_equivalent_ciphertext_encoding_still_refuses",
+    "updated_test_sha256": "58a38264acd95efb73b2ec730336743b4f234b3b6dd1eac327b19600512aa8d9",
+    "focused_junit_sha256": "c5fbe482ca642053c3841aa616291c46ade3e27f69594fcb922d6331181cacfb",
+    "linux_tests": "passed; see hybrid-key-sealing-linux-2026-11-12.json"
+  },
+  "linux_follow_up": "hybrid-key-sealing-linux-2026-11-12.json"
+}
