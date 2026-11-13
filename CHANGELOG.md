@@ -58,6 +58,8 @@ chain had verified. Where `AzureSnpVtpmVerifier`, `QuoteVerifier` or
 `verify_and_release` after the challenge nonce had been consumed; no key was
 released. Each is now a denial whose reason names the exception type.
 
+**Changed (#226).** `KeyBrokerService.__init__` now requires exact `int` values (rejecting `bool` and `float`) and enforces positivity/non-negativity for `challenge_ttl_seconds`, `max_attestation_cache_age_seconds`, and `renewal_decision_ttl_seconds`, and `_normalize_platform_instances` raises a specific error when given a bare `str` or `bytes` instead of a collection.
+
 **Fixed.** `KeyBrokerService.verify_and_release` turns an exception raised by
 its configured CPU quote verifier, GPU report verifier or GPU revocation check,
 or by reading a verifier's result, into a failed check (`cpu_quote_verified`,
