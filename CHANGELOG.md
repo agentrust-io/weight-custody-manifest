@@ -60,6 +60,22 @@ released. Each is now a denial whose reason names the exception type.
 
 **Changed (#226).** `KeyBrokerService.__init__` now requires exact `int` values (rejecting `bool` and `float`) and enforces positivity/non-negativity for `challenge_ttl_seconds`, `max_attestation_cache_age_seconds`, and `renewal_decision_ttl_seconds`, and `_normalize_platform_instances` raises a specific error when given a bare `str` or `bytes` instead of a collection.
 
+**Fixed, security (#238).** Reject malformed consistency roots rather than
+accepting equal short or empty roots as a consistent log. Bind tree-local
+inclusion proofs to the actual tree size. Validate inclusion proof hashes and
+paths in the shared reconstruction helper so the exported monitor verifier
+refuses malformed nodes instead of raising a concatenation error. Reject
+empty claimed roots and failed reconstruction explicitly; the failure sentinel
+must never compare equal to an empty claimed root. Inclusion checking still
+requires a trusted tree head; it does not authenticate the head's signature.
+
+Preserve bytes, bytearray, and memoryview hash/leaf inputs, list/tuple proof
+paths, and non-Boolean integer subclasses for indices and sizes. Normalize
+hash material before combining it. Boolean indices/sizes, invalid hash lengths,
+and truncated or excessive proof paths remain rejected. These rules cover
+leaf insertion, proof generation, shared reconstruction, and both inclusion
+and consistency verification.
+
 **Fixed.** `KeyBrokerService.verify_and_release` turns an exception raised by
 its configured CPU quote verifier, GPU report verifier or GPU revocation check,
 or by reading a verifier's result, into a failed check (`cpu_quote_verified`,
