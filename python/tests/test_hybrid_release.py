@@ -21,7 +21,7 @@ from .test_quote_verify import (
 def broker(manifest, key, pki, **options):
     return KeyBrokerService(
         {manifest.weights_hash:key}, now=lambda: NOW,
-        cpu_quote_verifier=_verifier(pki), require_cpu_quote_verification=True,
+        cpu_quote_verifier=_verifier(pki),
         transport_profile=HYBRID_TRANSPORT_PROFILE,
         trusted_manifest_identities={manifest_identity(manifest)}, **options,
     )
@@ -35,15 +35,69 @@ def evidence(kbs, manifest, public, pki, *, bound=None):
                      transport_public_key=public)
 
 
-def test_hybrid_release_and_nonce_replay(structural_manifest):
-    pki=Pki(); kbs=broker(structural_manifest,b"test-key",pki)
+@pytest.mark.parametrize("options", [{}, {"require_cpu_quote_verification": False}],
+                         ids=["default", "explicit-false"])
+def test_hybrid_release_and_nonce_replay(structural_manifest, options):
+    pki=Pki(); kbs=broker(structural_manifest,b"test-key",pki,**options)
     private,public=generate_hybrid_transport_keypair()
     ev=evidence(kbs,structural_manifest,public,pki)
     decision=kbs.verify_and_release(structural_manifest,ev)
     assert decision.released and decision.key is None
+    assert any(c.name == "cpu_quote_verified" and c.passed for c in decision.checks)
     assert open_hybrid_sealed(decision.sealed_key,private)==b"test-key"
     replay=kbs.verify_and_release(structural_manifest,ev)
     assert not replay.released and replay.key is None and replay.sealed_key is None
+
+
+@pytest.mark.parametrize("options", [{}, {"require_cpu_quote_verification": False}],
+                         ids=["default", "explicit-false"])
+@pytest.mark.parametrize("include_quote", [False, True], ids=["no-quote", "unverified-quote"])
+@pytest.mark.parametrize("renewal", [False, True], ids=["initial", "renewal"])
+def test_hybrid_structural_policy_cannot_waive_quote_verifier(
+    structural_manifest, options, include_quote, renewal,
+):
+    assert structural_manifest.release_policy.require_evidence_verification is False
+    pki = Pki()
+    kbs = KeyBrokerService(
+        {structural_manifest.weights_hash: b"test-key"}, now=lambda: NOW,
+        transport_profile=HYBRID_TRANSPORT_PROFILE,
+        trusted_manifest_identities={manifest_identity(structural_manifest)},
+        **options,
+    )
+    _, public = generate_hybrid_transport_keypair()
+    ev = evidence(kbs, structural_manifest, public, pki)
+    if not include_quote:
+        ev.cpu.quote_b64 = None
+    denied = kbs.verify_and_release(structural_manifest, ev, renewal=renewal)
+    assert not denied.released and denied.key is None and denied.sealed_key is None
+    # Descriptor validation passes; the absent quote verifier alone must deny.
+    assert [c.name for c in denied.failures] == ["cpu_quote_verified"]
+    assert "required but not configured" in denied.failures[0].detail
+    replay = kbs.verify_and_release(structural_manifest, ev, renewal=renewal)
+    assert not replay.released and replay.key is None and replay.sealed_key is None
+    assert [c.name for c in replay.failures] == ["nonce_fresh"]
+
+
+@pytest.mark.parametrize("kind", ["missing", "malformed", "untrusted", "wrong-nonce"])
+def test_hybrid_requires_successful_quote_verification(structural_manifest, kind):
+    pki = Pki()
+    kbs = broker(structural_manifest, b"test-key", pki)
+    _, public = generate_hybrid_transport_keypair()
+    ev = evidence(kbs, structural_manifest, public, pki)
+    if kind == "missing":
+        ev.cpu.quote_b64 = None
+    elif kind == "malformed":
+        ev.cpu.quote_b64 = "not-a-quote"
+    elif kind == "untrusted":
+        ev.cpu.quote_b64 = _container(
+            Pki(), _report_body_cb(ev.cpu.nonce_echo, bytes.fromhex(public)),
+        )
+    else:
+        other_nonce = kbs.issue_challenge().nonce
+        ev.cpu.quote_b64 = _container(pki, _report_body_cb(other_nonce, bytes.fromhex(public)))
+    denied = kbs.verify_and_release(structural_manifest, ev)
+    assert not denied.released and denied.key is None and denied.sealed_key is None
+    assert [c.name for c in denied.failures] == ["cpu_quote_verified"]
 
 
 @pytest.mark.parametrize("part", ["mlkem", "x25519", "all"])

@@ -173,8 +173,9 @@ class KeyBrokerService:
         # closed when it cannot be answered (see wcm.gpu_revocation).
         self._gpu_revocation = gpu_revocation_client
         # When set, the CPU quote's raw bytes are cryptographically verified
-        # (signature + cert chain + nonce binding). When None, the gate trusts
-        # the structured fields only, and says so in the check detail.
+        # (signature + cert chain + nonce and transport-key binding). When None,
+        # only classical mode can waive this with an explicit structural-only
+        # manifest policy. Hybrid release always requires a verified CPU quote.
         self._cpu_quote_verifier = cpu_quote_verifier
         # When set, the GPU report's raw bytes are cryptographically verified
         # (signature + cert chain to NVIDIA's device root + nonce binding), the
@@ -190,7 +191,12 @@ class KeyBrokerService:
         # Passing False restores the unsealed release shape and should be reserved
         # for tests and channels the caller has bound some other way.
         self._require_channel_binding = require_channel_binding
-        self._require_cpu_quote_verification = require_cpu_quote_verification
+        # Hybrid recipient authentication cannot be waived by the manifest or
+        # require_cpu_quote_verification=False: descriptor validation alone
+        # does not prove that the recipient key belongs to an attested runtime.
+        self._require_cpu_quote_verification = (
+            require_cpu_quote_verification or transport_profile == HYBRID_TRANSPORT_PROFILE
+        )
         self._require_gpu_report_verification = require_gpu_report_verification
         self._renewal_signing_key = renewal_signing_key or Ed25519PrivateKey.generate()
         self._renewal_ttl = renewal_decision_ttl_seconds

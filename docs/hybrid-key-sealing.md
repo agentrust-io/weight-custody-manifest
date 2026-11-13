@@ -72,6 +72,19 @@ kbs = KeyBrokerService(
 
 The profile is trusted broker configuration, not a requester-selected negotiation
 field. Unknown profiles and hybrid mode without channel binding are refused.
+Hybrid release always requires a configured CPU quote verifier and successful
+verification of the quote binding to the nonce and complete recipient descriptor.
+This applies to initial releases and renewals, even when the manifest sets
+`require_evidence_verification: false` or the caller leaves
+`require_cpu_quote_verification` at its default (or explicitly sets it to `False`).
+Without a verifier, release fails the `cpu_quote_verified` check and returns no
+plaintext or sealed key. Descriptor validation alone does not authenticate a
+recipient; there is no structural-only hybrid broker mode.
+
+The standalone sealing API does not verify quotes or authorize release. Its
+caller must authenticate the recipient and apply its own release policy. The
+classical broker's existing structural-only policy remains unchanged.
+
 A hybrid broker refuses classical keys; the unchanged classical default refuses
 hybrid descriptors. Sealing failure returns neither plaintext nor a sealed key.
 Existing policy checks and single-use challenges still apply, including nonce
