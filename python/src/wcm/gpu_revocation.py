@@ -78,6 +78,8 @@ from cryptography.x509.oid import (
     OCSPExtensionOID,
 )
 
+from ._certificates import load_pem_certificates
+
 #: NVIDIA's device responder, used for links whose certificate names no OCSP URL.
 RESPONDER = "http://ocsp.ndis.nvidia.com"
 
@@ -532,5 +534,23 @@ def chain_from_evidence(evidence_b64: str) -> list[x509.Certificate]:
     import base64
     import json
 
-    document = json.loads(base64.b64decode(evidence_b64))
-    return list(x509.load_pem_x509_certificates(document["cert_chain_pem"].encode()))
+    def unique_object(pairs: list[tuple[str, object]]) -> dict[str, object]:
+        result: dict[str, object] = {}
+        for key, value in pairs:
+            if key in result:
+                raise ValueError("duplicate JSON object key in GPU evidence")
+            result[key] = value
+        return result
+
+    document = json.loads(
+        base64.b64decode(evidence_b64, validate=True), object_pairs_hook=unique_object
+    )
+    if not isinstance(document, dict):
+        raise ValueError("GPU evidence must be a JSON object")
+    pem = document.get("cert_chain_pem")
+    if not isinstance(pem, str) or not pem.strip():
+        raise ValueError("GPU evidence must carry a nonempty PEM certificate chain")
+    certificates = load_pem_certificates(pem.encode())
+    if not certificates:
+        raise ValueError("GPU evidence carries no certificate chain")
+    return certificates

@@ -340,7 +340,7 @@ class KeyBrokerService:
 
         # 7. Attestation-key revocation freshness (v0.8) when required.
         revocation_check, evidence_not_after = self._check_attestation_revocation(
-            manifest, evidence, renewal
+            manifest, evidence, renewal, gpu_report_passed=gpu_report_check.passed
         )
         checks.append(revocation_check)
 
@@ -847,7 +847,7 @@ class KeyBrokerService:
 
     def _check_attestation_revocation(
         self, manifest: WeightCustodyManifest, evidence: CompositeEvidence,
-        renewal: bool = False,
+        renewal: bool = False, *, gpu_report_passed: bool,
     ) -> tuple[CheckResult, Optional[datetime]]:
         """The configured set, and then NVIDIA, when a client is configured.
 
@@ -884,6 +884,11 @@ class KeyBrokerService:
                 False,
                 "a live GPU revocation check is required and the evidence carries no "
                 "GPU certificate chain to ask about",
+            ), None
+        if not gpu_report_passed:
+            return CheckResult(
+                "attestation_revocation", False,
+                "GPU report verification did not pass; vendor revocation was not queried",
             ), None
         try:
             chain = chain_from_evidence(gpu.quote_b64)
