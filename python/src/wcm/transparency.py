@@ -37,7 +37,13 @@ class EntryType(str, Enum):
 
 
 def make_leaf_preimage(statement: dict[str, Any], entry_type: EntryType) -> bytes:
-    """Deterministic leaf preimage for a logged statement (RFC 8785 canonical)."""
+    """Deterministic leaf preimage using the SDK canonicalization policy.
+
+    Raises ValueError for Python integers outside +/- (2**53 - 1), including
+    large timestamps and bitmasks. Exact larger values need a schema-agreed
+    string representation; float conversion can lose precision. Changing the
+    representation changes the preimage and does not migrate existing proofs.
+    """
     return canonicalize({"type": entry_type.value, "statement": statement})
 
 
@@ -85,7 +91,11 @@ class TransparencyLog:
         return len(self._preimages)
 
     def append(self, statement: dict[str, Any], *, entry_type: EntryType) -> int:
-        """Register *statement*; returns its 0-based leaf index."""
+        """Register *statement*; returns its 0-based leaf index.
+
+        The integer policy of make_leaf_preimage applies. Canonicalization
+        errors propagate before the log is modified.
+        """
         preimage = make_leaf_preimage(statement, entry_type)
         self._tree.add_leaf(preimage)
         self._preimages.append(preimage)
