@@ -102,6 +102,14 @@ from ._seal import (
     open_sealed,
     SealError,
 )
+from .hybrid_seal import (
+    HYBRID_TRANSPORT_PROFILE,
+    HybridTransportPrivateKey,
+    generate_hybrid_transport_keypair,
+    hybrid_transport_binding,
+    seal_to_hybrid_public_key,
+    open_hybrid_sealed,
+)
 from ._quote_verify import (
     QuoteVerifier,
     QuoteVerification,
@@ -298,6 +306,12 @@ __all__ = [
     "seal_to_public_key",
     "open_sealed",
     "SealError",
+    "HYBRID_TRANSPORT_PROFILE",
+    "HybridTransportPrivateKey",
+    "generate_hybrid_transport_keypair",
+    "hybrid_transport_binding",
+    "seal_to_hybrid_public_key",
+    "open_hybrid_sealed",
     "QuoteVerifier",
     "QuoteVerification",
     "TrustStore",
