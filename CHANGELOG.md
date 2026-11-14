@@ -23,6 +23,26 @@ manifest, KBS or default custody behavior changes. This does not establish
 hardware integrity, prevent DMA, or prove continuous integrity. See
 `docs/model-memory-integrity.md` for bootstrap, observer trust and integration.
 
+**Fixed (#237).** Reject non-string dictionary keys with `TypeError` rather
+than leaking an `AttributeError` outside callers' validation-error handling.
+Reject lone UTF-16 surrogates explicitly with `ValueError`; such inputs were
+already refused during encoding, so this clarifies the diagnostic.
+
+**Changed (behaviour, breaking for large-integer callers, #237).** Python
+integers outside `-(2**53 - 1)..(2**53 - 1)` now raise `ValueError`, including
+through `TransparencyLog.append` and `make_leaf_preimage`. Previously accepted
+uint64 bitmasks and nanosecond timestamps can therefore fail. This is the SDK's
+exact-integer interoperability policy (RFC 7493 section 2.2 and RFC 8785
+Appendix B note 1), not a blanket RFC prohibition on larger floating values.
+Finite-float acceptance and formatting are unchanged; casting integers to
+float can silently lose precision and is not a migration strategy.
+
+For new statements, agree an exact string encoding with all consumers and the
+applicable schema. A string has a different signed preimage from a number:
+do not rewrite existing log entries or assume prior signatures/proofs survive
+conversion. There is no automatic migration of historical large-integer
+statements. This change does not establish full floating-point JCS conformance.
+
 **Fixed, security (#227).** `SignedTreeHead.root_bytes`, `verify_sth`,
 `seal_to_public_key`, `KeyBrokerService._check_channel_binding`, and
 `provisioning_binding` now require canonical lowercase hex (`^sha256:[0-9a-f]{64}$`
@@ -39,12 +59,28 @@ structural-only behavior for valid input. This is a software input/admission
 boundary repair, not new hardware or vendor-status assurance; verifier parsing
 changes in #224 remain separate.
 
+**Fixed (#223).** `azure_vtpm._b64url_uint` now enforces canonical unpadded base64url and RFC 7518 section 2 minimal big-endian `Base64urlUInt` encoding (rejecting leading `0x00` bytes and non-zero trailing base64url bits), and `AzureSnpVtpmVerifier.verify` rejects `HCLAkPub` JWKs carrying RFC 7517/7518 private or symmetric key parameters (`d`, `p`, `q`, `dp`, `dq`, `qi`, `oth`, `k`). `JsonQuoteParser.parse`, `AzureSnpVtpmVerifier.verify`, and `NvidiaGpuVerifier.verify` reject duplicate JSON object keys via `object_pairs_hook`, and `QuoteVerifier.verify`, `verify_tdx_quote`, `AzureSnpVtpmVerifier.verify`, and `NvidiaGpuVerifier.verify` validate `expected_nonce` as 64 lowercase hexadecimal characters before decoding instead of accepting whitespace or raising `ValueError`.
+
 **Fixed, security (#225).** `_b64url_decode` in `wcm._signing` and base64url
 verification in `runtime_records`, `renewal`, and `memory_sweep` now enforce
 canonical unpadded RFC 4648 section 5 encoding (`^[A-Za-z0-9\-_]*$`,
 `len(s) % 4 != 1`, and round-trip equality with `_b64url_encode(raw)`),
 refusing trailing newlines and non-zero padding bits that previously forged
 distinct signature/key strings decoding to identical bytes.
+
+**Fixed, security (#239).** Reject RNG results of incorrect type or length in
+threshold splitting. A short RNG result previously reduced the polynomial
+degree, allowing reconstruction below the declared quorum. Preserve support
+for `bytes`, `bytearray`, and `memoryview` secrets/share values, and lists or
+tuples of shares, while rejecting empty or malformed values. Buffer inputs
+are copied internally; this does not provide zeroizable temporary storage.
+
+**Changed (behaviour, #239).** `ChallengeStore` now requires an exact positive
+integer TTL; previously accepted fractional TTLs now raise `ValueError`.
+Zero/negative TTLs are rejected at construction instead of issuing unusable
+challenges. Invalid nonce types are refused defensively. Threshold/share
+counts require exact integers; RNG callbacks must return the requested
+number of bytes. The RNG-length check does not establish RNG entropy.
 
 **Fixed, security (#228).** `wcm.cli` (`_load_manifest`, `_read_json`),
 `wcm.server` (`build_kbs_from_env`), and `wcm.provisioning_wire`
@@ -67,6 +103,24 @@ chain had verified. Where `AzureSnpVtpmVerifier`, `QuoteVerifier` or
 `verify_and_release` after the challenge nonce had been consumed; no key was
 released. Each is now a denial whose reason names the exception type.
 
+**Changed (#226).** `KeyBrokerService.__init__` now requires exact `int` values (rejecting `bool` and `float`) and enforces positivity/non-negativity for `challenge_ttl_seconds`, `max_attestation_cache_age_seconds`, and `renewal_decision_ttl_seconds`, and `_normalize_platform_instances` raises a specific error when given a bare `str` or `bytes` instead of a collection.
+
+**Fixed, security (#238).** Reject malformed consistency roots rather than
+accepting equal short or empty roots as a consistent log. Bind tree-local
+inclusion proofs to the actual tree size. Validate inclusion proof hashes and
+paths in the shared reconstruction helper so the exported monitor verifier
+refuses malformed nodes instead of raising a concatenation error. Reject
+empty claimed roots and failed reconstruction explicitly; the failure sentinel
+must never compare equal to an empty claimed root. Inclusion checking still
+requires a trusted tree head; it does not authenticate the head's signature.
+
+Preserve bytes, bytearray, and memoryview hash/leaf inputs, list/tuple proof
+paths, and non-Boolean integer subclasses for indices and sizes. Normalize
+hash material before combining it. Boolean indices/sizes, invalid hash lengths,
+and truncated or excessive proof paths remain rejected. These rules cover
+leaf insertion, proof generation, shared reconstruction, and both inclusion
+and consistency verification.
+
 **Fixed.** `KeyBrokerService.verify_and_release` turns an exception raised by
 its configured CPU quote verifier, GPU report verifier or GPU revocation check,
 or by reading a verifier's result, into a failed check (`cpu_quote_verified`,
@@ -77,6 +131,8 @@ evidence carries and raised `UnsupportedAlgorithm` on one whose curve
 cryptography does not support.
 No key was released in any of these cases.
 
+- Validate challenge nonce/timestamp intervals in `wcm.broker_receiver.BrokerReceiver.provisioning_report_data` and enforce strict `namespace`, `epoch`, `context`, and `admit` validation in `wcm.provisioning_state.OwnerEpochStore` (#241). Passing `bytearray` or `memoryview` as `context`, or numeric `0`/`1` as `admit`, now raises `ValueError`.
+
 **Fixed.** The evidence JSON parses in `AzureSnpVtpmVerifier` (the bundle and
 the HCL runtime claims), `JsonQuoteParser` and `NvidiaGpuVerifier` raised
 `RecursionError` on deeply nested JSON instead of denying. Where
@@ -86,6 +142,11 @@ the HCL runtime claims), `JsonQuoteParser` and `NvidiaGpuVerifier` raised
 released. Each is now a denial whose reason names the exception type
 (`JsonQuoteParser` raises `QuoteFormatError`, which `QuoteVerifier` turns into
 one).
+
+**Fixed (#257).** Runtime-record signing and verification reject boolean and
+other non-integer sequence values. Chain verification no longer treats `true`
+as index 1, and signing refuses a malformed previous sequence. Valid integer
+records retain their existing signed bytes and verification behavior.
 
 ## 0.33.1 - 2026-10-19
 

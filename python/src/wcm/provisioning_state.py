@@ -20,7 +20,7 @@ class OwnerEpochStore:
     """
 
     def __init__(self, path: str | Path, namespace: str) -> None:
-        if not namespace or str(path) == ":memory:":
+        if not isinstance(namespace, str) or not namespace.strip() or str(path) == ":memory:":
             raise ValueError("persistent path and nonempty namespace required")
         self._path = str(Path(path).resolve())
         self._namespace = namespace
@@ -41,6 +41,12 @@ class OwnerEpochStore:
         Admission may advance the floor; ordinary operations require an exact
         match. Failed guarded operations roll back changes to the floor.
         """
+        if type(epoch) is not int or epoch < 0:
+            raise ValueError("epoch must be a non-negative integer")
+        if type(context) is not bytes or not context:
+            raise ValueError("context must be non-empty bytes")
+        if not isinstance(admit, bool):
+            raise ValueError("admit must be a boolean")
         digest = hashlib.sha256(context).hexdigest()
         connection = sqlite3.connect(self._path)
         try:

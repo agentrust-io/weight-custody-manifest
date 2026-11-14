@@ -287,6 +287,15 @@ def test_azure_snp_vtpm_rejects_short_hcl_ak_modulus():
 
 
 def test_azure_snp_vtpm_rejects_malformed_hcl_ak_jwk():
+    bundle, _ = _bundle()
+    doc = json.loads(base64.b64decode(bundle))
+    valid_n = _supplied_ak_n(doc)
+    canonical_n = _b64url(valid_n, 256)
+    # 256 bytes -> 342 base64url chars; the final char has 4 unused low bits.
+    alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
+    noncanonical_n = canonical_n[:-1] + alphabet[alphabet.index(canonical_n[-1]) ^ 1]
+    leading_zero_n = base64.urlsafe_b64encode(b"\x00" + valid_n.to_bytes(256, "big")).rstrip(b"=").decode()
+    leading_zero_e = base64.urlsafe_b64encode(b"\x00\x01\x00\x01").rstrip(b"=").decode()
     cases = {
         "missing e": {"e": None},
         "missing kty": {"kty": None},
@@ -294,12 +303,46 @@ def test_azure_snp_vtpm_rejects_malformed_hcl_ak_jwk():
         "padded n": {"n": "AQAB=="},
         "standard alphabet": {"e": "AQ+B"},
         "e not a string": {"e": 65537},
+        "non-minimal leading zero n": {"n": leading_zero_n},
+        "non-minimal leading zero e": {"e": leading_zero_e},
+        "non-canonical trailing bits n": {"n": noncanonical_n},
+        "private member d": {"d": "AQAB"},
+        "private member p": {"p": "AQAB"},
+        "private member q": {"q": "AQAB"},
+        "private member dp": {"dp": "AQAB"},
+        "private member dq": {"dq": "AQAB"},
+        "private member qi": {"qi": "AQAB"},
+        "private member oth": {"oth": []},
+        "symmetric member k": {"k": "AQAB"},
     }
     for label, change in cases.items():
         bundle, trust = _bundle(jwk=change)
         result = _verify(bundle, trust)
         assert not result.verified, label
         assert "invalid HCLAkPub" in (result.reason or ""), label
+
+
+def test_azure_snp_vtpm_rejects_duplicate_json_keys_and_malformed_nonce():
+    bundle, trust = _bundle()
+    raw_json = base64.b64decode(bundle).decode()
+    dup_bundle = base64.b64encode(
+        ('{"hcl_b64":"AAAA",' + raw_json[1:]).encode()
+    ).decode()
+    dup_res = _verify(dup_bundle, trust)
+    assert not dup_res.verified
+    assert "duplicate JSON object key" in (dup_res.reason or "")
+
+    verifier = AzureSnpVtpmVerifier(trust, paravisor_measurements=[PARAVISOR])
+    for bad_nonce in ("zz", "AB" * 32, "ab " * 32, "ab" * 31, 123):  # type: ignore[list-item]
+        res = verifier.verify(
+            bundle,
+            expected_nonce=bad_nonce,  # type: ignore[arg-type]
+            channel_binding=BINDING,
+            expected_workload_measurement=MEASUREMENT,
+            now=NOW,
+        )
+        assert not res.verified
+        assert "expected_nonce" in (res.reason or "")
 
 
 def _verify(bundle, trust, measurements=(PARAVISOR,)):

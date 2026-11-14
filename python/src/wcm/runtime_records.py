@@ -1,7 +1,6 @@
 """Signed, hash-chained custody runtime records for protected controllers."""
 from __future__ import annotations
 
-import base64
 import binascii
 from dataclasses import asdict, dataclass
 from enum import Enum
@@ -58,6 +57,12 @@ class RuntimeRecord:
     public_key_b64url: str
     signature_b64url: str
 
+    def __post_init__(self) -> None:
+        if isinstance(self.sequence, bool) or not isinstance(self.sequence, int):
+            raise TypeError("runtime record sequence must be a non-boolean integer")
+        if self.sequence < 0:
+            raise ValueError("runtime record sequence must be non-negative")
+
     def signing_payload(self) -> dict[str, Any]:
         value = asdict(self)
         value.pop("signature_b64url")
@@ -71,6 +76,8 @@ class RuntimeRecord:
         if (
             self.kind != "wcm-runtime-record/v1"
             or self.algorithm != "Ed25519"
+            or isinstance(self.sequence, bool)
+            or not isinstance(self.sequence, int)
             or self.sequence < 0
             or self.public_key_b64url != expected_public_key_b64url
         ):
@@ -97,8 +104,15 @@ def sign_runtime_record(
     previous: Optional[RuntimeRecord] = None,
     detail: Optional[dict[str, Any]] = None,
 ) -> RuntimeRecord:
+    if isinstance(sequence, bool) or not isinstance(sequence, int):
+        raise TypeError("runtime record sequence must be a non-boolean integer")
     if sequence < 0 or (previous is None) != (sequence == 0):
         raise ValueError("sequence 0 must be the first record; later records require previous")
+    if previous is not None:
+        if isinstance(previous.sequence, bool) or not isinstance(previous.sequence, int):
+            raise TypeError("previous runtime record sequence must be a non-boolean integer")
+        if previous.sequence < 0:
+            raise ValueError("previous runtime record sequence must be non-negative")
     if previous is not None and previous.sequence + 1 != sequence:
         raise ValueError("runtime record sequence is not contiguous")
     if not occurred_at.endswith("Z"):

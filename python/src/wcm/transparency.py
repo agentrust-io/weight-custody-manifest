@@ -26,7 +26,7 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 
 from ._canonicalize import canonicalize
 from ._merkle import InclusionProof, MerkleTree, compute_root_from_proof, verify_consistency
-from ._merkle import _sha256  # domain-separated leaf hashing
+from ._merkle import _sha256, _is_integer, HashPath  # domain-separated leaf hashing
 from ._signing import Ed25519KeyPair, _b64url_decode, _b64url_encode
 
 
@@ -37,7 +37,13 @@ class EntryType(str, Enum):
 
 
 def make_leaf_preimage(statement: dict[str, Any], entry_type: EntryType) -> bytes:
-    """Deterministic leaf preimage for a logged statement (RFC 8785 canonical)."""
+    """Deterministic leaf preimage using the SDK canonicalization policy.
+
+    Raises ValueError for Python integers outside +/- (2**53 - 1), including
+    large timestamps and bitmasks. Exact larger values need a schema-agreed
+    string representation; float conversion can lose precision. Changing the
+    representation changes the preimage and does not migrate existing proofs.
+    """
     return canonicalize({"type": entry_type.value, "statement": statement})
 
 
@@ -85,7 +91,11 @@ class TransparencyLog:
         return len(self._preimages)
 
     def append(self, statement: dict[str, Any], *, entry_type: EntryType) -> int:
-        """Register *statement*; returns its 0-based leaf index."""
+        """Register *statement*; returns its 0-based leaf index.
+
+        The integer policy of make_leaf_preimage applies. Canonicalization
+        errors propagate before the log is modified.
+        """
         preimage = make_leaf_preimage(statement, entry_type)
         self._tree.add_leaf(preimage)
         self._preimages.append(preimage)
@@ -159,20 +169,24 @@ def verify_inclusion(
         return False
     if proof.tree_size != sth.tree_size:
         return False
+    if not _is_integer(sth.tree_size):
+        return False
     try:
         expected_root = sth.root_bytes()
     except (IndexError, ValueError):
         return False  # a malformed root commits to nothing
+    if len(expected_root) != 32:
+        return False
     computed = compute_root_from_proof(
         leaf_hash, proof.leaf_index, proof.tree_size, proof.audit_path, _sha256
     )
-    return computed == expected_root
+    return bool(computed) and computed == expected_root
 
 
 def verify_log_consistency(
     old: SignedTreeHead,
     new: SignedTreeHead,
-    proof: list[bytes],
+    proof: HashPath,
     *,
     log_public_key: Optional[bytes] = None,
 ) -> bool:

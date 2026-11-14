@@ -306,3 +306,11 @@ def test_oversized_qe_auth_length_is_a_format_error():
         parse_tdx_quote(quote)
     result = verify_tdx_quote(quote, _trust(root), expected_nonce=NONCE, now=NOW)
     assert not result.verified and "truncated" in (result.reason or "")
+
+
+@pytest.mark.parametrize("bad_nonce", ["zz", "AB" * 32, "ab " * 32, "ab" * 31, "", 123])
+def test_verify_tdx_quote_rejects_malformed_expected_nonce_without_raising(bad_nonce):
+    quote, root = build_quote()
+    result = verify_tdx_quote(quote, _trust(root), expected_nonce=bad_nonce, now=NOW)
+    assert not result.verified
+    assert "expected_nonce" in (result.reason or "")

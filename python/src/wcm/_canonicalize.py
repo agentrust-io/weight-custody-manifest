@@ -13,9 +13,22 @@ one tool verifies under another.
 
 Rules:
   - Null-valued optional fields are EXCLUDED from canonical form by default.
-  - Object keys are sorted by Unicode code point (RFC 8785 section 3.2.3).
+  - Object keys must be strings and are sorted by UTF-16 code units
+    (RFC 8785 section 3.2.3).
   - Strings (values and keys) must already be NFC; anything else is refused
     rather than normalized, so distinct inputs never share a pre-image.
+  - Lone UTF-16 surrogates are rejected in keys and values.
+  - Python integers must be in the SDK's safe integer domain, +/- (2**53 - 1).
+    This exact-integer interoperability policy follows RFC 7493 section 2.2;
+    it is not a magnitude limit on floating-point values in RFC 8785.
+    Finite floats retain their existing serialization behavior. A float may
+    already have lost integer precision before reaching this function.
+
+For larger exact integers, agree a string representation with consumers and
+the applicable schema before creating new signed/logged statements. Do not
+cast to float to bypass the integer policy. Changing a number to a string
+changes the signed preimage; existing signatures and log history cannot be
+silently migrated. This policy does not establish full float JCS conformance.
 """
 from __future__ import annotations
 
@@ -26,6 +39,8 @@ from typing import Any
 
 
 _MAX_DEPTH = 64  # prevent RecursionError from deeply nested JSON
+_MAX_SAFE_INTEGER = 9007199254740991  # RFC 7493 §2.2; RFC 8785 Appendix B note 1
+_SURROGATE_MESSAGE = "lone UTF-16 surrogate is not valid I-JSON / RFC 8785"
 
 
 def canonicalize(obj: Any, *, exclude_none: bool = True) -> bytes:
@@ -41,8 +56,10 @@ def canonicalize(obj: Any, *, exclude_none: bool = True) -> bytes:
         UTF-8 encoded bytes with no trailing newline.
 
     Raises:
-        TypeError: If *obj* contains a non-serializable type.
-        ValueError: If a float is NaN or Infinity, or nesting exceeds the max.
+        TypeError: If *obj* contains a non-serializable type or non-string key.
+        ValueError: If an integer exceeds the SDK safe integer domain, a float
+            is NaN or Infinity, a string is non-NFC or contains a lone UTF-16
+            surrogate, or nesting exceeds the maximum.
     """
     return _serialize(obj, exclude_none=exclude_none, depth=0).encode("utf-8")
 
@@ -84,6 +101,12 @@ def _serialize(obj: Any, *, exclude_none: bool, depth: int) -> str:
         # bool must precede int: bool is an int subclass in Python.
         return "true" if obj else "false"
     if isinstance(obj, int):
+        if not -_MAX_SAFE_INTEGER <= obj <= _MAX_SAFE_INTEGER:
+            raise ValueError(
+                f"integer is outside the SDK safe integer domain (+/-{_MAX_SAFE_INTEGER}); "
+                "use a schema-agreed string representation for exact large values, "
+                "not a float cast"
+            )
         return str(obj)
     if isinstance(obj, float):
         return _float_to_str(obj)
@@ -109,14 +132,22 @@ def _utf16_sort_key(s: str) -> bytes:
     # points. They agree on the BMP but differ for supplementary-plane chars
     # (e.g. emoji), whose lead surrogate 0xD800-0xDBFF sorts below 0xE000-0xFFFF.
     # Sorting by the big-endian UTF-16 encoding reproduces code-unit order.
-    return s.encode("utf-16-be")
+    return s.encode("utf-16-be", "surrogatepass")
 
 
 def _serialize_dict(d: dict[str, Any], *, exclude_none: bool, depth: int) -> str:
+    for k in d:
+        if not isinstance(k, str):
+            raise TypeError(
+                f"JSON object key of type {type(k).__name__!r} is not a string under RFC 8785"
+            )
     parts: list[str] = []
     for k in sorted(d.keys(), key=_utf16_sort_key):
         v = d[k]
         if exclude_none and v is None:
+            # An omitted key never reaches _quote, so refuse a surrogate here.
+            if any(0xD800 <= ord(ch) <= 0xDFFF for ch in k):
+                raise ValueError(_SURROGATE_MESSAGE)
             continue
         parts.append(
             _quote(k) + ":" + _serialize(v, exclude_none=exclude_none, depth=depth)
@@ -157,6 +188,8 @@ def _quote(s: str) -> str:
         elif cp <= 0x001F or 0x007F <= cp <= 0x009F or cp in (0x2028, 0x2029):
             # Control characters and ECMAScript line terminators.
             buf.append(f"\\u{cp:04x}")
+        elif 0xD800 <= cp <= 0xDFFF:
+            raise ValueError(_SURROGATE_MESSAGE)
         else:
             buf.append(ch)
     buf.append('"')

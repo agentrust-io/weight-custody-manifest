@@ -5,6 +5,7 @@ import itertools
 import pytest
 
 from wcm import combine_shares, split_secret
+from wcm.threshold import Share
 
 SECRET = b"a-32-byte-decryption-key--padxx!"  # 32 bytes
 
@@ -95,3 +96,77 @@ def test_combine_rejects_x_outside_gf256_nonzero():
     for bad_x in (0, 256, -1):
         with pytest.raises(ValueError, match="1..255"):
             combine_shares([good[0], Share(x=bad_x, y=b"\x00" * 16)])
+
+
+def test_threshold_and_challenge_store_validate_types():
+    from wcm._challenge import ChallengeError, ChallengeStore
+    from wcm.threshold import Share
+
+    for bad_sec in ("str", 123, None):
+        with pytest.raises(ValueError):
+            split_secret(bad_sec, threshold=2, shares=3)  # type: ignore[arg-type]
+    for bad_t, bad_n in ((True, 3), (2, True), (2.0, 3), (2, 3.0)):
+        with pytest.raises(ValueError):
+            split_secret(SECRET, threshold=bad_t, shares=bad_n)  # type: ignore[arg-type]
+    with pytest.raises(ValueError, match="rng"):
+        split_secret(SECRET, threshold=3, shares=5, rng=lambda _n: b"\x01")
+    for bad_shares in ([Share(1, b"")], [Share(1, "str")], ["not-a-share"]):
+        with pytest.raises(ValueError):
+            combine_shares(bad_shares)  # type: ignore[arg-type]
+
+    for bad_ttl in (True, False, 0, -5, 1.5, "300"):
+        with pytest.raises(ValueError, match="ttl_seconds"):
+            ChallengeStore(ttl_seconds=bad_ttl)  # type: ignore[arg-type]
+    store = ChallengeStore(ttl_seconds=60)
+    for bad_nonce in ([1, 2], None, 123, ""):
+        with pytest.raises(ChallengeError):
+            store.consume(bad_nonce)  # type: ignore[arg-type]
+
+
+@pytest.mark.parametrize("secret_type", [bytes, bytearray, memoryview])
+@pytest.mark.parametrize("value_type", [bytes, bytearray, memoryview])
+@pytest.mark.parametrize("container_type", [list, tuple])
+def test_bytes_like_inputs_and_share_containers(secret_type, value_type, container_type):
+    parts = split_secret(
+        secret_type(SECRET), threshold=3, shares=5,
+        rng=lambda n: bytes(range(1, n + 1)),
+    )
+    for subset in itertools.combinations(parts, 3):
+        shaped = container_type(Share(s.x, value_type(s.y)) for s in subset)
+        assert combine_shares(shaped) == SECRET
+
+
+@pytest.mark.parametrize("output", [b"", b"x", b"xxx", "xx", 2, None])
+def test_rng_shape_is_refused(output):
+    with pytest.raises(ValueError, match="rng"):
+        split_secret(SECRET, threshold=3, shares=5, rng=lambda n: output)
+
+
+@pytest.mark.parametrize(
+    ("parts", "message"),
+    [(None, "list or tuple"), ([], "at least one"), ((), "at least one"),
+     (["not a share"], "each share"), ([Share(1, 2)], "bytes-like")],
+)
+def test_share_shape_errors_are_distinct(parts, message):
+    with pytest.raises(ValueError, match=message):
+        combine_shares(parts)
+
+
+@pytest.mark.parametrize("kind", [bytes, bytearray, memoryview])
+def test_empty_buffers_are_refused(kind):
+    with pytest.raises(ValueError, match="non-empty"):
+        split_secret(kind(b""), threshold=2, shares=3)
+    with pytest.raises(ValueError, match="non-empty"):
+        combine_shares([Share(1, kind(b""))])
+
+
+def test_secret_is_snapshotted_before_rng_callback():
+    mutable = bytearray(SECRET)
+
+    def mutate_source(n):
+        mutable[:] = b"x" * len(mutable)
+        return bytes(range(1, n + 1))
+
+    parts = split_secret(mutable, threshold=3, shares=5, rng=mutate_source)
+    assert combine_shares(parts[:3]) == SECRET
+    assert mutable != SECRET

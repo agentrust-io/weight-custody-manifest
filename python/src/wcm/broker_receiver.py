@@ -15,7 +15,7 @@ import json
 import re
 import threading
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import datetime as _datetime_type, datetime, timedelta, timezone
 
 from cryptography import x509
 from cryptography.hazmat.primitives import serialization
@@ -159,11 +159,26 @@ class BrokerReceiver:
         with self._lock:
             if self._retired or self._kbs is not None:
                 raise RuntimeError("broker is not awaiting provisioning")
-            if len(bytes.fromhex(challenge.nonce)) != 32 or bytes.fromhex(challenge.nonce).hex() != challenge.nonce:
+            if (
+                not isinstance(challenge.nonce, str)
+                or len(challenge.nonce) != 64
+                or any(c not in "0123456789abcdef" for c in challenge.nonce)
+            ):
                 raise ValueError("owner challenge must be a 32-byte nonce")
+            if (
+                not isinstance(challenge.issued_at, _datetime_type)
+                or not isinstance(challenge.expires_at, _datetime_type)
+                or challenge.issued_at.tzinfo is None
+                or challenge.issued_at.utcoffset() is None
+                or challenge.expires_at.tzinfo is None
+                or challenge.expires_at.utcoffset() is None
+            ):
+                raise ValueError("owner challenge interval is invalid")
             now = datetime.now(timezone.utc)
             if now > challenge.expires_at:
                 raise ValueError("owner challenge expired")
+            if challenge.expires_at <= challenge.issued_at:
+                raise ValueError("owner challenge interval is invalid")
             if challenge.nonce in self._seen_provisioning_nonces:
                 raise ValueError("owner challenge already requested during this boot")
             self._seen_provisioning_nonces.add(challenge.nonce)

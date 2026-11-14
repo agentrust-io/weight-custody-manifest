@@ -92,3 +92,50 @@ def test_canonical_hash_shake256():
 def test_canonical_hash_bad_algorithm():
     with pytest.raises(ValueError):
         canonical_hash({"a": 1}, algorithm="md5")
+
+
+@pytest.mark.parametrize("bad_int", [2**53, -(2**53), 2**53 + 1, 10**30])
+def test_reject_integers_outside_rfc8785_safe_domain(bad_int):
+    with pytest.raises(ValueError, match="safe integer domain"):
+        canonicalize({"v": bad_int})
+
+
+def test_accept_safe_integer_boundary():
+    assert canonicalize({"v": 2**53 - 1}) == b'{"v":9007199254740991}'
+    assert canonicalize({"v": -(2**53 - 1)}) == b'{"v":-9007199254740991}'
+
+
+def test_large_integer_diagnostic_does_not_recommend_float_conversion():
+    with pytest.raises(ValueError, match="schema-agreed string.*not a float cast"):
+        canonicalize({"v": 2**64 - 1})
+
+
+def test_integer_policy_does_not_add_a_float_magnitude_limit():
+    # This tests acceptance only, not full RFC 8785 float formatting.
+    for value in (float(2**53), float(2**64), 1e30, -1e30):
+        assert isinstance(canonicalize({"v": value}), bytes)
+    assert float(2**53) == float(2**53 + 1)  # prior precision cannot be recovered
+
+
+@pytest.mark.parametrize("bad_key", [1, None, (1, 2)])
+def test_reject_non_string_dict_key(bad_key):
+    with pytest.raises(TypeError, match="not a string"):
+        canonicalize({bad_key: "v"})
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [
+        {"k": chr(0xD800)},
+        {"k2": chr(0xDFFF)},
+        {chr(0xD800): "v"},
+        [chr(0xDC00)],
+    ],
+)
+def test_reject_lone_utf16_surrogate(payload):
+    from wcm._canonicalize import _quote
+
+    with pytest.raises(ValueError, match="lone UTF-16 surrogate"):
+        canonicalize(payload)
+    with pytest.raises(ValueError, match="lone UTF-16 surrogate"):
+        _quote(chr(0xD800))
