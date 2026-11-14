@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+import pytest
+
+from wcm.transparency import make_leaf_preimage
+
 from wcm import (
     EntryType,
     TransparencyLog,
@@ -23,6 +27,40 @@ def test_append_increments_size():
     assert log.append(MANIFEST, entry_type=EntryType.manifest) == 0
     assert log.append(REVOCATION, entry_type=EntryType.revocation) == 1
     assert log.size == 2
+
+
+@pytest.mark.parametrize("value", [2**53, 2**64 - 1, 1762300000000000000])
+def test_large_integer_refusal_preserves_existing_log(value):
+    log = _log()
+    log.append(MANIFEST, entry_type=EntryType.manifest)
+    before = log.signed_tree_head()
+    for action in (
+        lambda: make_leaf_preimage({"v": value}, EntryType.manifest),
+        lambda: log.append({"v": value}, entry_type=EntryType.manifest),
+    ):
+        with pytest.raises(ValueError, match="SDK safe integer domain"):
+            action()
+    after = log.signed_tree_head()
+    assert after.tree_size == before.tree_size == 1
+    assert after.root == before.root
+    assert verify_inclusion(MANIFEST, EntryType.manifest, log.inclusion_proof(0), after)
+
+
+@pytest.mark.parametrize("value", [2**64 - 1, 1762300000000000000])
+def test_schema_agreed_large_integer_string_can_be_logged(value):
+    # A synthetic schema agreeing on decimal strings; no SDK field is coerced.
+    statement = {"v": str(value)}
+    preimage = make_leaf_preimage(statement, EntryType.manifest)
+    assert ('"' + str(value) + '"').encode() in preimage
+    log = _log()
+    index = log.append(statement, entry_type=EntryType.manifest)
+    assert verify_inclusion(statement, EntryType.manifest, log.inclusion_proof(index), log.signed_tree_head())
+
+
+def test_string_conversion_changes_preimage_even_for_safe_integer():
+    assert make_leaf_preimage({"v": 42}, EntryType.manifest) != make_leaf_preimage(
+        {"v": "42"}, EntryType.manifest
+    )
 
 
 def test_sth_signature_verifies():
