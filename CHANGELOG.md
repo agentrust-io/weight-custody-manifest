@@ -122,6 +122,22 @@ evidence carries and raised `UnsupportedAlgorithm` on one whose curve
 cryptography does not support.
 No key was released in any of these cases.
 
+**Fixed, security (#240).** `EnclaveSession` now refuses an integer, empty or
+non-bytes-like `key`. `bytearray(key)` read an integer as a length, so
+`EnclaveSession(32, ...)` silently held an all-zero 32-byte key, and a list of
+integers was accepted as key material. Non-string `parse_cadence` errors report
+only the input type, without echoing potentially sensitive values.
+
+**Changed (behaviour, #240).** `cadence_seconds` and `max_operations` now require
+exact positive integers; fractional values that worked before now raise.
+`parse_cadence` matches ASCII digits and ASCII whitespace only: Unicode digits
+(hardening, since both spellings parsed to the same number) and non-ASCII
+whitespace such as a no-break space, which previously parsed, now raise, so a
+manifest carrying such a cadence string is no longer accepted. Boolean polling
+intervals are rejected. `bytes`, `bytearray` and `memoryview` keys are all
+accepted; the session copies the key into its own buffer, which creates an
+additional copy of key material.
+
 - Validate challenge nonce/timestamp intervals in `wcm.broker_receiver.BrokerReceiver.provisioning_report_data` and enforce strict `namespace`, `epoch`, `context`, and `admit` validation in `wcm.provisioning_state.OwnerEpochStore` (#241). Passing `bytearray` or `memoryview` as `context`, or numeric `0`/`1` as `admit`, now raises `ValueError`.
 
 **Fixed.** The evidence JSON parses in `AzureSnpVtpmVerifier` (the bundle and
