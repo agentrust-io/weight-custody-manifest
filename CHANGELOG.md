@@ -59,6 +59,20 @@ canonical unpadded RFC 4648 section 5 encoding (`^[A-Za-z0-9\-_]*$`,
 refusing trailing newlines and non-zero padding bits that previously forged
 distinct signature/key strings decoding to identical bytes.
 
+**Fixed, security (#239).** Reject RNG results of incorrect type or length in
+threshold splitting. A short RNG result previously reduced the polynomial
+degree, allowing reconstruction below the declared quorum. Preserve support
+for `bytes`, `bytearray`, and `memoryview` secrets/share values, and lists or
+tuples of shares, while rejecting empty or malformed values. Buffer inputs
+are copied internally; this does not provide zeroizable temporary storage.
+
+**Changed (behaviour, #239).** `ChallengeStore` now requires an exact positive
+integer TTL; previously accepted fractional TTLs now raise `ValueError`.
+Zero/negative TTLs are rejected at construction instead of issuing unusable
+challenges. Invalid nonce types are refused defensively. Threshold/share
+counts require exact integers; RNG callbacks must return the requested
+number of bytes. The RNG-length check does not establish RNG entropy.
+
 **Fixed, security (#228).** `wcm.cli` (`_load_manifest`, `_read_json`),
 `wcm.server` (`build_kbs_from_env`), and `wcm.provisioning_wire`
 (`loads_strict`, `json_object`) now share a strict JSON loader that refuses
