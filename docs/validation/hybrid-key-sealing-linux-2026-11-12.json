@@ -1,0 +1,375 @@
+{
+  "date": "2026-11-12",
+  "branch": "feat/hybrid-key-share-protection",
+  "profile": "mlkem768-x25519-sha3-256-aes256gcm-v1",
+  "base_commit": "fb88cc41a8785f49fba481bfc65b1e5e88883014",
+  "snapshot_sha256": "8996fb6cc7ba703cc6e87ae9fa56bda9e118295f46a5e7bd917580da0635779f",
+  "environment": "Local Docker Desktop Linux containers; no network during tests",
+  "consuming_application_changed": false,
+  "hardware_attestation_tested": false,
+  "fips_validated": false,
+  "tested_source_sha256": {
+    "python/src/wcm/__init__.py": "49633281bf2f2120c67e94894c16fe633187c201a775cc33b801049316900e1e",
+    "python/src/wcm/attestation.py": "1da80f410b6f269897dc349f1f55d2700177a7f6cc72a131afd6097e63a8c355",
+    "python/src/wcm/hybrid_seal.py": "814b99507b5d3022ee8399d6d9b960ea20f5591b24826e65fd523ec1173d1531",
+    "python/src/wcm/kbs.py": "9684155fee30f5c7bc33cbdf7b8b39bfb354a6f7f9c83a5a73ccc3fe32b75699",
+    "python/tests/fixtures/mlkem768-nist-keygen.json": "617d0e9d7456e0dd5e4cb48d0c77c481d1d52b5e3c13fec2f32db64fcd798807",
+    "python/tests/test_hybrid_nist.py": "4cc596768a8723a271641461b5636ae492a7dcce6f769e629871158d172d8607",
+    "python/tests/test_hybrid_release.py": "794a5294e7a77c0b95dd81e6b19033f611e1a12d2504b9381592baad420fb788",
+    "python/tests/test_hybrid_seal.py": "58a38264acd95efb73b2ec730336743b4f234b3b6dd1eac327b19600512aa8d9"
+  },
+  "canonical_lf_source_sha256": {
+    "python/src/wcm/__init__.py": "b1302b7b7a23f075742151a1d9b397f3497c7100928cadaa6bd079c0a24a2431",
+    "python/src/wcm/attestation.py": "7a0de2e69658147082a24b60a341275305c0bab357e33039c7e83164c32a6d13",
+    "python/src/wcm/hybrid_seal.py": "814b99507b5d3022ee8399d6d9b960ea20f5591b24826e65fd523ec1173d1531",
+    "python/src/wcm/kbs.py": "9e2363c1357aaefc80b3664f644e0eda56fda20f5364267726f3d9f87100ee54",
+    "python/tests/fixtures/mlkem768-nist-keygen.json": "03511a64f1dbd5513c197ade276b3e8cba3af5d9c4a569a6554fad34530e51de",
+    "python/tests/test_hybrid_nist.py": "4cc596768a8723a271641461b5636ae492a7dcce6f769e629871158d172d8607",
+    "python/tests/test_hybrid_release.py": "794a5294e7a77c0b95dd81e6b19033f611e1a12d2504b9381592baad420fb788",
+    "python/tests/test_hybrid_seal.py": "58a38264acd95efb73b2ec730336743b4f234b3b6dd1eac327b19600512aa8d9"
+  },
+  "runs": {
+    "3.11": {
+      "python": "3.11.18 (main, Oct 28 2026, 02:05:49) [GCC 12.2.0]",
+      "platform": "Linux-6.6.87.1-microsoft-standard-WSL2-x86_64-with-glibc2.36",
+      "cryptography": "50.0.1",
+      "openssl": "OpenSSL 4.0.2 25 Aug 2026",
+      "passed": true,
+      "pytest_summary": "1690 passed, 36 skipped, 72 warnings, 31 subtests passed in 108.43s (0:01:48)",
+      "passed_tests": 1690,
+      "skipped_tests": 36,
+      "subtests_passed": 31,
+      "warnings": 72,
+      "focused_tests": 100,
+      "coverage_percent": 93.32961724266072,
+      "hybrid_module_coverage_percent": 100,
+      "skip_reasons": {
+        "requires the dedicated privileged Linux loader job": 11,
+        "pinned edk2 source required; compiled control tests run in firmware CI": 7,
+        "pinned independent predictor checkout required": 17,
+        "original device-identifying receipt is not distributed publicly": 1
+      },
+      "steps": [
+        {
+          "name": "dependency-check",
+          "exit_code": 0,
+          "passed": true,
+          "seconds": 0.99
+        },
+        {
+          "name": "dependencies",
+          "exit_code": 0,
+          "passed": true,
+          "seconds": 0.83
+        },
+        {
+          "name": "install-candidate",
+          "exit_code": 0,
+          "passed": true,
+          "seconds": 2.38
+        },
+        {
+          "name": "mypy",
+          "exit_code": 0,
+          "passed": true,
+          "seconds": 18.09
+        },
+        {
+          "name": "bandit",
+          "exit_code": 0,
+          "passed": true,
+          "seconds": 2.38
+        },
+        {
+          "name": "pytest",
+          "exit_code": 0,
+          "passed": true,
+          "seconds": 111.5
+        },
+        {
+          "name": "focused",
+          "exit_code": 0,
+          "passed": true,
+          "seconds": 2.13
+        },
+        {
+          "name": "source-disclosure",
+          "exit_code": 0,
+          "passed": true,
+          "seconds": 1.28
+        },
+        {
+          "name": "conformance",
+          "exit_code": 0,
+          "passed": true,
+          "seconds": 0.77
+        }
+      ],
+      "evidence_sha256": {
+        "pytest.xml": "e5fd493e496353ee8b14a66840ebba097539a5144fbaf317d164950e9dc36ded",
+        "focused.xml": "8c6f86bd33bc696fa7f08954bc98e25a26086a94975026204535466ca7e2666a",
+        "pytest.log": "d1d47d2d8e6bc589e4337bbf5fff88fc0b0bb7c190b1a6ceffa9d4d264ce5235",
+        "mypy.log": "a97cee1ee1bdb5e2d1ca7098f7b33a6c6a21263225643192fdeb78654687ed89",
+        "bandit.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "source-disclosure.log": "bc02dfb3d3259a473c003a6b255f5b516981506d98e17cf261da29a5e1c156cf",
+        "summary.json": "df3272b8f7b38ec60184cb7cccb9596f08d9fcba5e9d398a5a0765380f61572c"
+      }
+    },
+    "3.12": {
+      "python": "3.12.16 (main, Oct 28 2026, 02:01:35) [GCC 12.2.0]",
+      "platform": "Linux-6.6.87.1-microsoft-standard-WSL2-x86_64-with-glibc2.36",
+      "cryptography": "50.0.1",
+      "openssl": "OpenSSL 4.0.2 25 Aug 2026",
+      "passed": true,
+      "pytest_summary": "1690 passed, 36 skipped, 72 warnings, 31 subtests passed in 106.17s (0:01:46)",
+      "passed_tests": 1690,
+      "skipped_tests": 36,
+      "subtests_passed": 31,
+      "warnings": 72,
+      "focused_tests": 100,
+      "coverage_percent": 93.32961724266072,
+      "hybrid_module_coverage_percent": 100,
+      "skip_reasons": {
+        "requires the dedicated privileged Linux loader job": 11,
+        "pinned edk2 source required; compiled control tests run in firmware CI": 7,
+        "pinned independent predictor checkout required": 17,
+        "original device-identifying receipt is not distributed publicly": 1
+      },
+      "steps": [
+        {
+          "name": "dependency-check",
+          "exit_code": 0,
+          "passed": true,
+          "seconds": 1.04
+        },
+        {
+          "name": "dependencies",
+          "exit_code": 0,
+          "passed": true,
+          "seconds": 0.82
+        },
+        {
+          "name": "install-candidate",
+          "exit_code": 0,
+          "passed": true,
+          "seconds": 2.33
+        },
+        {
+          "name": "mypy",
+          "exit_code": 0,
+          "passed": true,
+          "seconds": 20.95
+        },
+        {
+          "name": "bandit",
+          "exit_code": 0,
+          "passed": true,
+          "seconds": 3.08
+        },
+        {
+          "name": "pytest",
+          "exit_code": 0,
+          "passed": true,
+          "seconds": 110.55
+        },
+        {
+          "name": "focused",
+          "exit_code": 0,
+          "passed": true,
+          "seconds": 2.59
+        },
+        {
+          "name": "source-disclosure",
+          "exit_code": 0,
+          "passed": true,
+          "seconds": 0.97
+        },
+        {
+          "name": "conformance",
+          "exit_code": 0,
+          "passed": true,
+          "seconds": 0.82
+        },
+        {
+          "name": "negative-omit-mlkem",
+          "exit_code": 1,
+          "passed": true,
+          "seconds": 1.93
+        },
+        {
+          "name": "negative-omit-x25519",
+          "exit_code": 1,
+          "passed": true,
+          "seconds": 1.98
+        },
+        {
+          "name": "negative-omit-public-keys",
+          "exit_code": 1,
+          "passed": true,
+          "seconds": 1.62
+        },
+        {
+          "name": "negative-omit-encapsulation",
+          "exit_code": 1,
+          "passed": true,
+          "seconds": 1.32
+        },
+        {
+          "name": "negative-omit-counter",
+          "exit_code": 1,
+          "passed": true,
+          "seconds": 2.07
+        },
+        {
+          "name": "negative-wrong-aead",
+          "exit_code": 1,
+          "passed": true,
+          "seconds": 1.62
+        },
+        {
+          "name": "negative-ignore-context",
+          "exit_code": 1,
+          "passed": true,
+          "seconds": 1.52
+        },
+        {
+          "name": "negative-unbounded-inputs",
+          "exit_code": 1,
+          "passed": true,
+          "seconds": 1.52
+        },
+        {
+          "name": "build",
+          "exit_code": 0,
+          "passed": true,
+          "seconds": 1.42
+        },
+        {
+          "name": "twine",
+          "exit_code": 0,
+          "passed": true,
+          "seconds": 0.57
+        },
+        {
+          "name": "archive-disclosure",
+          "exit_code": 0,
+          "passed": true,
+          "seconds": 0.57
+        },
+        {
+          "name": "wheel-venv",
+          "exit_code": 0,
+          "passed": true,
+          "seconds": 3.93
+        },
+        {
+          "name": "wheel-install",
+          "exit_code": 0,
+          "passed": true,
+          "seconds": 1.42
+        },
+        {
+          "name": "wheel-smoke",
+          "exit_code": 0,
+          "passed": true,
+          "seconds": 0.62
+        }
+      ],
+      "evidence_sha256": {
+        "pytest.xml": "4bd4cfdcc37b8ea517d2b6fa0da7ca369827baac50327e8fed81cd109d438552",
+        "focused.xml": "769bae0bda548a9b00a0c764e36710a3c2d3a065c8540314a29d8ddd12a6a2e8",
+        "pytest.log": "fa3cdbaff5f6acd203514f4153d69a72cd3b5678406994607647a705252c2595",
+        "mypy.log": "a97cee1ee1bdb5e2d1ca7098f7b33a6c6a21263225643192fdeb78654687ed89",
+        "bandit.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "source-disclosure.log": "bc02dfb3d3259a473c003a6b255f5b516981506d98e17cf261da29a5e1c156cf",
+        "summary.json": "91ae79609a5dbf23aa526a427f610b5823b3946720d8496a018494b9e345b0dd"
+      }
+    },
+    "3.13": {
+      "python": "3.13.18 (main, Oct 28 2026, 02:02:02) [GCC 12.2.0]",
+      "platform": "Linux-6.6.87.1-microsoft-standard-WSL2-x86_64-with-glibc2.36",
+      "cryptography": "50.0.1",
+      "openssl": "OpenSSL 4.0.2 25 Aug 2026",
+      "passed": true,
+      "pytest_summary": "1690 passed, 36 skipped, 72 warnings, 31 subtests passed in 100.59s (0:01:40)",
+      "passed_tests": 1690,
+      "skipped_tests": 36,
+      "subtests_passed": 31,
+      "warnings": 72,
+      "focused_tests": 100,
+      "coverage_percent": 93.32961724266072,
+      "hybrid_module_coverage_percent": 100,
+      "skip_reasons": {
+        "requires the dedicated privileged Linux loader job": 11,
+        "pinned edk2 source required; compiled control tests run in firmware CI": 7,
+        "pinned independent predictor checkout required": 17,
+        "original device-identifying receipt is not distributed publicly": 1
+      },
+      "steps": [
+        {
+          "name": "dependency-check",
+          "exit_code": 0,
+          "passed": true,
+          "seconds": 1.05
+        },
+        {
+          "name": "dependencies",
+          "exit_code": 0,
+          "passed": true,
+          "seconds": 0.88
+        },
+        {
+          "name": "install-candidate",
+          "exit_code": 0,
+          "passed": true,
+          "seconds": 2.38
+        },
+        {
+          "name": "mypy",
+          "exit_code": 0,
+          "passed": true,
+          "seconds": 20.4
+        },
+        {
+          "name": "bandit",
+          "exit_code": 0,
+          "passed": true,
+          "seconds": 3.03
+        },
+        {
+          "name": "pytest",
+          "exit_code": 0,
+          "passed": true,
+          "seconds": 104.45
+        },
+        {
+          "name": "focused",
+          "exit_code": 0,
+          "passed": true,
+          "seconds": 3.04
+        },
+        {
+          "name": "source-disclosure",
+          "exit_code": 0,
+          "passed": true,
+          "seconds": 1.78
+        },
+        {
+          "name": "conformance",
+          "exit_code": 0,
+          "passed": true,
+          "seconds": 0.77
+        }
+      ],
+      "evidence_sha256": {
+        "pytest.xml": "9a2d0456dbca4adaf3e86c4407a739e09a7987db35839e12b9b26f9001536532",
+        "focused.xml": "8aa24127b491942279c63f17e2f4b3fc4e9e5c2a91b312cc4e1911b0c3b99c66",
+        "pytest.log": "2d9ba218e17fe112e09cca5b9bcfe23c10ea9ff736a233765710b3aeda86debd",
+        "mypy.log": "a97cee1ee1bdb5e2d1ca7098f7b33a6c6a21263225643192fdeb78654687ed89",
+        "bandit.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "source-disclosure.log": "bc02dfb3d3259a473c003a6b255f5b516981506d98e17cf261da29a5e1c156cf",
+        "summary.json": "4ecb7a40602e9994507178aef9098fca2ec6047aa193d1275b399a307735d61e"
+      }
+    }
+  }
+}

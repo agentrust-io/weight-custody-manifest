@@ -7,6 +7,7 @@ import pytest
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
 from wcm import (
+    HYBRID_TRANSPORT_PROFILE,
     KeyBrokerService,
     BytearrayMemoryRange,
     SealError,
@@ -716,6 +717,9 @@ def test_require_evidence_verification_absent_keeps_existing_preimage(
         ({"allowed_platform_instances": b"a" * 64}, "not a bare string"),
     ],
 )
-def test_kbs_rejects_boolean_float_or_invalid_ttl_and_bare_string_instances(kwargs, match):
+@pytest.mark.parametrize("transport_profile", ["x25519", HYBRID_TRANSPORT_PROFILE])
+def test_kbs_rejects_boolean_float_or_invalid_ttl_and_bare_string_instances(
+    kwargs, match, transport_profile,
+):
     with pytest.raises(ValueError, match=match):
-        KeyBrokerService({}, **kwargs)
+        KeyBrokerService({}, transport_profile=transport_profile, **kwargs)
