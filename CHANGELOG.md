@@ -14,6 +14,26 @@ manifest, KBS or default custody behavior changes. This does not establish
 hardware integrity, prevent DMA, or prove continuous integrity. See
 `docs/model-memory-integrity.md` for bootstrap, observer trust and integration.
 
+**Fixed (#237).** Reject non-string dictionary keys with `TypeError` rather
+than leaking an `AttributeError` outside callers' validation-error handling.
+Reject lone UTF-16 surrogates explicitly with `ValueError`; such inputs were
+already refused during encoding, so this clarifies the diagnostic.
+
+**Changed (behaviour, breaking for large-integer callers, #237).** Python
+integers outside `-(2**53 - 1)..(2**53 - 1)` now raise `ValueError`, including
+through `TransparencyLog.append` and `make_leaf_preimage`. Previously accepted
+uint64 bitmasks and nanosecond timestamps can therefore fail. This is the SDK's
+exact-integer interoperability policy (RFC 7493 section 2.2 and RFC 8785
+Appendix B note 1), not a blanket RFC prohibition on larger floating values.
+Finite-float acceptance and formatting are unchanged; casting integers to
+float can silently lose precision and is not a migration strategy.
+
+For new statements, agree an exact string encoding with all consumers and the
+applicable schema. A string has a different signed preimage from a number:
+do not rewrite existing log entries or assume prior signatures/proofs survive
+conversion. There is no automatic migration of historical large-integer
+statements. This change does not establish full floating-point JCS conformance.
+
 **Fixed, security (#227).** `SignedTreeHead.root_bytes`, `verify_sth`,
 `seal_to_public_key`, `KeyBrokerService._check_channel_binding`, and
 `provisioning_binding` now require canonical lowercase hex (`^sha256:[0-9a-f]{64}$`
@@ -29,6 +49,8 @@ from evidence the verifier rejected. Explicit verification waivers retain their
 structural-only behavior for valid input. This is a software input/admission
 boundary repair, not new hardware or vendor-status assurance; verifier parsing
 changes in #224 remain separate.
+
+**Fixed (#223).** `azure_vtpm._b64url_uint` now enforces canonical unpadded base64url and RFC 7518 section 2 minimal big-endian `Base64urlUInt` encoding (rejecting leading `0x00` bytes and non-zero trailing base64url bits), and `AzureSnpVtpmVerifier.verify` rejects `HCLAkPub` JWKs carrying RFC 7517/7518 private or symmetric key parameters (`d`, `p`, `q`, `dp`, `dq`, `qi`, `oth`, `k`). `JsonQuoteParser.parse`, `AzureSnpVtpmVerifier.verify`, and `NvidiaGpuVerifier.verify` reject duplicate JSON object keys via `object_pairs_hook`, and `QuoteVerifier.verify`, `verify_tdx_quote`, `AzureSnpVtpmVerifier.verify`, and `NvidiaGpuVerifier.verify` validate `expected_nonce` as 64 lowercase hexadecimal characters before decoding instead of accepting whitespace or raising `ValueError`.
 
 **Fixed, security (#225).** `_b64url_decode` in `wcm._signing` and base64url
 verification in `runtime_records`, `renewal`, and `memory_sweep` now enforce

@@ -471,3 +471,22 @@ def test_malformed_identity_is_refused(kwargs):
     report = _spdm_report("ab" * 32, _p384(), **kwargs)
     with pytest.raises(GpuReportFormatError):
         gpu_measurement_from_report(report, _Pki().leaf)
+
+
+def test_nvidia_verifier_rejects_duplicate_json_keys_and_whitespace_nonce():
+    b = _real_bundle()
+    v = build_gpu_verifier(_real_root_pem())
+    raw_json = base64.b64decode(_evidence_b64(b["report_b64"], b["cert_chain_pem"])).decode()
+    dup_ev = base64.b64encode(('{"report_b64":"AAAA",' + raw_json[1:]).encode()).decode()
+    dup_res = v.verify(dup_ev, expected_nonce=b["nonce"], now=NOW)
+    assert not dup_res.verified
+    assert "duplicate JSON object key" in (dup_res.reason or "")
+
+    for bad_nonce in ("AB" * 32, "  " + b["nonce"] + "\n", "ab" * 31, 123):  # type: ignore[list-item]
+        res = v.verify(
+            _evidence_b64(b["report_b64"], b["cert_chain_pem"]),
+            expected_nonce=bad_nonce,  # type: ignore[arg-type]
+            now=NOW,
+        )
+        assert not res.verified
+        assert "expected_nonce" in (res.reason or "")
