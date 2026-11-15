@@ -826,3 +826,53 @@ def test_renewal_issued_to_another_enclave_does_not_renew_this_one(structural_ma
         )
     assert session.deadline == deadline
     session.apply_renewal(structural_manifest, own_decision, evidence=_submitted(own_decision))
+
+
+def test_enclave_session_and_parse_cadence_validate_types():
+    import asyncio
+    from wcm.custody import parse_cadence
+
+    for bad_key in (32, b"", bytearray(), memoryview(b""), "str", None, [1, 2, 3]):
+        with pytest.raises(ValueError, match="key must be non-empty bytes-like"):
+            EnclaveSession(bad_key, cadence_seconds=60)  # type: ignore[arg-type]
+    for good_key in (KEY, bytearray(KEY), memoryview(KEY)):
+        EnclaveSession(good_key, cadence_seconds=60).zeroize()
+    for bad_cad in (True, False, 0, -5, 1.5, "60"):
+        with pytest.raises(ValueError, match="cadence_seconds"):
+            EnclaveSession(KEY, cadence_seconds=bad_cad)  # type: ignore[arg-type]
+    for bad_ops in (True, False, 0, -1, 1.5, "10"):
+        with pytest.raises(ValueError, match="max_operations"):
+            EnclaveSession(KEY, cadence_seconds=60, max_operations=bad_ops)  # type: ignore[arg-type]
+    s = EnclaveSession(KEY, cadence_seconds=60)
+    async def run_monitor():
+        await asyncio.wait_for(s.monitor(poll_interval=True), timeout=0.5)
+
+    try:
+        with pytest.raises(ValueError, match="poll_interval"):
+            asyncio.run(run_monitor())
+    finally:
+        s.zeroize()
+    for bad_text in ("٢٤h", "24\u00a0h", 24, None):
+        with pytest.raises(ValueError, match="invalid cadence"):
+            parse_cadence(bad_text)  # type: ignore[arg-type]
+
+
+@pytest.mark.parametrize("value", [b"SYNTHETIC_SECRET", {"api_key": "SYNTHETIC_SECRET"}])
+def test_cadence_type_error_does_not_disclose_value(value):
+    from wcm.custody import parse_cadence
+
+    with pytest.raises(ValueError, match="invalid cadence type") as caught:
+        parse_cadence(value)
+    assert "SYNTHETIC_SECRET" not in str(caught.value)
+    assert type(value).__name__ in str(caught.value)
+
+
+def test_cadence_type_error_does_not_call_repr():
+    from wcm.custody import parse_cadence
+
+    class Unrepresentable:
+        def __repr__(self):
+            raise AssertionError("diagnostic must not inspect the value")
+
+    with pytest.raises(ValueError, match="invalid cadence type Unrepresentable"):
+        parse_cadence(Unrepresentable())
