@@ -19,9 +19,22 @@ jobs:
         with:
           python-version: '3.11'
       - run: python -m pip install --require-hashes -r requirements/lock-check.txt
-      - name: Compare existing locks and resolve supported platforms
+      - name: Compare the complete lock inventory
         env:
           LOCK_BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: >-
-          python tools/check_lock_delta.py --base "$LOCK_BASE_SHA" --resolve
-          --all-locks
+          python tools/check_lock_delta.py --base "$LOCK_BASE_SHA" --all-locks
+      - name: Resolve SDK and tooling locks on Python 3.11
+        shell: bash
+        run: |
+          locks=()
+          for lock in requirements/*.txt; do
+            [[ "$lock" == requirements/docs.txt ]] || locks+=("$lock")
+          done
+          python tools/check_lock_delta.py --resolve --python-version 3.11 "${locks[@]}"
+      - name: Resolve documentation lock on Python 3.12
+        # requirements/docs.in declares a separate Python 3.12 docs toolchain.
+        # This does not raise the SDK's >=3.11 support floor.
+        run: >-
+          python tools/check_lock_delta.py --resolve --python-version 3.12
+          requirements/docs.txt
