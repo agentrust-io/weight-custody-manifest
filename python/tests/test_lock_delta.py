@@ -169,8 +169,14 @@ class TestLockInventory(unittest.TestCase):
         (self.root / 'requirements').mkdir()
         shutil.copy2(ROOT / 'tools/check_lock_delta.py', self.root / 'tools/check_lock_delta.py')
         # Read the actual workflow's command, including its lock selection.
-        workflow = (ROOT / '.github/workflows/lock-validation.yml').read_text()
-        self.command = workflow.split('run: >-', 1)[1].replace('\n', ' ').strip()
+        import yaml
+        workflow = yaml.safe_load((ROOT / '.github/workflows/lock-validation.yml').read_text())
+        inventory = [step for step in workflow['jobs']['locks']['steps']
+                     if '--all-locks' in step.get('run', '')]
+        self.assertEqual(len(inventory), 1, 'one complete inventory check is required')
+        self.assertEqual(inventory[0]['env']['LOCK_BASE_SHA'],
+                         '${{ github.event.pull_request.base.sha }}')
+        self.command = inventory[0]['run'].strip()
         # Structural inventory behavior is independent of network resolution.
         self.command = self.command.replace('--resolve', '').replace('"$LOCK_BASE_SHA"', 'HEAD')
         for name in ('dev', 'runtime', 'server'):
