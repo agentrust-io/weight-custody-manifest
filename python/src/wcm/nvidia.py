@@ -246,13 +246,18 @@ class NvidiaGpuVerifier:
         ``cert_chain_pem`` (the PEM device cert chain, leaf first). ``expected_nonce``
         is the KBS challenge nonce (hex); it must appear raw at offset 4 in the
         report, which is what binds this report to the CPU quote's shared nonce.
+        Both base64 layers are decoded strictly; a character outside the base64
+        alphabet, whitespace included, is a denial rather than being skipped.
         """
         current = now if now is not None else _utcnow()
         try:
-            doc = json.loads(base64.b64decode(evidence_b64), object_pairs_hook=_unique_object)
+            doc = json.loads(
+                base64.b64decode(evidence_b64, validate=True),
+                object_pairs_hook=_unique_object,
+            )
             if not isinstance(doc, dict):
                 raise ValueError("GPU evidence must be a JSON object")
-            report = base64.b64decode(doc["report_b64"])
+            report = base64.b64decode(doc["report_b64"], validate=True)
             certs = load_pem_certificates(doc["cert_chain_pem"].encode())
         except RecursionError as exc:
             # RecursionError is json.loads on deeply nested input.
