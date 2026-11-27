@@ -84,6 +84,12 @@ class QuoteParser(Protocol):
 class JsonQuoteParser:
     """Reference parser: quote_b64 is base64(JSON) with report/signature/certs.
 
+    Every base64 field is decoded with ``validate=True``: a character outside
+    the base64 alphabet, whitespace and line breaks included, is a
+    ``QuoteFormatError`` rather than being skipped. This does not make the wire
+    encoding canonical: unused pad bits are not checked, so ``YQ==`` and ``YR==``
+    still decode to the same bytes.
+
     Container shape::
 
         {"report_b64": ..., "signature_b64": ...,
@@ -119,7 +125,10 @@ class JsonQuoteParser:
 
     def parse(self, quote_b64: str) -> ParsedQuote:
         try:
-            doc = json.loads(base64.b64decode(quote_b64), object_pairs_hook=_unique_object)
+            doc = json.loads(
+                base64.b64decode(quote_b64, validate=True),
+                object_pairs_hook=_unique_object,
+            )
             if not isinstance(doc, dict):
                 raise ValueError("quote container must be a JSON object")
             claimed = doc.get("report_data_offset", self._report_data_offset)
@@ -133,7 +142,7 @@ class JsonQuoteParser:
                 load_pem_certificate(p.encode())
                 for p in doc.get("intermediates_pem", [])
             ]
-            body = base64.b64decode(doc["report_b64"])
+            body = base64.b64decode(doc["report_b64"], validate=True)
             launch = None
             if self._launch_measurement_offset is not None:
                 end = self._launch_measurement_offset + self._launch_measurement_length
@@ -142,7 +151,7 @@ class JsonQuoteParser:
                 launch = body[self._launch_measurement_offset : end]
             return ParsedQuote(
                 report_body=body,
-                signature=base64.b64decode(doc["signature_b64"]),
+                signature=base64.b64decode(doc["signature_b64"], validate=True),
                 leaf=leaf,
                 intermediates=inters,
                 report_data_offset=self._report_data_offset,

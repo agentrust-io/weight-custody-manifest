@@ -59,6 +59,18 @@ structural-only behavior for valid input. This is a software input/admission
 boundary repair, not new hardware or vendor-status assurance; verifier parsing
 changes in #224 remain separate.
 
+**Fixed (#252).** `JsonQuoteParser.parse` and `NvidiaGpuVerifier.verify` decode
+every base64 layer with `validate=True`: the outer quote or evidence string, and
+the inner `report_b64` and `signature_b64`. A character outside the base64
+alphabet, whitespace and line breaks included, is now a `QuoteFormatError` (a
+denial through `QuoteVerifier`, `NvidiaGpuVerifier` and the KBS) instead of being
+skipped. This rejects non-alphabet characters only; it does not make the encoding
+canonical, because `b64decode(validate=True)` does not check unused pad bits
+(`YQ==` and `YR==` still decode to the same bytes). Behaviour change: quotes or
+GPU evidence that were line-wrapped or carried a trailing newline were accepted
+before and are refused now; re-encode them without whitespace. `SnpQuoteParser`
+and the CLI bundle readers are unchanged.
+
 **Fixed (#223).** `azure_vtpm._b64url_uint` now enforces canonical unpadded base64url and RFC 7518 section 2 minimal big-endian `Base64urlUInt` encoding (rejecting leading `0x00` bytes and non-zero trailing base64url bits), and `AzureSnpVtpmVerifier.verify` rejects `HCLAkPub` JWKs carrying RFC 7517/7518 private or symmetric key parameters (`d`, `p`, `q`, `dp`, `dq`, `qi`, `oth`, `k`). `JsonQuoteParser.parse`, `AzureSnpVtpmVerifier.verify`, and `NvidiaGpuVerifier.verify` reject duplicate JSON object keys via `object_pairs_hook`, and `QuoteVerifier.verify`, `verify_tdx_quote`, `AzureSnpVtpmVerifier.verify`, and `NvidiaGpuVerifier.verify` validate `expected_nonce` as 64 lowercase hexadecimal characters before decoding instead of accepting whitespace or raising `ValueError`.
 
 **Fixed, security (#225).** `_b64url_decode` in `wcm._signing` and base64url
